@@ -1,8 +1,16 @@
 language: node_js
 node_js:
-    - "lts/*"
+- lts/*
+install:
+- npm install vsce -g
+- npm install lerna -g
 script:
-    - build/ci-pull-fo4.sh
-    - npm run lint
-    - npm run build
-    - npm run test
+- build/ci-pull-fo4.sh
+- npm run lint
+- npm run build
+- npm run test
+deploy:
+  provider: script
+  script: build/ci-publish.sh
+  on:
+    branch: master

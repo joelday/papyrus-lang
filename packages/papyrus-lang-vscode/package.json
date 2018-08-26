@@ -72,10 +72,8 @@
         ]
     },
     "scripts": {
-        "vscode:prepublish": "lerna run build",
         "vscode:install": "node ./node_modules/vscode/bin/install",
-        "postinstall": "lerna run vscode:install --scope papyrus-lang-vscode",
-        "test": "lerna run build && node ./node_modules/vscode/bin/test"
+        "postinstall": "lerna run vscode:install --scope papyrus-lang-vscode"
     },
     "dependencies": {
         "chokidar": "^2.0.4",

@@ -2,6 +2,8 @@
 
 pushd ./ > /dev/null
 
+echo Pulling Fallout 4 base scripts...
+
 mkdir papyrus/FO4Scripts
 cd papyrus/FO4Scripts
 git init
