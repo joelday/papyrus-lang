@@ -10,6 +10,9 @@ set -e
 echo Publishing packages...
 
 git checkout master
+git add .
+git reset --hard
+
 lerna publish prerelease --preid preview
 
 echo Publishing Visual Studio Code extension package...
