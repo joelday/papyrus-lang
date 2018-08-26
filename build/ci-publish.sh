@@ -24,7 +24,7 @@ echo Publishing Visual Studio Code extension package...
 pushd ./ > /dev/null
 cd packages/papyrus-lang-vscode
 
-lerna exec --scope papyrus-lang-vscode npm install
+../../node_modules/.bin/lerna exec --scope papyrus-lang-vscode npm install
 
 vsce package
 vsce publish
