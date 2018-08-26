@@ -1,7 +1,7 @@
 {
     "name": "papyrus-lang-vscode",
-    "displayName": "papyrus-lang-vscode",
-    "description": "",
+    "displayName": "Papyrus",
+    "description": "Advanced language support for Fallout 4 Papyrus scripting language.",
     "version": "0.0.1-preview.1",
     "publisher": "joelday",
     "engines": {
