@@ -17,5 +17,5 @@
     "main": "lib/index.js",
     "name": "papyrus-lang-lsp-server",
     "typings": "lib/index.d.ts",
-    "version": "0.0.1-preview.0"
+    "version": "0.0.1-preview.2"
 }
