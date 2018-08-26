@@ -16,7 +16,7 @@ git checkout master
 git config credential.helper "store --file=.git/credentials"
 echo "https://${GH_TOKEN}:@github.com" > .git/credentials
 
-echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> .npmrc
+echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
 
 lerna publish prerelease --preid preview --yes
 
