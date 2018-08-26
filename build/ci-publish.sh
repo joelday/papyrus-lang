@@ -10,6 +10,7 @@ pushd ./ > /dev/null
 cd packages/papyrus-lang-vscode
 
 rm -rf node_modules
+
 npm install
 vsce package
 vsce publish
