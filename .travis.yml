@@ -6,7 +6,6 @@ install:
 - npm install vsce -g
 - npm install lerna -g
 script:
-- echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> .npmrc
 - build/ci-pull-fo4.sh
 - npm run lint
 - npm run build
