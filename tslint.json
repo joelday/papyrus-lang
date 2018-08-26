@@ -21,7 +21,6 @@
                 "static-method-regex": "^[a-z][\\w\\d]+$"
             }
         ],
-        "no-unused-variable": [true, {"ignore-pattern": "^_"}],
         "import-name": false,
         "indent": [
             true,
