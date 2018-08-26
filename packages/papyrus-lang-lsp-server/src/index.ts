@@ -1,5 +1,3 @@
-// Arbitrary change.
-
 import {
     isDescendentOfNodeOrSelf,
     visitAncestors,
