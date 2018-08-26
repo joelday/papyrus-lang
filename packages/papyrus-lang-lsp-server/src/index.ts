@@ -52,21 +52,6 @@ import {
     Symbol,
     SymbolKind,
 } from 'papyrus-lang/lib/symbols/Symbol';
-import * as path from 'path';
-
-const logFileName = path.join(os.homedir(), 'papyrus-lang.log');
-
-const stream = fs.createWriteStream(logFileName, {
-    encoding: 'utf-8',
-    flags: 'a',
-});
-
-global.console.log = (...args: any[]) =>
-    stream.write(
-        `\r\n${args.map((a) => (a ? a.toString() : 'undefined')).join(', ')}`
-    );
-
-console.log(new Date().toDateString());
 
 connection.onRequest((request) => {
     console.log(request);
