@@ -2,7 +2,7 @@
     "name": "papyrus-lang-vscode",
     "displayName": "papyrus-lang-vscode",
     "description": "",
-    "version": "0.0.1-preview.0",
+    "version": "0.0.1-preview.1",
     "publisher": "joelday",
     "engines": {
         "vscode": "^1.26.0"

@@ -2,7 +2,7 @@
     "packages": [
         "packages/*"
     ],
-    "version": "0.0.1-preview.0",
+    "version": "0.0.1-preview.1",
     "ignoreChanges": [
         "**/__tests__/**",
         "**/*.md"
