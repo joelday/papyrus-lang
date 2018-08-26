@@ -2,6 +2,8 @@ import { Range } from './common/Range';
 import { StringBuilder } from './common/StringBuilder';
 import { stringOf } from './common/Utilities';
 
+// Arbitrary change.
+
 export class DiagnosticsError {
     private readonly _diagnostics: Diagnostics;
     private readonly _message: string;
