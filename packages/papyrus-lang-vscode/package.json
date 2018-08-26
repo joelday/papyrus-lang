@@ -2,7 +2,7 @@
     "name": "papyrus-lang-vscode",
     "displayName": "Papyrus",
     "description": "Advanced language support for Fallout 4 Papyrus scripting language.",
-    "version": "0.0.1-preview.1",
+    "version": "0.0.1-preview.2",
     "publisher": "joelday",
     "engines": {
         "vscode": "^1.26.0"
@@ -78,7 +78,7 @@
     "dependencies": {
         "chokidar": "^2.0.4",
         "papyrus-lang": "^0.0.1-preview.0",
-        "papyrus-lang-lsp-server": "^0.0.1-preview.0",
+        "papyrus-lang-lsp-server": "^0.0.1-preview.2",
         "vscode-languageclient": "^5.0.1"
     },
     "devDependencies": {
