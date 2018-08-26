@@ -13,6 +13,9 @@ git add .
 git reset --hard
 git checkout master
 
+git config credential.helper "store --file=.git/credentials"
+echo "https://${GH_TOKEN}:@github.com" > .git/credentials
+
 lerna publish prerelease --preid preview --yes
 
 echo Publishing Visual Studio Code extension package...
