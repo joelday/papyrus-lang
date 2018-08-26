@@ -18,13 +18,13 @@ echo "https://${GH_TOKEN}:@github.com" > .git/credentials
 
 echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
 
-lerna publish patch --yes
+lerna publish minor --yes $LERNA_PUBLISH_OPTIONS
 
 echo Publishing Visual Studio Code extension package...
 pushd ./ > /dev/null
 cd packages/papyrus-lang-vscode
 
-../../node_modules/.bin/lerna exec --scope papyrus-lang-vscode npm install
+npm install --no-optional
 
 vsce package
 vsce publish --pat $VSCE_TOKEN
