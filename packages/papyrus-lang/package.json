@@ -1,0 +1,21 @@
+{
+    "author": "Joel Day <joelday@gmail.com>",
+    "dependencies": {
+        "glob": "^7.1.2",
+        "tslib": "^1.9.3",
+        "upath": "^1.1.0",
+        "util.promisify": "^1.0.0",
+        "vscode-uri": "^1.0.6",
+        "xml-js": "^1.6.7"
+    },
+    "description": "Papyrus parser and language service",
+    "files": [
+        "lib"
+    ],
+    "scripts": {
+        "test": "jest"
+    },
+    "license": "MIT",
+    "name": "papyrus-lang",
+    "version": "0.0.0"
+}

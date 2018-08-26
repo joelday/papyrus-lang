@@ -1,0 +1,20 @@
+{
+    "If": {
+        "prefix": "if",
+        "body": [
+            "\r\nIf (${1:$SELECTION})\r\n\t${0}\r\nEndIf"
+        ],
+        "description": [
+            "If Condition Snippet"
+        ]
+    },
+    "While": {
+        "prefix": "while",
+        "body": [
+            "While (${1:$SELECTION})\r\n\t${0}\r\nEndWhile"
+        ],
+        "description": [
+            "While Loop Snippet"
+        ]
+    }
+}

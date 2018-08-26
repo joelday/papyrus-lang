@@ -1,0 +1,12 @@
+{
+    "extends": "../tsconfig.settings.json",
+    "compilerOptions": {
+        "outDir": "lib",
+        "rootDir": "src"
+    },
+    "references": [
+        { "path": "../papyrus-lang" },
+        { "path": "../papyrus-lang-lsp-server" }
+    ],
+    "exclude": ["__tests__", "lib", "node_modules"]
+}

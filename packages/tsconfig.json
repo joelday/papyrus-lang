@@ -1,0 +1,9 @@
+{
+    "extends": "./tsconfig.settings.json",
+    "files": [],
+    "references": [
+        { "path": "papyrus-lang" },
+        { "path": "papyrus-lang-lsp-server" },
+        { "path": "papyrus-lang-vscode" }
+    ]
+}

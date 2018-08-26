@@ -1,0 +1,21 @@
+{
+    "author": "Joel Day <joelday@gmail.com>",
+    "dependencies": {
+        "papyrus-lang": "0.0.0",
+        "tslib": "^1.9.3",
+        "vscode-languageserver": "^5.0.3",
+        "glob": "^7.1.2"
+    },
+    "description": "Papyrus language server",
+    "engines": {
+        "node": ">= 8.9.0"
+    },
+    "files": [
+        "lib"
+    ],
+    "license": "MIT",
+    "main": "lib/index.js",
+    "name": "papyrus-lang-lsp-server",
+    "typings": "lib/index.d.ts",
+    "version": "0.0.0"
+}

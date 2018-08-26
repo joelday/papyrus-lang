@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Project parsePapyrusProjectXml parses a ppj file 1`] = `
+Object {
+  "asm": "none",
+  "final": false,
+  "flags": "Institute_Papyrus_Flags.flg",
+  "folder": Object {
+    "noRecurse": false,
+    "path": ".",
+  },
+  "imports": Array [
+    "C:\\\\Program Files (x86)\\\\Steam\\\\steamapps\\\\common\\\\Fallout 4\\\\Data\\\\Scripts\\\\Source\\\\Base",
+    "..\\\\..\\\\FO4Scripts\\\\Base",
+  ],
+  "optimize": false,
+  "output": null,
+  "release": false,
+  "scripts": Array [],
+}
+`;
