@@ -17,6 +17,10 @@
         "onLanguage:papyrus-project"
     ],
     "main": "./lib/extension",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/joelday/papyrus-lang.git"
+    },
     "contributes": {
         "languages": [
             {
