@@ -27,6 +27,6 @@ cd packages/papyrus-lang-vscode
 ../../node_modules/.bin/lerna exec --scope papyrus-lang-vscode npm install
 
 vsce package
-vsce publish
+vsce publish --pat $VSCE_TOKEN
 
 popd > /dev/null
