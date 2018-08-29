@@ -5,7 +5,7 @@
 
 ## Advanced language tools for the Papyrus scripting language.
 
-You can now write mods for Fallout 4 with the aid of modern editing features such as code completion, jump to definition, hover, symbol search and live updating diagnostics.
+You can now write mods for Fallout 4 with the aid of modern code editing features such as code completion, jump to definition, hover, symbol search and live updating diagnostics.
 
 ## 📺 Visual Studio Code Extension
 Preview release, updated frequently with new features and improvements.
