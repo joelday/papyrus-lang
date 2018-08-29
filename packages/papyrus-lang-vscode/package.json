@@ -8,6 +8,9 @@
         "name": "Joel Day",
         "url": "https://github.com/joelday"
     },
+    "bugs": {
+        "url": "https://github.com/joelday/papyrus-lang/issues"
+    },
     "categories": [
         "Programming Languages"
     ],
@@ -82,7 +85,7 @@
         "papyrus-lang-lsp-server": "^0.3.0",
         "vscode-languageclient": "^5.0.1"
     },
-    "description": "Advanced language support for Fallout 4 Papyrus scripting language.",
+    "description": "Advanced language support for Fallout 4's Papyrus scripting language.",
     "devDependencies": {
         "@types/chokidar": "^1.7.5",
         "@types/glob": "^5.0.35",
@@ -96,8 +99,23 @@
     "engines": {
         "vscode": "^1.26.0"
     },
-    "homepage": "https://github.com/joelday/papyrus-lang",
+    "homepage": "https://github.com/joelday/papyrus-lang/tree/master/packages/papyrus-lang-vscode",
+    "icon": "images/icon-small.png",
+    "keywords": [
+        "Papyrus",
+        "Fallout 4",
+        "Scripting",
+        "Modding",
+        "Creation Kit"
+    ],
     "main": "./lib/extension",
+    "maintainers": [
+        {
+            "email": "joelday@gmail.com",
+            "name": "Joel Day",
+            "url": "https://github.com/joelday"
+        }
+    ],
     "name": "papyrus-lang-vscode",
     "preview": true,
     "private": true,
@@ -110,5 +128,5 @@
         "postinstall": "lerna run vscode:install --scope papyrus-lang-vscode",
         "vscode:install": "node ./node_modules/vscode/bin/install"
     },
-    "version": "0.3.0"
+    "version": "0.4.0"
 }
