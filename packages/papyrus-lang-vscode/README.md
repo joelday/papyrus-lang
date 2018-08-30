@@ -12,4 +12,4 @@
 ---
 
 ### 🚧 This project is in early development.
-Bugs and breaking changes may be introduced from time to time. Please [file an issue](issues/new) with bug reports or feature requests.
+Bugs and breaking changes may be introduced from time to time. Please [file an issue](https://github.com/joelday/papyrus-lang/issues/new) with bug reports or feature requests.

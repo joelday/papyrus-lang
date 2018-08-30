@@ -43,33 +43,6 @@ function getSymbolKind(symbol: Symbol) {
     }
 }
 
-export function getSymbolInformation(
-    symbol: Symbol,
-    textDocument: TextDocument
-): SymbolInformation {
-    if (!symbol || symbol.kind === PapyrusSymbolKind.Intrinsic) {
-        return null;
-    }
-
-    const symbolKind = getSymbolKind(symbol);
-    if (!symbolKind) {
-        return null;
-    }
-
-    return {
-        name: symbol.name,
-        containerName: symbol.parent ? symbol.parent.name : null,
-        kind: symbolKind,
-        location: {
-            uri: textDocument.uri,
-            range: papyrusRangeToRange(
-                textDocument,
-                symbol.declaration.node.range
-            ),
-        },
-    };
-}
-
 export function getDocumentSymbolTree(
     symbol: Symbol,
     textDocument: TextDocument

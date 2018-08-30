@@ -28,18 +28,13 @@ import {
 } from './features/Completions';
 import { buildHoverText } from './features/Descriptions';
 import { signatureInformationForFunctionSymbol } from './features/Signatures';
-import {
-    getDocumentSymbolTree,
-    getSymbolInformation,
-} from './features/Symbols';
+import { getDocumentSymbolTree } from './features/Symbols';
 import { ProjectManager } from './ProjectManager';
 import { TextDocumentLanguageServiceHost } from './TextDocumentLanguageServiceHost';
-import { getTextForRange, papyrusRangeToRange } from './Utilities';
+import { papyrusRangeToRange } from './Utilities';
 
 const connection = createConnection(ProposedFeatures.all);
 
-import * as fs from 'fs';
-import * as os from 'os';
 import { iterateMany } from 'papyrus-lang/lib/common/Utilities';
 import {
     findNodeAtPosition,
@@ -47,11 +42,7 @@ import {
     Node,
     NodeKind,
 } from 'papyrus-lang/lib/parser/Node';
-import {
-    FunctionSymbol,
-    Symbol,
-    SymbolKind,
-} from 'papyrus-lang/lib/symbols/Symbol';
+import { FunctionSymbol, SymbolKind } from 'papyrus-lang/lib/symbols/Symbol';
 
 connection.onRequest((request) => {
     console.log(request);
@@ -170,19 +161,12 @@ function getNodeAtPosition(documentUri: string, position: Position) {
 connection.onDocumentSymbol((params) => {
     const scriptNode = getScriptNode(params.textDocument.uri);
 
-    // return getDocumentSymbolTree(
-    //     scriptNode.symbol,
-    //     languageServiceHost.getTextDocument(params.textDocument.uri)
-    // ) as any;
-
-    return Array.from(visitTree<Symbol>(scriptNode.symbol))
-        .map((n) =>
-            getSymbolInformation(
-                n.node,
-                languageServiceHost.getTextDocument(params.textDocument.uri)
-            )
-        )
-        .filter((symbolInfo) => !!symbolInfo);
+    return [
+        getDocumentSymbolTree(
+            scriptNode.symbol,
+            languageServiceHost.getTextDocument(params.textDocument.uri)
+        ),
+    ];
 });
 
 connection.onDefinition((params) => {
@@ -401,6 +385,27 @@ connection.onCompletion((params: TextDocumentPositionParams) => {
         params.position
     );
 
+    if (nodeAtPosition.script.scriptFile) {
+        const textDocument = languageServiceHost.getTextDocument(
+            params.textDocument.uri
+        );
+        const documentPosition = textDocument.offsetAt(params.position);
+
+        for (const token of nodeAtPosition.script.scriptFile.tokens.tokens) {
+            if (
+                token.range.start <= documentPosition &&
+                token.range.end >= documentPosition &&
+                token.isComment
+            ) {
+                return [];
+            }
+
+            if (token.range.start > documentPosition) {
+                break;
+            }
+        }
+    }
+
     const memberTypes = getValidMemberTypesForChild(nodeAtPosition);
 
     // TODO: Getting the type checker from an arbitrary node is bonkers:
@@ -436,22 +441,6 @@ connection.onCompletion((params: TextDocumentPositionParams) => {
                 'bool',
                 'string',
                 'var',
-                // 'If',
-                // 'Else',
-                // 'ElseIf',
-                // 'Property',
-                // 'Struct',
-                // 'Group',
-                // 'State',
-                // 'Event',
-                // 'Function',
-                // 'EndIf',
-                // 'EndProperty',
-                // 'EndStruct',
-                // 'EndGroup',
-                // 'EndState',
-                // 'EndEvent',
-                // 'EndFunction',
             ].map((key) => ({
                 label: key,
                 kind: CompletionItemKind.Keyword,
