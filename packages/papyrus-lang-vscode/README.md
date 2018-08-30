@@ -6,7 +6,7 @@
 ### Fallout 4 Papyrus language support with code completion, jump to definition, hover, symbol search and live updated diagnostics.
 
 <p align="center">
-    <img src="images/icon.png" width="75%" />
+    <img src="https://github.com/joelday/papyrus-lang/raw/master/packages/papyrus-lang-vscode/images/icon.png" width="75%" />
 </p>
 
 ---
