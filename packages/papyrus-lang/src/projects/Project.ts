@@ -25,9 +25,9 @@ export class Project {
         const groups = [
             ...[...this._config.imports]
                 .reverse()
-                .map((i) => this.findPscFiles(path.normalizeSafe(i), true)),
+                .map((i) => this.findPscFiles(i, true)),
             this.findPscFiles(
-                path.normalizeSafe(this._config.folder.path),
+                this._config.folder.path,
                 !this._config.folder.noRecurse
             ),
         ];
@@ -36,14 +36,16 @@ export class Project {
 
         for (const group of groups) {
             for (const file of group.files) {
-                files.set(file[1], URI.file(file[0]).toString());
+                files.set(file[1], file[0]);
             }
         }
 
         return files;
     }
 
-    private findPscFiles(folderPath: string, recurse: boolean) {
+    private findPscFiles(folderUri: string, recurse: boolean) {
+        const folderPath = URI.parse(folderUri).fsPath;
+
         const paths = this._fileSystem.findFilesAsUris(
             path.join(folderPath, recurse ? '**' : '.', '*.psc')
         );
@@ -52,10 +54,12 @@ export class Project {
             basePath: folderPath,
             files: paths.map((f) => [
                 f,
-                path.basename(
-                    path.relative(folderPath, f).replace(/\/|\\/g, ':'),
-                    '.psc'
-                ),
+                path
+                    .basename(
+                        path.relative(folderPath, URI.parse(f).fsPath),
+                        '.psc'
+                    )
+                    .replace(/\/|\\/g, ':'),
             ]),
         };
     }

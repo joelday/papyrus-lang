@@ -1,11 +1,8 @@
 import { StringBuilder } from '../common/StringBuilder';
-import { Flags, isLiteral, NodeKind } from '../parser/Node';
+import { isLiteral, NodeKind } from '../parser/Node';
 import {
-    CustomEventSymbol,
     EventSymbol,
     FunctionSymbol,
-    GroupSymbol,
-    ImportSymbol,
     ParameterSymbol,
     PropertySymbol,
     ScriptSymbol,

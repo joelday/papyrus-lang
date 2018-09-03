@@ -2,11 +2,11 @@ import { Lazy, LazyTokenEqualityMemoized } from '../common/Lazy';
 import { Diagnostics } from '../Diagnostics';
 import { ScriptNode } from '../parser/Node';
 import { Parser } from '../parser/Parser';
+import { IScriptTextProvider, ScriptText } from '../sources/ScriptTextProvider';
 import { SymbolBinder } from '../symbols/SymbolBinder';
 import { Token } from '../tokenizer/Token';
 import { Tokenizer } from '../tokenizer/Tokenizer';
-import { getTypeOfScript, ScriptType, Type } from '../types/Type';
-import { LanguageServiceHost, ScriptText } from './LanguageServiceHost';
+import { getTypeOfScript, ScriptType } from '../types/Type';
 import { Program } from './Program';
 import { ScriptReferenceValue } from './ScriptReferenceValue';
 
@@ -24,7 +24,7 @@ export class ScriptFile {
     private readonly _scriptName: string;
     private readonly _uri: string;
     private readonly _program: Program;
-    private readonly _languageServiceHost: LanguageServiceHost;
+    private readonly _scriptTextProvider: IScriptTextProvider;
     private readonly _tokens: Lazy<TokensResult>;
     private readonly _type: LazyTokenEqualityMemoized<ScriptType>;
     private readonly _scriptNode: LazyTokenEqualityMemoized<ScriptNodeResult>;
@@ -34,16 +34,16 @@ export class ScriptFile {
         scriptName: string,
         uri: string,
         program: Program,
-        languageServiceHost: LanguageServiceHost
+        scriptTextProvider: IScriptTextProvider
     ) {
         this._scriptName = scriptName;
         this._uri = uri;
         this._program = program;
-        this._languageServiceHost = languageServiceHost;
+        this._scriptTextProvider = scriptTextProvider;
 
         this._tokens = new Lazy(
             () => {
-                this._text = this._languageServiceHost.getScriptText(this._uri);
+                this._text = this._scriptTextProvider.getScriptText(this._uri);
 
                 if (this._text === null) {
                     return null;
@@ -60,7 +60,7 @@ export class ScriptFile {
             },
             () =>
                 this._text
-                    ? this._languageServiceHost.getScriptVersion(this._uri) !==
+                    ? this._scriptTextProvider.getScriptVersion(this._uri) !==
                       this._text.version
                     : null
         );

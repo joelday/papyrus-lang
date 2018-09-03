@@ -1,8 +1,7 @@
+import { IInstantiationService } from 'decoration-ioc';
 import * as path from 'path';
 import URI from 'vscode-uri';
 import { DoublyLinkedMap } from '../common/DoublyLinkedMap';
-import { visitAncestors } from '../common/TreeNode';
-import { lastOfIterable } from '../common/Utilities';
 import {
     IdentifierNode,
     isContainer,
@@ -11,22 +10,12 @@ import {
     ScriptNode,
     TypeIdentifierNode,
 } from '../parser/Node';
-import { ScriptSymbol, SymbolKind } from '../symbols/Symbol';
-import {
-    ArrayType,
-    intrinsicTypes,
-    ScriptType,
-    Type,
-    TypeKind,
-} from '../types/Type';
+import { Project } from '../projects/Project';
+import { ProjectConfig } from '../projects/ProjectConfig';
+import { IScriptTextProvider } from '../sources/ScriptTextProvider';
+import { intrinsicTypes } from '../types/Type';
 import { TypeChecker } from '../types/TypeChecker';
 import { DisplayTextEmitter } from './DisplayTextEmitter';
-import {
-    FileSystemLanguageServiceHost,
-    LanguageServiceHost,
-} from './LanguageServiceHost';
-import { Project } from './Project';
-import { ProjectConfig } from './ProjectConfig';
 import { ReferenceResolver } from './ReferenceResolver';
 import { ScriptFile } from './ScriptFile';
 
@@ -52,7 +41,7 @@ export class Program {
     }
 
     private readonly _project: Project;
-    private readonly _languageServiceHost: LanguageServiceHost;
+    private readonly _scriptTextProvider: IScriptTextProvider;
 
     private readonly _scriptFiles: Map<string, ScriptFile> = new Map();
 
@@ -65,10 +54,14 @@ export class Program {
 
     constructor(
         projectConfig: ProjectConfig,
-        languageServiceHost: LanguageServiceHost = new FileSystemLanguageServiceHost()
+        @IScriptTextProvider scriptTextProvider: IScriptTextProvider,
+        @IInstantiationService instantiationService: IInstantiationService
     ) {
-        this._project = new Project(projectConfig);
-        this._languageServiceHost = languageServiceHost;
+        this._project = instantiationService.createInstance(
+            Project,
+            projectConfig
+        );
+        this._scriptTextProvider = scriptTextProvider;
         this._typeChecker = new TypeChecker(this);
         this._displayTextEmitter = new DisplayTextEmitter(this);
         this._referenceResolver = new ReferenceResolver(this);
@@ -168,7 +161,7 @@ export class Program {
     }
 
     private createScriptFile(scriptName: string, uri: string) {
-        return new ScriptFile(scriptName, uri, this, this._languageServiceHost);
+        return new ScriptFile(scriptName, uri, this, this._scriptTextProvider);
     }
 }
 

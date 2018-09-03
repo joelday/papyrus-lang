@@ -1,19 +1,55 @@
+import {
+    Descriptor,
+    InstantiationService,
+    ServiceCollection,
+} from 'decoration-ioc';
 import * as path from 'path';
+import URI from 'vscode-uri';
 import { StringBuilder } from '../../src/common/StringBuilder';
 import { Diagnostics } from '../../src/Diagnostics';
+import { IFileSystem } from '../../src/host/FileSystem';
+import { NodeFileSystem } from '../../src/host/NodeFileSystem';
 import { Program } from '../../src/program/Program';
-import { loadProjectFile, Project } from '../../src/program/Project';
+import { loadProjectFile, Project } from '../../src/projects/Project';
+import {
+    IProjectConfigParser,
+    ProjectConfigParser,
+} from '../../src/projects/ProjectConfigParser';
+import {
+    IProjectSource,
+    ProjectSource,
+} from '../../src/projects/ProjectSource';
+import { FileSystemScriptTextProvider } from '../../src/sources/FileSystemScriptTextProvider';
+import { IScriptTextProvider } from '../../src/sources/ScriptTextProvider';
 
 describe('Program', () => {
-    it('Properly enumerates project files and parses scripts on demand', () => {
-        const projectConfig = loadProjectFile(
+    const serviceCollection = new ServiceCollection(
+        [IFileSystem, new Descriptor(NodeFileSystem)],
+        [IProjectConfigParser, new Descriptor(ProjectConfigParser)],
+        [IProjectSource, new Descriptor(ProjectSource)],
+        [IScriptTextProvider, new Descriptor(FileSystemScriptTextProvider)]
+    );
+
+    const instantiationService = new InstantiationService(serviceCollection);
+    const projectSource = instantiationService.invokeFunction((accessor) =>
+        accessor.get(IProjectSource)
+    );
+
+    const projectConfig = projectSource.loadProjectFile(
+        URI.file(
             path.resolve(
                 __dirname,
                 '../../../../papyrus/FO4TestScripts/Project/Project.ppj'
             )
-        );
+        ).toString()
+    );
 
-        const program = new Program(projectConfig);
+    it('Properly enumerates project files and parses scripts on demand', () => {
+        const program = instantiationService.createInstance(
+            Program,
+            projectConfig
+        ) as Program;
+
         const scriptFile = program.getScriptFileByName('Functions');
 
         expect(scriptFile).toBeTruthy();
@@ -23,14 +59,11 @@ describe('Program', () => {
     it(
         'Performs static analysis of scripts',
         () => {
-            const projectConfig = loadProjectFile(
-                path.resolve(
-                    __dirname,
-                    '../../../../papyrus/FO4TestScripts/Project/Project.ppj'
-                )
+            const program = instantiationService.createInstance(
+                Program,
+                projectConfig
             );
 
-            const program = new Program(projectConfig);
             let errorCount = 0;
 
             const diagnosticsOutput = new StringBuilder();
