@@ -1,6 +1,3 @@
-import { readFile, readFileSync } from 'fs';
-
-import { GlobSync } from 'glob';
 import { Deferred } from './Deferred';
 import { Range } from './Range';
 import { IterableScannableIterator, Scanner } from './Scanner';
@@ -91,14 +88,6 @@ export function* iteratorOf<T>(value: T, count: number) {
 
 export function stringOf(value: string, count: number) {
     return Array.from(iteratorOf(value, count)).join('');
-}
-
-export function readTextFile(path: string, encoding: string = 'utf8'): string {
-    return readFileSync(path, { encoding });
-}
-
-export function findFiles(globPattern: string): string[] {
-    return new GlobSync(globPattern).found;
 }
 
 export function flushIterator(iterator: Iterator<any>) {

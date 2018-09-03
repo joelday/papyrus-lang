@@ -1,21 +1,25 @@
+import * as path from 'path';
+import { Diagnostics } from '../../src/Diagnostics';
+import { NodeFileSystem } from '../../src/host/NodeFileSystem';
 import { Parser } from '../../src/parser/Parser';
 import { Tokenizer } from '../../src/tokenizer/Tokenizer';
-
-import * as path from 'path';
-import { findFiles, readTextFile } from '../../src/common/Utilities';
-import { Diagnostics } from '../../src/Diagnostics';
 
 describe('Parser', () => {
     const tokenizer = new Tokenizer();
     const parser = new Parser();
 
     it('parses base scripts without errors', () => {
-        const files = findFiles(
-            path.resolve(__dirname, '../../../../papyrus/FO4Scripts/Base/**/*.psc')
+        const fileSystem = new NodeFileSystem();
+
+        const files = fileSystem.findFilesAsUris(
+            path.resolve(
+                __dirname,
+                '../../../../papyrus/FO4Scripts/Base/**/*.psc'
+            )
         );
 
         for (const file of files) {
-            const source = readTextFile(file);
+            const source = fileSystem.readTextFile(file);
             const diagnostics = new Diagnostics(file, source);
             const tokens = tokenizer.tokenize(source, diagnostics);
             parser.parse(tokens, diagnostics);
