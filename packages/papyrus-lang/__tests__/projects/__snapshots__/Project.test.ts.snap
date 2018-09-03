@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Project parsePapyrusProjectXml parses a ppj file 1`] = `
+exports[`Projects parsePapyrusProjectXml parses a ppj file 1`] = `
 Object {
   "asm": "none",
   "final": false,
