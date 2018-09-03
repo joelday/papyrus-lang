@@ -1,10 +1,10 @@
-import { FileSystem } from '../host/FileSystem';
-import { ScriptTextProvider } from './ScriptTextProvider';
+import { IFileSystem } from '../host/FileSystem';
+import { IScriptTextProvider } from './ScriptTextProvider';
 
-export class FileSystemScriptTextProvider implements ScriptTextProvider {
-    private readonly _fileSystem: FileSystem;
+export class FileSystemScriptTextProvider implements IScriptTextProvider {
+    private readonly _fileSystem: IFileSystem;
 
-    constructor(@FileSystem fileSystem: FileSystem) {
+    constructor(@IFileSystem fileSystem: IFileSystem) {
         this._fileSystem = fileSystem;
     }
 

@@ -2,9 +2,9 @@ import { readFileSync } from 'fs';
 import { GlobSync } from 'glob';
 import { normalizeSafe as normalize } from 'upath';
 import URI from 'vscode-uri';
-import { FileSystem } from './FileSystem';
+import { IFileSystem } from './FileSystem';
 
-export class NodeFileSystem implements FileSystem {
+export class NodeFileSystem implements IFileSystem {
     public readTextFile(uri: string): string {
         return readFileSync(URI.parse(uri).fsPath, { encoding: 'utf8' });
     }

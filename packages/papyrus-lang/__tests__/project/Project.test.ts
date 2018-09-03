@@ -1,17 +1,23 @@
 import * as path from 'path';
-import { readTextFile } from '../../src/common/Utilities';
+import URI from 'vscode-uri';
+import { NodeFileSystem } from '../../src/host/NodeFileSystem';
 import { loadProjectFile, Project } from '../../src/program/Project';
 import { parsePapyrusProjectXml } from '../../src/program/ProjectConfig';
 
 describe('Project', () => {
+    const fileSystem = new NodeFileSystem();
+
     describe('parsePapyrusProjectXml', () => {
         it('parses a ppj file', () => {
-            const source = readTextFile(
-                path.resolve(
-                    __dirname,
-                    '../../../../papyrus/FO4TestScripts/Project/Project.ppj'
-                )
+            const source = fileSystem.readTextFile(
+                URI.file(
+                    path.resolve(
+                        __dirname,
+                        '../../../../papyrus/FO4TestScripts/Project/Project.ppj'
+                    )
+                ).toString()
             );
+
             const project = parsePapyrusProjectXml(source);
             expect(project).toMatchSnapshot();
         });

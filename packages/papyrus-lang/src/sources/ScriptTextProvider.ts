@@ -5,12 +5,12 @@ export interface ScriptText {
     version: string;
 }
 
-export interface ScriptTextProvider {
+export interface IScriptTextProvider {
     getScriptText(uri: string): ScriptText;
     getScriptVersion(uri: string): string;
 }
 
 // tslint:disable-next-line:variable-name
-export const ScriptTextProvider = createDecorator<ScriptTextProvider>(
+export const IScriptTextProvider = createDecorator<IScriptTextProvider>(
     'scriptTextProvider'
 );
