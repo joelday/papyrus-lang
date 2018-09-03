@@ -1,11 +1,12 @@
 {
     "devDependencies": {
+        "@types/glob": "^5.0.35",
         "@types/jest": "^23.3.1",
         "@types/node": "^10.9.2",
-        "@types/glob": "^5.0.35",
         "jest": "^23.5.0",
         "lerna": "^3.1.4",
         "prettier": "^1.14.2",
+        "rimraf": "^2.6.2",
         "ts-jest": "^23.1.4",
         "tslint": "^5.11.0",
         "tslint-microsoft-contrib": "^5.2.1",
@@ -21,7 +22,8 @@
     "scripts": {
         "postinstall": "lerna bootstrap",
         "lint": "tslint -t stylish --project packages/tsconfig.settings.json",
-        "build": "tsc -b --clean packages && tsc -b --verbose packages && echo 'Build completed'",
+        "clean": "rimraf packages/*/lib",
+        "build": "npm run clean && tsc -b --verbose packages && echo 'Build completed'",
         "watch": "npm run build && tsc -b --verbose --watch packages",
         "test": "jest --projects packages/papyrus-lang packages/papyrus-lang-lsp-server"
     },
