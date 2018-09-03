@@ -4,9 +4,6 @@
         "outDir": "lib",
         "rootDir": "src"
     },
-    "references": [
-        { "path": "../papyrus-lang/tsconfig.build.json" },
-        { "path": "../papyrus-lang-lsp-server/tsconfig.build.json" }
-    ],
+    "references": [{ "path": "../papyrus-lang/tsconfig.build.json" }],
     "exclude": ["__tests__", "lib", "node_modules"]
 }

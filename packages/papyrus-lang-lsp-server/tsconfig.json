@@ -1,9 +1,6 @@
 {
-    "extends": "../tsconfig.settings.json",
+    "extends": "./tsconfig.build.json",
     "compilerOptions": {
-        "outDir": "lib",
-        "rootDir": "src"
-    },
-    "references": [{ "path": "../papyrus-lang" }],
-    "exclude": ["__tests__", "lib", "node_modules"]
+        "composite": false
+    }
 }
