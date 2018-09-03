@@ -1,5 +1,6 @@
 import * as path from 'path';
 import { Diagnostics } from '../../src/Diagnostics';
+import { NodeFileSystem } from '../../src/host/NodeFileSystem';
 import { Parser } from '../../src/parser/Parser';
 import { Tokenizer } from '../../src/tokenizer/Tokenizer';
 
