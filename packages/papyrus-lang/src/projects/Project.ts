@@ -56,10 +56,9 @@ export class Project {
                 f,
                 path
                     .basename(
-                        path.relative(folderPath, URI.parse(f).fsPath),
+                        path.relative(folderPath, URI.parse(f).fsPath).replace(/\/|\\/g, ':'),
                         '.psc'
                     )
-                    .replace(/\/|\\/g, ':'),
             ]),
         };
     }
