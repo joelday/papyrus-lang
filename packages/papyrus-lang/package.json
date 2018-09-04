@@ -1,12 +1,12 @@
 {
     "author": "Joel Day <joelday@gmail.com>",
     "dependencies": {
+        "decoration-ioc": "^2.0.0",
         "glob": "^7.1.3",
         "tslib": "^1.9.3",
         "upath": "^1.1.0",
         "vscode-uri": "^1.0.6",
-        "xml-js": "^1.6.7",
-        "decoration-ioc": "^2.0.0"
+        "xml-js": "^1.6.7"
     },
     "description": "Papyrus parser and language service",
     "files": [
@@ -17,5 +17,5 @@
     },
     "license": "MIT",
     "name": "papyrus-lang",
-    "version": "0.7.0"
+    "version": "0.8.0"
 }
