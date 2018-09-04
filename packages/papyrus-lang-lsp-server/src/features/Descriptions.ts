@@ -19,7 +19,7 @@ export function buildHoverText(
     sb.appendLine('```');
 
     if (displayText.documentation) {
-        sb.appendLine(displayText.documentation);
+        sb.appendLine(displayText.documentation.split(/\r\n|\r|\n/).join(`\r\n\r\n`));
     }
 
     return sb.toString();

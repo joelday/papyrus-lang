@@ -26,7 +26,6 @@
         "sourceMap": true,
         "strictNullChecks": false,
         "target": "es2018",
-        "preserveSymlinks": true,
         "experimentalDecorators": true
     }
 }

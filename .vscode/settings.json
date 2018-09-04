@@ -3,5 +3,8 @@
     "git.ignoreLimitWarning": true,
     "jest.pathToJest": "npm run test --",
     "jest.enableSnapshotUpdateMessages": false,
-    "jest.debugCodeLens.showWhenTestStateIn": []
+    "jest.debugCodeLens.showWhenTestStateIn": [],
+    "files.exclude":{
+        "**/node_modules": true
+    }
 }

@@ -372,6 +372,10 @@ export class Parser {
                             node,
                             false
                         );
+
+                        if (!this._tokens.peekNonTrivia().value.isEndOfLogicalLine) {
+                            this._tokens.nextNonTrivia();
+                        }
                     }
                 }
 
