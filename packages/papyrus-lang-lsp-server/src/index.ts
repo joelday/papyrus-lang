@@ -3,37 +3,6 @@ import {
     visitAncestors,
     visitTree,
 } from 'papyrus-lang/lib/common/TreeNode';
-import { LookupFlags, MemberTypes } from 'papyrus-lang/lib/types/TypeChecker';
-import {
-    CompletionItem,
-    CompletionItemKind,
-    createConnection,
-    Definition,
-    Diagnostic,
-    FileChangeType,
-    Location,
-    MarkedString,
-    MarkupKind,
-    Position,
-    ProposedFeatures,
-    SignatureInformation,
-    TextDocument,
-    TextDocumentPositionParams,
-    TextDocuments,
-} from 'vscode-languageserver';
-import URI from 'vscode-uri';
-import {
-    getCompletionItem,
-    getStubScriptCompletionItem,
-} from './features/Completions';
-import { buildHoverText } from './features/Descriptions';
-import { signatureInformationForFunctionSymbol } from './features/Signatures';
-import { getDocumentSymbolTree } from './features/Symbols';
-import { ProjectManager } from './ProjectManager';
-import { papyrusRangeToRange } from './Utilities';
-
-const connection = createConnection(ProposedFeatures.all);
-
 import { iterateMany } from 'papyrus-lang/lib/common/Utilities';
 import { IFileSystem } from 'papyrus-lang/lib/host/FileSystem';
 import { NodeFileSystem } from 'papyrus-lang/lib/host/NodeFileSystem';
@@ -53,13 +22,36 @@ import {
 } from 'papyrus-lang/lib/projects/ProjectSource';
 import { IScriptTextProvider } from 'papyrus-lang/lib/sources/ScriptTextProvider';
 import { FunctionSymbol, SymbolKind } from 'papyrus-lang/lib/symbols/Symbol';
+import { LookupFlags, MemberTypes } from 'papyrus-lang/lib/types/TypeChecker';
 import {
     Descriptor,
     InstantiationService,
     ServiceCollection,
 } from 'papyrus-lang/node_modules/decoration-ioc';
+import {
+    CompletionItemKind,
+    createConnection,
+    Diagnostic,
+    Location,
+    MarkupKind,
+    Position,
+    ProposedFeatures,
+    TextDocument,
+    TextDocumentPositionParams,
+    TextDocuments,
+} from 'vscode-languageserver';
+import {
+    getCompletionItem,
+    getStubScriptCompletionItem,
+} from './features/Completions';
+import { buildHoverText } from './features/Descriptions';
+import { signatureInformationForFunctionSymbol } from './features/Signatures';
+import { getDocumentSymbolTree } from './features/Symbols';
+import { ProjectManager } from './ProjectManager';
 import { TextDocumentScriptTextProvider } from './TextDocument';
+import { papyrusRangeToRange } from './Utilities';
 
+const connection = createConnection(ProposedFeatures.all);
 const textDocuments = new TextDocuments();
 
 const serviceCollection = new ServiceCollection(
