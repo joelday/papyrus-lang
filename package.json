@@ -23,8 +23,8 @@
         "postinstall": "lerna bootstrap",
         "lint": "tslint -t stylish --project packages/tsconfig.settings.json",
         "clean": "rimraf packages/*/lib",
-        "build": "npm run clean && tsc -b --verbose packages && echo 'Build completed'",
-        "watch": "npm run build && tsc -b --verbose --watch packages",
+        "build": "npm run clean && tsc -b --verbose packages/tsconfig.build.json && echo 'Build completed'",
+        "watch": "npm run build && tsc -b --verbose --watch packages/tsconfig.build.json",
         "test": "jest --projects packages/papyrus-lang packages/papyrus-lang-lsp-server"
     },
     "name": "papyrus-lang"
