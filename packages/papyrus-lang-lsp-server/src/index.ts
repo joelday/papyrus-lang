@@ -1,4 +1,9 @@
 import {
+    Descriptor,
+    InstantiationService,
+    ServiceCollection,
+} from 'decoration-ioc';
+import {
     isDescendentOfNodeOrSelf,
     visitAncestors,
     visitTree,
@@ -23,11 +28,6 @@ import {
 import { IScriptTextProvider } from 'papyrus-lang/lib/sources/ScriptTextProvider';
 import { FunctionSymbol, SymbolKind } from 'papyrus-lang/lib/symbols/Symbol';
 import { LookupFlags, MemberTypes } from 'papyrus-lang/lib/types/TypeChecker';
-import {
-    Descriptor,
-    InstantiationService,
-    ServiceCollection,
-} from 'papyrus-lang/node_modules/decoration-ioc';
 import {
     CompletionItemKind,
     createConnection,
