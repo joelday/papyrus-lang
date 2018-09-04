@@ -65,10 +65,9 @@ const serviceCollection = new ServiceCollection(
 );
 
 const instantiationService = new InstantiationService(serviceCollection);
-const scriptTextProvider = instantiationService.invokeFunction(
-    (accessor) =>
-        accessor.get(IScriptTextProvider) as TextDocumentScriptTextProvider
-);
+const scriptTextProvider = instantiationService.invokeFunction((accessor) =>
+    accessor.get(IScriptTextProvider)
+) as TextDocumentScriptTextProvider;
 
 let hasWorkspaceFolderCapability = false;
 
