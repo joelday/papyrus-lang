@@ -20,6 +20,7 @@ export class TextDocumentScriptTextProvider implements IScriptTextProvider {
         );
     }
 
+    // TODO: Move this elsewhere:
     public getTextDocument(uri: string) {
         return (
             this._textDocuments.get(uri) ||

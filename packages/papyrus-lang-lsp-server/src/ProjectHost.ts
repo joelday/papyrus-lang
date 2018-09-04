@@ -1,25 +1,28 @@
-import { LanguageServiceHost } from 'papyrus-lang/lib/program/LanguageServiceHost';
+import { IInstantiationService } from 'decoration-ioc';
 import { Program } from 'papyrus-lang/lib/program/Program';
-import { loadProjectFile } from 'papyrus-lang/lib/program/Project';
+import { IProjectSource } from 'papyrus-lang/lib/projects/ProjectSource';
 import * as path from 'path';
-import {
-    Diagnostic,
-    DiagnosticSeverity,
-    TextDocument,
-} from 'vscode-languageserver';
+import { Diagnostic, TextDocument } from 'vscode-languageserver';
 import URI from 'vscode-uri';
 import { papyrusDiagnosticErrorToDiagnostic } from './features/Diagnostics';
 
 export class ProjectHost {
     private _program: Program;
     private readonly _projectName: string;
-    private readonly _languageServiceHost: LanguageServiceHost;
-    private readonly _projectPath: string;
+    private readonly _projectSource: IProjectSource;
+    private readonly _instantiationService: IInstantiationService;
+    private readonly _projectUri: string;
 
-    constructor(projectUri: string, languageServiceHost: LanguageServiceHost) {
-        this._projectPath = URI.parse(projectUri).fsPath;
-        this._projectName = path.basename(this._projectPath);
-        this._languageServiceHost = languageServiceHost;
+    constructor(
+        projectUri: string,
+        @IProjectSource projectSource: IProjectSource,
+        @IInstantiationService instantiationService: IInstantiationService
+    ) {
+        this._projectUri = projectUri;
+        this._projectName = path.basename(URI.parse(projectUri).fsPath);
+
+        this._projectSource = projectSource;
+        this._instantiationService = instantiationService;
 
         this.reloadProject();
     }
@@ -29,9 +32,13 @@ export class ProjectHost {
     }
 
     public reloadProject() {
-        this._program = new Program(
-            loadProjectFile(this._projectPath),
-            this._languageServiceHost
+        const projectConfig = this._projectSource.loadProjectFile(
+            this._projectUri
+        );
+
+        this._program = this._instantiationService.createInstance(
+            Program,
+            projectConfig
         );
     }
 

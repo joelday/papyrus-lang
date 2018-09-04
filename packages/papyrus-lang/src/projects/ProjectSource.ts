@@ -29,7 +29,7 @@ export class ProjectSource implements IProjectSource {
                     rootUris.map((uri) =>
                         this._fileSystem.findFilesAsUris(
                             path.normalize(
-                                path.join(URI.file(uri).fsPath, '**', '*.ppj')
+                                path.join(URI.parse(uri).fsPath, '**', '*.ppj')
                             )
                         )
                     )

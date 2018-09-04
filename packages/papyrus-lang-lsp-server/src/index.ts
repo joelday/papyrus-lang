@@ -30,30 +30,59 @@ import { buildHoverText } from './features/Descriptions';
 import { signatureInformationForFunctionSymbol } from './features/Signatures';
 import { getDocumentSymbolTree } from './features/Symbols';
 import { ProjectManager } from './ProjectManager';
-import { TextDocumentLanguageServiceHost } from './TextDocumentLanguageServiceHost';
 import { papyrusRangeToRange } from './Utilities';
 
 const connection = createConnection(ProposedFeatures.all);
 
 import { iterateMany } from 'papyrus-lang/lib/common/Utilities';
+import { IFileSystem } from 'papyrus-lang/lib/host/FileSystem';
+import { NodeFileSystem } from 'papyrus-lang/lib/host/NodeFileSystem';
 import {
     findNodeAtPosition,
     FunctionCallExpressionNode,
     Node,
     NodeKind,
 } from 'papyrus-lang/lib/parser/Node';
+import {
+    IProjectConfigParser,
+    ProjectConfigParser,
+} from 'papyrus-lang/lib/projects/ProjectConfigParser';
+import {
+    IProjectSource,
+    ProjectSource,
+} from 'papyrus-lang/lib/projects/ProjectSource';
+import { IScriptTextProvider } from 'papyrus-lang/lib/sources/ScriptTextProvider';
 import { FunctionSymbol, SymbolKind } from 'papyrus-lang/lib/symbols/Symbol';
-
-connection.onRequest((request) => {
-    console.log(request);
-});
+import {
+    Descriptor,
+    InstantiationService,
+    ServiceCollection,
+} from 'papyrus-lang/node_modules/decoration-ioc';
+import { TextDocumentScriptTextProvider } from './TextDocument';
 
 const textDocuments = new TextDocuments();
 
+const serviceCollection = new ServiceCollection(
+    [IFileSystem, new Descriptor(NodeFileSystem)],
+    [IProjectConfigParser, new Descriptor(ProjectConfigParser)],
+    [IProjectSource, new Descriptor(ProjectSource)],
+    [
+        IScriptTextProvider,
+        new Descriptor(TextDocumentScriptTextProvider, textDocuments),
+    ]
+);
+
+const instantiationService = new InstantiationService(serviceCollection);
+const scriptTextProvider = instantiationService.invokeFunction(
+    (accessor) =>
+        accessor.get(IScriptTextProvider) as TextDocumentScriptTextProvider
+);
+
 let hasWorkspaceFolderCapability = false;
 
-const languageServiceHost = new TextDocumentLanguageServiceHost(textDocuments);
-const projectManager = new ProjectManager(languageServiceHost);
+const projectManager = instantiationService.createInstance(
+    ProjectManager
+) as ProjectManager;
 
 connection.onInitialize(({ capabilities }) => {
     hasWorkspaceFolderCapability =
@@ -79,10 +108,7 @@ connection.onInitialize(({ capabilities }) => {
 
 async function updateProjects(reloadExisting: boolean) {
     const folders = await connection.workspace.getWorkspaceFolders();
-    projectManager.updateProjects(
-        folders.map((f) => URI.parse(f.uri).fsPath),
-        reloadExisting
-    );
+    projectManager.updateProjects(folders.map((f) => f.uri), reloadExisting);
 
     textDocuments.all().forEach(updateDiagnostics);
 }
@@ -148,7 +174,7 @@ function getScriptNode(documentUri: string) {
 }
 
 function getNodeAtPosition(documentUri: string, position: Position) {
-    const textDocument = languageServiceHost.getTextDocument(documentUri);
+    const textDocument = scriptTextProvider.getTextDocument(documentUri);
     const scriptNode = getScriptNode(textDocument.uri);
 
     if (!scriptNode) {
@@ -164,7 +190,7 @@ connection.onDocumentSymbol((params) => {
     return [
         getDocumentSymbolTree(
             scriptNode.symbol,
-            languageServiceHost.getTextDocument(params.textDocument.uri)
+            scriptTextProvider.getTextDocument(params.textDocument.uri)
         ),
     ];
 });
@@ -205,7 +231,7 @@ connection.onDefinition((params) => {
 
                     return {
                         range: papyrusRangeToRange(
-                            languageServiceHost.getTextDocument(
+                            scriptTextProvider.getTextDocument(
                                 symbol.declaration.node.script.scriptFile.uri
                             ),
                             symbol.declaration.identifier.range
@@ -354,7 +380,7 @@ connection.onReferences((params) => {
                                         ) {
                                             references.push({
                                                 range: papyrusRangeToRange(
-                                                    languageServiceHost.getTextDocument(
+                                                    scriptTextProvider.getTextDocument(
                                                         referencingScript.uri
                                                     ),
                                                     node.node.range
@@ -386,7 +412,7 @@ connection.onCompletion((params: TextDocumentPositionParams) => {
     );
 
     if (nodeAtPosition.script.scriptFile) {
-        const textDocument = languageServiceHost.getTextDocument(
+        const textDocument = scriptTextProvider.getTextDocument(
             params.textDocument.uri
         );
         const documentPosition = textDocument.offsetAt(params.position);

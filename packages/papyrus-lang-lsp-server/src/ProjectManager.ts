@@ -1,18 +1,23 @@
+import { IInstantiationService } from 'decoration-ioc';
 import { iterateMany } from 'papyrus-lang/lib/common/Utilities';
-import { LanguageServiceHost } from 'papyrus-lang/lib/program/LanguageServiceHost';
-import { findProjectFilesInDirectories } from 'papyrus-lang/lib/program/Project';
+import { IProjectSource } from 'papyrus-lang/lib/projects/ProjectSource';
 import { ProjectHost } from './ProjectHost';
 
 export class ProjectManager {
-    private readonly _languageServiceHost: LanguageServiceHost;
+    private readonly _projectSource: IProjectSource;
+    private readonly _instantiationService: IInstantiationService;
     private readonly _hosts: Map<string, ProjectHost> = new Map();
 
-    constructor(languageServiceHost: LanguageServiceHost) {
-        this._languageServiceHost = languageServiceHost;
+    constructor(
+        @IProjectSource projectSource: IProjectSource,
+        @IInstantiationService instantiationService: IInstantiationService
+    ) {
+        this._projectSource = projectSource;
+        this._instantiationService = instantiationService;
     }
 
     public updateProjects(workspaceDirs: string[], reloadProjects: boolean) {
-        const projectUris = findProjectFilesInDirectories(workspaceDirs);
+        const projectUris = this._projectSource.findProjectFiles(workspaceDirs);
 
         for (const projectUri of projectUris) {
             if (!this._hosts.has(projectUri)) {
@@ -20,7 +25,10 @@ export class ProjectManager {
 
                 this._hosts.set(
                     projectUri,
-                    new ProjectHost(projectUri, this._languageServiceHost)
+                    this._instantiationService.createInstance(
+                        ProjectHost,
+                        projectUri
+                    )
                 );
             } else {
                 const host = this._hosts.get(projectUri);
