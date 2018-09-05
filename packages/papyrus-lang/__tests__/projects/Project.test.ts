@@ -1,13 +1,13 @@
 import * as path from 'path';
 import URI from 'vscode-uri';
 import { NodeFileSystem } from '../../src/host/NodeFileSystem';
-import { ProjectConfigParser } from '../../src/projects/ProjectConfigParser';
-import { ProjectSource } from '../../src/projects/ProjectSource';
+import { XmlProjectConfigParser } from '../../src/projects/XmlProjectConfigParser';
+import { XmlProjectLoader } from '../../src/projects/XmlProjectLoader';
 
 describe('Projects', () => {
     const fileSystem = new NodeFileSystem();
-    const projectConfigParser = new ProjectConfigParser();
-    const projectSource = new ProjectSource(fileSystem, projectConfigParser);
+    const projectConfigParser = new XmlProjectConfigParser();
+    const projectLoader = new XmlProjectLoader(fileSystem, projectConfigParser);
 
     describe('parsePapyrusProjectXml', () => {
         it('parses a ppj file', () => {
@@ -25,9 +25,9 @@ describe('Projects', () => {
         });
     });
 
-    describe('loadProjectFile', () => {
+    describe('loadProject', () => {
         it('parses a ppj file and creates a config with resolved paths', () => {
-            projectSource.loadProjectFile(
+            projectLoader.loadProject(
                 URI.file(
                     path.resolve(
                         __dirname,

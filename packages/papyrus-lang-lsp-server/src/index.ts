@@ -18,13 +18,17 @@ import {
     NodeKind,
 } from 'papyrus-lang/lib/parser/Node';
 import {
-    IProjectConfigParser,
-    ProjectConfigParser,
-} from 'papyrus-lang/lib/projects/ProjectConfigParser';
+    IXmlProjectConfigParser,
+    XmlProjectConfigParser,
+} from 'papyrus-lang/lib/projects/XmlProjectConfigParser';
 import {
-    IProjectSource,
-    ProjectSource,
-} from 'papyrus-lang/lib/projects/ProjectSource';
+    IXmlProjectLoader,
+    XmlProjectLoader,
+} from 'papyrus-lang/lib/projects/XmlProjectLoader';
+import {
+    IXmlProjectLocator,
+    XmlProjectLocator,
+} from 'papyrus-lang/lib/projects/XmlProjectLocator';
 import { IScriptTextProvider } from 'papyrus-lang/lib/sources/ScriptTextProvider';
 import { FunctionSymbol, SymbolKind } from 'papyrus-lang/lib/symbols/Symbol';
 import { LookupFlags, MemberTypes } from 'papyrus-lang/lib/types/TypeChecker';
@@ -56,8 +60,9 @@ const textDocuments = new TextDocuments();
 
 const serviceCollection = new ServiceCollection(
     [IFileSystem, new Descriptor(NodeFileSystem)],
-    [IProjectConfigParser, new Descriptor(ProjectConfigParser)],
-    [IProjectSource, new Descriptor(ProjectSource)],
+    [IXmlProjectConfigParser, new Descriptor(XmlProjectConfigParser)],
+    [IXmlProjectLoader, new Descriptor(XmlProjectLoader)],
+    [IXmlProjectLocator, new Descriptor(XmlProjectLocator)],
     [
         IScriptTextProvider,
         new Descriptor(TextDocumentScriptTextProvider, textDocuments),
@@ -71,9 +76,9 @@ const scriptTextProvider = instantiationService.invokeFunction((accessor) =>
 
 let hasWorkspaceFolderCapability = false;
 
-const projectManager = instantiationService.createInstance(
+const projectManager: ProjectManager = instantiationService.createInstance(
     ProjectManager
-) as ProjectManager;
+);
 
 connection.onInitialize(({ capabilities }) => {
     hasWorkspaceFolderCapability =

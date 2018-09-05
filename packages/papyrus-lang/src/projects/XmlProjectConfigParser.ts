@@ -6,7 +6,7 @@ import {
     ProjectConfig,
 } from './ProjectConfig';
 
-export interface IProjectConfigParser {
+export interface IXmlProjectConfigParser {
     parseConfig(xml: string): ProjectConfig;
 }
 
@@ -63,7 +63,7 @@ function parseBool(bool: string) {
     return JSON.parse(bool.toString().toLowerCase());
 }
 
-export class ProjectConfigParser implements IProjectConfigParser {
+export class XmlProjectConfigParser implements IXmlProjectConfigParser {
     public parseConfig(xml: string): ProjectConfig {
         const parsed = xml2js(xml, {
             alwaysArray: true,
@@ -134,6 +134,6 @@ export class ProjectConfigParser implements IProjectConfigParser {
 }
 
 // tslint:disable-next-line:variable-name
-export const IProjectConfigParser = createDecorator<IProjectConfigParser>(
+export const IXmlProjectConfigParser = createDecorator<IXmlProjectConfigParser>(
     'projectConfigParser'
 );

@@ -1,44 +1,23 @@
 import { createDecorator } from 'decoration-ioc';
 import * as path from 'upath';
 import URI from 'vscode-uri';
-import { iterateMany } from '../common/Utilities';
 import { IFileSystem } from '../host/FileSystem';
-import { IProjectConfigParser } from './ProjectConfigParser';
+import { IProjectLoader } from './ProjectLoader';
+import { IXmlProjectConfigParser } from './XmlProjectConfigParser';
 
-export interface IProjectSource {
-    findProjectFiles(rootUris: string[]);
-    loadProjectFile(uri: string);
-}
-
-export class ProjectSource implements IProjectSource {
+export class XmlProjectLoader implements IProjectLoader {
     private readonly _fileSystem: IFileSystem;
-    private readonly _projectConfigParser: IProjectConfigParser;
+    private readonly _projectConfigParser: IXmlProjectConfigParser;
 
     constructor(
         @IFileSystem fileSystem: IFileSystem,
-        @IProjectConfigParser projectConfigParser: IProjectConfigParser
+        @IXmlProjectConfigParser projectConfigParser: IXmlProjectConfigParser
     ) {
         this._fileSystem = fileSystem;
         this._projectConfigParser = projectConfigParser;
     }
 
-    public findProjectFiles(rootUris: string[]) {
-        return Array.from(
-            new Set(
-                iterateMany<string>(
-                    rootUris.map((uri) =>
-                        this._fileSystem.findFilesAsUris(
-                            path.normalize(
-                                path.join(URI.parse(uri).fsPath, '**', '*.ppj')
-                            )
-                        )
-                    )
-                )
-            ).values()
-        );
-    }
-
-    public loadProjectFile(uri: string) {
+    public loadProject(uri: string) {
         const filePath = URI.parse(uri).fsPath;
         const resolvedPath = path.resolve(filePath);
         const base = path.dirname(resolvedPath);
@@ -72,4 +51,6 @@ export class ProjectSource implements IProjectSource {
 }
 
 // tslint:disable-next-line:variable-name
-export const IProjectSource = createDecorator<IProjectSource>('projectSource');
+export const IXmlProjectLoader = createDecorator<IProjectLoader>(
+    'xmlProjectLoader'
+);

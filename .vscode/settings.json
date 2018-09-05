@@ -4,7 +4,7 @@
     "jest.pathToJest": "npm run test --",
     "jest.enableSnapshotUpdateMessages": false,
     "jest.debugCodeLens.showWhenTestStateIn": [],
-    "files.exclude":{
+    "files.exclude": {
         "**/node_modules": true
     }
 }
