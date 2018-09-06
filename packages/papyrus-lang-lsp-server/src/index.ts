@@ -75,6 +75,7 @@ const scriptTextProvider = instantiationService.invokeFunction((accessor) =>
 ) as TextDocumentScriptTextProvider;
 
 let hasWorkspaceFolderCapability = false;
+let hasConfigurationCapability = false;
 
 const projectManager: ProjectManager = instantiationService.createInstance(
     ProjectManager
@@ -83,6 +84,9 @@ const projectManager: ProjectManager = instantiationService.createInstance(
 connection.onInitialize(({ capabilities }) => {
     hasWorkspaceFolderCapability =
         capabilities.workspace && !!capabilities.workspace.workspaceFolders;
+
+    hasConfigurationCapability =
+        capabilities.workspace && !!capabilities.workspace.configuration;
 
     return {
         capabilities: {
@@ -116,6 +120,12 @@ connection.onInitialized(() => {
 
     if (hasWorkspaceFolderCapability) {
         connection.workspace.onDidChangeWorkspaceFolders(async () => {
+            await updateProjects(false);
+        });
+    }
+
+    if (hasConfigurationCapability) {
+        connection.onDidChangeConfiguration(async () => {
             await updateProjects(false);
         });
     }

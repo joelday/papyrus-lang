@@ -26,10 +26,10 @@ export class Project {
             ...[...this._config.imports]
                 .reverse()
                 .map((i) => this.findPscFiles(i, true)),
-            this.findPscFiles(
+                this._config.folder ? this.findPscFiles(
                 this._config.folder.path,
                 !this._config.folder.noRecurse
-            ),
+            ) : [] as any,
         ];
 
         const files = new Map<string, string>();

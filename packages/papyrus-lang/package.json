@@ -1,8 +1,10 @@
 {
     "author": "Joel Day <joelday@gmail.com>",
     "dependencies": {
-        "decoration-ioc": "^2.0.0",
+        "decoration-ioc": "^2.1.0",
         "glob": "^7.1.3",
+        "ini": "^1.3.5",
+        "lodash": "^4.17.10",
         "tslib": "^1.9.3",
         "upath": "^1.1.0",
         "vscode-uri": "^1.0.6",
@@ -17,5 +19,9 @@
     },
     "license": "MIT",
     "name": "papyrus-lang",
-    "version": "0.11.0"
+    "version": "0.11.0",
+    "devDependencies": {
+        "@types/ini": "^1.3.29",
+        "@types/lodash": "^4.14.116"
+    }
 }
