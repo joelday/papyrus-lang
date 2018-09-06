@@ -156,7 +156,7 @@ connection.onInitialized(() => {
 
 function updateDiagnostics(document: TextDocument) {
     const diagnostics = Array.from(
-        iterateMany<Diagnostic>(
+        iterateMany(
             projectManager.projectHosts.map((host) =>
                 host.getDiagnosticsForDocument(document)
             )

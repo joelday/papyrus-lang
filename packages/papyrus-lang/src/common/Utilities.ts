@@ -24,7 +24,11 @@ export function* iterateWhere<T>(
 }
 
 export function* iterateMany<T>(
-    iterableOfIterables: Iterable<Iterable<T>>
+    iterableOfIterables:
+        | Iterable<Iterable<T>>
+        | Iterable<T[]>
+        | Iterable<T>[]
+        | T[][]
 ): IterableIterator<T> {
     for (const iterable of iterableOfIterables) {
         for (const element of iterable) {

@@ -82,9 +82,7 @@ export class ProjectManager {
     public getAllScriptNames() {
         return Array.from(
             new Set(
-                iterateMany<string>(
-                    this.projectHosts.map((h) => h.program.scriptNames)
-                )
+                iterateMany(this.projectHosts.map((h) => h.program.scriptNames))
             ).values()
         );
     }
