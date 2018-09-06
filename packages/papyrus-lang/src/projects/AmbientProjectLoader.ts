@@ -1,3 +1,4 @@
+import { createDecorator } from 'decoration-ioc';
 import * as path from 'upath';
 import URI from 'vscode-uri';
 import { ICreationKitInisLoader } from '../config/CreationKitInisLoader';
@@ -91,3 +92,8 @@ export class AmbientProjectLoader implements IProjectLoader {
         };
     }
 }
+
+// tslint:disable-next-line:variable-name
+export const IAmbientProjectLoader = createDecorator<IProjectLoader>(
+    'ambientProjectLoader'
+);

@@ -1,43 +1,48 @@
-import { IInstantiationService } from 'decoration-ioc';
+import { IInstantiationService, optional } from 'decoration-ioc';
 import { iterateMany } from 'papyrus-lang/lib/common/Utilities';
-import { AmbientProjectLoader } from 'papyrus-lang/lib/projects/AmbientProjectLoader';
+import { IAmbientProjectLoader } from 'papyrus-lang/lib/projects/AmbientProjectLoader';
 import { IProjectLoader } from 'papyrus-lang/lib/projects/ProjectLoader';
 import { IXmlProjectLoader } from 'papyrus-lang/lib/projects/XmlProjectLoader';
 import { IXmlProjectLocator } from 'papyrus-lang/lib/projects/XmlProjectLocator';
 import { ProjectHost } from './ProjectHost';
 
 export class ProjectManager {
-    get projectHosts() {
-        return Array.from(this._hosts.values());
-    }
     private readonly _projectLocator: IXmlProjectLocator;
     private readonly _xmlProjectLoader: IProjectLoader;
+    private readonly _ambientProjectLoader: IProjectLoader;
     private readonly _instantiationService: IInstantiationService;
     private readonly _hosts: Map<string, ProjectHost> = new Map();
 
     constructor(
-        @IXmlProjectLoader xmlProjectLoader: IProjectLoader,
-        @IXmlProjectLocator projectLocator: IXmlProjectLocator,
+        @optional(IXmlProjectLoader) xmlProjectLoader: IProjectLoader,
+        @optional(IXmlProjectLocator) projectLocator: IXmlProjectLocator,
+        @optional(IAmbientProjectLoader) ambientProjectLoader: IProjectLoader,
         @IInstantiationService instantiationService: IInstantiationService
     ) {
         this._xmlProjectLoader = xmlProjectLoader;
         this._projectLocator = projectLocator;
+        this._ambientProjectLoader = ambientProjectLoader;
         this._instantiationService = instantiationService;
+    }
+
+    public get projectHosts() {
+        return Array.from(this._hosts.values());
     }
 
     public updateProjects(workspaceDirs: string[], reloadProjects: boolean) {
         const allProjectUris: string[] = [];
 
         for (const workspaceDir of workspaceDirs) {
-            const projectUris = this._projectLocator.findProjectFiles(
-                workspaceDir
-            );
+            const projectUris =
+                this._projectLocator && this._xmlProjectLoader
+                    ? this._projectLocator.findProjectFiles(workspaceDir)
+                    : [];
 
-            if (projectUris.length === 0) {
+            if (projectUris.length === 0 && this._ambientProjectLoader) {
                 allProjectUris.push(workspaceDir);
                 this.createOrUpdateHost(
                     workspaceDir,
-                    new AmbientProjectLoader([]),
+                    this._ambientProjectLoader,
                     reloadProjects
                 );
             } else {
