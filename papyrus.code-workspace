@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "papyrus"
+		},
+		{
+			"path": "papyrus/FO4Scripts"
+		},
+		{
+			"path": "papyrus/FO4Scripts/Base"
+		}
+	],
+	"settings": {
+		"papyrus.fallout4.installPath": "..",
+		"papyrus.fallout4.creationKitIniFiles": [
+			"CreationKit1.ini",
+			"CreationKit2.ini"
+		]
+	}
+}

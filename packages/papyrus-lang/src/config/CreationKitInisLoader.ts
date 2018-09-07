@@ -1,8 +1,8 @@
 import * as iniParser from 'ini';
 
 import { createDecorator } from 'decoration-ioc';
-import { mergeAll } from 'lodash/fp';
-import { iterateMany } from '../common/Utilities';
+import { merge } from 'lodash';
+import * as mapKeysDeep from 'map-keys-deep-lodash';
 import { IFileSystem } from '../host/FileSystem';
 import { ICreationKitIniLocator } from './CreationKitIniLocator';
 
@@ -20,7 +20,7 @@ export interface CreationKitInis {
 }
 
 export interface ICreationKitInisLoader {
-    loadInis(): CreationKitInis;
+    loadInis(workspaceUri: string): CreationKitInis;
 }
 
 export class CreationKitInisLoader implements ICreationKitInisLoader {
@@ -35,32 +35,33 @@ export class CreationKitInisLoader implements ICreationKitInisLoader {
         this._fileSystem = fileSystem;
     }
 
-    public loadInis() {
-        const locations = this._iniLocator.getIniLocations();
+    public loadInis(workspaceUri: string) {
+        const locations = this._iniLocator.getIniLocations(workspaceUri);
 
         return {
             creationKitInstallUri: locations.creationKitInstallUri,
-            ini: mergeAll(
-                Array.from(
-                    iterateMany(
-                        locations.iniUris.map((pattern) =>
-                            this._fileSystem.findFilesAsUris(pattern)
-                        )
-                    )
-                )
+            ini: merge(
+                {},
+                ...locations.iniUris
+                    .filter((iniUri) => this._fileSystem.uriExists(iniUri))
                     .map((iniUri) => [
                         iniUri,
                         this._fileSystem.readTextFile(iniUri),
                     ])
-                    .map(
-                        (iniText) =>
-                            ({
-                                ...iniParser.decode(iniText[1]),
-                                iniFileUri: iniText[0],
-                            } as CreationKitIni)
-                    )
+                    .map((iniText) => {
+                        return {
+                            ...this.parseIni(iniText[1]),
+                            iniFileUri: iniText[0],
+                        } as CreationKitIni;
+                    })
             ) as CreationKitIni,
         };
+    }
+
+    private parseIni(iniText: string) {
+        return mapKeysDeep(iniParser.decode(iniText), (_v, k) =>
+            k.toLowerCase()
+        );
     }
 }
 

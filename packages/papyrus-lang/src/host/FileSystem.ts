@@ -1,5 +1,6 @@
 import { createDecorator } from 'decoration-ioc';
 export interface IFileSystem {
+    uriExists(uri: string): boolean;
     readTextFile(uri: string): string;
     findFilesAsUris(globPattern: string): string[];
 }

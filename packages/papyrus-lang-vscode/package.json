@@ -15,25 +15,23 @@
         "Programming Languages"
     ],
     "contributes": {
-        "configuration":
-            {
-                "type": "object",
-                "title": "Papyrus language service",
-                "properties": {
-                    "papyrus.fallout4.installPath": {
-                        "type": "string",
-                        "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Fallout 4"
-                    },
-                    "papyrus.fallout4.creationKitIniFiles": {
-                        "type": "array",
-                        "default": [
-                            "CreationKit.ini",
-                            "CreationKitCustom.ini"
-                        ]
-                    }
+        "configuration": {
+            "type": "object",
+            "title": "Papyrus language service",
+            "properties": {
+                "papyrus.fallout4.installPath": {
+                    "type": "string",
+                    "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Fallout 4"
+                },
+                "papyrus.fallout4.creationKitIniFiles": {
+                    "type": "array",
+                    "default": [
+                        "CreationKit.ini",
+                        "CreationKitCustom.ini"
+                    ]
                 }
             }
-        ,
+        },
         "grammars": [
             {
                 "language": "papyrus",

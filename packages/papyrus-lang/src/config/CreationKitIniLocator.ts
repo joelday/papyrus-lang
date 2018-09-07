@@ -6,7 +6,7 @@ export interface CreationKitIniLocations {
 }
 
 export interface ICreationKitIniLocator {
-    getIniLocations(): CreationKitIniLocations;
+    getIniLocations(workspaceUri: string): CreationKitIniLocations;
 }
 
 // tslint:disable-next-line:variable-name

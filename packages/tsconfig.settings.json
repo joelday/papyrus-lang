@@ -1,12 +1,12 @@
 {
     "compilerOptions": {
-        "allowSyntheticDefaultImports": true,
+        // "allowSyntheticDefaultImports": true,
         "alwaysStrict": true,
         "composite": true,
         "declaration": true,
         "declarationMap": true,
         "downlevelIteration": true,
-        "esModuleInterop": true,
+        // "esModuleInterop": true,
         "importHelpers": true,
         "jsx": "react",
         "lib": [

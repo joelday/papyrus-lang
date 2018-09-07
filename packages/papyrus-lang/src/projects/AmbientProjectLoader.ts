@@ -1,4 +1,4 @@
-import { createDecorator } from 'decoration-ioc';
+import { createDecorator, optional } from 'decoration-ioc';
 import * as path from 'upath';
 import URI from 'vscode-uri';
 import { ICreationKitInisLoader } from '../config/CreationKitInisLoader';
@@ -8,16 +8,18 @@ import { IProjectLoader } from './ProjectLoader';
 export class AmbientProjectLoader implements IProjectLoader {
     private readonly _inisLoader: ICreationKitInisLoader;
 
-    constructor(@ICreationKitInisLoader inisLoader: ICreationKitInisLoader) {
+    constructor(
+        @optional(ICreationKitInisLoader) inisLoader: ICreationKitInisLoader
+    ) {
         this._inisLoader = inisLoader;
     }
 
     public loadProject(uri: string): ProjectConfig {
-        if (this._inisLoader) {
+        if (!this._inisLoader) {
             return this.getEmptyProject(uri);
         }
 
-        const ini = this._inisLoader.loadInis();
+        const ini = this._inisLoader.loadInis(uri);
         const papyrusIni = ini.ini.papyrus;
 
         if (!papyrusIni) {
@@ -29,21 +31,20 @@ export class AmbientProjectLoader implements IProjectLoader {
         const sourceDirectoryPath = papyrusIni.sscriptsourcefolder
             ? this.getPathRelativeToInstallPath(
                   installPath,
-                  papyrusIni.sscriptsourcefolder
+                  papyrusIni.sscriptsourcefolder.replace(/"/g, '')
               )
             : null;
 
         const importPathsElements = papyrusIni.sadditionalimports
-            ? papyrusIni.sadditionalimports.split(';')
+            ? papyrusIni.sadditionalimports.replace(/"/g, '').split(';')
             : [];
 
         const elementsWithSubstitutedSource = importPathsElements
             .map(
                 (importPath) =>
-                    importPath.toLowerCase() === '$(source)' &&
-                    sourceDirectoryPath
+                    importPath.toLowerCase() === '$(source)'
                         ? sourceDirectoryPath
-                        : null
+                        : importPath
             )
             .filter((importPath) => importPath !== null);
 
@@ -66,6 +67,7 @@ export class AmbientProjectLoader implements IProjectLoader {
         return {
             ...createEmptyConfig(),
             imports: resolvedImportUris,
+            folder: null,
         };
     }
 

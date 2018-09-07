@@ -5,6 +5,7 @@
         "glob": "^7.1.3",
         "ini": "^1.3.5",
         "lodash": "^4.17.10",
+        "map-keys-deep-lodash": "^1.2.1",
         "tslib": "^1.9.3",
         "upath": "^1.1.0",
         "vscode-uri": "^1.0.6",
