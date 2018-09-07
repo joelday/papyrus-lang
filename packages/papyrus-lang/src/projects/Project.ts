@@ -29,8 +29,8 @@ export class Project {
                 this._config.folder ? this.findPscFiles(
                 this._config.folder.path,
                 !this._config.folder.noRecurse
-            ) : [] as any,
-        ];
+            ) : null,
+        ].filter(g => g !== null);
 
         const files = new Map<string, string>();
 
