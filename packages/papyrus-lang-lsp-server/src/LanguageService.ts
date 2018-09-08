@@ -60,8 +60,8 @@ export class LanguageService {
             [IXmlProjectConfigParser, new Descriptor(XmlProjectConfigParser)],
             [IXmlProjectLoader, new Descriptor(XmlProjectLoader)],
             [IXmlProjectLocator, new Descriptor(XmlProjectLocator)],
-            [IScriptTextProvider, new Descriptor(TextDocumentScriptTextProvider, this._textDocuments)],
-            [IDocumentHelpers, new Descriptor(DocumentHelpers, this._textDocuments)],
+            [IScriptTextProvider, new Descriptor(TextDocumentScriptTextProvider)],
+            [IDocumentHelpers, new Descriptor(DocumentHelpers)],
             [IProjectManager, new Descriptor(ProjectManager)],
         ];
 

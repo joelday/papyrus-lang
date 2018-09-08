@@ -36,7 +36,7 @@ export class AmbientProjectLoader implements IProjectLoader {
             : null;
 
         const importPathsElements = papyrusIni.sadditionalimports
-            ? papyrusIni.sadditionalimports.replace(/"/g, '').split(';')
+            ? papyrusIni.sadditionalimports.replace(/"/g, '').split(';').reverse()
             : [];
 
         const elementsWithSubstitutedSource = importPathsElements
