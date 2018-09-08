@@ -98,8 +98,8 @@
     ],
     "dependencies": {
         "chokidar": "^2.0.4",
-        "papyrus-lang": "^0.13.0",
-        "papyrus-lang-lsp-server": "^0.13.0",
+        "papyrus-lang": "^0.14.0",
+        "papyrus-lang-lsp-server": "^0.14.0",
         "vscode-languageclient": "^5.0.1"
     },
     "description": "Advanced language support for Fallout 4's Papyrus scripting language.",
@@ -144,5 +144,5 @@
         "postinstall": "lerna run vscode:install --scope papyrus-lang-vscode",
         "vscode:install": "node ./node_modules/vscode/bin/install"
     },
-    "version": "0.13.0"
+    "version": "0.14.0"
 }
