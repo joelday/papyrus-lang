@@ -1,10 +1,10 @@
 {
     "devDependencies": {
         "@types/glob": "^5.0.35",
-        "@types/jest": "^23.3.1",
+        "@types/jest": "^23.3.2",
         "@types/node": "^10.9.4",
         "jest": "^23.5.0",
-        "lerna": "^3.2.1",
+        "lerna": "^3.3.0",
         "prettier": "^1.14.2",
         "rimraf": "^2.6.2",
         "ts-jest": "^23.1.4",
