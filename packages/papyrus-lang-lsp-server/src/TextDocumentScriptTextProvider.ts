@@ -1,31 +1,15 @@
 import { IInstantiationService } from 'decoration-ioc';
 import { FileSystemScriptTextProvider } from 'papyrus-lang/lib/sources/FileSystemScriptTextProvider';
-import {
-    IScriptTextProvider,
-    ScriptText,
-} from 'papyrus-lang/lib/sources/ScriptTextProvider';
-import { TextDocument, TextDocuments } from 'vscode-languageserver';
+import { IScriptTextProvider, ScriptText } from 'papyrus-lang/lib/sources/ScriptTextProvider';
+import { TextDocuments } from 'vscode-languageserver';
 
 export class TextDocumentScriptTextProvider implements IScriptTextProvider {
     private readonly _baseScriptTextProvider: IScriptTextProvider;
     private readonly _textDocuments: TextDocuments;
 
-    constructor(
-        textDocuments: TextDocuments,
-        @IInstantiationService instantiationService: IInstantiationService
-    ) {
+    constructor(textDocuments: TextDocuments, @IInstantiationService instantiationService: IInstantiationService) {
         this._textDocuments = textDocuments;
-        this._baseScriptTextProvider = instantiationService.createInstance(
-            FileSystemScriptTextProvider
-        );
-    }
-
-    // TODO: Move this elsewhere:
-    public getTextDocument(uri: string) {
-        return (
-            this._textDocuments.get(uri) ||
-            TextDocument.create(uri, 'papyrus', 0, this.getScriptText(uri).text)
-        );
+        this._baseScriptTextProvider = instantiationService.createInstance(FileSystemScriptTextProvider);
     }
 
     public getScriptText(uri: string): ScriptText {

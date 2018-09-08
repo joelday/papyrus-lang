@@ -1,10 +1,18 @@
-import { IInstantiationService, optional } from 'decoration-ioc';
+import { createDecorator, IInstantiationService, optional } from 'decoration-ioc';
 import { iterateMany } from 'papyrus-lang/lib/common/Utilities';
+import { ScriptFile } from 'papyrus-lang/lib/program/ScriptFile';
 import { IAmbientProjectLoader } from 'papyrus-lang/lib/projects/AmbientProjectLoader';
 import { IProjectLoader } from 'papyrus-lang/lib/projects/ProjectLoader';
 import { IXmlProjectLoader } from 'papyrus-lang/lib/projects/XmlProjectLoader';
 import { IXmlProjectLocator } from 'papyrus-lang/lib/projects/XmlProjectLocator';
 import { ProjectHost } from './ProjectHost';
+
+export interface IProjectManager {
+    readonly projectHosts: ProjectHost[];
+    updateProjects(workspaceDirs: string[], reloadProjects: boolean);
+    getScriptFileByUri(uri: string): ScriptFile;
+    getAllScriptNames(): string[];
+}
 
 export class ProjectManager {
     private readonly _projectLocator: IXmlProjectLocator;
@@ -40,19 +48,11 @@ export class ProjectManager {
 
             if (projectUris.length === 0 && this._ambientProjectLoader) {
                 allProjectUris.push(workspaceDir);
-                this.createOrUpdateHost(
-                    workspaceDir,
-                    this._ambientProjectLoader,
-                    reloadProjects
-                );
+                this.createOrUpdateHost(workspaceDir, this._ambientProjectLoader, reloadProjects);
             } else {
                 allProjectUris.push(...projectUris);
                 for (const projectUri of projectUris) {
-                    this.createOrUpdateHost(
-                        projectUri,
-                        this._xmlProjectLoader,
-                        reloadProjects
-                    );
+                    this.createOrUpdateHost(projectUri, this._xmlProjectLoader, reloadProjects);
                 }
             }
         }
@@ -85,25 +85,14 @@ export class ProjectManager {
     }
 
     public getAllScriptNames() {
-        return Array.from(
-            new Set(
-                iterateMany(this.projectHosts.map((h) => h.program.scriptNames))
-            ).values()
-        );
+        return Array.from(new Set(iterateMany(this.projectHosts.map((h) => h.program.scriptNames))).values());
     }
 
-    private createOrUpdateHost(
-        projectUri: string,
-        loader: IProjectLoader,
-        reloadProjects: boolean
-    ) {
+    private createOrUpdateHost(projectUri: string, loader: IProjectLoader, reloadProjects: boolean) {
         if (!this._hosts.has(projectUri)) {
             console.log(`Loading Papyrus project: ${projectUri}`);
 
-            this._hosts.set(
-                projectUri,
-                new ProjectHost(projectUri, loader, this._instantiationService)
-            );
+            this._hosts.set(projectUri, new ProjectHost(projectUri, loader, this._instantiationService));
         } else {
             const host = this._hosts.get(projectUri);
 
@@ -115,3 +104,6 @@ export class ProjectManager {
         }
     }
 }
+
+// tslint:disable-next-line:variable-name
+export const IProjectManager = createDecorator<IProjectManager>('projectManager');
