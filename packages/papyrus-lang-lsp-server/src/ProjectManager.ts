@@ -73,13 +73,13 @@ export class ProjectManager {
             }
         }
 
-        // If there are any hosts, just get an anonymous instance from the first one.
-        if (this._hosts.size > 0) {
-            return this._hosts
-                .values()
-                .next()
-                .value.program.getScriptFileByUri(uri);
-        }
+        // // If there are any hosts, just get an anonymous instance from the first one.
+        // if (this._hosts.size > 0) {
+        //     return this._hosts
+        //         .values()
+        //         .next()
+        //         .value.program.getScriptFileByUri(uri);
+        // }
 
         return null;
     }

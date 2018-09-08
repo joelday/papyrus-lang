@@ -27,7 +27,7 @@ export class ConfigIniLocator implements ICreationKitIniLocator {
             creationKitInstallUri: URI.file(installPath).toString(),
             iniUris: config.fallout4.creationKitIniFiles
                 ? config.fallout4.creationKitIniFiles.map((iniPath) =>
-                      path.resolve(path.join(installPath, path.normalizeSafe(iniPath)))
+                      URI.file(path.resolve(path.join(installPath, path.normalizeSafe(iniPath)))).toString()
                   )
                 : [],
         };

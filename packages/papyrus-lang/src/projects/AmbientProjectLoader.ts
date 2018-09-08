@@ -36,7 +36,7 @@ export class AmbientProjectLoader implements IProjectLoader {
             : null;
 
         const importPathsElements = papyrusIni.sadditionalimports
-            ? papyrusIni.sadditionalimports.replace(/"/g, '').split(';').reverse()
+            ? papyrusIni.sadditionalimports.replace(/"/g, '').split(';')
             : [];
 
         const elementsWithSubstitutedSource = importPathsElements
@@ -62,7 +62,7 @@ export class AmbientProjectLoader implements IProjectLoader {
                 ).toString()
         );
 
-        resolvedImportUris.unshift(uri);
+        resolvedImportUris.push(uri);
 
         return {
             ...createEmptyConfig(),
