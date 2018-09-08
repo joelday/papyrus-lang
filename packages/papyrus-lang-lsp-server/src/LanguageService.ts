@@ -1,4 +1,5 @@
 import { Descriptor, IInstantiationService, InstantiationService, ServiceCollection } from 'decoration-ioc';
+import { ServiceIdentifier } from 'decoration-ioc/lib/instantiation';
 import { iterateMany } from 'papyrus-lang/lib/common/Utilities';
 import { ICreationKitIniLocator } from 'papyrus-lang/lib/config/CreationKitIniLocator';
 import { CreationKitInisLoader, ICreationKitInisLoader } from 'papyrus-lang/lib/config/CreationKitInisLoader';
@@ -20,8 +21,12 @@ import { ConfigIniLocator } from './ConfigIniLocator';
 import { ConfigProvider, IConfigProvider } from './ConfigProvider';
 import { DocumentHelpers, IDocumentHelpers } from './DocumentHelpers';
 import { ILanguageServerConnection, IRemoteConsole, ITextDocuments } from './External';
+import { CompletionHandler } from './handlers/CompletionHandler';
+import { CompletionResolveHandler } from './handlers/CompletionResolveHandler';
+import { DefinitionHandler } from './handlers/DefinitionHandler';
 import { DocumentSymbolHandler } from './handlers/DocumentSymbolHandler';
 import { HoverHandler } from './handlers/HoverHandler';
+import { SignatureHelpHandler } from './handlers/SignatureHelpHandler';
 import { IProjectManager, ProjectManager } from './ProjectManager';
 import { RequestHandlerService } from './RequestHandlerService';
 import { TextDocumentScriptTextProvider } from './TextDocumentScriptTextProvider';
@@ -34,6 +39,7 @@ export class LanguageService {
     private readonly _serviceCollection: ServiceCollection;
     private readonly _instantiationService: IInstantiationService;
     private readonly _projectManager: IProjectManager;
+    private readonly _services: [ServiceIdentifier<any>, any][];
 
     constructor(connection: Connection, textDocuments: TextDocuments, capabilities: ClientCapabilities) {
         this._connection = connection;
@@ -42,7 +48,7 @@ export class LanguageService {
 
         this._configProvider = new ConfigProvider();
 
-        this._serviceCollection = new ServiceCollection(
+        this._services = [
             [ILanguageServerConnection, connection],
             [IRemoteConsole, connection.console],
             [IConfigProvider, this._configProvider],
@@ -56,8 +62,10 @@ export class LanguageService {
             [IXmlProjectLocator, new Descriptor(XmlProjectLocator)],
             [IScriptTextProvider, new Descriptor(TextDocumentScriptTextProvider, this._textDocuments)],
             [IDocumentHelpers, new Descriptor(DocumentHelpers, this._textDocuments)],
-            [IProjectManager, new Descriptor(ProjectManager)]
-        );
+            [IProjectManager, new Descriptor(ProjectManager)],
+        ];
+
+        this._serviceCollection = new ServiceCollection(...this._services);
 
         this._instantiationService = new InstantiationService(this._serviceCollection, false);
         this._projectManager = this._instantiationService.invokeFunction((accessor) => accessor.get(IProjectManager));
@@ -101,15 +109,31 @@ export class LanguageService {
                     }, 1000)
                 );
             });
+
+            connection.onDidChangeWatchedFiles(async () => {
+                await this.updateProjects(false);
+            });
+
+            textDocuments.onDidClose((e) => {
+                connection.sendDiagnostics({ uri: e.document.uri, diagnostics: [] });
+            });
         });
 
         this._instantiationService.createInstance(RequestHandlerService, [
+            ['onCompletion', CompletionHandler],
+            ['onCompletionResolve', CompletionResolveHandler],
+            ['onDefinition', DefinitionHandler],
             ['onDocumentSymbol', DocumentSymbolHandler],
             ['onHover', HoverHandler],
+            ['onSignatureHelp', SignatureHelpHandler],
         ]);
     }
 
-    public async shutdown() {}
+    public toString() {
+        return `Papyrus language service:\r\n    Registered services:\r\n${this._services
+            .map((s) => `        ${s[0]}: ${s[1]}`)
+            .join('\r\n')}`;
+    }
 
     private async updateProjects(reloadExisting: boolean) {
         const folders = await this._connection.workspace.getWorkspaceFolders();

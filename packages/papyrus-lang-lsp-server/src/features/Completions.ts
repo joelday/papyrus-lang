@@ -1,16 +1,8 @@
 import { DisplayTextEmitter } from 'papyrus-lang/lib/program/DisplayTextEmitter';
 import { Program } from 'papyrus-lang/lib/program/Program';
-import {
-    Symbol,
-    SymbolKind as PapyrusSymbolKind,
-} from 'papyrus-lang/lib/symbols/Symbol';
+import { Symbol, SymbolKind as PapyrusSymbolKind } from 'papyrus-lang/lib/symbols/Symbol';
 import { TypeChecker } from 'papyrus-lang/lib/types/TypeChecker';
-import {
-    CompletionItem,
-    CompletionItemKind,
-    SymbolInformation,
-    TextDocument,
-} from 'vscode-languageserver';
+import { CompletionItem, CompletionItemKind, SymbolInformation, TextDocument } from 'vscode-languageserver';
 
 function getCompletionItemKind(symbol: Symbol) {
     switch (symbol.kind) {
@@ -25,10 +17,7 @@ function getCompletionItemKind(symbol: Symbol) {
         case PapyrusSymbolKind.Event:
             return CompletionItemKind.Event;
         case PapyrusSymbolKind.Variable:
-            if (
-                symbol.parent.kind === PapyrusSymbolKind.Script ||
-                symbol.parent.kind === PapyrusSymbolKind.Struct
-            ) {
+            if (symbol.parent.kind === PapyrusSymbolKind.Script || symbol.parent.kind === PapyrusSymbolKind.Struct) {
                 return CompletionItemKind.Field;
             }
 
@@ -38,10 +27,7 @@ function getCompletionItemKind(symbol: Symbol) {
     }
 }
 
-export function getStubScriptCompletionItem(
-    scriptName: string,
-    program: Program
-): CompletionItem {
+export function getStubScriptCompletionItem(scriptName: string, program: Program): CompletionItem {
     return {
         label: scriptName,
         kind: CompletionItemKind.Class,
@@ -54,10 +40,7 @@ export function getStubScriptCompletionItem(
     };
 }
 
-export function getCompletionItem(
-    symbol: Symbol,
-    displayTextEmitter: DisplayTextEmitter
-): CompletionItem {
+export function getCompletionItem(symbol: Symbol, displayTextEmitter: DisplayTextEmitter): CompletionItem {
     if (!symbol || symbol.kind === PapyrusSymbolKind.Intrinsic) {
         return null;
     }
@@ -70,7 +53,6 @@ export function getCompletionItem(
         documentation: displayText.documentation,
         kind: getCompletionItemKind(symbol),
         detail: displayText.text,
-        sortText:
-            (symbol.kind === PapyrusSymbolKind.Script ? 'α' : '') + symbol.name,
+        sortText: (symbol.kind === PapyrusSymbolKind.Script ? 'α' : '') + symbol.name,
     };
 }

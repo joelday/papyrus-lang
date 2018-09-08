@@ -1,6 +1,17 @@
 import { createDecorator } from 'decoration-ioc';
 import { merge } from 'lodash';
 
+export interface IPapyrusLangConfig {
+    fallout4?: {
+        installPath?: string;
+        creationKitIniFiles?: string[];
+    };
+}
+
+export interface IConfigProvider {
+    readonly config: IPapyrusLangConfig;
+}
+
 const defaultConfig: IPapyrusLangConfig = {
     fallout4: {
         installPath: 'C:\\Program Files (x86)\\Steam\\steamapps\\common\\Fallout 4',
@@ -18,17 +29,6 @@ export class ConfigProvider implements IConfigProvider {
     set config(config: IPapyrusLangConfig) {
         this._config = merge({}, defaultConfig, config);
     }
-}
-
-export interface IPapyrusLangConfig {
-    fallout4?: {
-        installPath?: string;
-        creationKitIniFiles?: string[];
-    };
-}
-
-export interface IConfigProvider {
-    readonly config: IPapyrusLangConfig;
 }
 
 // tslint:disable-next-line:variable-name

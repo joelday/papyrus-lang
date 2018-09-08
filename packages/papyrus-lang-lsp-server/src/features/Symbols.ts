@@ -1,13 +1,5 @@
-import {
-    Symbol,
-    SymbolKind as PapyrusSymbolKind,
-} from 'papyrus-lang/lib/symbols/Symbol';
-import {
-    DocumentSymbol,
-    SymbolInformation,
-    SymbolKind,
-    TextDocument,
-} from 'vscode-languageserver';
+import { Symbol, SymbolKind as PapyrusSymbolKind } from 'papyrus-lang/lib/symbols/Symbol';
+import { DocumentSymbol, SymbolInformation, SymbolKind, TextDocument } from 'vscode-languageserver';
 import { papyrusRangeToRange } from '../Utilities';
 
 function getSymbolKind(symbol: Symbol) {
@@ -43,10 +35,7 @@ function getSymbolKind(symbol: Symbol) {
     }
 }
 
-export function getDocumentSymbolTree(
-    symbol: Symbol,
-    textDocument: TextDocument
-): DocumentSymbol {
+export function getDocumentSymbolTree(symbol: Symbol, textDocument: TextDocument): DocumentSymbol {
     if (!symbol || symbol.kind === PapyrusSymbolKind.Intrinsic) {
         return null;
     }
@@ -59,13 +48,8 @@ export function getDocumentSymbolTree(
     return {
         name: symbol.name,
         kind: symbolKind,
-        selectionRange: papyrusRangeToRange(
-            textDocument,
-            symbol.declaration.identifier.range
-        ),
+        selectionRange: papyrusRangeToRange(textDocument, symbol.declaration.identifier.range),
         range: papyrusRangeToRange(textDocument, symbol.declaration.node.range),
-        children: symbol.children.map((child) =>
-            getDocumentSymbolTree(child, textDocument)
-        ),
+        children: symbol.children.map((child) => getDocumentSymbolTree(child, textDocument)),
     };
 }
