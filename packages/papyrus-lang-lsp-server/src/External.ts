@@ -1,8 +1,8 @@
+// tslint:disable:variable-name
+
 import { createDecorator } from 'decoration-ioc';
-import { Connection, RemoteConsole } from 'vscode-languageserver';
+import { Connection, RemoteConsole, TextDocuments } from 'vscode-languageserver';
 
-// tslint:disable-next-line:variable-name
+export const ITextDocuments = createDecorator<TextDocuments>('textDocuments');
 export const ILanguageServerConnection = createDecorator<Connection>('languageServerConnection');
-
-// tslint:disable-next-line:variable-name
 export const IRemoteConsole = createDecorator<RemoteConsole>('remoteConsole');

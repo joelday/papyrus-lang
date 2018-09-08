@@ -2,6 +2,7 @@ import { createDecorator } from 'decoration-ioc';
 import { findNodeAtPosition, Node, ScriptNode } from 'papyrus-lang/lib/parser/Node';
 import { IScriptTextProvider } from 'papyrus-lang/lib/sources/ScriptTextProvider';
 import { Position, TextDocument, TextDocuments } from 'vscode-languageserver';
+import { ITextDocuments } from './External';
 import { IProjectManager } from './ProjectManager';
 
 export interface IDocumentHelpers {
@@ -16,7 +17,7 @@ export class DocumentHelpers implements IDocumentHelpers {
     private readonly _scriptTextProvider: IScriptTextProvider;
 
     constructor(
-        textDocuments: TextDocuments,
+        @ITextDocuments textDocuments: TextDocuments,
         @IProjectManager projectManager: IProjectManager,
         @IScriptTextProvider scriptTextProvider: IScriptTextProvider
     ) {

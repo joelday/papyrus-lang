@@ -19,7 +19,7 @@ import {
 import { ConfigIniLocator } from './ConfigIniLocator';
 import { ConfigProvider, IConfigProvider } from './ConfigProvider';
 import { DocumentHelpers, IDocumentHelpers } from './DocumentHelpers';
-import { ILanguageServerConnection, IRemoteConsole } from './External';
+import { ILanguageServerConnection, IRemoteConsole, ITextDocuments } from './External';
 import { DocumentSymbolHandler } from './handlers/DocumentSymbolHandler';
 import { HoverHandler } from './handlers/HoverHandler';
 import { IProjectManager, ProjectManager } from './ProjectManager';
@@ -47,6 +47,7 @@ export class LanguageService {
             [IRemoteConsole, connection.console],
             [IConfigProvider, this._configProvider],
             [IFileSystem, new Descriptor(NodeFileSystem)],
+            [ITextDocuments, this._textDocuments],
             [ICreationKitIniLocator, new Descriptor(ConfigIniLocator)],
             [ICreationKitInisLoader, new Descriptor(CreationKitInisLoader)],
             [IAmbientProjectLoader, new Descriptor(AmbientProjectLoader)],
