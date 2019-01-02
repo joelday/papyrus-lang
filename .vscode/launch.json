@@ -1,58 +1,78 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "node",
-            "name": "papyrus-lang: Jest",
-            "request": "launch",
-            "args": [
-                "--runInBand",
-                "--projects", "packages/papyrus-lang", "packages/papyrus-lang-lsp-server",
-                "--findRelatedTests", "${relativeFile}"
-            ],
-            "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen",
-            "program": "${workspaceFolder}/node_modules/jest/bin/jest",
-            "sourceMaps": true,
-            "skipFiles": [
-                "<node_internals>/**/*.js",
-                "${workspaceRoot}/node_modules/jest-**/*.js"
-            ]
-        },
-        {
-			"type": "extensionHost",
-			"request": "launch",
-			"name": "papyrus-lang-vscode: Launch Client",
-			"runtimeExecutable": "${execPath}",
-			"args": ["--extensionDevelopmentPath=${workspaceRoot}/packages/papyrus-lang-vscode"],
-			"stopOnEntry": false,
-			"sourceMaps": true,
-            "outFiles": [
-                "${workspaceFolder}/packages/papyrus-lang-vscode/lib/**/*.js",
-            ],
-            "preLaunchTask": "watch"
-		},
-		{
-			"type": "node",
-			"request": "attach",
-			"name": "papyrus-lang-vscode: Attach to Server",
-			"address": "localhost",
-			"protocol": "inspector",
-			"port": 6009,
-            "sourceMaps": true,
-            "timeout": 30000,
-            "outFiles": ["${workspaceRoot}/packages/papyrus-lang-*/lib/**/*.js"],
-            "restart": true
-		}
-    ],
-    "compounds": [
-        {
-            "name": "Language Extension",
-            "configurations": ["papyrus-lang-vscode: Launch Client", "papyrus-lang-vscode: Attach to Server"]
-        }
-    ]
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Host (Mono)",
+      "type": "mono",
+      "request": "launch",
+      "program": "${workspaceRoot}/src/DarkId.Papyrus.Host/bin/Debug/net461/DarkId.Papyrus.Host.exe",
+      "cwd": "${workspaceRoot}",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Attach to Host (Mono)",
+      "type": "mono",
+      "request": "attach",
+      "port": 2077,
+      "address": "localhost"
+    },
+    {
+      "name": "Launch Extension (Full build)",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "preLaunchTask": "build",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+      ],
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"],
+      "env": {
+        "PAPYRUS_EXTENSION_DEBUG": "1"
+      }
+    },
+    {
+      "name": "Launch Extension (Update bin only)",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "preLaunchTask": "updateBin",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+      ],
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"],
+      "env": {
+        "PAPYRUS_EXTENSION_DEBUG": "1"
+      }
+    },
+    {
+      "name": "Launch Extension (Build extension only)",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "preLaunchTask": "buildExtension",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+      ],
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"],
+      "env": {
+        "PAPYRUS_EXTENSION_DEBUG": "1"
+      }
+    },
+    {
+      "name": "Launch Extension (No build)",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+      ],
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"],
+      "env": {
+        "PAPYRUS_EXTENSION_DEBUG": "1"
+      }
+    }
+  ]
 }

@@ -1,0 +1,160 @@
+{
+    "activationEvents": [
+        "onLanguage:papyrus",
+        "onLanguage:papyrus-project"
+    ],
+    "author": {
+        "email": "joelday@gmail.com",
+        "name": "Joel Day",
+        "url": "https://github.com/joelday"
+    },
+    "bugs": {
+        "url": "https://github.com/joelday/papyrus-lang/issues"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "configuration": {
+            "properties": {
+                "papyrus.fallout4.creationKitIniFiles": {
+                    "default": [
+                        "CreationKit.ini",
+                        "CreationKitCustom.ini"
+                    ],
+                    "type": "array"
+                },
+                "papyrus.fallout4.installPath": {
+                    "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Fallout 4",
+                    "type": "string"
+                },
+                "papyrus.fallout4.compilerAssemblyPath": {
+                    "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Fallout 4\\Papyrus Compiler",
+                    "type": "string"
+                }
+            },
+            "title": "Papyrus language service",
+            "type": "object"
+        },
+        "grammars": [
+            {
+                "language": "papyrus",
+                "path": "./syntaxes/papyrus/papyrus.tmLanguage",
+                "scopeName": "source.papyrus"
+            },
+            {
+                "language": "papyrus-project",
+                "path": "./syntaxes/papyrus-project/papyrus-project.json",
+                "scopeName": "text.xml.papyrus-project"
+            }
+        ],
+        "languages": [
+            {
+                "aliases": [
+                    "Papyrus"
+                ],
+                "configuration": "./syntaxes/papyrus/papyrus-language-configuration.json",
+                "extensions": [
+                    ".psc"
+                ],
+                "id": "papyrus"
+            },
+            {
+                "aliases": [
+                    "Papyrus Project"
+                ],
+                "configuration": "./syntaxes/papyrus-project/papyrus-project-language-configuration.json",
+                "extensions": [
+                    ".ppj"
+                ],
+                "id": "papyrus-project"
+            }
+        ],
+        "views": {
+            "explorer": [
+                {
+                    "id": "papyrus-lang-vscode.astTreeView",
+                    "name": "Papyrus Syntax Tree",
+                    "when": "papyrus-lang-vscode.astTreeView:enabled"
+                }
+            ]
+        }
+    },
+    "contributors": [
+        {
+            "email": "joelday@gmail.com",
+            "name": "Joel Day",
+            "url": "https://github.com/joelday"
+        },
+        {
+            "email": "ScrivenerMods@gmail.com",
+            "name": "Scrivener07",
+            "url": "https://github.com/Scrivener07"
+        },
+        {
+            "name": "shad0wshayd3",
+            "url": "https://github.com/shad0wshayd3"
+        }
+    ],
+    "dependencies": {
+        "ps-list": "^6.0.0",
+        "vscode-languageclient": "^5.1.0"
+    },
+    "description": "Advanced language support for Fallout 4's Papyrus scripting language.",
+    "devDependencies": {
+        "@types/mocha": "^5.2.5",
+        "@types/node": "^10.12.12",
+        "tslint": "^5.11.0",
+        "typescript": "^3.2.1",
+        "vscode": "^1.1.24",
+        "rimraf": "^2.6.2",
+        "prettier": "^1.15.3"
+    },
+    "displayName": "Papyrus",
+    "engines": {
+        "vscode": "^1.27.0"
+    },
+    "homepage": "https://github.com/joelday/papyrus-lang/tree/master/packages/papyrus-lang-vscode",
+    "icon": "images/icon-small.png",
+    "keywords": [
+        "Papyrus",
+        "Fallout 4",
+        "Scripting",
+        "Modding",
+        "Creation Kit"
+    ],
+    "main": "./out/extension",
+    "maintainers": [
+        {
+            "email": "joelday@gmail.com",
+            "name": "Joel Day",
+            "url": "https://github.com/joelday"
+        }
+    ],
+    "name": "papyrus-lang-vscode",
+    "preview": true,
+    "private": true,
+    "publisher": "joelday",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/joelday/papyrus-lang.git"
+    },
+    "scripts": {
+        "copy-bin": "rm -rf ./bin && cp -rf ../DarkId.Papyrus.Host/bin/Debug/net461/ ./bin/",
+        "clean": "rimraf out",
+        "compile": "tsc -p ./",
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "test": "npm run compile && node ./node_modules/vscode/bin/test",
+        "vscode:prepublish": "npm run compile",
+        "watch": "tsc -watch -p ./"
+    },
+    "version": "1.0.0",
+    "prettier": {
+        "tabWidth": 4,
+        "singleQuote": true,
+        "trailingComma": "es5",
+        "bracketSpacing": true,
+        "arrowParens": "always",
+        "printWidth": 120
+    }
+}

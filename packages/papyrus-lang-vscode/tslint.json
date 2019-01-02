@@ -1,7 +1,0 @@
-{
-    "extends": "../../tslint.json",
-    "rules": {
-        // This conflicts with Prettier.
-        "quotemark": [false]
-    }
-}

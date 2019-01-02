@@ -1,29 +1,60 @@
-// See https://go.microsoft.com/fwlink/?LinkId=733558
-// for the documentation about the tasks.json format
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "watch",
-            "isBackground": true,
-            "type": "shell",
-            "command": "npm run watch",
-            "problemMatcher": [{
-                "base": "$tsc-watch",
-                "applyTo": "openDocuments",
-                "background": {
-                    "beginsPattern": {
-                        "regexp": "Projects in this build"
-                    },
-                    "endsPattern": {
-                        "regexp": "Build completed"
-                    }
-                }
-            }],
-            "presentation": {
-                "reveal": "always",
-            },
-            "group": "build"
-        }
-    ]
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "windows": {
+        "command": "powershell",
+        "args": [
+          "-ExecutionPolicy",
+          "Unrestricted",
+          "-NoProfile",
+          "-File",
+          "${workspaceFolder}\\build.ps1"
+        ]
+      },
+      "command": "./build.sh",
+      "problemMatcher": ["$tsc", "$msCompile"]
+    },
+    {
+      "label": "updateBin",
+      "windows": {
+        "command": "powershell",
+        "args": [
+          "-ExecutionPolicy",
+          "Unrestricted",
+          "-NoProfile",
+          "-File",
+          "${workspaceFolder}\\build.ps1",
+          "--target=\"update-bin\""
+        ]
+      },
+      "command": "./build.sh",
+      "args": ["--target=\"update-bin\""],
+      "problemMatcher": ["$tsc", "$msCompile"]
+    },
+    {
+      "label": "buildExtension",
+      "windows": {
+        "command": "powershell",
+        "args": [
+          "-ExecutionPolicy",
+          "Unrestricted",
+          "-NoProfile",
+          "-File",
+          "${workspaceFolder}\\build.ps1",
+          "--target=\"build-extension\""
+        ]
+      },
+      "command": "./build.sh",
+      "args": ["--target=\"build-extension\""],
+      "problemMatcher": ["$tsc", "$msCompile"]
+    }
+  ]
 }

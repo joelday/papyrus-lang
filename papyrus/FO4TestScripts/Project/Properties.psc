@@ -2,7 +2,7 @@ Scriptname Properties extends ScriptObject
 
 ScriptObject Property AutoConstPropertyOfScriptObject Auto Const
 ScriptObject Property AutoPropertyOfScriptObject Auto
-ScriptObject Property AutoReadOnlyPropertyOfScriptObject AutoReadOnly
+int Property AutoReadOnlyProperty = 0 AutoReadOnly
 
 ScriptObject variableOfScriptObject
 

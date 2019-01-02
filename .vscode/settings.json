@@ -1,11 +1,4 @@
 {
-    "typescript.tsdk": "node_modules/typescript/lib",
-    "git.ignoreLimitWarning": true,
-    "jest.pathToJest": "npm run test --",
-    "jest.enableSnapshotUpdateMessages": false,
-    "jest.debugCodeLens.showWhenTestStateIn": [],
-    "files.exclude": {
-        "**/node_modules": true,
-        "**/lib": true
-    }
+  "omnisharp.disableMSBuildDiagnosticWarning": true,
+  "editor.formatOnSave": true
 }

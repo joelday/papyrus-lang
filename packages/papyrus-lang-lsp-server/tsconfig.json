@@ -1,7 +1,0 @@
-{
-    "extends": "./tsconfig.build.json",
-    "compilerOptions": {
-        "composite": false
-    },
-    "exclude": ["lib", "node_modules"]
-}

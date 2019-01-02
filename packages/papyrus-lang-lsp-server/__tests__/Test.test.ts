@@ -1,3 +1,0 @@
-describe('Test', () => {
-    it('runs', () => {});
-});

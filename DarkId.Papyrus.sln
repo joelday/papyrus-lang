@@ -1,0 +1,51 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26124.0
+MinimumVisualStudioVersion = 15.0.26124.0
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{BC5E3EE1-9E3D-4F5A-990E-05FCE5A35736}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.LanguageService", "src\DarkId.Papyrus.LanguageService\DarkId.Papyrus.LanguageService.csproj", "{60EB659B-C0D8-4F5B-BF16-F26002A978C9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Server", "src\DarkId.Papyrus.Server\DarkId.Papyrus.Server.csproj", "{706B24DB-FC77-4AF7-8611-EF974C57D1EB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Host", "src\DarkId.Papyrus.Host\DarkId.Papyrus.Host.csproj", "{5FDD63C3-E81B-4D9A-9FC9-5D4AA2048ED3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Test", "src\DarkId.Papyrus.Test\DarkId.Papyrus.Test.csproj", "{F4EE2230-1538-4534-95B5-2C8C8B9BFAC9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{60EB659B-C0D8-4F5B-BF16-F26002A978C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{60EB659B-C0D8-4F5B-BF16-F26002A978C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{60EB659B-C0D8-4F5B-BF16-F26002A978C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{60EB659B-C0D8-4F5B-BF16-F26002A978C9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{706B24DB-FC77-4AF7-8611-EF974C57D1EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{706B24DB-FC77-4AF7-8611-EF974C57D1EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{706B24DB-FC77-4AF7-8611-EF974C57D1EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{706B24DB-FC77-4AF7-8611-EF974C57D1EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5FDD63C3-E81B-4D9A-9FC9-5D4AA2048ED3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5FDD63C3-E81B-4D9A-9FC9-5D4AA2048ED3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5FDD63C3-E81B-4D9A-9FC9-5D4AA2048ED3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5FDD63C3-E81B-4D9A-9FC9-5D4AA2048ED3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4EE2230-1538-4534-95B5-2C8C8B9BFAC9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4EE2230-1538-4534-95B5-2C8C8B9BFAC9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4EE2230-1538-4534-95B5-2C8C8B9BFAC9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4EE2230-1538-4534-95B5-2C8C8B9BFAC9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{60EB659B-C0D8-4F5B-BF16-F26002A978C9} = {BC5E3EE1-9E3D-4F5A-990E-05FCE5A35736}
+		{706B24DB-FC77-4AF7-8611-EF974C57D1EB} = {BC5E3EE1-9E3D-4F5A-990E-05FCE5A35736}
+		{5FDD63C3-E81B-4D9A-9FC9-5D4AA2048ED3} = {BC5E3EE1-9E3D-4F5A-990E-05FCE5A35736}
+		{F4EE2230-1538-4534-95B5-2C8C8B9BFAC9} = {BC5E3EE1-9E3D-4F5A-990E-05FCE5A35736}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F463939D-09F7-4C69-9379-87B29449255B}
+	EndGlobalSection
+EndGlobal
