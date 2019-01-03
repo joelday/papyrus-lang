@@ -15,19 +15,15 @@ import psList from 'ps-list';
 import { exec } from 'child_process';
 
 function getServerExecution(toolPath: string, compilerAssemblyPath: string) {
+    const args = ['--compilerAssemblyPath', compilerAssemblyPath];
+
     if (process.platform !== 'win32') {
-        const args = [toolPath, '--compilerAssemblyPath', compilerAssemblyPath];
-
-        if (process.env['PAPYRUS_EXTENSION_DEBUG']) {
-            args.unshift('--debug', '--debugger-agent=transport=dt_socket,server=y,address=127.0.0.1:2077');
-        }
-
         return {
             command: 'mono',
-            args,
+            args: [toolPath, ...args],
         };
     } else {
-        return { command: toolPath, args: ['--compilerAssemblyPath', compilerAssemblyPath] };
+        return { command: toolPath, args };
     }
 }
 
@@ -37,12 +33,11 @@ export interface DocumentSyntaxTreeParams {
 
 export interface DocumentSyntaxTree {
     root: DocumentSyntaxTreeNode;
-    pCompilerRoot: DocumentSyntaxTreeNode;
 }
 
 export interface DocumentSyntaxTreeNode {
     name: string;
-    kind: string;
+    text: string;
     children: DocumentSyntaxTreeNode[];
     range: Range;
 }
@@ -82,8 +77,6 @@ export class ClientServer {
             return;
         }
 
-        /*'--debug', '--debugger-agent=transport=dt_socket,server=y,address=127.0.0.1:2077', */
-
         this._fsWatcher = workspace.createFileSystemWatcher('**/*.{flg,ppj,psc}');
 
         const clientOptions: LanguageClientOptions = {
@@ -93,8 +86,16 @@ export class ClientServer {
             ],
             synchronize: {
                 fileEvents: this._fsWatcher,
+                configurationSection: 'papyrus',
             },
         };
+
+        // In order to find the new process id, we need to exclude any current running instances of the language server.
+        let existingProcessIds: number[];
+        if (process.platform === 'win32' && process.env['PAPYRUS_EXTENSION_DEBUG']) {
+            const processes = await psList();
+            existingProcessIds = processes.filter((p) => p.name === 'DarkId.Papyrus.Host.exe').map((p) => p.pid);
+        }
 
         // Create the language client and start the client.
         this._client = new LanguageClient('papyrus', 'Papyrus Language Service', this._serverOptions, clientOptions);
@@ -106,19 +107,13 @@ export class ClientServer {
 
         if (process.platform === 'win32' && process.env['PAPYRUS_EXTENSION_DEBUG']) {
             const processes = await psList();
-            const serverProcessId = processes.find((p) => p.name === 'DarkId.Papyrus.Host.exe')!.pid;
+            const serverProcessId = processes.find(
+                (p) => p.name === 'DarkId.Papyrus.Host.exe' && existingProcessIds.indexOf(p.pid) === -1
+            )!.pid;
 
             if (serverProcessId) {
                 exec(`vsjitdebugger.exe -p ${serverProcessId}`);
             }
-        }
-    }
-
-    public async restart() {
-        try {
-            await this.stop();
-        } finally {
-            await this.start();
         }
     }
 

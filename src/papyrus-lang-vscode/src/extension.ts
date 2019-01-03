@@ -17,9 +17,11 @@ export async function activate(context: vscode.ExtensionContext) {
     clientServer = new ClientServer(toolPath, compilerAssemblyPath);
     await clientServer.start();
 
-    const syntaxTreeDataProvider = new SyntaxTreeDataProvider(clientServer);
-    const syntaxExplorer = new SyntaxExplorerView('papyrus-lang-vscode.astTreeView', syntaxTreeDataProvider);
-    syntaxExplorer.register();
+    if (process.env['PAPYRUS_EXTENSION_DEBUG']) {
+        const syntaxTreeDataProvider = new SyntaxTreeDataProvider(clientServer);
+        const syntaxExplorer = new SyntaxExplorerView('papyrus-lang-vscode.astTreeView', syntaxTreeDataProvider);
+        syntaxExplorer.register();
+    }
 }
 
 export function deactivate() {

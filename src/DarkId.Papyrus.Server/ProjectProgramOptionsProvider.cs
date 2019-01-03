@@ -37,10 +37,11 @@ namespace DarkId.Papyrus.Server
 
         public async Task<Dictionary<string, ProgramOptions>> GetProgramOptions()
         {
-            var workspaceFolders = await _languageServer.Workspace.WorkspaceFolders();
+            var workspaceFolders = await Task.Run(() => _languageServer.Workspace.WorkspaceFolders().WaitForResult());
             var workspaceFolderPaths = workspaceFolders.Select(f => f.Uri.ToFilePath()).ToArray();
 
-            var workspaceProjectFiles = Task.WhenAll(workspaceFolderPaths.Select(async d => {
+            var workspaceProjectFiles = Task.WhenAll(workspaceFolderPaths.Select(async d =>
+            {
                 var files = await _projectLocator.FindProjectFiles(d);
                 return new Tuple<string, IEnumerable<string>>(d, files);
             }))

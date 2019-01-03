@@ -27,7 +27,7 @@ namespace DarkId.Papyrus.Server.Features
             return new DocumentSyntaxTreeNode()
             {
                 Name = node.Kind.ToString(),
-                Kind = node.Kind.ToString(),
+                Text = node.Text,
                 Range = node.Range.ToRange(),
                 Children = node.Children.Select(n => GetSyntaxTreeNode(n)).ToList() ?? new List<DocumentSyntaxTreeNode>()
             };

@@ -30,10 +30,6 @@ export class SyntaxTreeDataProvider extends ActiveDocTreeDataProviderBase {
             nodes.push(new SyntaxTreeDataNode(data.root, null));
         }
 
-        if (data.pCompilerRoot) {
-            nodes.push(new SyntaxTreeDataNode(data.pCompilerRoot, null));
-        }
-
         return nodes;
     }
 

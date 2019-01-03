@@ -17,11 +17,13 @@ export class SyntaxTreeDataNode implements TreeDataNode {
     }
 
     getTreeItem(): vs.TreeItem | Thenable<vs.TreeItem> {
-        const { name, kind, range } = this._node;
+        const { name, text, range } = this._node;
 
         const treeItem = new vs.TreeItem(
-            `${name} [${kind}] (${range.start.line}:${range.start.character}, ${range.end.line}:${range.end.character})`
+            `${name} (${range.start.line}:${range.start.character}, ${range.end.line}:${range.end.character})`
         );
+
+        treeItem.tooltip = text;
 
         treeItem.collapsibleState =
             this._node.children.length > 0 ? vs.TreeItemCollapsibleState.Collapsed : vs.TreeItemCollapsibleState.None;

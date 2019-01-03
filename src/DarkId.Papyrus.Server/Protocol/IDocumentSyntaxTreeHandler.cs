@@ -20,13 +20,12 @@ namespace DarkId.Papyrus.Server.Protocol
     public class DocumentSyntaxTree
     {
         public DocumentSyntaxTreeNode Root { get; set; }
-        public DocumentSyntaxTreeNode PCompilerRoot { get; set; }
     }
 
     public class DocumentSyntaxTreeNode
     {
         public string Name { get; set; }
-        public string Kind { get; set; }
+        public string Text { get; set; }
         public Container<DocumentSyntaxTreeNode> Children { get; set; }
         public Range Range { get; set; }
     }
