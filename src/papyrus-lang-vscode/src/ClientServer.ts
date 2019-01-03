@@ -46,9 +46,34 @@ export interface ProvideDocumentSyntaxTreeSignature {
     (document: TextDocument, token: CancellationToken): ProviderResult<DocumentSyntaxTree>;
 }
 
-export const documentRequestType = {
+export const documentSyntaxTreeRequestType = {
     type: new RequestType<DocumentSyntaxTreeParams, DocumentSyntaxTree | null, void, TextDocumentRegistrationOptions>(
         'textDocument/syntaxTree'
+    ),
+};
+
+export interface DocumentScriptInfoParams {
+    textDocument: TextDocumentIdentifier;
+}
+
+export interface IdentifierFiles {
+    identifer: string;
+    files: string[];
+}
+
+export interface DocumentScriptInfo {
+    identifiers: string[];
+    identifierFiles: IdentifierFiles[];
+    searchPaths: string[];
+}
+
+export interface ProvideDocumentScriptInfoSignature {
+    (document: TextDocument, token: CancellationToken): ProviderResult<DocumentScriptInfo>;
+}
+
+export const documentScriptInfoRequestType = {
+    type: new RequestType<DocumentScriptInfoParams, DocumentScriptInfo | null, void, TextDocumentRegistrationOptions>(
+        'textDocument/scriptInfo'
     ),
 };
 
@@ -67,7 +92,13 @@ export class ClientServer {
     }
 
     public requestSyntaxTree(uri: string): Thenable<DocumentSyntaxTree> {
-        return this._client.sendRequest(documentRequestType.type, {
+        return this._client.sendRequest(documentSyntaxTreeRequestType.type, {
+            textDocument: TextDocumentIdentifier.create(uri),
+        });
+    }
+
+    public requestScriptInfo(uri: string): Thenable<DocumentScriptInfo> {
+        return this._client.sendRequest(documentScriptInfoRequestType.type, {
             textDocument: TextDocumentIdentifier.create(uri),
         });
     }

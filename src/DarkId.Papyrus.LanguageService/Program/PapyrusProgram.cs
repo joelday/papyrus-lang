@@ -40,6 +40,8 @@ namespace DarkId.Papyrus.LanguageService.Program
 
         public event EventHandler<ScriptFileChangedEventArgs> OnScriptFileChanged;
 
+        public ProgramOptions Options => _options.Clone();
+
         public PapyrusProgram(
             ProgramOptions options,
             IFileSystem fileSystem,

@@ -91,7 +91,7 @@ namespace DarkId.Papyrus.Server.Features
             try
             {
                 var scriptFile = _projectManager.GetScriptForFilePath(request.TextDocument.Uri.ToFilePath());
-                var scriptSymbol = scriptFile.Symbol;
+                var scriptSymbol = scriptFile?.Symbol;
                 if (scriptSymbol == null)
                 {
                     return Task.FromResult<DocumentSymbolInformationContainer>(null);

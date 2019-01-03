@@ -22,6 +22,15 @@ export async function activate(context: vscode.ExtensionContext) {
         const syntaxExplorer = new SyntaxExplorerView('papyrus-lang-vscode.astTreeView', syntaxTreeDataProvider);
         syntaxExplorer.register();
     }
+
+    vscode.window.onDidChangeActiveTextEditor(async (e) => {
+        if (e.document.languageId !== 'papyrus') {
+            return;
+        }
+
+        var info = await clientServer.requestScriptInfo(e.document.uri.toString());
+        console.log(info);
+    });
 }
 
 export function deactivate() {
