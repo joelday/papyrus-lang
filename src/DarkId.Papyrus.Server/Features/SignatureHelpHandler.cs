@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using DarkId.Papyrus.LanguageService.Common;
+using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
 using DarkId.Papyrus.LanguageService.Program.Syntax;
@@ -57,7 +57,7 @@ namespace DarkId.Papyrus.Server.Features
                 var activeParameterIndex = 0;
 
                 // Here, we're making the parameter node ranges contiguous
-                var parameterRanges = new List<LanguageService.Common.Range>();
+                var parameterRanges = new List<Common.Range>();
                 for (var i = 0; i < functionCallExpression.Parameters.Count; i++)
                 {
                     var range = functionCallExpression.Parameters[i].Range;
@@ -65,14 +65,14 @@ namespace DarkId.Papyrus.Server.Features
                     {
                         var previousParameterEnd = functionCallExpression.Parameters[i - 1].Range.End;
 
-                        range = new LanguageService.Common.Range()
+                        range = new Common.Range()
                         {
-                            Start = new LanguageService.Common.Position()
+                            Start = new Common.Position()
                             {
                                 Line = previousParameterEnd.Line,
                                 Character = previousParameterEnd.Character + 1
                             },
-                            End = new LanguageService.Common.Position()
+                            End = new Common.Position()
                             {
                                 Line = range.End.Line,
                                 Character = range.End.Character + 1

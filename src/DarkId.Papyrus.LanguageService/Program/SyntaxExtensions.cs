@@ -1,6 +1,6 @@
 ﻿using Antlr.Runtime;
 using Antlr.Runtime.Tree;
-using DarkId.Papyrus.LanguageService.Common;
+using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Compiler;
 using DarkId.Papyrus.LanguageService.Program.Syntax;
 using PCompiler;

@@ -1,6 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using DarkId.Papyrus.LanguageService.Common;
+using DarkId.Papyrus.Common;
 
 #pragma warning disable CS0067 // Unused event handler;
 

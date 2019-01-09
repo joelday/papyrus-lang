@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace DarkId.Papyrus.LanguageService.Common
+namespace DarkId.Papyrus.Common
 {
     public static class DependencyExtensions
     {

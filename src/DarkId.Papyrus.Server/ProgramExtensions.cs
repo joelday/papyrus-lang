@@ -1,4 +1,4 @@
-﻿using DarkId.Papyrus.LanguageService.Common;
+﻿using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;

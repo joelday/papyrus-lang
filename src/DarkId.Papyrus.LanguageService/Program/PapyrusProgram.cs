@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Antlr.Runtime;
-using DarkId.Papyrus.LanguageService.Common;
+using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Compiler;
 using DarkId.Papyrus.LanguageService.Program.Types;
 using Microsoft.Extensions.Logging;

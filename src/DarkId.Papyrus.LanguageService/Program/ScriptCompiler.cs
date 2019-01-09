@@ -9,7 +9,7 @@ using System.Reflection;
 using DarkId.Papyrus.LanguageService.Program;
 using Harmony;
 using Antlr.Runtime;
-using DarkId.Papyrus.LanguageService.Common;
+using DarkId.Papyrus.Common;
 using System.Runtime.Serialization;
 using Antlr.Runtime.Tree;
 using Microsoft.Extensions.Logging;

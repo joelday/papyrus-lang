@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using DarkId.Papyrus.LanguageService.Common;
+using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
 using DarkId.Papyrus.LanguageService.Program.Syntax;
 using DarkId.Papyrus.LanguageService.Program.Types;

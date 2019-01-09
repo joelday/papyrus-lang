@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Antlr.Runtime;
-using DarkId.Papyrus.LanguageService.Common;
+using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Compiler;
 using Microsoft.Extensions.Logging;
 using PCompiler;

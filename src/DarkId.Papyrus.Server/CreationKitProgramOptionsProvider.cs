@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using DarkId.Papyrus.LanguageService.Common;
+using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Configuration.CreationKit;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Projects;

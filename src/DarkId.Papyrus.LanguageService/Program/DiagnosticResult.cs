@@ -1,4 +1,4 @@
-﻿using DarkId.Papyrus.LanguageService.Common;
+﻿using DarkId.Papyrus.Common;
 using System;
 using System.Collections.Generic;
 using System.Text;

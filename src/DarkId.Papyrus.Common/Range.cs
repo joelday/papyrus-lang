@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace DarkId.Papyrus.LanguageService.Common
+namespace DarkId.Papyrus.Common
 {
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public struct Range : IEquatable<Range>

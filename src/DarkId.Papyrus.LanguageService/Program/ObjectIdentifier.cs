@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using DarkId.Papyrus.LanguageService.Common;
+using DarkId.Papyrus.Common;
 
 namespace DarkId.Papyrus.LanguageService.Program
 {

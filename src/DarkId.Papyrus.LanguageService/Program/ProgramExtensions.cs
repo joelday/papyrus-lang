@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using DarkId.Papyrus.LanguageService.Common;
+using DarkId.Papyrus.Common;
 
 namespace DarkId.Papyrus.LanguageService.Program
 {

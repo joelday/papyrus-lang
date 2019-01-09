@@ -6,7 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DarkId.Papyrus.LanguageService.Common
+namespace DarkId.Papyrus.LanguageService
 {
     public static class HarmonyPatches
     {

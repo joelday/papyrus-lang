@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using System;
 using System.Linq;
 using System.IO;
-using DarkId.Papyrus.LanguageService.Common;
+using DarkId.Papyrus.Common;
 
 namespace DarkId.Papyrus.LanguageService.Projects
 {

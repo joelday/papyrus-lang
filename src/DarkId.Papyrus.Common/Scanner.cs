@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DarkId.Papyrus.LanguageService.Common
+namespace DarkId.Papyrus.Common
 {
-    class Scanner<T>
+    public class Scanner<T>
     {
         private readonly Stack<T> _left = new Stack<T>();
         private readonly Stack<T> _right = new Stack<T>();

@@ -9,7 +9,7 @@ using System.Reflection;
 using DarkId.Papyrus.LanguageService.Program;
 using Harmony;
 using Antlr.Runtime;
-using DarkId.Papyrus.LanguageService.Common;
+using DarkId.Papyrus.Common;
 
 namespace DarkId.Papyrus.LanguageService.Compiler
 {

@@ -2,9 +2,9 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DarkId.Papyrus.LanguageService.Common
+namespace DarkId.Papyrus.Common
 {
-    class CachedValue<T> where T : class
+    public class CachedValue<T> where T : class
     {
         private readonly object _lock = new object();
         private readonly Func<T> _valueFunc;

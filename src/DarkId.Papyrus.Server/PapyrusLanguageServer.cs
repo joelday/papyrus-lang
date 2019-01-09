@@ -1,4 +1,5 @@
-﻿using DarkId.Papyrus.LanguageService.Common;
+﻿using DarkId.Papyrus.Common;
+using DarkId.Papyrus.LanguageService;
 using DarkId.Papyrus.LanguageService.Compiler;
 using DarkId.Papyrus.LanguageService.Configuration.CreationKit;
 using DarkId.Papyrus.LanguageService.Program;

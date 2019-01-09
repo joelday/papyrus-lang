@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 
-namespace DarkId.Papyrus.LanguageService.Common
+namespace DarkId.Papyrus.Common
 {
     public static class PathUtilities
     {

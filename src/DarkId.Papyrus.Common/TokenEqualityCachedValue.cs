@@ -2,9 +2,9 @@ using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
-namespace DarkId.Papyrus.LanguageService.Common
+namespace DarkId.Papyrus.Common
 {
-    class TokenEqualityCachedValue<TValue, TToken>
+    public class TokenEqualityCachedValue<TValue, TToken>
         where TValue : class
     {
         private CachedValue<TValue> _value;

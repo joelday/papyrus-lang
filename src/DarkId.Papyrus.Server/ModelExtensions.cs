@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using PapCommon = DarkId.Papyrus.LanguageService.Common;
+using PapCommon = DarkId.Papyrus.Common;
 using PapProgram = DarkId.Papyrus.LanguageService.Program;
 
 namespace DarkId.Papyrus.Server

@@ -1,4 +1,4 @@
-﻿using DarkId.Papyrus.LanguageService.Common;
+﻿using DarkId.Papyrus.Common;
 using Newtonsoft.Json.Linq;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;

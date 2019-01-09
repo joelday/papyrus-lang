@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace DarkId.Papyrus.LanguageService.Common
+namespace DarkId.Papyrus.Common
 {
     // Converted from https://github.com/Microsoft/vscode-languageserver-node/blob/master/types/src/main.ts
 

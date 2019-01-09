@@ -7,7 +7,7 @@ using DarkId.Papyrus.LanguageService.Configuration.CreationKit;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Newtonsoft.Json.Linq;
-using DarkId.Papyrus.LanguageService.Common;
+using DarkId.Papyrus.Common;
 using Microsoft.Extensions.Logging;
 
 namespace DarkId.Papyrus.Server
