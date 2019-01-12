@@ -24,12 +24,12 @@ namespace DarkId.Papyrus.LanguageService.Compiler
         }
 
         public static bool Prefix(ANTLRFileStream __instance, string fileName, Encoding encoding)
-		{
+        {
             var asDynamic = __instance.AsDynamic();
             asDynamic.data = _textProvider.GetText(fileName).WaitForResult().Text.ToCharArray();
             asDynamic.n = asDynamic.data.Length;
 
             return false;
-		}
+        }
     }
 }

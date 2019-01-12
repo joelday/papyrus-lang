@@ -9,6 +9,7 @@ namespace DarkId.Papyrus.LanguageService.Program
         public string Name { get; set; }
         public string FlagsFileName { get; set; }
         public ProgramSources Sources { get; set; } = new ProgramSources();
+        public LanguageVariant LanguageVariant { get; set; } = LanguageVariant.Fallout4;
 
         public ProgramOptions Clone()
         {
@@ -23,7 +24,8 @@ namespace DarkId.Papyrus.LanguageService.Program
                         Path = include.Path,
                         Recursive = include.Recursive
                     }).ToList()
-                }
+                },
+                LanguageVariant = LanguageVariant
             };
         }
 

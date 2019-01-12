@@ -86,7 +86,7 @@ namespace DarkId.Papyrus.LanguageService.Compiler
                 }
             });
         }
-		
+
         public static Diagnostic ToDiagnostic(this CompilerErrorEventArgs e)
         {
             return new Diagnostic(DiagnosticLevel.Error, e.Message, new Range());
