@@ -1,0 +1,18 @@
+﻿<Project>
+  <PropertyGroup>
+    <RootNamespace>DarkId.Papyrus.Server</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="2.2.0" />
+    <PackageReference Include="OmniSharp.Extensions.LanguageProtocol" Version="0.10.0" />
+    <PackageReference Include="OmniSharp.Extensions.LanguageServer" Version="0.10.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../DarkId.Papyrus.LanguageService/DarkId.Papyrus.LanguageService.$(PapyrusLanguageVariant).csproj" />
+  </ItemGroup>
+
+  <Import Project="../../targets/PapyrusAssemblyProject.props" />
+</Project>

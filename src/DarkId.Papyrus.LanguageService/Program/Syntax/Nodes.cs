@@ -333,6 +333,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         internal ScriptVariableType CompilerType { get; set; }
     }
 
+#if FALLOUT4
     public class StructDefinitionNode : SyntaxNode, IDefinitionBlock
     {
         public override NodeKind Kind => NodeKind.StructDefinition;
@@ -352,6 +353,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
         public IdentifierNode Identifier { get; set; }
     }
+#endif
 
     public class StateDefinitionNode : SyntaxNode, IIdentifiable, IDefinitionBlock
     {

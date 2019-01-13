@@ -61,18 +61,21 @@ namespace DarkId.Papyrus.LanguageService.Program.Types
 
     public sealed class ScriptType : ComplexType<ScriptSymbol, ScriptObjectType>
     {
+#if FALLOUT4
         private readonly Dictionary<ObjectIdentifier, StructType> _structTypes;
         public IReadOnlyDictionary<ObjectIdentifier, StructType> StructTypes => _structTypes;
-
+#endif
         public ScriptType(PapyrusProgram program, ScriptSymbol symbol, ScriptObjectType compilerType)
             : base(program, symbol, compilerType)
         {
+#if FALLOUT4
             _structTypes = symbol.Children.OfType<StructSymbol>().Select(s =>
             {
                 CompilerType.TryGetStruct(s.Name, out var structType);
 
                 return new StructType(program, s, structType);
             }).ToDictionary(s => s.Name);
+#endif
         }
     }
 
@@ -91,6 +94,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Types
         }
     }
 
+#if FALLOUT4
     public sealed class StructType : ComplexType<StructSymbol, ScriptStructType>
     {
         public StructType(PapyrusProgram program, StructSymbol symbol, ScriptStructType compilerType)
@@ -98,4 +102,6 @@ namespace DarkId.Papyrus.LanguageService.Program.Types
         {
         }
     }
+#endif
+
 }

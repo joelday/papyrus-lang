@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net461</TargetFramework>
+    <PlatformTarget>x86</PlatformTarget>
+    
+    <PapyrusLanguageVariant>Skyrim</PapyrusLanguageVariant>
+  </PropertyGroup>
+
+  <Import Project="DarkId.Papyrus.Host.props" />
+</Project>

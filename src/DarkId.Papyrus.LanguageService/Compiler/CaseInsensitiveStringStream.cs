@@ -57,7 +57,18 @@ namespace DarkId.Papyrus.LanguageService.Compiler
 
         public int Count => stream.Count;
 
+#if FALLOUT4
+
         public int Index => stream.Index;
+
+#elif SKYRIM
+
+        int IIntStream.Index()
+        {
+            return stream.Index();
+        }
+
+#endif
 
         public int LA(int offset)
         {

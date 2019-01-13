@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net461</TargetFramework>
+    <PlatformTarget>x86</PlatformTarget>
+    
+    <PapyrusLanguageVariant>Fallout4</PapyrusLanguageVariant>
+  </PropertyGroup>
+
+  <Import Project="DarkId.Papyrus.LanguageService.props" />
+</Project>
