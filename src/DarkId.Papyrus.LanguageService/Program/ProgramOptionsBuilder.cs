@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using DarkId.Papyrus.Common;
 
 namespace DarkId.Papyrus.LanguageService.Program
 {
@@ -16,6 +18,22 @@ namespace DarkId.Papyrus.LanguageService.Program
         public ProgramOptionsBuilder WithFlagsFileName(string fileName)
         {
             _options.FlagsFileName = fileName;
+            return this;
+        }
+
+        public ProgramOptionsBuilder WithLanguageVariant(LanguageVariant languageVariant)
+        {
+            _options.LanguageVariant = languageVariant;
+            return this;
+        }
+
+        public ProgramOptionsBuilder WithLanguageVariantFromFlagsFileName()
+        {
+            if (Path.GetFileNameWithoutExtension(_options.FlagsFileName).CaseInsensitiveEquals("TESV_Papyrus_Flags"))
+            {
+                _options.LanguageVariant = LanguageVariant.Skyrim;
+            }
+
             return this;
         }
 

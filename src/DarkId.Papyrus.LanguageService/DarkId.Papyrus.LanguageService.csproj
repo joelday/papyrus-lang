@@ -12,16 +12,16 @@
 
   <ItemGroup>
     <Reference Include="Antlr3.Runtime">
-      <HintPath>../../dependencies/compiler/Antlr3.Runtime.dll</HintPath>
+      <HintPath>../../dependencies/compilers/fallout4/Antlr3.Runtime.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Antlr3.StringTemplate">
-      <HintPath>../../dependencies/compiler/Antlr3.StringTemplate.dll</HintPath>
+      <HintPath>../../dependencies/compilers/fallout4/Antlr3.StringTemplate.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="PCompiler">
       <Private>false</Private>
-      <HintPath>../../dependencies/compiler/PCompiler.dll</HintPath>
+      <HintPath>../../dependencies/compilers/fallout4/PCompiler.dll</HintPath>
     </Reference>
   </ItemGroup>
 

@@ -66,7 +66,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const compilerAssemblyPath =
         process.platform === 'win32'
             ? vscode.workspace.getConfiguration('papyrus.fallout4').get<string>('compilerAssemblyPath')
-            : context.asAbsolutePath('../../dependencies/compiler');
+            : context.asAbsolutePath('../../dependencies/compilers/fallout4');
 
     clientServer = new ClientServer(toolPath, compilerAssemblyPath);
     await clientServer.start();

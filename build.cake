@@ -3,9 +3,9 @@
 var target = Argument("target", "default");
 var solution = File("./DarkId.Papyrus.sln");
 
-public void DownloadAndUnzip(string address, DirectoryPath outputPath)
+public void DownloadAndUnzip(string address, DirectoryPath outputPath, DirectoryPath existsPath)
 {
-    if (DirectoryExists(outputPath))
+    if (DirectoryExists(existsPath))
     {
         return;
     }
@@ -50,14 +50,9 @@ Task("npm-build")
         });
     });
 
-Task("download-compiler")
+Task("download-compilers")
     .Does(() => {
-        DownloadAndUnzip("https://www.dropbox.com/s/n03qh6ezt22q4qd/PapyrusCompiler.zip?dl=1", "./dependencies/compiler");
-    });
-
-Task("download-base-scripts")
-    .Does(() => {
-        DownloadAndUnzip("https://www.dropbox.com/s/xw646rnme3o30pu/Base.zip?dl=1", "./papyrus/FO4Scripts/Base");
+        DownloadAndUnzip("https://www.dropbox.com/s/vkoffvsdhru7p1c/papyrus-compilers.zip?dl=1", "./dependencies", "./dependencies/compilers");
     });
 
 Task("restore")
@@ -87,10 +82,9 @@ Task("clean")
 
 Task("default")
     .IsDependentOn("clean")
-    .IsDependentOn("download-compiler")
+    .IsDependentOn("download-compilers")
     .IsDependentOn("restore")
     .IsDependentOn("build")
-    .IsDependentOn("download-base-scripts")
     .IsDependentOn("test")
     .IsDependentOn("npm-install")
     .IsDependentOn("npm-clean")
