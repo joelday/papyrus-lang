@@ -5,6 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+#if SKYRIM
+using ScriptComplexType = PCompiler.ScriptObjectType;
+#endif
+
 namespace DarkId.Papyrus.LanguageService.Program
 {
     class CompilerTypeTable

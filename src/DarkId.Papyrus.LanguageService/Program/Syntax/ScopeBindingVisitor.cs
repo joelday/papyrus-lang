@@ -51,10 +51,12 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
                 BindStatementBlocks(eventNode);
             }
 
+#if FALLOUT4
             foreach (var structNode in node.Children.OfType<StructDefinitionNode>())
             {
                 BindStructHeader(structNode.Header);
             }
+#endif
 
             foreach (var variableNode in node.Children.OfType<VariableDefinitionNode>())
             {
@@ -80,16 +82,21 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
                 header.Flags |= type.bGlobal ? LanguageFlags.Global : LanguageFlags.None;
                 header.Flags |= type.bNative ? LanguageFlags.Native : LanguageFlags.None;
+
+#if FALLOUT4
                 header.Flags |= type.bBetaOnly ? LanguageFlags.BetaOnly : LanguageFlags.None;
                 header.Flags |= type.bDebugOnly ? LanguageFlags.DebugOnly : LanguageFlags.None;
+#endif
             }
         }
 
+#if FALLOUT4
         private void BindStructHeader(StructHeaderNode header)
         {
             _scriptType.TryGetStruct(header.Identifier.Text, out var type);
             header.CompilerType = type;
         }
+#endif
 
         private void BindPropertyHeader(PropertyHeaderNode header)
         {
@@ -108,10 +115,12 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
             _scriptType.TryGetVariable(node.Identifier.Text, out var type);
             node.CompilerType = type;
 
+#if FALLOUT4
             if (type != null)
             {
                 node.Flags |= type.IsConst ? LanguageFlags.Const : LanguageFlags.None;
             }
+#endif
         }
 
         private void BindStatementBlocks<T>(T parentBlock)

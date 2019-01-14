@@ -15,6 +15,10 @@ using Antlr.Runtime.Tree;
 using Microsoft.Extensions.Logging;
 using System.Threading;
 
+#if SKYRIM
+using ScriptComplexType = PCompiler.ScriptObjectType;
+#endif
+
 namespace DarkId.Papyrus.LanguageService.Program
 {
     class CompilerObjectLoadResults
@@ -39,10 +43,19 @@ namespace DarkId.Papyrus.LanguageService.Program
         [HarmonyPatch("LoadObject", typeof(string), typeof(Dictionary<string, ScriptComplexType>), typeof(Stack<string>), typeof(bool), typeof(ScriptObjectType))]
         public static class LoadObjectPatch
         {
+#if FALLOUT4
             public static bool Prefix(
                 ScriptCompiler __instance, ref ScriptObjectType __result,
                 string asObjectName, Dictionary<string, ScriptComplexType> apKnownTypes, Stack<string> apChildren, bool abErrorOnNoObject, ScriptObjectType apImmediateChild)
             {
+#elif SKYRIM
+            public static bool Prefix(
+                ScriptCompiler __instance, ref ScriptObjectType __result,
+                string asObjectName, Dictionary<string, ScriptComplexType> akKnownTypes, Stack<string> akChildren, bool abErrorOnNoObject, ScriptObjectType akImmediateChild)
+            {
+
+                var apKnownTypes = akKnownTypes;
+#endif
                 var objectIdentifier = ObjectIdentifier.Parse(asObjectName);
 
                 if (objectIdentifier == __instance._targetScript.Id || apKnownTypes.ContainsKey(asObjectName))
@@ -78,10 +91,18 @@ namespace DarkId.Papyrus.LanguageService.Program
         [HarmonyPatch(typeof(PCompiler.Compiler), "Parse")]
         public static class ParsePatch
         {
+#if FALLOUT4
             public static bool Prefix(
                 ScriptCompiler __instance,
                 ITokenStream apTokenStream, out ScriptObjectType apParsedObj, out IToken arpParentName, out Dictionary<string, IToken> apImports)
             {
+#elif SKYRIM
+            public static bool Prefix(
+                ScriptCompiler __instance,
+                ITokenStream akTokenStream, out ScriptObjectType akParsedObj)
+            {
+                var apTokenStream = akTokenStream;
+#endif
                 __instance._logger.LogTrace("Parsing {0}...", __instance._targetScript.Id);
 
                 var parser = new PapyrusParser(apTokenStream);
@@ -94,15 +115,39 @@ namespace DarkId.Papyrus.LanguageService.Program
 
                 parser.script();
 
+
+
+#if FALLOUT4
                 apParsedObj = parser.ParsedObject;
+
                 arpParentName = parser.ParentObjName;
                 apImports = parser.pImportedItems;
+#elif SKYRIM
+                akParsedObj = parser.ParsedObject;
+#endif
 
                 return false;
             }
         }
 
-        #endregion
+#if SKYRIM
+        [HarmonyPatch(typeof(PCompiler.Compiler), "GetFilename")]
+        public static class GetFilenamePatch
+        {
+
+            public static bool Prefix(
+                ScriptCompiler __instance, ref bool __result,
+                string asObjectName, out string asFilename)
+            {
+                __result = __instance._targetScript.Program.ScriptFiles.TryGetValue(asObjectName, out var scriptFile);
+                asFilename = scriptFile?.FilePath;
+
+                return false;
+            }
+        }
+#endif
+
+#endregion
 
         private static readonly MethodInfo _disambiguateTypeMethod =
             typeof(PCompiler.Compiler).GetMethod("DisambiguateType", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -119,10 +164,20 @@ namespace DarkId.Papyrus.LanguageService.Program
             _targetScript = targetScript;
             _logger = logger;
 
+#if FALLOUT4
             _thisDynamic.pObjectToPath = new Dictionary<string, string>();
             SetPathForObject(_targetScript.Id, _targetScript.FilePath);
 
             _thisDynamic.pFlagDict = _targetScript.Program.FlagsFile.NativeFlagsDict;
+#elif SKYRIM
+            _thisDynamic.kObjectToPath = new Dictionary<string, string>()
+            {
+                { _targetScript.Id, _targetScript.FilePath }
+            };
+
+            _thisDynamic.kFlagDict = _targetScript.Program.FlagsFile.NativeFlagsDict;
+#endif
+
         }
 
         public ScriptObjectType Load(Dictionary<string, ScriptComplexType> knownTypes)
@@ -151,6 +206,7 @@ namespace DarkId.Papyrus.LanguageService.Program
                 return null;
             }
 
+#if FALLOUT4
             if (result.pImportedTypes == null)
             {
                 result.pImportedTypes = new Dictionary<string, ScriptObjectType>();
@@ -160,6 +216,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             {
                 result.pImportedNamespaces = new HashSet<string>();
             }
+#endif
 
             return result;
         }

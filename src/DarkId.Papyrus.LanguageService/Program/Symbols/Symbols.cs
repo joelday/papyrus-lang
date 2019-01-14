@@ -220,6 +220,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
         public override LanguageFlags Flags => Definition.IsAuto ? LanguageFlags.Auto : LanguageFlags.None;
     }
 
+#if FALLOUT4
     public class StructSymbol : TypeSymbol
     {
         public StructSymbol(StructDefinitionNode node, PapyrusSymbol parent) :
@@ -231,6 +232,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
 
         public override SymbolKinds Kind => SymbolKinds.Struct;
     }
+#endif
 
     public class VariableSymbol : PapyrusSymbol
     {

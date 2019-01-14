@@ -17,6 +17,18 @@ namespace DarkId.Papyrus.Server.Host
 
     public class Program
     {
+        private static readonly string[] _papyrusCompilerAssemblies = new string[]
+        {
+            "Antlr3.Runtime.dll",
+            "PCompiler.dll",
+#if FALLOUT4
+            "Antlr3.StringTemplate.dll"
+#elif SKYRIM
+            "Antlr3.Utility.dll",
+            "StringTemplate.dll"
+#endif
+        };
+
         static void Main(string[] args)
         {
             Parser.Default.ParseArguments<Options>(args)
@@ -26,7 +38,7 @@ namespace DarkId.Papyrus.Server.Host
 
                     AppDomain.CurrentDomain.AssemblyResolve += (object sender, ResolveEventArgs resolveArgs) =>
                     {
-                        if (!resolveArgs.Name.StartsWith("Antlr", StringComparison.Ordinal) && !resolveArgs.Name.StartsWith("PCompiler", StringComparison.Ordinal))
+                        if (!_papyrusCompilerAssemblies.Any(a => resolveArgs.Name.StartsWith(a, StringComparison.Ordinal)))
                         {
                             return null;
                         }
@@ -54,10 +66,11 @@ namespace DarkId.Papyrus.Server.Host
                         return assembly;
                     };
 
-                    AppDomain.CurrentDomain.Load(File.ReadAllBytes(Path.Combine(o.CompilerAssemblyPath, "Antlr3.Runtime.dll")));
-                    AppDomain.CurrentDomain.Load(File.ReadAllBytes(Path.Combine(o.CompilerAssemblyPath, "Antlr3.StringTemplate.dll")));
-                    AppDomain.CurrentDomain.Load(File.ReadAllBytes(Path.Combine(o.CompilerAssemblyPath, "PCompiler.dll")));
-
+                    foreach (var assemblyName in _papyrusCompilerAssemblies)
+                    {
+                        AppDomain.CurrentDomain.Load(File.ReadAllBytes(Path.Combine(o.CompilerAssemblyPath, assemblyName)));
+                    }
+                    
                     RunServer().Wait();
                 });
         }

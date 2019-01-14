@@ -14,6 +14,7 @@ using System.Runtime.Serialization;
 using Antlr.Runtime.Tree;
 using Microsoft.Extensions.Logging;
 using Antlr.Runtime.Misc;
+using DarkId.Papyrus.LanguageService.Compiler;
 
 namespace DarkId.Papyrus.LanguageService.Program
 {
@@ -24,11 +25,12 @@ namespace DarkId.Papyrus.LanguageService.Program
 
         }
 
+
         public class Stream : CommonTreeNodeStream
         {
-            public Stream(ScriptObjectType type) : base(type.pObjAST)
+            public Stream(ScriptObjectType type) : base(type.GetAst())
             {
-                TokenStream = type.pObjTokenStream;
+                TokenStream = type.GetTokenStream();
             }
         }
 

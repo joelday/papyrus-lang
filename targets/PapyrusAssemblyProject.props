@@ -1,5 +1,6 @@
 <Project>
   <PropertyGroup>
+    <CopyPapyrusAssemblies Condition="'$(CopyPapyrusAssemblies)' == ''">false</CopyPapyrusAssemblies>
     <PapyrusLanguageVariant Condition="'$(PapyrusLanguageVariant)' == ''">Fallout4</PapyrusLanguageVariant>
   </PropertyGroup>
 
@@ -20,34 +21,34 @@
 
   <ItemGroup Condition="'$(PapyrusLanguageVariant)' == 'Fallout4'">
     <Reference Include="Antlr3.Runtime">
-      <Private>false</Private>
+      <Private>$(CopyPapyrusAssemblies)</Private>
       <HintPath>$(PapyrusCompilerDirectory)/Antlr3.Runtime.dll</HintPath>
     </Reference>
     <Reference Include="Antlr3.StringTemplate">
-      <Private>false</Private>
+      <Private>$(CopyPapyrusAssemblies)</Private>
       <HintPath>$(PapyrusCompilerDirectory)/Antlr3.StringTemplate.dll</HintPath>
     </Reference>
     <Reference Include="PCompiler">
-      <Private>false</Private>
+      <Private>$(CopyPapyrusAssemblies)</Private>
       <HintPath>$(PapyrusCompilerDirectory)/PCompiler.dll</HintPath>
     </Reference>
   </ItemGroup>
 
   <ItemGroup Condition="'$(PapyrusLanguageVariant)' == 'Skyrim'">
     <Reference Include="Antlr3.Runtime">
-      <Private>false</Private>
+      <Private>$(CopyPapyrusAssemblies)</Private>
       <HintPath>$(PapyrusCompilerDirectory)/Antlr3.Runtime.dll</HintPath>
     </Reference>
     <Reference Include="Antlr3.Utility">
-      <Private>false</Private>
+      <Private>$(CopyPapyrusAssemblies)</Private>
       <HintPath>$(PapyrusCompilerDirectory)/Antlr3.Utility.dll</HintPath>
     </Reference>
     <Reference Include="StringTemplate">
-      <Private>false</Private>
+      <Private>$(CopyPapyrusAssemblies)</Private>
       <HintPath>$(PapyrusCompilerDirectory)/StringTemplate.dll</HintPath>
     </Reference>
     <Reference Include="PCompiler">
-      <Private>false</Private>
+      <Private>$(CopyPapyrusAssemblies)</Private>
       <HintPath>$(PapyrusCompilerDirectory)/PCompiler.dll</HintPath>
     </Reference>
   </ItemGroup>

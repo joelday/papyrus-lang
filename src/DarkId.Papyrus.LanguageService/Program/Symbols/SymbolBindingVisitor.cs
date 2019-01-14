@@ -121,10 +121,12 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
             return new StateSymbol(node, parent);
         }
 
+#if FALLOUT4
         public override PapyrusSymbol VisitStructDefinition(StructDefinitionNode node, PapyrusSymbol parent)
         {
             return new StructSymbol(node, parent);
         }
+#endif
 
         public override PapyrusSymbol VisitVariableDefinition(VariableDefinitionNode node, PapyrusSymbol parent)
         {

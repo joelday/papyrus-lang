@@ -47,8 +47,10 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
                 case NodeKind.ScriptHeader: return VisitScriptHeader((ScriptHeaderNode)node, t1);
                 case NodeKind.StateDefinition: return VisitStateDefinition((StateDefinitionNode)node, t1);
                 case NodeKind.StringLiteral: return VisitStringLiteral((StringLiteralNode)node, t1);
+#if FALLOUT4
                 case NodeKind.StructDefinition: return VisitStructDefinition((StructDefinitionNode)node, t1);
                 case NodeKind.StructHeader: return VisitStructHeader((StructHeaderNode)node, t1);
+#endif
                 case NodeKind.TypeIdentifier: return VisitTypeIdentifier((TypeIdentifierNode)node, t1);
                 case NodeKind.UnaryOperationExpression: return VisitUnaryOperationExpression((UnaryOperationExpressionNode)node, t1);
                 case NodeKind.VariableDefinition: return VisitVariableDefinition((VariableDefinitionNode)node, t1);
@@ -98,8 +100,10 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         public virtual T VisitScriptHeader(ScriptHeaderNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitStateDefinition(StateDefinitionNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitStringLiteral(StringLiteralNode node, T1 t1) { return VisitDefault(node, t1); }
+#if FALLOUT4
         public virtual T VisitStructDefinition(StructDefinitionNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitStructHeader(StructHeaderNode node, T1 t1) { return VisitDefault(node, t1); }
+#endif
         public virtual T VisitTypeIdentifier(TypeIdentifierNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitUnaryOperationExpression(UnaryOperationExpressionNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitVariableDefinition(VariableDefinitionNode node, T1 t1) { return VisitDefault(node, t1); }
@@ -150,8 +154,10 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
                 case NodeKind.ScriptHeader: return VisitScriptHeader((ScriptHeaderNode)node);
                 case NodeKind.StateDefinition: return VisitStateDefinition((StateDefinitionNode)node);
                 case NodeKind.StringLiteral: return VisitStringLiteral((StringLiteralNode)node);
+#if FALLOUT4
                 case NodeKind.StructDefinition: return VisitStructDefinition((StructDefinitionNode)node);
                 case NodeKind.StructHeader: return VisitStructHeader((StructHeaderNode)node);
+#endif
                 case NodeKind.TypeIdentifier: return VisitTypeIdentifier((TypeIdentifierNode)node);
                 case NodeKind.UnaryOperationExpression: return VisitUnaryOperationExpression((UnaryOperationExpressionNode)node);
                 case NodeKind.VariableDefinition: return VisitVariableDefinition((VariableDefinitionNode)node);
@@ -201,8 +207,10 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         public virtual T VisitScriptHeader(ScriptHeaderNode node) { return VisitDefault(node); }
         public virtual T VisitStateDefinition(StateDefinitionNode node) { return VisitDefault(node); }
         public virtual T VisitStringLiteral(StringLiteralNode node) { return VisitDefault(node); }
+#if FALLOUT4
         public virtual T VisitStructDefinition(StructDefinitionNode node) { return VisitDefault(node); }
         public virtual T VisitStructHeader(StructHeaderNode node) { return VisitDefault(node); }
+#endif
         public virtual T VisitTypeIdentifier(TypeIdentifierNode node) { return VisitDefault(node); }
         public virtual T VisitUnaryOperationExpression(UnaryOperationExpressionNode node) { return VisitDefault(node); }
         public virtual T VisitVariableDefinition(VariableDefinitionNode node) { return VisitDefault(node); }

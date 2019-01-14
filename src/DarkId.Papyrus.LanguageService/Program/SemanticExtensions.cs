@@ -27,11 +27,13 @@ namespace DarkId.Papyrus.LanguageService.Program
 
             var scriptType = symbol.File.Type;
 
+#if FALLOUT4
             if (symbol is StructSymbol asStruct)
             {
                 scriptType.StructTypes.TryGetValue(symbol.Id, out var structType);
                 return structType;
             }
+#endif
 
             return scriptType;
         }
@@ -108,11 +110,15 @@ namespace DarkId.Papyrus.LanguageService.Program
 
         public static IEnumerable<ScriptSymbol> GetImportedScripts(this ScriptSymbol symbol)
         {
+#if FALLOUT4
             return symbol?.File.CompilerType.pImportedTypes.Keys.
                 Select(name => ObjectIdentifier.Parse(name)).
                 Where(name => name != symbol.Id).
                 Except(symbol.GetExtendedScriptChain().Select(extended => extended.Id)).
                 Select(name => symbol.File.Program.ScriptFiles[name].Symbol);
+#else
+            return Enumerable.Empty<ScriptSymbol>();
+#endif
         }
 
         public static PapyrusType GetPapyrusType(this PapyrusSymbol symbol)
@@ -127,10 +133,12 @@ namespace DarkId.Papyrus.LanguageService.Program
                 return (ComplexType)asScript.File?.Type ?? asScript.SyntheticArrayType;
             }
 
+#if FALLOUT4
             if (symbol is StructSymbol asStruct)
             {
                 return asStruct.Definition.Header.Identifier.GetReferencedType();
             }
+#endif
 
             if (symbol is FunctionSymbol asFunction)
             {
@@ -229,10 +237,12 @@ namespace DarkId.Papyrus.LanguageService.Program
                     return memberSymbols;
                 }
 
+#if FALLOUT4
                 if (typeSymbol is StructSymbol asStructSymbol)
                 {
                     return asStructSymbol.Children;
                 }
+#endif
             }
 
             return Enumerable.Empty<PapyrusSymbol>();
@@ -250,10 +260,13 @@ namespace DarkId.Papyrus.LanguageService.Program
             }
 
             var symbolsInScope = GetSymbolsInScope(node, node is ScriptHeaderNode || node is ScriptNode);
+
+#if FALLOUT4
             if (node is TypeIdentifierNode)
             {
                 symbolsInScope = symbolsInScope.Where(s => s is StructSymbol);
             }
+#endif
 
             return symbolsInScope;
         }

@@ -91,7 +91,7 @@ int Property Length_ const auto
                     var nodeBinder = new NodeBinder();
 
                     var node = nodeBinder.Bind(null, _program,
-                        new ScriptText(null, source, "0"), compilerType.pObjTokenStream, compilerType.pObjAST);
+                        new ScriptText(null, source, "0"), compilerType.GetTokenStream(), compilerType.GetAst());
 
                     var scopeBinder = new ScopeBinder();
                     var scopeResult = scopeBinder.Bind(compilerType, node.Value);
@@ -131,11 +131,13 @@ int Property Length_ const auto
                 return null;
             }
 
+#if FALLOUT4
             if (!string.IsNullOrEmpty(objectIdentifier.StructName))
             {
                 scriptType.StructTypes.TryGetValue(objectIdentifier, out var structType);
                 return structType;
             }
+#endif
 
             return scriptType;
         }

@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
 using PCompiler;
 
+#if SKYRIM
+using ScriptComplexType = PCompiler.ScriptObjectType;
+#endif
+
 namespace DarkId.Papyrus.LanguageService.Program.Types
 {
     public abstract class PapyrusType

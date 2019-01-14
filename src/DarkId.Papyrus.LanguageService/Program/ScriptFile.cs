@@ -13,6 +13,10 @@ using Microsoft.Extensions.Logging;
 using PCompiler;
 using ReflectionMagic;
 
+#if SKYRIM
+using ScriptComplexType = PCompiler.ScriptObjectType;
+#endif
+
 namespace DarkId.Papyrus.LanguageService.Program
 {
     public class ScriptFile : IDisposable
@@ -119,7 +123,7 @@ namespace DarkId.Papyrus.LanguageService.Program
 
                             var type = compiler.Load(types);
                             compilationResult.CompilerType = type;
-                            compilationResult.CompilerNode = type?.pObjAST;
+                            compilationResult.CompilerNode = type?.GetAst();
 
                             _logger.LogTrace($"Type checking {_id}... (Thread: {Thread.CurrentThread.ManagedThreadId})");
 
@@ -131,7 +135,11 @@ namespace DarkId.Papyrus.LanguageService.Program
 
                             try
                             {
+#if FALLOUT4
                                 typeWalker.script(type, compiler, types);
+#elif SKYRIM
+                                typeWalker.script(type, compiler, types, new Stack<string>());
+#endif
                             }
                             catch (Exception e)
                             {
@@ -169,7 +177,7 @@ namespace DarkId.Papyrus.LanguageService.Program
 
                 var nodeBinder = new NodeBinder();
 
-                var node = nodeBinder.Bind(this, _program, Text, CompilerType.pObjTokenStream, CompilerNode);
+                var node = nodeBinder.Bind(this, _program, Text, CompilerType.GetTokenStream(), CompilerNode);
 
                 _logger.LogTrace($"Binding script scopes to {_id} syntax tree... (Thread: {Thread.CurrentThread.ManagedThreadId})");
                 var scopeBinder = new ScopeBinder();

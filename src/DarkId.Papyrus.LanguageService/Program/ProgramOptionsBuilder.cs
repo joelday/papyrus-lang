@@ -21,22 +21,6 @@ namespace DarkId.Papyrus.LanguageService.Program
             return this;
         }
 
-        public ProgramOptionsBuilder WithLanguageVariant(LanguageVariant languageVariant)
-        {
-            _options.LanguageVariant = languageVariant;
-            return this;
-        }
-
-        public ProgramOptionsBuilder WithLanguageVariantFromFlagsFileName()
-        {
-            if (Path.GetFileNameWithoutExtension(_options.FlagsFileName).CaseInsensitiveEquals("TESV_Papyrus_Flags"))
-            {
-                _options.LanguageVariant = LanguageVariant.Skyrim;
-            }
-
-            return this;
-        }
-
         public ProgramOptionsBuilder WithSourceIncludes(params SourceInclude[] includes)
         {
             return WithSourceIncludes(includes.AsEnumerable());

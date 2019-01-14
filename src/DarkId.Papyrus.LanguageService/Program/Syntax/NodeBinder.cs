@@ -117,8 +117,10 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
                     break;
                 case AstType.State:
                     return BindState(parent, parentChildren);
+#if FALLOUT4
                 case AstType.Struct:
                     return BindStruct(parent, parentChildren);
+#endif
                 case AstType.Variable:
                     return BindVariable(parent, parentChildren);
                 default:
@@ -213,6 +215,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
             });
         }
 
+#if FALLOUT4
         private StructDefinitionNode BindStruct(SyntaxNode parent, Scanner<CommonTree> parentChildren)
         {
             return CreateNode<StructDefinitionNode>(parent, parentChildren, (node, children) =>
@@ -232,6 +235,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
                 node.Identifier = BindIdentifier(node, children);
             });
         }
+#endif
 
         private void BindDefinitionsToBlock(IDefinitionBlock parent, Scanner<CommonTree> parentChildren)
         {

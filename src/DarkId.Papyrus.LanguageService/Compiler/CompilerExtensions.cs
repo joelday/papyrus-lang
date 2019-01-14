@@ -14,6 +14,24 @@ namespace DarkId.Papyrus.LanguageService.Compiler
 {
     static class CompilerExtensions
     {
+        public static CommonTree GetAst(this ScriptObjectType objectType)
+        {
+#if FALLOUT4
+            return objectType.pObjAST;
+#elif SKYRIM
+            return objectType.kAST;
+#endif
+        }
+
+        public static ITokenStream GetTokenStream(this ScriptObjectType objectType)
+        {
+#if FALLOUT4
+            return objectType.pObjTokenStream;
+#elif SKYRIM
+            return objectType.kTokenStream;
+#endif
+        }
+
         public static Dictionary<string, IPapyrusFlag> GetFlags(this FlagsParser flagsParser)
         {
             var mappedDict = new Dictionary<string, IPapyrusFlag>();

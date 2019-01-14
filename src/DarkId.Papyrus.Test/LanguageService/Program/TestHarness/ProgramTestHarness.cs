@@ -36,7 +36,11 @@ namespace DarkId.Papyrus.Test.LanguageService.Program.TestHarness
         {
             var optionsBuilder = new ProgramOptionsBuilder()
                 .WithName("TestEnvironmentProgram")
-                .WithFlagsFileName("TestFlags.flg")
+#if FALLOUT4
+                .WithFlagsFileName("TestFlags_Fallout4.flg")
+#elif SKYRIM
+                .WithFlagsFileName("TestFlags_Skyrim.flg")
+#endif
                 .WithSourceIncludes(new SourceInclude() { Path = "../../../scripts/Base" });
 
             builderAction?.Invoke(optionsBuilder);

@@ -59,20 +59,55 @@ namespace DarkId.Papyrus.LanguageService.Program
                 return Range.Empty;
             }
 
+#if FALLOUT4
             return new Range()
             {
                 Start = scriptText.PositionAt(tokenStream.Get(node.TokenStartIndex).StartIndex),
                 End = scriptText.PositionAt(tokenStream.Get(node.TokenStopIndex).StopIndex + 1)
             };
+#elif SKYRIM
+            var startToken = tokenStream.Get(node.TokenStartIndex);
+            var endToken = tokenStream.Get(node.TokenStopIndex);
+
+            return new Range()
+            {
+                Start = new Position()
+                {
+                    Line = startToken.Line,
+                    Character = startToken.CharPositionInLine,
+                },
+                End = new Position()
+                {
+                    Line = endToken.Line,
+                    Character = endToken.CharPositionInLine,
+                }
+            };
+#endif
         }
 
         public static Range GetRange(this IToken token, IReadOnlyScriptText scriptText)
         {
+#if FALLOUT4
             return new Range()
             {
                 Start = scriptText.PositionAt(token.StartIndex),
                 End = scriptText.PositionAt(token.StopIndex + 1)
             };
+#elif SKYRIM
+            return new Range()
+            {
+                Start = new Position()
+                {
+                    Line = token.Line,
+                    Character = token.CharPositionInLine,
+                },
+                End = new Position()
+                {
+                    Line = token.Line,
+                    Character = token.CharPositionInLine + token.Text.Length,
+                }
+            };
+#endif
         }
 
         public static IEnumerable<CommonTree> GetChildren(this CommonTree node)
