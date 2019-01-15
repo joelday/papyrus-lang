@@ -9,9 +9,8 @@ using DarkId.Papyrus.LanguageService.Configuration.CreationKit;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Projects;
 using Microsoft.Extensions.Logging;
-using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 
-namespace DarkId.Papyrus.Server
+namespace DarkId.Papyrus.LanguageService.Configuration.CreationKit
 {
     public class CreationKitProgramOptionsProvider
     {
@@ -60,7 +59,12 @@ namespace DarkId.Papyrus.Server
 
             var programOptions = new ProgramOptionsBuilder()
                 .WithName("CreationKit")
-                .WithFlagsFileName("Institute_Papyrus_Flags.flg") //TODO: Make this configurable
+                // TODO: Make these configurable?
+#if FALLOUT4
+                .WithFlagsFileName("Institute_Papyrus_Flags.flg") 
+#elif SKYRIM
+                .WithFlagsFileName("TESV_Papyrus_Flags.flg")
+#endif
                 .WithSourceIncludes(importPathsElementsWithSubstitutedSource
                 .Select(path => PathUtilities.GetCombinedOrRooted(installPath, path))
                 .Select(path => new SourceInclude()

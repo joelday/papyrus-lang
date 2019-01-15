@@ -32,6 +32,24 @@ namespace DarkId.Papyrus.LanguageService.Compiler
 #endif
         }
 
+        public static dynamic GetFlagsDictionary(this PCompiler.Compiler compiler)
+        {
+#if FALLOUT4
+            return compiler.AsDynamic().pFlagDict;
+#elif SKYRIM
+            return compiler.AsDynamic().kFlagDict;
+#endif
+        }
+
+        public static void SetFlagsDictionary(this PCompiler.Compiler compiler, dynamic flagDict)
+        {
+#if FALLOUT4
+            compiler.AsDynamic().pFlagDict = flagDict;
+#elif SKYRIM
+            compiler.AsDynamic().kFlagDict = flagDict;
+#endif
+        }
+
         public static Dictionary<string, IPapyrusFlag> GetFlags(this FlagsParser flagsParser)
         {
             var mappedDict = new Dictionary<string, IPapyrusFlag>();
@@ -47,19 +65,25 @@ namespace DarkId.Papyrus.LanguageService.Compiler
             return mappedDict;
         }
 
+#if FALLOUT4
+        private static readonly string _errorHandlerName = "pErrorHandler";
+#elif SKYRIM
+        private static readonly string _errorHandlerName = "ErrorHandler";
+#endif
+
         public static void OnError(this PapyrusParser parser, Action<object, ErrorEventArgs> handler)
         {
-            OnError(parser, "pErrorHandler", handler);
+            OnError(parser, _errorHandlerName, handler);
         }
 
         public static void OnError(this PapyrusLexer lexer, Action<object, ErrorEventArgs> handler)
         {
-            OnError(lexer, "pErrorHandler", handler);
+            OnError(lexer, _errorHandlerName, handler);
         }
 
         public static void OnError(this PapyrusTypeWalker typeWalker, Action<object, ErrorEventArgs> handler)
         {
-            OnError(typeWalker, "pErrorHandler", handler);
+            OnError(typeWalker, _errorHandlerName, handler);
         }
 
         public static void OnError(this FlagsLexer lexer, Action<object, ErrorEventArgs> handler)

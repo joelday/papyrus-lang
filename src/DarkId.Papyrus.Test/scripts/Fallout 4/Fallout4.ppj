@@ -1,6 +1,6 @@
 <?xml version='1.0'?>
 <PapyrusProject xmlns="PapyrusProject.xsd"
-    Flags="TestFlags.flg">
+    Flags="Institute_Papyrus_Flags.flg">
     <Imports>
     </Imports> 
 

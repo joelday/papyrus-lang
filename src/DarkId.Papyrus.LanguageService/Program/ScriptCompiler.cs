@@ -14,6 +14,7 @@ using System.Runtime.Serialization;
 using Antlr.Runtime.Tree;
 using Microsoft.Extensions.Logging;
 using System.Threading;
+using DarkId.Papyrus.LanguageService.Compiler;
 
 #if SKYRIM
 using ScriptComplexType = PCompiler.ScriptObjectType;
@@ -111,7 +112,7 @@ namespace DarkId.Papyrus.LanguageService.Program
                 // AttachParserInternalErrorEventHandler(parser, __instance);
 
                 var parserDynamic = parser.AsDynamic();
-                parserDynamic.KnownUserFlags = __instance.AsDynamic().pFlagDict;
+                parserDynamic.KnownUserFlags = __instance.GetFlagsDictionary();
 
                 parser.script();
 
@@ -167,17 +168,14 @@ namespace DarkId.Papyrus.LanguageService.Program
 #if FALLOUT4
             _thisDynamic.pObjectToPath = new Dictionary<string, string>();
             SetPathForObject(_targetScript.Id, _targetScript.FilePath);
-
-            _thisDynamic.pFlagDict = _targetScript.Program.FlagsFile.NativeFlagsDict;
 #elif SKYRIM
             _thisDynamic.kObjectToPath = new Dictionary<string, string>()
             {
                 { _targetScript.Id, _targetScript.FilePath }
             };
-
-            _thisDynamic.kFlagDict = _targetScript.Program.FlagsFile.NativeFlagsDict;
 #endif
 
+            CompilerExtensions.SetFlagsDictionary(this, _targetScript.Program.FlagsFile.NativeFlagsDict);
         }
 
         public ScriptObjectType Load(Dictionary<string, ScriptComplexType> knownTypes)

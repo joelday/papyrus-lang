@@ -138,6 +138,17 @@ namespace DarkId.Papyrus.LanguageService.Program
 #if FALLOUT4
                                 typeWalker.script(type, compiler, types);
 #elif SKYRIM
+                                lock (types)
+                                {
+                                    if (types.ContainsKey("int"))
+                                    {
+                                        types.Remove("int");
+                                        types.Remove("float");
+                                        types.Remove("string");
+                                        types.Remove("bool");
+                                    }
+                                }
+
                                 typeWalker.script(type, compiler, types, new Stack<string>());
 #endif
                             }
