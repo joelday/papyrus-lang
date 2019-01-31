@@ -73,7 +73,7 @@ Task("test")
     .Does(() =>
     {
         DotNetCoreVSTest("./src/DarkId.Papyrus.Test/bin/Debug/Fallout4/net461/DarkId.Papyrus.Test.Fallout4.dll");
-        DotNetCoreVSTest("./src/DarkId.Papyrus.Test/bin/Debug/Skyrim/net461/DarkId.Papyrus.Test.Skyrim.dll");
+        // DotNetCoreVSTest("./src/DarkId.Papyrus.Test/bin/Debug/Skyrim/net461/DarkId.Papyrus.Test.Skyrim.dll");
     });
 
 Task("clean")

@@ -31,6 +31,21 @@
                 "papyrus.fallout4.compilerAssemblyPath": {
                     "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Fallout 4\\Papyrus Compiler",
                     "type": "string"
+                },
+                "papyrus.skyrim.creationKitIniFiles": {
+                    "default": [
+                        "CreationKit.ini",
+                        "CreationKitCustom.ini"
+                    ],
+                    "type": "array"
+                },
+                "papyrus.skyrim.installPath": {
+                    "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition",
+                    "type": "string"
+                },
+                "papyrus.skyrim.compilerAssemblyPath": {
+                    "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition\\Papyrus Compiler",
+                    "type": "string"
                 }
             },
             "title": "Papyrus language service",

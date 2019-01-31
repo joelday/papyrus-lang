@@ -41,8 +41,11 @@
     <Reference Include="Antlr3.Runtime">
       <HintPath>$(PapyrusCompilerDirectory)/Antlr3.Runtime.dll</HintPath>
     </Reference>
-    <Reference Include="Antlr3.StringTemplate">
-      <HintPath>$(PapyrusCompilerDirectory)/Antlr3.StringTemplate.dll</HintPath>
+    <Reference Include="Antlr3.Utility">
+      <HintPath>$(PapyrusCompilerDirectory)/Antlr3.Utility.dll</HintPath>
+    </Reference>
+    <Reference Include="StringTemplate">
+      <HintPath>$(PapyrusCompilerDirectory)/StringTemplate.dll</HintPath>
     </Reference>
     <Reference Include="PCompiler">
       <HintPath>$(PapyrusCompilerDirectory)/PCompiler.dll</HintPath>

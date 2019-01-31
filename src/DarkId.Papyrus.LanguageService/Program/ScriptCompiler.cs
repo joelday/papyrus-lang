@@ -57,6 +57,15 @@ namespace DarkId.Papyrus.LanguageService.Program
 
                 var apKnownTypes = akKnownTypes;
 #endif
+                lock (apKnownTypes)
+                {
+                    if (apKnownTypes.ContainsKey(asObjectName))
+                    {
+                        __result = apKnownTypes[asObjectName] as ScriptObjectType;
+                        return false;
+                    }
+                }
+
                 var objectIdentifier = ObjectIdentifier.Parse(asObjectName);
 
                 if (objectIdentifier == __instance._targetScript.Id || apKnownTypes.ContainsKey(asObjectName))
@@ -69,6 +78,14 @@ namespace DarkId.Papyrus.LanguageService.Program
                     var externalType = __instance._targetScript.Program.ScriptFiles[objectIdentifier].CompilerType;
                     if (externalType != null)
                     {
+                        lock (apKnownTypes)
+                        {
+                            if (!apKnownTypes.ContainsKey(asObjectName))
+                            {
+                                apKnownTypes.Add(asObjectName, externalType);
+                            }
+                        }
+
                         __result = externalType;
                         return false;
                     }
@@ -116,8 +133,6 @@ namespace DarkId.Papyrus.LanguageService.Program
 
                 parser.script();
 
-
-
 #if FALLOUT4
                 apParsedObj = parser.ParsedObject;
 
@@ -135,11 +150,12 @@ namespace DarkId.Papyrus.LanguageService.Program
         [HarmonyPatch(typeof(PCompiler.Compiler), "GetFilename")]
         public static class GetFilenamePatch
         {
-
             public static bool Prefix(
                 ScriptCompiler __instance, ref bool __result,
                 string asObjectName, out string asFilename)
             {
+                System.Diagnostics.Debug.WriteLine("GetFilenamePatch: {0}", asObjectName);
+
                 __result = __instance._targetScript.Program.ScriptFiles.TryGetValue(asObjectName, out var scriptFile);
                 asFilename = scriptFile?.FilePath;
 

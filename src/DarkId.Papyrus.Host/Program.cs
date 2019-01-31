@@ -19,13 +19,13 @@ namespace DarkId.Papyrus.Server.Host
     {
         private static readonly string[] _papyrusCompilerAssemblies = new string[]
         {
-            "Antlr3.Runtime.dll",
-            "PCompiler.dll",
+            "Antlr3.Runtime",
+            "PCompiler",
 #if FALLOUT4
-            "Antlr3.StringTemplate.dll"
+            "Antlr3.StringTemplate"
 #elif SKYRIM
-            "Antlr3.Utility.dll",
-            "StringTemplate.dll"
+            "Antlr3.Utility",
+            "StringTemplate"
 #endif
         };
 
@@ -38,7 +38,7 @@ namespace DarkId.Papyrus.Server.Host
 
                     AppDomain.CurrentDomain.AssemblyResolve += (object sender, ResolveEventArgs resolveArgs) =>
                     {
-                        if (!_papyrusCompilerAssemblies.Any(a => resolveArgs.Name.StartsWith(a, StringComparison.Ordinal)))
+                        if (!_papyrusCompilerAssemblies.Any(a => resolveArgs.Name.StartsWith(a, StringComparison.OrdinalIgnoreCase)))
                         {
                             return null;
                         }
@@ -54,7 +54,7 @@ namespace DarkId.Papyrus.Server.Host
                             return null;
                         }
 
-                        var assemblyPath = Path.Combine(o.CompilerAssemblyPath, new AssemblyName(resolveArgs.Name).Name, ".dll");
+                        var assemblyPath = Path.Combine(o.CompilerAssemblyPath, new AssemblyName(resolveArgs.Name).Name + ".dll");
 
                         var assembly = Assembly.LoadFile(assemblyPath);
 
@@ -68,7 +68,7 @@ namespace DarkId.Papyrus.Server.Host
 
                     foreach (var assemblyName in _papyrusCompilerAssemblies)
                     {
-                        AppDomain.CurrentDomain.Load(File.ReadAllBytes(Path.Combine(o.CompilerAssemblyPath, assemblyName)));
+                        AppDomain.CurrentDomain.Load(File.ReadAllBytes(Path.Combine(o.CompilerAssemblyPath, assemblyName + ".dll")));
                     }
                     
                     RunServer().Wait();

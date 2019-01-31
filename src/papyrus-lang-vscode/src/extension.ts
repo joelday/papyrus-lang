@@ -60,6 +60,13 @@ class ScriptStatusCodeLensProvider implements vscode.CodeLensProvider {
     }
 }
 
+enum LanguageVariant {
+    fallout4,
+    skyrim,
+}
+
+function getAssemblyPath(variant: LanguageVariant) {}
+
 export async function activate(context: vscode.ExtensionContext) {
     const toolPath = context.asAbsolutePath('./bin/DarkId.Papyrus.Host.exe');
 

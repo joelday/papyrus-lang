@@ -35,7 +35,11 @@ namespace DarkId.Papyrus.Server
             {
                 CreationKitInstallPath =
                     configuration?.InstallPath ??
+#if FALLOUT4
                     "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Fallout 4",
+#elif SKYRIM
+                    "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition",
+#endif
                 RelativeIniPaths =
                     configuration?.CreationKitIniFiles ??
                     new List<string>() { "CreationKit.ini", "CreationKitCustom.ini" }

@@ -6,5 +6,5 @@
     <PapyrusLanguageVariant>Skyrim</PapyrusLanguageVariant>
   </PropertyGroup>
 
-  <Import Project="./DarkId.Papyrus.LanguageService.props" />
+  <Import Project="DarkId.Papyrus.LanguageService.props" />
 </Project>

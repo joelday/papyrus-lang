@@ -30,7 +30,11 @@ namespace DarkId.Papyrus.Server
                     {
                         new ConfigurationItem()
                         {
+#if FALLOUT4
                             Section = "papyrus.fallout4"
+#elif SKYRIM
+                            Section = "papyrus.skyrim"
+#endif
                         }
                     }
                 })
