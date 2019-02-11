@@ -108,7 +108,8 @@
         "typescript": "^3.2.1",
         "vscode": "^1.1.24",
         "rimraf": "^2.6.2",
-        "prettier": "^1.15.3"
+        "prettier": "^1.15.3",
+        "cpr": "^3.0.1"
     },
     "displayName": "Papyrus",
     "engines": {
@@ -140,7 +141,7 @@
         "url": "https://github.com/joelday/papyrus-lang.git"
     },
     "scripts": {
-        "copy-bin": "rm -rf ./bin && cp -rf ../DarkId.Papyrus.Host/bin/Debug/net461/ ./bin/",
+        "copy-bin": "rimraf ./bin && cpr ../DarkId.Papyrus.Host/bin/Debug/net461/ ./bin/ -o",
         "clean": "rimraf out",
         "compile": "tsc -p ./",
         "postinstall": "node ./node_modules/vscode/bin/install",
