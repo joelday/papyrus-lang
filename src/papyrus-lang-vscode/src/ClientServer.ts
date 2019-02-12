@@ -103,6 +103,13 @@ export class ClientServer {
         });
     }
 
+    public isActive(): boolean {
+        if (this._client) {
+            return true;
+        }
+        return false;
+    }
+
     public async start() {
         if (this._client) {
             return;
