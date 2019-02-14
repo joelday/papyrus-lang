@@ -77,6 +77,21 @@ export const documentScriptInfoRequestType = {
     ),
 };
 
+export interface RegistryHandlerParams {
+    RegKeyName: string;
+}
+
+export interface RegistryHandlerInfo {
+    value: string;
+    exists: boolean;
+}
+
+export const documentRegistryHandlerRequestType = {
+    type: new RequestType<RegistryHandlerParams, RegistryHandlerInfo | null, void, TextDocumentRegistrationOptions>(
+        'textDocument/registryHandler'
+    ),
+};
+
 export class ClientServer {
     private readonly _serverOptions: ServerOptions;
     private _client: LanguageClient;
@@ -89,6 +104,16 @@ export class ClientServer {
             run: serverExecution,
             debug: serverExecution,
         };
+    }
+
+    /// examples
+    // let Result = await clientServer.requestRegistryInfo('Fallout4');
+    // let Result = await clientServer.requestRegistryInfo('Skyrim');
+    // let Result = await clientServer.requestRegistryInfo('Skyrim Special Edition');
+    public requestRegistryInfo(KeyName: string): Thenable<RegistryHandlerInfo> {
+        return this._client.sendRequest(documentRegistryHandlerRequestType.type, {
+            RegKeyName: KeyName,
+        });
     }
 
     public requestSyntaxTree(uri: string): Thenable<DocumentSyntaxTree> {

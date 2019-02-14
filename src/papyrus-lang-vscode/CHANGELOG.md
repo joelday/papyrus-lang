@@ -1,3 +1,6 @@
+# 1.2.0-alpha.2
+### Additions
+* Added a registry info function-thing to the server, becuase no good registry library exists.
 # 1.2.0-alpha.1
 ### Additions
 * Added Papyrus Compiler commands for Fallout 4, Skyrim, and Skyrim Special Edition
