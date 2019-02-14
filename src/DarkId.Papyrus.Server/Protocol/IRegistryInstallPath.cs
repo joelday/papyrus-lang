@@ -6,29 +6,29 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace DarkId.Papyrus.Server.Protocol
 {
-    public class RegistryHandlerCapability : DynamicCapability
+    public class RegistryInstallPathCapability : DynamicCapability
     {
     }
 
-    public class RegistryHandlerInfo
+    public class RegistryInstallPathInfo
     {
         public string Value { get; set; }
         public bool Exists { get; set; }
     }
 
-    public class RegistryHandlerParams : IRequest<RegistryHandlerInfo>, IBaseRequest
+    public class RegistryInstallPathParams : IRequest<RegistryInstallPathInfo>, IBaseRequest
     {
         public string RegKeyName { get; set; }
     }
 
-    [Method("textDocument/registryHandler")]
+    [Method("textDocument/registryInstallPath")]
     [Parallel]
-    public interface IRegistryHandler :
-        IJsonRpcRequestHandler<RegistryHandlerParams, RegistryHandlerInfo>,
-        IRequestHandler<RegistryHandlerParams, RegistryHandlerInfo>,
+    public interface IRegistryInstallPathHandler :
+        IJsonRpcRequestHandler<RegistryInstallPathParams, RegistryInstallPathInfo>,
+        IRequestHandler<RegistryInstallPathParams, RegistryInstallPathInfo>,
         IJsonRpcHandler,
         IRegistration<TextDocumentRegistrationOptions>,
-        ICapability<RegistryHandlerCapability>
+        ICapability<RegistryInstallPathCapability>
     {
     }
 }

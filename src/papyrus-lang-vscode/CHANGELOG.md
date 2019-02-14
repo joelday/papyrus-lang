@@ -1,3 +1,6 @@
+# 1.2.0-alpha.3
+### Changes
+* Renamed Server request RegistryHandler to RegistryInstallPathHandler
 # 1.2.0-alpha.2
 ### Additions
 * Added a registry info function-thing to the server, becuase no good registry library exists.
