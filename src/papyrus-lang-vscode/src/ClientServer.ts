@@ -77,18 +77,18 @@ export const documentScriptInfoRequestType = {
     ),
 };
 
-export interface RegistryHandlerParams {
+export interface RegistryInstallPathParams {
     RegKeyName: string;
 }
 
-export interface RegistryHandlerInfo {
+export interface RegistryInstallPathInfo {
     value: string;
     exists: boolean;
 }
 
-export const documentRegistryHandlerRequestType = {
-    type: new RequestType<RegistryHandlerParams, RegistryHandlerInfo | null, void, TextDocumentRegistrationOptions>(
-        'textDocument/registryHandler'
+export const documentRegistryInstallPathRequestType = {
+    type: new RequestType<RegistryInstallPathParams, RegistryInstallPathInfo | null, void, TextDocumentRegistrationOptions>(
+        'textDocument/registryInstallPath'
     ),
 };
 
@@ -110,8 +110,8 @@ export class ClientServer {
     // let Result = await clientServer.requestRegistryInfo('Fallout4');
     // let Result = await clientServer.requestRegistryInfo('Skyrim');
     // let Result = await clientServer.requestRegistryInfo('Skyrim Special Edition');
-    public requestRegistryInfo(KeyName: string): Thenable<RegistryHandlerInfo> {
-        return this._client.sendRequest(documentRegistryHandlerRequestType.type, {
+    public requestRegistryInfo(KeyName: string): Thenable<RegistryInstallPathInfo> {
+        return this._client.sendRequest(documentRegistryInstallPathRequestType.type, {
             RegKeyName: KeyName,
         });
     }
