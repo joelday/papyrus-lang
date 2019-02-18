@@ -77,6 +77,21 @@ export const documentScriptInfoRequestType = {
     ),
 };
 
+export interface RegistryInstallPathParams {
+    RegKeyName: string;
+}
+
+export interface RegistryInstallPathInfo {
+    value: string;
+    exists: boolean;
+}
+
+export const documentRegistryInstallPathRequestType = {
+    type: new RequestType<RegistryInstallPathParams, RegistryInstallPathInfo | null, void, TextDocumentRegistrationOptions>(
+        'textDocument/registryInstallPath'
+    ),
+};
+
 export class ClientServer {
     private readonly _serverOptions: ServerOptions;
     private _client: LanguageClient;
@@ -91,6 +106,16 @@ export class ClientServer {
         };
     }
 
+    /// examples
+    // let Result = await clientServer.requestRegistryInstallPath('Fallout4');
+    // let Result = await clientServer.requestRegistryInstallPath('Skyrim');
+    // let Result = await clientServer.requestRegistryInstallPath('Skyrim Special Edition');
+    public requestRegistryInstallPath(KeyName: string): Thenable<RegistryInstallPathInfo> {
+        return this._client.sendRequest(documentRegistryInstallPathRequestType.type, {
+            RegKeyName: KeyName,
+        });
+    }
+
     public requestSyntaxTree(uri: string): Thenable<DocumentSyntaxTree> {
         return this._client.sendRequest(documentSyntaxTreeRequestType.type, {
             textDocument: TextDocumentIdentifier.create(uri),
@@ -101,6 +126,13 @@ export class ClientServer {
         return this._client.sendRequest(documentScriptInfoRequestType.type, {
             textDocument: TextDocumentIdentifier.create(uri),
         });
+    }
+
+    public isActive(): boolean {
+        if (this._client) {
+            return true;
+        }
+        return false;
     }
 
     public async start() {
@@ -125,7 +157,7 @@ export class ClientServer {
         let existingProcessIds: number[];
         if (process.platform === 'win32' && process.env['PAPYRUS_EXTENSION_DEBUG']) {
             const processes = await psList();
-            existingProcessIds = processes.filter((p) => p.name === 'DarkId.Papyrus.Host.exe').map((p) => p.pid);
+            existingProcessIds = processes.filter((p) => p.name.startsWith('DarkId.Papyrus.Host')).map((p) => p.pid);
         }
 
         // Create the language client and start the client.
@@ -139,7 +171,7 @@ export class ClientServer {
         if (process.platform === 'win32' && process.env['PAPYRUS_EXTENSION_DEBUG']) {
             const processes = await psList();
             const serverProcessId = processes.find(
-                (p) => p.name === 'DarkId.Papyrus.Host.exe' && existingProcessIds.indexOf(p.pid) === -1
+                (p) => p.name.startsWith('DarkId.Papyrus.Host') && existingProcessIds.indexOf(p.pid) === -1
             )!.pid;
 
             if (serverProcessId) {

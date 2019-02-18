@@ -72,8 +72,17 @@ Task("build")
 Task("test")
     .Does(() =>
     {
-        DotNetCoreVSTest("./src/DarkId.Papyrus.Test/bin/Debug/Fallout4/net461/DarkId.Papyrus.Test.Fallout4.dll");
-        // DotNetCoreVSTest("./src/DarkId.Papyrus.Test/bin/Debug/Skyrim/net461/DarkId.Papyrus.Test.Skyrim.dll");
+        VSTest("./src/DarkId.Papyrus.Test/bin/Debug/Fallout4/net461/DarkId.Papyrus.Test.Fallout4.dll", new VSTestSettings()
+        {
+            #tool Microsoft.TestPlatform
+            ToolPath = Context.Tools.Resolve("vstest.console.exe")
+        });
+
+        VSTest("./src/DarkId.Papyrus.Test/bin/Debug/Skyrim/net461/DarkId.Papyrus.Test.Skyrim.dll", new VSTestSettings()
+        {
+            #tool Microsoft.TestPlatform
+            ToolPath = Context.Tools.Resolve("vstest.console.exe")
+        });
     });
 
 Task("clean")

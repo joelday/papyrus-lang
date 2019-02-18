@@ -51,7 +51,9 @@ namespace DarkId.Papyrus.Server
                 .WithHandler<CompletionHandler>()
                 .WithHandler<SignatureHelpHandler>()
                 .WithHandler<ReferencesHandler>()
-                .WithHandler<DocumentScriptInfoHandler>();
+                .WithHandler<RenameHandler>()
+                .WithHandler<DocumentScriptInfoHandler>()
+                .WithHandler<RegistryInstallPathHandler>();
 
                 HarmonyPatches.Apply();
             });

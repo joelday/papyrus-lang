@@ -15,6 +15,28 @@
         "Programming Languages"
     ],
     "contributes": {
+        "commands": [
+            {
+                "command": "papyrus.compile",
+                "title": "Papyrus: Compile"
+            },
+            {
+                "command": "papyrus.compiledebug",
+                "title": "Papyrus: Compile (Debug)"
+            },
+            {
+                "command": "papyrus.compilerelease",
+                "title": "Papyrus: Compile (Release)"
+            },
+            {
+                "command": "papyrus.compilefinal",
+                "title": "Papyrus: Compile (Final)"
+            },
+            {
+                "command": "papyrus.createproject",
+                "title": "Papyrus: Create Project"
+            }
+        ],
         "configuration": {
             "properties": {
                 "papyrus.fallout4.creationKitIniFiles": {
@@ -25,30 +47,95 @@
                     "type": "array"
                 },
                 "papyrus.fallout4.installPath": {
-                    "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Fallout 4",
+                    "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Fallout 4\\",
                     "type": "string"
                 },
-                "papyrus.fallout4.compilerAssemblyPath": {
-                    "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Fallout 4\\Papyrus Compiler",
-                    "type": "string"
+                "papyrus.fallout4.compiler.asm": {
+                    "type": "string",
+                    "default": "Discard",
+                    "description": "Specify the Papyrus Compiler assembly mode. \n\"None\" disables all output, \"Only\" only generates Papyrus assembly, not compiled .pex, \"Discard\" generates .pex and deletes assembly, and \"Keep\" generates and keeps both .pex and assembly.",
+                    "enum": [
+                        "None",
+                        "Keep",
+                        "Only",
+                        "Discard"
+                    ]
+                },
+                "papyrus.fallout4.compiler.mode": {
+                    "type": "string",
+                    "default": "Debug",
+                    "description": "placeholder",
+                    "enum": [
+                        "Debug",
+                        "Release",
+                        "Release Final"
+                    ]
                 },
                 "papyrus.skyrim.creationKitIniFiles": {
+                    "default": [
+                        "SkyrimEditor.ini"
+                    ],
+                    "type": "array"
+                },
+                "papyrus.skyrim.installPath": {
+                    "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim\\",
+                    "type": "string"
+                },
+                "papyrus.skyrim.compiler.asm": {
+                    "type": "string",
+                    "default": "Discard",
+                    "description": "Specify the Papyrus Compiler assembly mode. \n\"None\" disables all output, \"Only\" only generates Papyrus assembly, not compiled .pex, \"Discard\" generates .pex and deletes assembly, and \"Keep\" generates and keeps both .pex and assembly.",
+                    "enum": [
+                        "None",
+                        "Keep",
+                        "Only",
+                        "Discard"
+                    ]
+                },
+                "papyrus.skyrim.compiler.mode": {
+                    "type": "string",
+                    "default": "Debug",
+                    "description": "placeholder",
+                    "enum": [
+                        "Debug",
+                        "Release",
+                        "Release Final"
+                    ]
+                },
+                "papyrus.skyrimSpecialEdition.creationKitIniFiles": {
                     "default": [
                         "CreationKit.ini",
                         "CreationKitCustom.ini"
                     ],
                     "type": "array"
                 },
-                "papyrus.skyrim.installPath": {
-                    "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition",
+                "papyrus.skyrimSpecialEdition.installPath": {
+                    "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition\\",
                     "type": "string"
                 },
-                "papyrus.skyrim.compilerAssemblyPath": {
-                    "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition\\Papyrus Compiler",
-                    "type": "string"
+                "papyrus.skyrimSpecialEdition.compiler.asm": {
+                    "type": "string",
+                    "default": "Discard",
+                    "description": "Specify the Papyrus Compiler assembly mode. \n\"None\" disables all output, \"Only\" only generates Papyrus assembly, not compiled .pex, \"Discard\" generates .pex and deletes assembly, and \"Keep\" generates and keeps both .pex and assembly.",
+                    "enum": [
+                        "None",
+                        "Keep",
+                        "Only",
+                        "Discard"
+                    ]
+                },
+                "papyrus.skyrimSpecialEdition.compiler.mode": {
+                    "type": "string",
+                    "default": "Debug",
+                    "description": "placeholder",
+                    "enum": [
+                        "Debug",
+                        "Release",
+                        "Release Final"
+                    ]
                 }
             },
-            "title": "Papyrus language service",
+            "title": "Papyrus",
             "type": "object"
         },
         "grammars": [
@@ -85,6 +172,13 @@
                 "id": "papyrus-project"
             }
         ],
+        "keybindings": [
+            {
+                "command": "papyrus.compile",
+                "key": "Ctrl+B",
+                "when": "editorTextFocus && editorLangId == papyrus"
+            }
+        ],
         "views": {
             "explorer": [
                 {
@@ -112,18 +206,22 @@
         }
     ],
     "dependencies": {
+        "ini": "^1.3.5",
         "ps-list": "^6.0.0",
-        "vscode-languageclient": "^5.1.0"
+        "vscode-languageclient": "^5.1.0",
+        "xml-writer": "^1.7.0"
     },
     "description": "Advanced language support for Fallout 4's Papyrus scripting language.",
     "devDependencies": {
-        "@types/mocha": "^5.2.5",
-        "@types/node": "^10.12.12",
-        "tslint": "^5.11.0",
-        "typescript": "^3.2.1",
-        "vscode": "^1.1.24",
-        "rimraf": "^2.6.2",
-        "prettier": "^1.15.3"
+        "@types/ini": "^1.3.30",
+        "@types/mocha": "^5.2.6",
+        "@types/node": "^11.9.4",
+        "cpr": "^3.0.1",
+        "prettier": "^1.16.4",
+        "rimraf": "^2.6.3",
+        "tslint": "^5.12.1",
+        "typescript": "^3.3.3",
+        "vscode": "^1.1.29"
     },
     "displayName": "Papyrus",
     "engines": {
@@ -155,7 +253,7 @@
         "url": "https://github.com/joelday/papyrus-lang.git"
     },
     "scripts": {
-        "copy-bin": "rm -rf ./bin && cp -rf ../DarkId.Papyrus.Host/bin/Debug/net461/ ./bin/",
+        "copy-bin": "rimraf ./bin && cpr ../DarkId.Papyrus.Host/bin/Debug/net461/ ./bin/ -o",
         "clean": "rimraf out",
         "compile": "tsc -p ./",
         "postinstall": "node ./node_modules/vscode/bin/install",
@@ -163,7 +261,7 @@
         "vscode:prepublish": "npm run compile",
         "watch": "tsc -watch -p ./"
     },
-    "version": "1.1.0",
+    "version": "1.2.0",
     "prettier": {
         "tabWidth": 4,
         "singleQuote": true,
