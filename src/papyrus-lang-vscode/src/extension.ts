@@ -77,7 +77,6 @@ class ScriptStatusCodeLensProvider implements vscode.CodeLensProvider {
                 };
 
                 lenses.push(lens);
-
             } else if (info.documentIsOverridden) {
                 const lens = createZeroLens();
                 const overridingFile = info.scriptInfo.identifierFiles[0].files[0];
@@ -91,12 +90,11 @@ class ScriptStatusCodeLensProvider implements vscode.CodeLensProvider {
 
                 lenses.push(lens);
             }
-
         } else {
             const lens = createZeroLens();
 
             lens.command = {
-                title: "There is no folder or project currently active. Extension partially disabled.",
+                title: 'There is no folder or project currently active. Extension partially disabled.',
                 command: '',
             };
 
@@ -113,7 +111,9 @@ export async function activate(context: vscode.ExtensionContext) {
     const toolPath = context.asAbsolutePath('./bin/DarkId.Papyrus.Host.exe');
 
     const compilerAssemblyPath =
-        process.platform === 'win32' ? extension.Config.GetCompilerPath : context.asAbsolutePath('../../dependencies/compiler');
+        process.platform === 'win32'
+            ? extension.Config.GetCompilerPath
+            : context.asAbsolutePath('../../dependencies/compiler');
 
     clientServer = new ClientServer(toolPath, compilerAssemblyPath);
     if (vscode.workspace.name !== undefined) {
@@ -127,12 +127,24 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 
     vscode.languages.registerCodeLensProvider(
-        { language: 'papyrus', scheme: 'file', },
+        { language: 'papyrus', scheme: 'file' },
         new ScriptStatusCodeLensProvider()
     );
 
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(updateTextEditorDecorations));
     updateTextEditorDecorations(vscode.window.activeTextEditor);
+
+    vscode.languages.setLanguageConfiguration('papyrus', {
+        comments: {
+            lineComment: ';',
+            blockComment: [';/', '/;'],
+        },
+        brackets: [['{', '}'], ['[', ']'], ['(', ')']],
+        indentationRules: {
+            increaseIndentPattern: /^\s*(if|(\S+\s+)?(property\W+\w+(?!.*(auto)))|struct|group|state|event|(\S+\s+)?(function.*\(.*\)(?!.*native))|else|elseif)/i,
+            decreaseIndentPattern: /^\s*(endif|endproperty|endstruct|endgroup|endstate|endevent|endfunction|else|elseif)/i,
+        },
+    });
 }
 
 export function deactivate() {
