@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net461</TargetFramework>
     <PlatformTarget>x86</PlatformTarget>
+    <Configurations>Debug</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
@@ -10,9 +11,10 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="2.2.0" />
   </ItemGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+  <PropertyGroup>
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
+    <RootNamespace>DarkId.Papyrus.Common</RootNamespace>
   </PropertyGroup>
 
 </Project>

@@ -1,4 +1,5 @@
 #addin nuget:?package=Cake.Npm&version=0.16.0
+#tool nuget:?package=Microsoft.TestPlatform&version=15.9.0
 
 var target = Argument("target", "default");
 var solution = File("./DarkId.Papyrus.sln");
@@ -72,15 +73,13 @@ Task("build")
 Task("test")
     .Does(() =>
     {
-        VSTest("./src/DarkId.Papyrus.Test/bin/Debug/Fallout4/net461/DarkId.Papyrus.Test.Fallout4.dll", new VSTestSettings()
+        VSTest("./src/DarkId.Papyrus.Test/bin/Fallout4/net461/DarkId.Papyrus.Test.Fallout4.dll", new VSTestSettings()
         {
-            #tool Microsoft.TestPlatform
             ToolPath = Context.Tools.Resolve("vstest.console.exe")
         });
 
-        VSTest("./src/DarkId.Papyrus.Test/bin/Debug/Skyrim/net461/DarkId.Papyrus.Test.Skyrim.dll", new VSTestSettings()
+        VSTest("./src/DarkId.Papyrus.Test/bin/Skyrim/net461/DarkId.Papyrus.Test.Skyrim.dll", new VSTestSettings()
         {
-            #tool Microsoft.TestPlatform
             ToolPath = Context.Tools.Resolve("vstest.console.exe")
         });
     });

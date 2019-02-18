@@ -107,13 +107,17 @@ class ScriptStatusCodeLensProvider implements vscode.CodeLensProvider {
     }
 }
 
+function getToolPath(context: vscode.ExtensionContext, languageVariantName: string) {
+    return context.asAbsolutePath(`./bin/${languageVariantName}/net461/DarkId.Papyrus.Host.${languageVariantName}.exe`);
+}
+
 export async function activate(context: vscode.ExtensionContext) {
     extension = new PapyrusExtension(context);
 
-    const toolPath = context.asAbsolutePath('./bin/DarkId.Papyrus.Host.exe');
+    const toolPath = getToolPath(context, 'Fallout4');
 
     const compilerAssemblyPath =
-        process.platform === 'win32' ? extension.Config.GetCompilerPath : context.asAbsolutePath('../../dependencies/compiler');
+        process.platform === 'win32' ? extension.Config.GetCompilerPath : context.asAbsolutePath('../../dependencies/compilers/');
 
     clientServer = new ClientServer(toolPath, compilerAssemblyPath);
     if (vscode.workspace.name !== undefined) {

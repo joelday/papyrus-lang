@@ -1,17 +1,32 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFramework>net461</TargetFramework>
     <PlatformTarget>x86</PlatformTarget>
+    <IsPackable>false</IsPackable>
+    <Configurations>Skyrim</Configurations>
   </PropertyGroup>
 
   <PropertyGroup>
-    <IsPackable>false</IsPackable>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <DefineConstants>TRACE;SKYRIM</DefineConstants>
     <RootNamespace>DarkId.Papyrus.Test</RootNamespace>
-    <CopyPapyrusAssemblies>true</CopyPapyrusAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../DarkId.Papyrus.LanguageService/DarkId.Papyrus.LanguageService.Skyrim.csproj" />
+    <Reference Include="Antlr3.Runtime">
+      <HintPath>../../dependencies/compilers/Skyrim/Antlr3.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Antlr3.Utility">
+      <HintPath>../../dependencies/compilers/Skyrim/Antlr3.Utility.dll</HintPath>
+    </Reference>
+    <Reference Include="StringTemplate">
+      <HintPath>../../dependencies/compilers/Skyrim/StringTemplate.dll</HintPath>
+    </Reference>
+    <Reference Include="PCompiler">
+      <HintPath>../../dependencies/compilers/Skyrim/PCompiler.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
@@ -26,34 +41,10 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="2.2.0" />
   </ItemGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DebugType>full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <DefineConstants>$(DefineConstants);SKYRIM</DefineConstants>
-    <PapyrusCompilerDirectory>$(MSBuildThisFileDirectory)/../../dependencies/compilers/skyrim</PapyrusCompilerDirectory>
-  </PropertyGroup>
-
+  
   <ItemGroup>
-    <Reference Include="Antlr3.Runtime">
-      <HintPath>$(PapyrusCompilerDirectory)/Antlr3.Runtime.dll</HintPath>
-    </Reference>
-    <Reference Include="Antlr3.Utility">
-      <HintPath>$(PapyrusCompilerDirectory)/Antlr3.Utility.dll</HintPath>
-    </Reference>
-    <Reference Include="StringTemplate">
-      <HintPath>$(PapyrusCompilerDirectory)/StringTemplate.dll</HintPath>
-    </Reference>
-    <Reference Include="PCompiler">
-      <HintPath>$(PapyrusCompilerDirectory)/PCompiler.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\DarkId.Papyrus.Common\DarkId.Papyrus.Common.csproj" />
+    <ProjectReference Include="..\DarkId.Papyrus.LanguageService\DarkId.Papyrus.LanguageService.Skyrim.csproj" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <OutputPath>bin\$(Configuration)\Skyrim</OutputPath>
-    <IntermediateOutputPath>obj\$(Configuration)\Skyrim</IntermediateOutputPath>
-  </PropertyGroup>
 </Project>

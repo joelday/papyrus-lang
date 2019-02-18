@@ -1,10 +1,46 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFramework>net461</TargetFramework>
     <PlatformTarget>x86</PlatformTarget>
-
-    <PapyrusLanguageVariant>Skyrim</PapyrusLanguageVariant>
+    <Configurations>Skyrim</Configurations>
   </PropertyGroup>
 
-  <Import Project="DarkId.Papyrus.Server.props" />
+  <PropertyGroup>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <DefineConstants>TRACE;SKYRIM</DefineConstants>
+    <RootNamespace>DarkId.Papyrus.Server</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Antlr3.Runtime">
+      <Private>false</Private>
+      <HintPath>../../dependencies/compilers/Skyrim/Antlr3.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Antlr3.Utility">
+      <Private>false</Private>
+      <HintPath>../../dependencies/compilers/Skyrim/Antlr3.Utility.dll</HintPath>
+    </Reference>
+    <Reference Include="StringTemplate">
+      <Private>false</Private>
+      <HintPath>../../dependencies/compilers/Skyrim/StringTemplate.dll</HintPath>
+    </Reference>
+    <Reference Include="PCompiler">
+      <Private>false</Private>
+      <HintPath>../../dependencies/compilers/Skyrim/PCompiler.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="2.2.0" />
+    <PackageReference Include="OmniSharp.Extensions.LanguageProtocol" Version="0.10.0" />
+    <PackageReference Include="OmniSharp.Extensions.LanguageServer" Version="0.10.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DarkId.Papyrus.LanguageService\DarkId.Papyrus.LanguageService.Skyrim.csproj" />
+  </ItemGroup>
+
 </Project>
