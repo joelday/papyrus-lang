@@ -1,4 +1,4 @@
-import { FileSystemWatcher, workspace, CancellationToken, ProviderResult } from 'vscode';
+import { FileSystemWatcher, workspace, CancellationToken, ProviderResult, Disposable } from 'vscode';
 import {
     LanguageClient,
     LanguageClientOptions,
@@ -8,7 +8,7 @@ import {
     RequestType,
     TextDocumentIdentifier,
     TextDocumentRegistrationOptions,
-    Range,
+    Range
 } from 'vscode-languageclient';
 
 import psList from 'ps-list';
@@ -96,6 +96,7 @@ export class ClientServer {
     private readonly _serverOptions: ServerOptions;
     private _client: LanguageClient;
     private _fsWatcher: FileSystemWatcher;
+    private _clientDisposable: Disposable;
 
     constructor(toolPath: string, compilerAssemblyPath: string) {
         const serverExecution = getServerExecution(toolPath, compilerAssemblyPath);
@@ -164,9 +165,13 @@ export class ClientServer {
         this._client = new LanguageClient('papyrus', 'Papyrus Language Service', this._serverOptions, clientOptions);
 
         this._client.trace = Trace.Verbose;
-        this._client.start();
+        this._clientDisposable = this._client.start();
 
         await this._client.onReady();
+
+        if (!this._clientDisposable) {
+            return;
+        }
 
         if (process.platform === 'win32' && process.env['PAPYRUS_EXTENSION_DEBUG']) {
             const processes = await psList();
@@ -181,11 +186,14 @@ export class ClientServer {
     }
 
     public async stop() {
-        if (!this._client) {
+        if (!this._client || !this._clientDisposable) {
             return;
         }
 
         try {
+            this._clientDisposable.dispose();
+            this._clientDisposable = null;
+
             this._fsWatcher.dispose();
             await this._client.stop();
         } finally {

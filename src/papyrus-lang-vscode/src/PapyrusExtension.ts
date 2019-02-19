@@ -3,6 +3,7 @@ import * as fs from 'fs';
 
 import { PapyrusCompiler } from './PapyrusCompiler';
 import { PapyrusConfig } from './PapyrusConfig';
+import { PapyrusServer } from './PapyrusServer';
 
 function RegisterCommand(context: vscode.ExtensionContext, commandName: string, callback: () => any): void {
     context.subscriptions.push(vscode.commands.registerTextEditorCommand(commandName, callback));
@@ -17,7 +18,7 @@ class PapyrusConfigManager {
         this.Config.push(new PapyrusConfig(PapyrusConfig.Type.Fallout4, 'Fallout 4'));
         this.Config.push(new PapyrusConfig(PapyrusConfig.Type.Skyrim, 'Skyrim LE'));
         this.Config.push(new PapyrusConfig(PapyrusConfig.Type.SkyrimSpecialEdition, 'Skyrim SE'));
-        this.GameID = PapyrusConfig.Type.Fallout4;
+        this.GameID = PapyrusConfig.Type.SkyrimSpecialEdition;
     }
 
     public get Get(): PapyrusConfig {
@@ -90,13 +91,30 @@ class PapyrusConfigManager {
 }
 
 export class PapyrusExtension {
+    private readonly _context: vscode.ExtensionContext;
+    
     private AssemblyStatusBarButton: vscode.StatusBarItem;
     private CompilerStatusBarButton: vscode.StatusBarItem;
     private LanguageStatusBarButton: vscode.StatusBarItem;
+    private _server: PapyrusServer;
 
     public Config: PapyrusConfigManager;
 
     constructor(context: vscode.ExtensionContext) {
+        this._context = context;
+        
+        this._context.subscriptions.push(vscode.languages.setLanguageConfiguration('papyrus', {
+            comments: {
+                lineComment: ';',
+                blockComment: [';/', '/;'],
+            },
+            brackets: [['{', '}'], ['[', ']'], ['(', ')']],
+            indentationRules: {
+                increaseIndentPattern: /^\s*(if|(\S+\s+)?(property\W+\w+(?!.*(auto)))|struct|group|state|event|(\S+\s+)?(function.*\(.*\)(?!.*native))|else|elseif)/i,
+                decreaseIndentPattern: /^\s*(endif|endproperty|endstruct|endgroup|endstate|endevent|endfunction|else|elseif)/i,
+            },
+        }));
+
         this.Config = new PapyrusConfigManager();
 
         RegisterCommand(context, 'papyrus.compile', () => { this.CompileInPlace(); });
@@ -128,6 +146,19 @@ export class PapyrusExtension {
 
         context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(this.UpdateStatusBarButtons));
         this.UpdateStatusBarButtons();
+
+        this.startOrResetServer();
+    }
+
+    private startOrResetServer() {
+        if (!this._server || this._server.gameType !== this.Config.GameID) {
+            if (this._server) {
+                this._server.dispose();
+            }
+
+            this._server = new PapyrusServer(this, this._context, this.Config.GameID);
+            this._server.start();
+        }
     }
 
     private get IsPapyrusActive(): boolean {
@@ -247,6 +278,7 @@ export class PapyrusExtension {
         if (value) {
             this.Config.UpdateCurrentGame(value.type);
             this.UpdateStatusBarButtons();
+            this.startOrResetServer();
         }
     }
 
@@ -268,5 +300,15 @@ export class PapyrusExtension {
         this.UpdateStatusBarButton(this.LanguageStatusBarButton, -1, this.Config.GameName);
 
         this.UpdateStatusBarButton(this.CompilerStatusBarButton, PapyrusConfig.Type.Fallout4, this.Config.GetCompilerMode);
+    }
+
+    deactivate() {
+        if (this._server) {
+            this._server.dispose();
+        }
+
+        for (const disposable of this._context.subscriptions) {
+            disposable.dispose();
+        }
     }
 }
