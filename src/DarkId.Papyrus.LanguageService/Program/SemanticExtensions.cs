@@ -160,7 +160,12 @@ namespace DarkId.Papyrus.LanguageService.Program
 
         public static PapyrusType GetReferencedType(this IdentifierNode node)
         {
+#if FALLOUT4
             var referencedTypeName = node.GetScriptFile()?.ResolveRelativeTypeName(node.Text) ?? node.Text;
+#elif SKYRIM
+            // Don't need relative type disambiguation for Skyrim since there are no namespaces.
+            var referencedTypeName = node.Text;
+#endif
             var isArray = (node is TypeIdentifierNode asTypeIdentifier) ? asTypeIdentifier.IsArray : false;
             return node.GetTypeChecker().GetTypeForObjectId(referencedTypeName, isArray);
         }

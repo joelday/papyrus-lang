@@ -40,6 +40,20 @@ namespace DarkId.Papyrus.LanguageService.Program
     {
         #region Patches
 
+#if SKYRIM
+        [HarmonyPatch(typeof(PCompiler.Compiler))]
+        [HarmonyPatch("TypeCheck", typeof(ScriptObjectType), typeof(Dictionary<string, ScriptObjectType>), typeof(Stack<string>))]
+        public static class TypeCheckPatch
+        {
+            // Skyrim's LoadObject method calls TypeCheck internally, which mutates the AST and prevents a subsequent type check from succeeding.
+            // So, this patch is just a noop of 
+            public static bool Prefix(ScriptCompiler __instance, ScriptObjectType akObj, Dictionary<string, ScriptObjectType> akKnownTypes, Stack<string> akChildren)
+            {
+                return false;
+            }
+        }
+#endif
+
         [HarmonyPatch(typeof(PCompiler.Compiler))]
         [HarmonyPatch("LoadObject", typeof(string), typeof(Dictionary<string, ScriptComplexType>), typeof(Stack<string>), typeof(bool), typeof(ScriptObjectType))]
         public static class LoadObjectPatch
@@ -184,11 +198,6 @@ namespace DarkId.Papyrus.LanguageService.Program
 #if FALLOUT4
             _thisDynamic.pObjectToPath = new Dictionary<string, string>();
             SetPathForObject(_targetScript.Id, _targetScript.FilePath);
-#elif SKYRIM
-            _thisDynamic.kObjectToPath = new Dictionary<string, string>()
-            {
-                { _targetScript.Id, _targetScript.FilePath }
-            };
 #endif
 
             CompilerExtensions.SetFlagsDictionary(this, _targetScript.Program.FlagsFile.NativeFlagsDict);
@@ -196,6 +205,13 @@ namespace DarkId.Papyrus.LanguageService.Program
 
         public ScriptObjectType Load(Dictionary<string, ScriptComplexType> knownTypes)
         {
+#if SKYRIM
+            lock (_targetScript.Program.ScriptFiles)
+            {
+                _thisDynamic.kObjectToPath = _targetScript.Program.ScriptFiles.Select(kv => new KeyValuePair<string, string>(kv.Key.ToString().ToLower(), kv.Value.FilePath)).ToDictionary();
+            }
+#endif
+
             lock (knownTypes)
             {
                 if (knownTypes.ContainsKey(_targetScript.Id))
