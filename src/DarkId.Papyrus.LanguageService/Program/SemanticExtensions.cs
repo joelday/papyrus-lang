@@ -163,7 +163,7 @@ namespace DarkId.Papyrus.LanguageService.Program
 #if FALLOUT4
             var referencedTypeName = node.GetScriptFile()?.ResolveRelativeTypeName(node.Text) ?? node.Text;
 #elif SKYRIM
-            // Don't need relative type disambiguation for Skyrim since there are no namespaces.
+            // TODO: Skyrim still needs relative name resolution for imports.
             var referencedTypeName = node.Text;
 #endif
             var isArray = (node is TypeIdentifierNode asTypeIdentifier) ? asTypeIdentifier.IsArray : false;

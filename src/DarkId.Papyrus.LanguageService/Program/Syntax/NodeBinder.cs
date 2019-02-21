@@ -70,6 +70,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
                 node.Identifier = BindIdentifier(node, parentChildren);
 
                 children.Next();
+
                 if (children.PeekType() == AstType.Identifier)
                 {
                     children.Next();
@@ -103,17 +104,23 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
                 case AstType.Property:
                 case AstType.AutoProperty:
                     return BindProperty(parent, parentChildren);
+#if FALLOUT4
                 case AstType.CustomEvent:
                     return BindCustomEvent(parent, parentChildren);
+#endif
                 case AstType.Event:
+#if FALLOUT4
                 case AstType.RemoteEvent:
+#endif
                     return BindEvent(parent, parentChildren);
                 case AstType.Function:
                     return BindFunction(parent, parentChildren);
+#if FALLOUT4
                 case AstType.Group:
                     return BindGroup(parent, parentChildren);
+#endif
                 case AstType.Import:
-                    // TODO: AST is missing imports
+                    // TODO: AST is missing imports for FO4
                     break;
                 case AstType.State:
                     return BindState(parent, parentChildren);
@@ -374,9 +381,9 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
             });
         }
 
-        #endregion
+#endregion
 
-        #region Statements
+#region Statements
 
         private SyntaxNode BindStatement(IStatementBlock parent, Scanner<CommonTree> parentChildren)
         {
@@ -528,9 +535,9 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
             });
         }
 
-        #endregion
+#endregion
 
-        #region Expressions
+#region Expressions
 
         private ExpressionNode BindExpression(SyntaxNode parent, Scanner<CommonTree> parentChildren)
         {
@@ -556,24 +563,32 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
                 case AstType.Call:
                 case AstType.CallGlobal:
                 case AstType.CallParent:
+#if FALLOUT4
                 case AstType.ArrayAdd:
                 case AstType.ArrayClear:
+#endif
                 case AstType.ArrayFind:
+#if FALLOUT4
                 case AstType.ArrayFindStruct:
                 case AstType.ArrayInsert:
                 case AstType.ArrayRemove:
                 case AstType.ArrayRemoveLast:
+#endif
                 case AstType.ArrayRFind:
+#if FALLOUT4
                 case AstType.ArrayRFindStruct:
+#endif
                     return BindFunctionCallExpression(parent, parentChildren);
                 case AstType.Identifier:
                     return BindIdentifierExpression(parent, parentChildren);
                 case AstType.Dot:
                     return BindMemberAccessExpression(parent, parentChildren);
+#if FALLOUT4
                 case AstType.NewArray:
                     return BindNewArrayExpression(parent, parentChildren);
                 case AstType.NewStruct:
                     return BindNewStructExpression(parent, parentChildren);
+#endif
                 case AstType.ArrayGet:
                 case AstType.ArraySet:
                     return BindArrayIndexExpression(parent, parentChildren);
@@ -586,8 +601,10 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
                     return BindLiteralExpression(parent, parentChildren);
                 case AstType.As:
                     return BindCastExpression(parent, parentChildren);
+#if FALLOUT4
                 case AstType.Is:
                     return BindIsExpression(parent, parentChildren);
+#endif
                 case AstType.ParameterExpression:
                     var innerChildren = new Scanner<CommonTree>(parentChildren.Current.GetChildren());
                     innerChildren.Next();
@@ -770,7 +787,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
                 || node is PropertyHeaderNode;
         }
 
-        #endregion
+#endregion
         
         private T CreateNode<T>(SyntaxNode parent, Scanner<CommonTree> parentChildren, Action<T, Scanner<CommonTree>> bindAction = null)
             where T : SyntaxNode
