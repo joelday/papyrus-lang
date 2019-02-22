@@ -120,8 +120,8 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
                     return BindGroup(parent, parentChildren);
 #endif
                 case AstType.Import:
-                    // TODO: AST is missing imports for FO4
-                    break;
+                    // TODO: AST is missing for imports for FO4
+                    return BindImport(parent, parentChildren);
                 case AstType.State:
                     return BindState(parent, parentChildren);
 #if FALLOUT4
@@ -278,6 +278,15 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
                 node.Header = BindGroupHeader(node, children);
 
                 BindDefinitionsToBlock(node, children);
+            });
+        }
+
+        private ImportNode BindImport(SyntaxNode parent, Scanner<CommonTree> parentChildren)
+        {
+            return CreateNode<ImportNode>(parent, parentChildren, (node, children) =>
+            {
+                children.Next();
+                node.Identifier = BindIdentifier(node, children);
             });
         }
 

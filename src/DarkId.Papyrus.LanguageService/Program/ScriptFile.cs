@@ -242,6 +242,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             }
         }
 
+#if FALLOUT4
         public ObjectIdentifier ResolveRelativeTypeName(string name)
         {
             return UseCompiler((compiler, knownTypes) =>
@@ -249,6 +250,7 @@ namespace DarkId.Papyrus.LanguageService.Program
                 return compiler.DisambiguateType(name, null, CompilerType, knownTypes);
             });
         }
+#endif
 
         private void RaiseScriptFileChanged()
         {

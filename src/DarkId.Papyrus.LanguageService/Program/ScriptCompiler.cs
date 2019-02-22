@@ -46,7 +46,7 @@ namespace DarkId.Papyrus.LanguageService.Program
         public static class TypeCheckPatch
         {
             // Skyrim's LoadObject method calls TypeCheck internally, which mutates the AST and prevents a subsequent type check from succeeding.
-            // So, this patch is just a noop of 
+            // So, this patch is just to replace it with a no-op.
             public static bool Prefix(ScriptCompiler __instance, ScriptObjectType akObj, Dictionary<string, ScriptObjectType> akKnownTypes, Stack<string> akChildren)
             {
                 return false;
@@ -160,28 +160,12 @@ namespace DarkId.Papyrus.LanguageService.Program
             }
         }
 
-#if SKYRIM
-        [HarmonyPatch(typeof(PCompiler.Compiler), "GetFilename")]
-        public static class GetFilenamePatch
-        {
-            public static bool Prefix(
-                ScriptCompiler __instance, ref bool __result,
-                string asObjectName, out string asFilename)
-            {
-                System.Diagnostics.Debug.WriteLine("GetFilenamePatch: {0}", asObjectName);
-
-                __result = __instance._targetScript.Program.ScriptFiles.TryGetValue(asObjectName, out var scriptFile);
-                asFilename = scriptFile?.FilePath;
-
-                return false;
-            }
-        }
-#endif
-
 #endregion
 
+#if FALLOUT4
         private static readonly MethodInfo _disambiguateTypeMethod =
             typeof(PCompiler.Compiler).GetMethod("DisambiguateType", BindingFlags.NonPublic | BindingFlags.Instance);
+#endif
 
         private readonly ScriptFile _targetScript;
         private readonly ILogger _logger;
@@ -251,9 +235,11 @@ namespace DarkId.Papyrus.LanguageService.Program
             return result;
         }
 
+#if FALLOUT4
         public string DisambiguateType(string asRawType, IToken apErrorToken, ScriptObjectType apContainingType, Dictionary<string, ScriptComplexType> apKnownTypes)
         {
             return (string)_disambiguateTypeMethod.Invoke(this, new object[] { asRawType, apErrorToken, apContainingType, apKnownTypes });
         }
+#endif
     }
 }

@@ -111,14 +111,16 @@ namespace DarkId.Papyrus.LanguageService.Program
         public static IEnumerable<ScriptSymbol> GetImportedScripts(this ScriptSymbol symbol)
         {
 #if FALLOUT4
-            return symbol?.File.CompilerType.pImportedTypes.Keys.
+            var importedScriptIdentifiers = symbol?.File.CompilerType.pImportedTypes.Keys;
+#elif SKYRIM
+            var importedScriptIdentifiers = symbol?.Definition.Definitions.OfType<ImportNode>().Select(n => ObjectIdentifier.Parse(n.Identifier.Text));
+#endif
+
+            return importedScriptIdentifiers?.
                 Select(name => ObjectIdentifier.Parse(name)).
                 Where(name => name != symbol.Id).
                 Except(symbol.GetExtendedScriptChain().Select(extended => extended.Id)).
                 Select(name => symbol.File.Program.ScriptFiles[name].Symbol);
-#else
-            return Enumerable.Empty<ScriptSymbol>();
-#endif
         }
 
         public static PapyrusType GetPapyrusType(this PapyrusSymbol symbol)
@@ -160,10 +162,10 @@ namespace DarkId.Papyrus.LanguageService.Program
 
         public static PapyrusType GetReferencedType(this IdentifierNode node)
         {
+            // Disambiguation is only necessary for structs and namespaces.
 #if FALLOUT4
             var referencedTypeName = node.GetScriptFile()?.ResolveRelativeTypeName(node.Text) ?? node.Text;
 #elif SKYRIM
-            // TODO: Skyrim still needs relative name resolution for imports.
             var referencedTypeName = node.Text;
 #endif
             var isArray = (node is TypeIdentifierNode asTypeIdentifier) ? asTypeIdentifier.IsArray : false;
