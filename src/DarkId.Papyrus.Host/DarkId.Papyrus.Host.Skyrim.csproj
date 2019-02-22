@@ -9,7 +9,7 @@
     <TargetFramework>net461</TargetFramework>
     <PlatformTarget>x86</PlatformTarget>
     <OutputType>Exe</OutputType>
-    <Configurations>Skyrim</Configurations>
+    <Configurations>Debug</Configurations>
     <OutputPath>bin\$(Configuration)\$(TargetFramework)\$(MSBuildProjectName)</OutputPath>
     <DefaultItemExcludes>$(DefaultItemExcludes);obj\**</DefaultItemExcludes>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>

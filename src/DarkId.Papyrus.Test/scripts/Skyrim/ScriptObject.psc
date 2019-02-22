@@ -1,8 +1,8 @@
-﻿Scriptname ScriptObject Native Hidden
+﻿Scriptname ScriptObject Native
 
 int Function NativeFunction() native
 int Function NativeGlobalFunction() native global
-    
+
 Event OnSomething()
 EndEvent
 

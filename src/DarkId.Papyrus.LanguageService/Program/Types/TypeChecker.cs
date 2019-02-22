@@ -19,7 +19,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Types
         {
             var elementTypeName = objectIdentifier.ShortName;
             var namespacePrefix = objectIdentifier.NamespaceParts.Length > 0 ? objectIdentifier.NamespaceParts.Join(":") + ":" : string.Empty;
-
+#if FALLOUT4
             return $@"Scriptname {namespacePrefix}Array___{elementTypeName.Replace(":", "_")} native
 
 Function Clear() native
@@ -52,6 +52,19 @@ int Function RFindStruct(string asVarName, var akElement, int aiStartIndex = -1)
 int Property Length_ const auto
 {{The length of the array.}}
 ";
+#elif SKYRIM
+            return $@"Scriptname {namespacePrefix}Array___{elementTypeName.Replace(":", "_")} native
+
+int Function Find({elementTypeName} akElement, int aiStartIndex = 0) native
+{{Locates a particular value inside an array and returns the index.}}
+
+int Function RFind({elementTypeName} akElement, int aiStartIndex = -1) native
+{{Locates a particular value inside an array and returns the index, starting from the end of the array, and moving to the beginning.}}
+
+int Property Length_ auto
+{{The length of the array.}}
+";
+#endif
         }
 
         private readonly PapyrusProgram _program;

@@ -8,7 +8,7 @@
   <PropertyGroup>
     <TargetFramework>net461</TargetFramework>
     <PlatformTarget>x86</PlatformTarget>
-    <Configurations>Fallout4</Configurations>
+    <Configurations>Debug</Configurations>
     <OutputPath>bin\$(Configuration)\$(TargetFramework)\$(MSBuildProjectName)</OutputPath>
     <DefaultItemExcludes>$(DefaultItemExcludes);obj\**</DefaultItemExcludes>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
