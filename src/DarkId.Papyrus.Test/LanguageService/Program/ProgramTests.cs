@@ -18,9 +18,9 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
             await Program.ResolveSources();
 
 #if FALLOUT4
-            var sourcesPath = "../../../scripts/Fallout 4";
+            var sourcesPath = "../../../../scripts/Fallout 4";
 #elif SKYRIM
-            var sourcesPath = "../../../scripts/Skyrim";
+            var sourcesPath = "../../../../scripts/Skyrim";
 #endif
 
             Console.WriteLine(Program.FilePaths.Keys.Join(",\r\n"));

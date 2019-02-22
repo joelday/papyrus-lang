@@ -27,7 +27,7 @@ export class PapyrusServer {
 
     private getToolPath() {
         const languageVariantName = gameTypeToVariantName(this._gameType);
-        return this._context.asAbsolutePath(`./bin/${languageVariantName}/net461/DarkId.Papyrus.Host.${languageVariantName}.exe`);
+        return this._context.asAbsolutePath(`./bin/${languageVariantName}/net461/DarkId.Papyrus.Host.${languageVariantName}/DarkId.Papyrus.Host.${languageVariantName}.exe`);
     }
 
     constructor(extension: PapyrusExtension, context: ExtensionContext, gameType: PapyrusConfig.Type) {
