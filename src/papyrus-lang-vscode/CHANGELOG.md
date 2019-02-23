@@ -1,3 +1,18 @@
+# 1.3.0-alpha.1
+### Additions
+* Added `papyrus.currentGame` configuration setting
+* Added error logging to Papyrus Compiler output view
+* Added Papyrus Compiler version info to Skyrim/Skyrim Special Edition Compilation
+* Language Server and UI now refresh when settings are changed via VSCode Settings pages
+### Changes
+* Refactored PapyrusCompiler, PapyrusConfig, and PapyrusExtension a bit.
+    * Papyrus Compiler output view is no longer const
+    * Moved PapyrusConfigManager to PapyrusConfig from PapyrusExtension
+    * Removed unneeded extension.ts
+* Fixed a bug that caused the status bar buttons to either always be visible, or never be
+* Fixed a bug that caused the compiler mode status bar button to do nothing
+* Updated internal ppj file destination to VSCode extension managed folder
+* Updated VSCode requirement to latest
 # 1.2.0-alpha.3
 ### Changes
 * Renamed Server request RegistryHandler to RegistryInstallPathHandler

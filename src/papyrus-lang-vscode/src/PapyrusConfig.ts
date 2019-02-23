@@ -3,6 +3,95 @@ import * as path from 'path';
 import * as ini from 'ini';
 import * as fs from 'fs';
 
+export class PapyrusConfigManager {
+    private Config: Array<PapyrusConfig>;
+    public GameID: PapyrusConfig.Type;
+
+    constructor() {
+        this.Config = new Array<PapyrusConfig>();
+        this.Config.push(new PapyrusConfig(PapyrusConfig.Type.Fallout4, 'Fallout 4'));
+        this.Config.push(new PapyrusConfig(PapyrusConfig.Type.Skyrim, 'Skyrim LE'));
+        this.Config.push(new PapyrusConfig(PapyrusConfig.Type.SkyrimSpecialEdition, 'Skyrim SE'));
+        this.GameID = this.Config[0].GetCurrentGame;
+    }
+
+    public get Get(): PapyrusConfig {
+        return this.Config[this.GameID];
+    }
+
+    public get GetCurrentGame(): PapyrusConfig.Type {
+        return this.Config[this.GameID].GetCurrentGame;
+    }
+
+    public get GameName(): string {
+        return this.Config[this.GameID].GameName;
+    }
+
+    public get GetRootExecutablePath(): string {
+        return this.Config[this.GameID].GetRootExecutablePath;
+    }
+
+    public get GetRootPath(): string {
+        return this.Config[this.GameID].GetRootPath;
+    }
+
+    public get GetCompilerExecutablePath(): string {
+        return this.Config[this.GameID].GetCompilerExecutablePath;
+    }
+
+    public get GetCompilerPath(): string {
+        return this.Config[this.GameID].GetCompilerPath;
+    }
+
+    public get GetCompilerImports(): Array<string> {
+        return this.Config[this.GameID].GetCompilerImports;
+    }
+
+    public get GetCompilerMode(): string {
+        return this.Config[this.GameID].GetCompilerMode;
+    }
+
+    public get GetAssemblyFlag(): string {
+        return this.Config[this.GameID].GetAssemblyFlag;
+    }
+
+    public get GetFlagFileName(): string {
+        return this.Config[this.GameID].GetFlagFileName;
+    }
+
+    public get GetOutputPath(): string {
+        return this.Config[this.GameID].GetOutputPath;
+    }
+
+    public get IsCompilerPathValid(): boolean {
+        return this.Config[this.GameID].IsCompilerPathValid;
+    }
+
+    public get IsOutputPathValid(): boolean {
+        return this.Config[this.GameID].IsOutputPathValid;
+    }
+
+    public get IsRootPathValid(): boolean {
+        return this.Config[this.GameID].IsRootPathValid;
+    }
+
+    public SetAssemblyFlag(asmType: string) {
+        this.Config[this.GameID].SetAssemblyFlag(asmType);
+    }
+
+    public SetCompilerMode(compilerMode: string) {
+        this.Config[this.GameID].SetCompilerMode(compilerMode);
+    }
+
+    public SetCurrentGame(GameID: PapyrusConfig.Type) {
+        this.GameID = GameID; this.Config[this.GameID].SetCurrentGame();
+    }
+
+    public UpdateCurrentGame() {
+        this.SetCurrentGame(this.GetCurrentGame);
+    }
+}
+
 export class PapyrusConfig {
     public GameID: PapyrusConfig.Type;
     public GameName: string;
@@ -35,6 +124,15 @@ export class PapyrusConfig {
         }
     }
 
+    private get GetBaseConfiguration(): vscode.WorkspaceConfiguration {
+        switch (this.GameID) {
+            case PapyrusConfig.Type.Fallout4:
+            case PapyrusConfig.Type.Skyrim:
+            case PapyrusConfig.Type.SkyrimSpecialEdition:
+                return vscode.workspace.getConfiguration('papyrus');
+        }
+    }
+
     private get GetWorkspaceConfiguration(): vscode.WorkspaceConfiguration {
         switch (this.GameID) {
             case PapyrusConfig.Type.Fallout4:
@@ -43,6 +141,17 @@ export class PapyrusConfig {
                 return vscode.workspace.getConfiguration('papyrus.skyrim');
             case PapyrusConfig.Type.SkyrimSpecialEdition:
                 return vscode.workspace.getConfiguration('papyrus.skyrimSpecialEdition');
+        }
+    }
+
+    public get GetCurrentGame(): PapyrusConfig.Type {
+        switch (this.GetBaseConfiguration.get<string>('currentGame')) {
+            case 'Fallout 4':
+                return PapyrusConfig.Type.Fallout4;
+            case 'Skyrim LE':
+                return PapyrusConfig.Type.Skyrim;
+            case 'Skyrim SE':
+                return PapyrusConfig.Type.SkyrimSpecialEdition;
         }
     }
 
@@ -198,10 +307,20 @@ export class PapyrusConfig {
                 this.GetWorkspaceConfiguration.update('compiler.mode', compilerMode, (vscode.workspace.workspaceFolders === undefined));
         }
     }
+
+    public SetCurrentGame() {
+        switch (this.GameID) {
+            case PapyrusConfig.Type.Fallout4:
+            case PapyrusConfig.Type.Skyrim:
+            case PapyrusConfig.Type.SkyrimSpecialEdition:
+                this.GetBaseConfiguration.update('currentGame', this.GameName, (vscode.workspace.workspaceFolders === undefined));
+        }
+    }
 }
 
 export module PapyrusConfig {
     export enum Type {
+        None = -1,
         Fallout4,
         Skyrim,
         SkyrimSpecialEdition
