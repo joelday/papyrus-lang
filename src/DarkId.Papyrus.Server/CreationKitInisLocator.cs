@@ -14,36 +14,16 @@ namespace DarkId.Papyrus.Server
 {
     class CreationKitInisLocator : ICreationKitInisLocator
     {
-        private readonly OmniSharp.Extensions.LanguageServer.Server.ILanguageServer _languageServer;
-        private readonly ILogger<CreationKitInisLocator> _logger;
+        private readonly CreationKitIniLocations _locations;
 
-        public CreationKitInisLocator(
-            OmniSharp.Extensions.LanguageServer.Server.ILanguageServer languageServer,
-            ILogger<CreationKitInisLocator> logger)
+        public CreationKitInisLocator(CreationKitIniLocations locations)
         {
-            _languageServer = languageServer;
-            _logger = logger;
+            _locations = locations;
         }
 
         public CreationKitIniLocations GetIniLocations()
         {
-            _logger.LogInformation("Resolving CreationKit ini files...");
-
-            var configuration = _languageServer.Workspace.GetConfiguration();
-
-            return new CreationKitIniLocations()
-            {
-                CreationKitInstallPath =
-                    configuration?.InstallPath ??
-#if FALLOUT4
-                    "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Fallout 4",
-#elif SKYRIM
-                    "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition",
-#endif
-                RelativeIniPaths =
-                    configuration?.CreationKitIniFiles ??
-                    new List<string>() { "CreationKit.ini", "CreationKitCustom.ini" }
-            };
+            return this._locations;
         }
     }
 }

@@ -14,15 +14,24 @@ namespace DarkId.Papyrus.LanguageService.Configuration.CreationKit
 {
     public class CreationKitProgramOptionsProvider
     {
+        private readonly string _ambientProgramName;
+        private readonly string _flagsFileName;
+        private readonly CreationKitConfig _defaultConfig;
         private readonly ICreationKitInisLocator _inisLocator;
         private readonly ICreationKitConfigLoader _configLoader;
         private readonly ILogger _logger;
 
         public CreationKitProgramOptionsProvider(
+            string ambientProgramName,
+            string flagsFileName,
+            CreationKitConfig defaultConfig,
             ICreationKitInisLocator inisLocator,
             ICreationKitConfigLoader configLoader,
             ILogger<CreationKitProgramOptionsProvider> logger)
         {
+            _ambientProgramName = ambientProgramName;
+            _flagsFileName = flagsFileName;
+            _defaultConfig = defaultConfig;
             _inisLocator = inisLocator;
             _configLoader = configLoader;
             _logger = logger;
@@ -39,8 +48,8 @@ namespace DarkId.Papyrus.LanguageService.Configuration.CreationKit
             }
 
             var installPath = config.CreationKitInstallPath;
-            var scriptSourceFolder = config.Config.Papyrus?.sScriptSourceFolder;
-            var additionalImports = config.Config.Papyrus?.sAdditionalImports;
+            var scriptSourceFolder = config.Config.Papyrus?.sScriptSourceFolder ?? _defaultConfig.Papyrus.sScriptSourceFolder;
+            var additionalImports = config.Config.Papyrus?.sAdditionalImports ?? _defaultConfig.Papyrus.sAdditionalImports;
 
             var sourceDirectoryPath = string.IsNullOrEmpty(scriptSourceFolder) ?
                 null :
@@ -58,13 +67,8 @@ namespace DarkId.Papyrus.LanguageService.Configuration.CreationKit
             }
 
             var programOptions = new ProgramOptionsBuilder()
-                .WithName("CreationKit")
-                // TODO: Make these configurable?
-#if FALLOUT4
-                .WithFlagsFileName("Institute_Papyrus_Flags.flg") 
-#elif SKYRIM
-                .WithFlagsFileName("TESV_Papyrus_Flags.flg")
-#endif
+                .WithName(_ambientProgramName)
+                .WithFlagsFileName(_flagsFileName)
                 .WithSourceIncludes(importPathsElementsWithSubstitutedSource
                 .Select(path => PathUtilities.GetCombinedOrRooted(installPath, path))
                 .Select(path => new SourceInclude()

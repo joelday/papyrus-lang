@@ -6,6 +6,7 @@ using CommandLine;
 using System.Linq;
 using System.IO;
 using System.Reflection;
+using DarkId.Papyrus.LanguageService.Configuration.CreationKit;
 
 namespace DarkId.Papyrus.Server.Host
 {
@@ -13,6 +14,24 @@ namespace DarkId.Papyrus.Server.Host
     {
         [Option("compilerAssemblyPath", Required = true)]
         public string CompilerAssemblyPath { get; set; }
+
+        [Option("flagsFileName", Required = true)]
+        public string FlagsFileName { get; set; }
+
+        [Option("ambientProjectName", Required = true)]
+        public string AmbientProjectName { get; set; }
+
+        [Option("defaultScriptSourceFolder")]
+        public string DefaultScriptSourceFolder { get; set; }
+
+        [Option("defaultAdditionalImports")]
+        public string DefaultAdditionalImports { get; set; }
+
+        [Option("creationKitInstallPath", Required = true)]
+        public string CreationKitInstallPath { get; set; }
+
+        [Option("relativeIniPaths", Required = true)]
+        public string[] RelativeIniPaths { get; set; }
     }
 
     public class Program
@@ -32,7 +51,7 @@ namespace DarkId.Papyrus.Server.Host
         static void Main(string[] args)
         {
             Parser.Default.ParseArguments<Options>(args)
-                .WithParsed(o =>
+                .WithParsed(options =>
                 {
                     // https://stackoverflow.com/questions/1373100/how-to-add-folder-to-assembly-search-path-at-runtime-in-net
 
@@ -54,13 +73,12 @@ namespace DarkId.Papyrus.Server.Host
                             return null;
                         }
 
-                        var assemblyPath = Path.Combine(o.CompilerAssemblyPath, new AssemblyName(resolveArgs.Name).Name + ".dll");
+                        var assemblyPath = Path.Combine(options.CompilerAssemblyPath, new AssemblyName(resolveArgs.Name).Name + ".dll");
 
                         var assembly = Assembly.LoadFile(assemblyPath);
-
                         if (assembly == null)
                         {
-                            throw new Exception($"Failed to load Papyrus compiler assembly ${resolveArgs.Name} from ${o.CompilerAssemblyPath}.");
+                            throw new Exception($"Failed to load Papyrus compiler assembly ${resolveArgs.Name} from ${options.CompilerAssemblyPath}.");
                         }
 
                         return assembly;
@@ -68,23 +86,42 @@ namespace DarkId.Papyrus.Server.Host
 
                     foreach (var assemblyName in _papyrusCompilerAssemblies)
                     {
-                        AppDomain.CurrentDomain.Load(File.ReadAllBytes(Path.Combine(o.CompilerAssemblyPath, assemblyName + ".dll")));
+                        AppDomain.CurrentDomain.Load(File.ReadAllBytes(Path.Combine(options.CompilerAssemblyPath, assemblyName + ".dll")));
                     }
                     
-                    RunServer().Wait();
+                    RunServer(options).Wait();
                 });
         }
 
-        static async Task RunServer()
+        static async Task RunServer(Options options)
         {
-            var server = await PapyrusLanguageServer.From((options) => options
-                .WithInput(Console.OpenStandardInput())
-                .WithOutput(Console.OpenStandardOutput())
+            var server = await PapyrusLanguageServer.From((serverOptions, papyrusOptions) => {
+
+                papyrusOptions.AmbientProjectName = options.AmbientProjectName;
+                papyrusOptions.DefaultCreationKitConfig = new CreationKitConfig()
+                {
+                    Papyrus = new CreationKitPapyrusConfig()
+                    {
+                        sScriptSourceFolder = options.DefaultScriptSourceFolder,
+                        sAdditionalImports = options.DefaultAdditionalImports
+                    }
+                };
+                papyrusOptions.FlagsFileName = options.FlagsFileName;
+                papyrusOptions.IniLocations = new CreationKitIniLocations()
+                {
+                    CreationKitInstallPath = options.CreationKitInstallPath,
+                    RelativeIniPaths = options.RelativeIniPaths.ToList()
+                };
+
+                serverOptions
+                    .WithInput(Console.OpenStandardInput())
+                    .WithOutput(Console.OpenStandardOutput())
 #pragma warning disable CS0618 // Type or member is obsolete
-                .WithLoggerFactory(new LoggerFactory().AddDebug())
+                    .WithLoggerFactory(new LoggerFactory().AddDebug())
 #pragma warning restore CS0618 // Type or member is obsolete
-                .AddDefaultLoggingProvider()
-                .WithMinimumLogLevel(LogLevel.Trace));
+                    .AddDefaultLoggingProvider()
+                    .WithMinimumLogLevel(LogLevel.Trace);
+            });
 
             await server.WaitForExit;
         }

@@ -17,11 +17,13 @@ namespace DarkId.Papyrus.Server
 {
     public static class PapyrusLanguageServer
     {
-        public static Task<ILanguageServer> From(Action<LanguageServerOptions> optionsAction)
+        public static Task<ILanguageServer> From(Action<LanguageServerOptions, PapyrusLanguageServerOptions> optionsAction)
         {
+            var papyrusOptions = new PapyrusLanguageServerOptions();
+
             return LanguageServer.From((options) =>
             {
-                optionsAction(options);
+                optionsAction(options, papyrusOptions);
 
                 options.WithServices((collection) => collection
                     .AddSingleton<IFileSystem, LocalFileSystem>()
@@ -38,9 +40,18 @@ namespace DarkId.Papyrus.Server
 
                         return textProvider;
                     })
-                    .AddSingleton<ICreationKitInisLocator, CreationKitInisLocator>()
+                    .AddSingleton<ICreationKitInisLocator>(new CreationKitInisLocator(papyrusOptions.IniLocations))
                     .AddSingleton<ICreationKitConfigLoader, CreationKitInisConfigLoader>()
-                    .AddSingleton<CreationKitProgramOptionsProvider>()
+                    .AddSingleton((provider) =>
+                    {
+                        return new CreationKitProgramOptionsProvider(
+                            papyrusOptions.AmbientProjectName,
+                            papyrusOptions.FlagsFileName,
+                            papyrusOptions.DefaultCreationKitConfig,
+                            provider.GetRequiredService<ICreationKitInisLocator>(),
+                            provider.GetRequiredService<ICreationKitConfigLoader>(),
+                            provider.CreateInstance<ILogger<CreationKitProgramOptionsProvider>>());
+                    })
                     .AddSingleton<IProgramOptionsProvider, ProjectProgramOptionsProvider>()
                     .AddSingleton<ProjectManager>())
                 .WithHandler<WorkspaceManager>()
@@ -52,8 +63,7 @@ namespace DarkId.Papyrus.Server
                 .WithHandler<SignatureHelpHandler>()
                 .WithHandler<ReferencesHandler>()
                 .WithHandler<RenameHandler>()
-                .WithHandler<DocumentScriptInfoHandler>()
-                .WithHandler<RegistryInstallPathHandler>();
+                .WithHandler<DocumentScriptInfoHandler>();
 
                 HarmonyPatches.Apply();
             });
