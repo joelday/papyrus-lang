@@ -49,11 +49,11 @@ export class PapyrusServer {
 
         const compilerAssemblyPath =
             process.platform === 'win32' ? this._extension.Config.GetCompilerPath : this._context.asAbsolutePath('../../dependencies/compilers/');
-    
+
         this._clientServer = new ClientServer(toolPath, compilerAssemblyPath);
         if (workspace.name !== undefined) {
             await this._clientServer.start();
-    
+
             if (this._isDisposed) {
                 return;
             }
@@ -69,46 +69,46 @@ export class PapyrusServer {
             { language: 'papyrus', scheme: 'file' },
             new ScriptStatusCodeLensProvider(this)
         ));
-    
+
         this._disposables.push(window.onDidChangeActiveTextEditor(this.updateTextEditorDecorations));
         this.updateTextEditorDecorations(window.activeTextEditor);
     }
 
     private updateTextEditorDecorations = async (editor: TextEditor) => {
-        if (editor.document.languageId !== 'papyrus') {
-            return;
-        }
-    
-        try {
-            const { documentIsUnresolved, documentIsOverridden } = await this.getDocumentScriptStatus(editor.document);
-    
-            if (documentIsUnresolved || documentIsOverridden) {
-                editor.setDecorations(this._overriddenOrInactiveDecoration, [
-                    {
-                        range: new Range(
-                            new Position(0, 0),
-                            editor.document.positionAt(editor.document.getText().length)
-                        ),
-                    },
-                ]);
-            } else {
-                editor.setDecorations(this._overriddenOrInactiveDecoration, []);
+        if (editor !== undefined) {
+            if (editor.document.languageId === 'papyrus') {
+                try {
+                    const { documentIsUnresolved, documentIsOverridden } = await this.getDocumentScriptStatus(editor.document);
+
+                    if (documentIsUnresolved || documentIsOverridden) {
+                        editor.setDecorations(this._overriddenOrInactiveDecoration, [
+                            {
+                                range: new Range(
+                                    new Position(0, 0),
+                                    editor.document.positionAt(editor.document.getText().length)
+                                ),
+                            },
+                        ]);
+                    } else {
+                        editor.setDecorations(this._overriddenOrInactiveDecoration, []);
+                    }
+                } catch {
+                    editor.setDecorations(this._overriddenOrInactiveDecoration, []);
+                }
             }
-        } catch {
-            editor.setDecorations(this._overriddenOrInactiveDecoration, []);
         }
     }
 
     async getDocumentScriptStatus(document: TextDocument) {
         const scriptInfo = await this._clientServer.requestScriptInfo(document.uri.toString());
-    
+
         const documentIsUnresolved = scriptInfo.identifiers.length === 0;
         const documentIsOverridden =
             !documentIsUnresolved &&
             !scriptInfo.identifierFiles.some((identifierFile) =>
                 identifierFile.files.some((file) => file.toLowerCase() === document.uri.fsPath.toLowerCase())
             );
-    
+
         return {
             documentIsUnresolved,
             documentIsOverridden,

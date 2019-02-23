@@ -39,6 +39,16 @@
         ],
         "configuration": {
             "properties": {
+                "papyrus.currentGame": {
+                    "type": "string",
+                    "default": "Fallout 4",
+                    "description": "Specify the Current Game",
+                    "enum": [
+                        "Fallout 4",
+                        "Skyrim LE",
+                        "Skyrim SE"
+                    ]
+                },
                 "papyrus.fallout4.creationKitIniFiles": {
                     "default": [
                         "CreationKit.ini",
@@ -211,7 +221,7 @@
         "vscode-languageclient": "^5.1.0",
         "xml-writer": "^1.7.0"
     },
-    "description": "Advanced language support for Fallout 4's Papyrus scripting language.",
+    "description": "Advanced language support for Bethesda Game Studio's Papyrus scripting language.",
     "devDependencies": {
         "@types/ini": "^1.3.30",
         "@types/mocha": "^5.2.6",
@@ -221,11 +231,11 @@
         "rimraf": "^2.6.3",
         "tslint": "^5.12.1",
         "typescript": "^3.3.3",
-        "vscode": "^1.1.29"
+        "vscode": "^1.1.30"
     },
     "displayName": "Papyrus",
     "engines": {
-        "vscode": "^1.27.0"
+        "vscode": "^1.31.1"
     },
     "homepage": "https://github.com/joelday/papyrus-lang/tree/master/packages/papyrus-lang-vscode",
     "icon": "images/icon-small.png",
@@ -236,7 +246,7 @@
         "Modding",
         "Creation Kit"
     ],
-    "main": "./out/extension",
+    "main": "./out/PapyrusExtension",
     "maintainers": [
         {
             "email": "joelday@gmail.com",
@@ -261,7 +271,7 @@
         "vscode:prepublish": "npm run compile",
         "watch": "tsc -watch -p ./"
     },
-    "version": "1.2.0",
+    "version": "1.3.0-alpha.1",
     "prettier": {
         "tabWidth": 4,
         "singleQuote": true,

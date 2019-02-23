@@ -1,11 +1,8 @@
-// import * as vscode from 'vscode';
+import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as os from 'os';
 
 import { spawn } from 'child_process';
-
-import { CompilerChannel } from './extension';
 import { PapyrusConfig } from './PapyrusConfig';
 
 export class PapyrusCompiler {
@@ -20,11 +17,15 @@ export class PapyrusCompiler {
     private FolderList: Array<string>;
     private Config: PapyrusConfig;
 
+    private Channel: vscode.OutputChannel;
+    private ProjectFolder: string;
+    private errCount: number;
+
     public IsRelease: boolean;
     public IsFinal: boolean;
     public DoOptimize: boolean;
 
-    constructor(Config: PapyrusConfig, DoOptimize: boolean, IsRelease: boolean, IsFinal: boolean, Scripts: Array<string>) {
+    constructor(Config: PapyrusConfig, ProjectFolder: string, DoOptimize: boolean, IsRelease: boolean, IsFinal: boolean, Scripts: Array<string>, Channel: vscode.OutputChannel) {
         this.Config = Config;
         this.RootPath = this.Config.GetRootPath;
         this.OutputPath = this.Config.GetOutputPath;
@@ -42,8 +43,10 @@ export class PapyrusCompiler {
         this.ImportList = this.Config.GetCompilerImports.slice(0);
         this.ScriptList = Scripts.slice(0);
         this.FolderList = new Array<string>();
+        this.ProjectFolder = ProjectFolder;
+        this.Channel = Channel;
 
-        CompilerChannel.show();
+        this.errCount = 0;
     }
 
     private GetCompileArgs(): Array<string> {
@@ -53,12 +56,11 @@ export class PapyrusCompiler {
                 if (this.IsProject) {
                     Result.push(this.ScriptList[0]);
                 } else {
-                    let tempDir = path.join(os.tmpdir(), 'papyrus-lang');
-                    if (!fs.existsSync(tempDir)) {
-                        fs.mkdirSync(tempDir);
+                    let filePath = path.join(this.ProjectFolder, 'PapyrusLangTemp.ppj');
+                    if (!fs.existsSync(this.ProjectFolder)) {
+                        fs.mkdirSync(this.ProjectFolder);
                     }
 
-                    let filePath = path.join(tempDir, '\\PapyrusLangTemp.ppj');
                     fs.writeFileSync(filePath, this.ProjectXML());
                     Result.push(filePath);
                 }
@@ -126,8 +128,8 @@ export class PapyrusCompiler {
             return true;
         }
 
-        console.log('Invalid Imports');
-        return false;
+        this.Channel.append('Error: No Valid Imports listed.');
+        ++this.errCount; return false;
     }
 
     private get AreScriptsValid(): boolean {
@@ -135,8 +137,8 @@ export class PapyrusCompiler {
             return true;
         }
 
-        console.log('Invalid Scripts');
-        return false;
+        this.Channel.append('Error: No Valid Scripts/Folders selected.');
+        ++this.errCount; return false;
     }
 
     private get IsAssemblySettingValid(): boolean {
@@ -148,8 +150,8 @@ export class PapyrusCompiler {
                 return true;
         }
 
-        console.log('Invalid Assembly Setting');
-        return false;
+        this.Channel.append(`Error: Invalid Assembly Setting [${this.AssemblySetting}].`);
+        ++this.errCount; return false;
     }
 
     private SortImports(): Array<string> {
@@ -191,13 +193,14 @@ export class PapyrusCompiler {
                 case '.ppj':
                     this.IsProject = true;
                     if (this.ScriptList.length > 1) {
-                        console.log('Script List is invalid, projects can only be compiled by themselves');
-                        return new Array<string>();
+                        this.Channel.append('Script List is invalid, projects can only be compiled by themselves');
+                        ++this.errCount; return new Array<string>();
                     }
                     break;
 
                 default:
-                    console.log(`Error, unrecognized file type: ${scriptExt}`);
+                    this.Channel.append(`Error: Unrecognized file type [${scriptExt}].`);
+                    ++this.errCount;
             }
         });
 
@@ -261,19 +264,30 @@ export class PapyrusCompiler {
             let AsmSettValid = this.IsAssemblySettingValid;
 
             if (ImportsValid && ScriptsValid && AsmSettValid) {
+                switch (this.Config.GameID) {
+                    case PapyrusConfig.Type.Fallout4:
+                        break;
+                    case PapyrusConfig.Type.Skyrim:
+                    case PapyrusConfig.Type.SkyrimSpecialEdition:
+                        this.Channel.append("Papyrus Compiler Version 1.0.0.0 for Skyrim");
+                        this.Channel.append("Copyright (C) ZeniMax Media. All rights reserved.");
+                    // Fake it for the sake of consistency
+                }
+
                 var Compiler = spawn(this.CompilerPath, this.GetCompileArgs());
-                Compiler.stdout.on('data', function (data) {
-                    CompilerChannel.append(data.toString());
+                Compiler.stdout.on('data', (data) => {
+                    this.Channel.append(data.toString());
                 });
 
-                Compiler.stderr.on('data', function (data) {
-                    CompilerChannel.append(data.toString());
+                Compiler.stderr.on('data', (data) => {
+                    this.Channel.append(data.toString());
                 });
 
                 return;
             }
         }
 
-        console.log('Errors happened');
+        this.Channel.append('');
+        this.Channel.append(`${this.errCount} errors logged. See above for details.`);
     }
 }
