@@ -32,9 +32,8 @@ namespace DarkId.Papyrus.Server
                     .AddSingleton<IXmlProjectLoader, FileSystemXmlProjectLoader>()
                     .AddSingleton<IScriptTextProvider, TextDocumentScriptTextProvider>((provider) =>
                     {
-                        var textProvider = new TextDocumentScriptTextProvider(
-                            provider.CreateInstance<FileSystemScriptTextProvider>(),
-                            provider.GetService<ILogger<TextDocumentScriptTextProvider>>());
+                        var textProvider = provider.CreateInstance<TextDocumentScriptTextProvider>(
+                            provider.CreateInstance<FileSystemScriptTextProvider>());
 
                         AntlrPatch.SetTextProvider(textProvider);
 
@@ -43,15 +42,10 @@ namespace DarkId.Papyrus.Server
                     .AddSingleton<ICreationKitInisLocator>(new CreationKitInisLocator(papyrusOptions.IniLocations))
                     .AddSingleton<ICreationKitConfigLoader, CreationKitInisConfigLoader>()
                     .AddSingleton((provider) =>
-                    {
-                        return new CreationKitProgramOptionsProvider(
+                        provider.CreateInstance<CreationKitProgramOptionsProvider>(
                             papyrusOptions.AmbientProjectName,
                             papyrusOptions.FlagsFileName,
-                            papyrusOptions.DefaultCreationKitConfig,
-                            provider.GetRequiredService<ICreationKitInisLocator>(),
-                            provider.GetRequiredService<ICreationKitConfigLoader>(),
-                            provider.CreateInstance<ILogger<CreationKitProgramOptionsProvider>>());
-                    })
+                            papyrusOptions.DefaultCreationKitConfig))
                     .AddSingleton<IProgramOptionsProvider, ProjectProgramOptionsProvider>()
                     .AddSingleton<ProjectManager>())
                 .WithHandler<WorkspaceManager>()

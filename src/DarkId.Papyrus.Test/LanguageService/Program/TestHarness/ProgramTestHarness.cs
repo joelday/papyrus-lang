@@ -9,6 +9,7 @@ using DarkId.Papyrus.LanguageService.Compiler;
 using DarkId.Papyrus.LanguageService.Configuration.CreationKit;
 using DarkId.Papyrus.LanguageService.Program;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace DarkId.Papyrus.Test.LanguageService.Program.TestHarness
 {
@@ -41,13 +42,21 @@ namespace DarkId.Papyrus.Test.LanguageService.Program.TestHarness
                 .AddSingleton<IFileSystem, LocalFileSystem>()
                 .AddSingleton<IScriptTextProvider, FileSystemScriptTextProvider>((provider) =>
                 {
-                    var textProvider = new FileSystemScriptTextProvider(provider.GetService<IFileSystem>());
+                    var textProvider = provider.CreateInstance<FileSystemScriptTextProvider>();
                     AntlrPatch.SetTextProvider(textProvider);
                     return textProvider;
                 })
                 .AddSingleton<ICreationKitInisLocator, CreationKitInisLocator>()
                 .AddSingleton<ICreationKitConfigLoader, CreationKitInisConfigLoader>()
-                .AddSingleton<CreationKitProgramOptionsProvider>();
+                .AddSingleton((provider) =>
+                    provider.CreateInstance<CreationKitProgramOptionsProvider>(
+                        "Creation Kit",
+#if FALLOUT4
+                        "Institute_Papyrus_Flags.flg",
+#elif SKYRIM
+                        "TESV_Papyrus_Flags.flg",
+#endif
+                        new CreationKitConfig()));
 
             _serviceProvider = serviceCollection.BuildServiceProvider();
 

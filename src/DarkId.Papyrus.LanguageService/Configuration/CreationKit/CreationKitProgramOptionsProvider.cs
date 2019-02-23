@@ -41,15 +41,15 @@ namespace DarkId.Papyrus.LanguageService.Configuration.CreationKit
         {
             var iniLocations = _inisLocator.GetIniLocations();
             var config = _configLoader.LoadConfig(iniLocations);
-            
+
             if (config == null)
             {
                 return null;
             }
 
             var installPath = config.CreationKitInstallPath;
-            var scriptSourceFolder = config.Config.Papyrus?.sScriptSourceFolder ?? _defaultConfig.Papyrus.sScriptSourceFolder;
-            var additionalImports = config.Config.Papyrus?.sAdditionalImports ?? _defaultConfig.Papyrus.sAdditionalImports;
+            var scriptSourceFolder = config.Config.Papyrus?.sScriptSourceFolder ?? _defaultConfig?.Papyrus?.sScriptSourceFolder;
+            var additionalImports = config.Config.Papyrus?.sAdditionalImports ?? _defaultConfig?.Papyrus?.sAdditionalImports;
 
             var sourceDirectoryPath = string.IsNullOrEmpty(scriptSourceFolder) ?
                 null :
