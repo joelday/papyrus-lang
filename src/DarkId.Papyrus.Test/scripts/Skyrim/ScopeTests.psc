@@ -29,7 +29,7 @@ int Function ReturningIntFunction(;/marker:function-parameter-type/;int\
 
     int ;/marker:local-variable-name/;value = 0 as ;/marker:as-expression/;int
     ;/marker:function-body/;
-    bool isInt = value is ;/marker:is-expression/;int
+
     return arg
 EndFunction
 

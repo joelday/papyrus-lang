@@ -20,7 +20,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Program.TestHarness
             {
                 return new CreationKitIniLocations()
                 {
-                    CreationKitInstallPath = "../../../scripts",
+                    CreationKitInstallPath = "../../../../scripts",
                     RelativeIniPaths = new List<string>() {
 #if FALLOUT4
                         "Fallout4.ini"

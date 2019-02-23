@@ -1,9 +1,17 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project>
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>obj\$(MSBuildProjectName)</BaseIntermediateOutputPath>
+  </PropertyGroup>
 
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+  
   <PropertyGroup>
     <TargetFramework>net461</TargetFramework>
     <PlatformTarget>x86</PlatformTarget>
-    <Configurations>Fallout4</Configurations>
+    <Configurations>Debug</Configurations>
+    <OutputPath>bin\$(Configuration)\$(TargetFramework)\$(MSBuildProjectName)</OutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj\**</DefaultItemExcludes>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -38,5 +46,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DarkId.Papyrus.LanguageService\DarkId.Papyrus.LanguageService.Fallout4.csproj" />
   </ItemGroup>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 
 </Project>

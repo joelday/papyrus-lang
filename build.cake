@@ -58,7 +58,7 @@ Task("download-compilers")
 
 Task("restore")
     .Does(() => {
-        DotNetCoreRestore();
+        NuGetRestore(solution);
     });
 
 Task("build")
@@ -73,12 +73,12 @@ Task("build")
 Task("test")
     .Does(() =>
     {
-        VSTest("./src/DarkId.Papyrus.Test/bin/Fallout4/net461/DarkId.Papyrus.Test.Fallout4.dll", new VSTestSettings()
+        VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Fallout4/DarkId.Papyrus.Test.Fallout4.dll", new VSTestSettings()
         {
             ToolPath = Context.Tools.Resolve("vstest.console.exe")
         });
 
-        VSTest("./src/DarkId.Papyrus.Test/bin/Skyrim/net461/DarkId.Papyrus.Test.Skyrim.dll", new VSTestSettings()
+        VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Skyrim/DarkId.Papyrus.Test.Skyrim.dll", new VSTestSettings()
         {
             ToolPath = Context.Tools.Resolve("vstest.console.exe")
         });

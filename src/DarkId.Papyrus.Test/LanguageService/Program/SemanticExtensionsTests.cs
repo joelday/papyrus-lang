@@ -48,12 +48,17 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
             return symbols;
         }
 
+#if FALLOUT4
+        // GetReferencableSymbols in this context only returns structs.
+        // The completion handler is responsible for attaching scripts to the completion list.
+
         [TestMethod]
         public void GetReferencableSymbols_ScriptBody()
         {
             var symbols = GetReferencableSymbolsAtMarker("script-body");
             symbols.AssertAreOfKinds(SymbolKinds.Struct);
         }
+#endif
 
         [TestMethod]
         public void GetReferencableSymbols_FunctionBody()
