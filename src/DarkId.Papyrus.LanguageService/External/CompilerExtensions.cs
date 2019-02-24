@@ -1,5 +1,5 @@
 ﻿using DarkId.Papyrus.Common;
-using DarkId.Papyrus.LanguageService.Compiler;
+using DarkId.Papyrus.LanguageService.External;
 using Antlr.Runtime;
 using System.Text;
 using PCompiler;
@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using ReflectionMagic;
 using System.Reflection;
 
-namespace DarkId.Papyrus.LanguageService.Compiler
+namespace DarkId.Papyrus.LanguageService.External
 {
     static class CompilerExtensions
     {

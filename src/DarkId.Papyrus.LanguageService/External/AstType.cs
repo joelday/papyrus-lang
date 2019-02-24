@@ -1,4 +1,4 @@
-﻿namespace DarkId.Papyrus.LanguageService.Compiler
+﻿namespace DarkId.Papyrus.LanguageService.External
 {
 #if FALLOUT4
     enum AstType

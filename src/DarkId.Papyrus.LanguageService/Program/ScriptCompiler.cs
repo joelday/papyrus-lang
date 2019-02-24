@@ -14,7 +14,7 @@ using System.Runtime.Serialization;
 using Antlr.Runtime.Tree;
 using Microsoft.Extensions.Logging;
 using System.Threading;
-using DarkId.Papyrus.LanguageService.Compiler;
+using DarkId.Papyrus.LanguageService.External;
 
 #if SKYRIM
 using ScriptComplexType = PCompiler.ScriptObjectType;

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Antlr.Runtime;
 using DarkId.Papyrus.Common;
-using DarkId.Papyrus.LanguageService.Compiler;
+using DarkId.Papyrus.LanguageService.External;
 using Microsoft.Extensions.Logging;
 using PCompiler;
 using ReflectionMagic;

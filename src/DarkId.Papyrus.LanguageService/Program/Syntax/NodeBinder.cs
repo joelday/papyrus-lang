@@ -1,7 +1,7 @@
 ﻿using Antlr.Runtime;
 using Antlr.Runtime.Tree;
 using DarkId.Papyrus.Common;
-using DarkId.Papyrus.LanguageService.Compiler;
+using DarkId.Papyrus.LanguageService.External;
 using System;
 using System.Collections.Generic;
 using System.Linq;

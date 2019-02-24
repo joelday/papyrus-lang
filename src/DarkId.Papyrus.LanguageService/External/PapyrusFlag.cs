@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ReflectionMagic;
 
-namespace DarkId.Papyrus.LanguageService.Compiler
+namespace DarkId.Papyrus.LanguageService.External
 {
     class PapyrusFlag : IPapyrusFlag
     {

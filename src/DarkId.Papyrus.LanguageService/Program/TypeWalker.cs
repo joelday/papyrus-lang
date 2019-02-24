@@ -14,7 +14,7 @@ using System.Runtime.Serialization;
 using Antlr.Runtime.Tree;
 using Microsoft.Extensions.Logging;
 using Antlr.Runtime.Misc;
-using DarkId.Papyrus.LanguageService.Compiler;
+using DarkId.Papyrus.LanguageService.External;
 
 namespace DarkId.Papyrus.LanguageService.Program
 {

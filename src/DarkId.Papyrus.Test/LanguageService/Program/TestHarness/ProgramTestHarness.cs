@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService;
-using DarkId.Papyrus.LanguageService.Compiler;
+using DarkId.Papyrus.LanguageService.External;
 using DarkId.Papyrus.LanguageService.Configuration.CreationKit;
 using DarkId.Papyrus.LanguageService.Program;
 using Microsoft.Extensions.DependencyInjection;

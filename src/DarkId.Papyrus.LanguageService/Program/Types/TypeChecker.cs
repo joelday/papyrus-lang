@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Antlr.Runtime;
 using DarkId.Papyrus.Common;
-using DarkId.Papyrus.LanguageService.Compiler;
+using DarkId.Papyrus.LanguageService.External;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
 using DarkId.Papyrus.LanguageService.Program.Syntax;
 using PCompiler;

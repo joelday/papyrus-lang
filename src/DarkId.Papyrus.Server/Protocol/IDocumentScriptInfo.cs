@@ -1,4 +1,4 @@
-﻿using DarkId.Papyrus.LanguageService.Compiler;
+﻿using DarkId.Papyrus.LanguageService.External;
 using OmniSharp.Extensions.Embedded.MediatR;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol;

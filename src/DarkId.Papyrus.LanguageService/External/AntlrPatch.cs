@@ -11,7 +11,7 @@ using Harmony;
 using Antlr.Runtime;
 using DarkId.Papyrus.Common;
 
-namespace DarkId.Papyrus.LanguageService.Compiler
+namespace DarkId.Papyrus.LanguageService.External
 {
     [HarmonyPatch(typeof(ANTLRFileStream), "Load")]
     public static class AntlrPatch

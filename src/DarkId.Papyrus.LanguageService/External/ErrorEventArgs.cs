@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DarkId.Papyrus.LanguageService.Compiler
+namespace DarkId.Papyrus.LanguageService.External
 {
     class ErrorEventArgs : EventArgs
     {
