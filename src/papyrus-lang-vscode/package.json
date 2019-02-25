@@ -15,40 +15,8 @@
         "Programming Languages"
     ],
     "contributes": {
-        "commands": [
-            {
-                "command": "papyrus.compile",
-                "title": "Papyrus: Compile"
-            },
-            {
-                "command": "papyrus.compiledebug",
-                "title": "Papyrus: Compile (Debug)"
-            },
-            {
-                "command": "papyrus.compilerelease",
-                "title": "Papyrus: Compile (Release)"
-            },
-            {
-                "command": "papyrus.compilefinal",
-                "title": "Papyrus: Compile (Final)"
-            },
-            {
-                "command": "papyrus.createproject",
-                "title": "Papyrus: Create Project"
-            }
-        ],
         "configuration": {
             "properties": {
-                "papyrus.currentGame": {
-                    "type": "string",
-                    "default": "Fallout 4",
-                    "description": "Specify the Current Game",
-                    "enum": [
-                        "Fallout 4",
-                        "Skyrim LE",
-                        "Skyrim SE"
-                    ]
-                },
                 "papyrus.fallout4.creationKitIniFiles": {
                     "default": [
                         "CreationKit.ini",
@@ -60,27 +28,6 @@
                     "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Fallout 4\\",
                     "type": "string"
                 },
-                "papyrus.fallout4.compiler.asm": {
-                    "type": "string",
-                    "default": "Discard",
-                    "description": "Specify the Papyrus Compiler assembly mode. \n\"None\" disables all output, \"Only\" only generates Papyrus assembly, not compiled .pex, \"Discard\" generates .pex and deletes assembly, and \"Keep\" generates and keeps both .pex and assembly.",
-                    "enum": [
-                        "None",
-                        "Keep",
-                        "Only",
-                        "Discard"
-                    ]
-                },
-                "papyrus.fallout4.compiler.mode": {
-                    "type": "string",
-                    "default": "Debug",
-                    "description": "placeholder",
-                    "enum": [
-                        "Debug",
-                        "Release",
-                        "Release Final"
-                    ]
-                },
                 "papyrus.skyrim.creationKitIniFiles": {
                     "default": [
                         "SkyrimEditor.ini"
@@ -90,27 +37,6 @@
                 "papyrus.skyrim.installPath": {
                     "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim\\",
                     "type": "string"
-                },
-                "papyrus.skyrim.compiler.asm": {
-                    "type": "string",
-                    "default": "Discard",
-                    "description": "Specify the Papyrus Compiler assembly mode. \n\"None\" disables all output, \"Only\" only generates Papyrus assembly, not compiled .pex, \"Discard\" generates .pex and deletes assembly, and \"Keep\" generates and keeps both .pex and assembly.",
-                    "enum": [
-                        "None",
-                        "Keep",
-                        "Only",
-                        "Discard"
-                    ]
-                },
-                "papyrus.skyrim.compiler.mode": {
-                    "type": "string",
-                    "default": "Debug",
-                    "description": "placeholder",
-                    "enum": [
-                        "Debug",
-                        "Release",
-                        "Release Final"
-                    ]
                 },
                 "papyrus.skyrimSpecialEdition.creationKitIniFiles": {
                     "default": [
@@ -122,27 +48,6 @@
                 "papyrus.skyrimSpecialEdition.installPath": {
                     "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition\\",
                     "type": "string"
-                },
-                "papyrus.skyrimSpecialEdition.compiler.asm": {
-                    "type": "string",
-                    "default": "Discard",
-                    "description": "Specify the Papyrus Compiler assembly mode. \n\"None\" disables all output, \"Only\" only generates Papyrus assembly, not compiled .pex, \"Discard\" generates .pex and deletes assembly, and \"Keep\" generates and keeps both .pex and assembly.",
-                    "enum": [
-                        "None",
-                        "Keep",
-                        "Only",
-                        "Discard"
-                    ]
-                },
-                "papyrus.skyrimSpecialEdition.compiler.mode": {
-                    "type": "string",
-                    "default": "Debug",
-                    "description": "placeholder",
-                    "enum": [
-                        "Debug",
-                        "Release",
-                        "Release Final"
-                    ]
                 }
             },
             "title": "Papyrus",
