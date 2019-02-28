@@ -121,8 +121,9 @@
         }
     ],
     "dependencies": {
+        "decoration-ioc": "^2.1.0",
         "ini": "^1.3.5",
-        "ps-list": "^6.0.0",
+        "rxjs": "^6.4.0",
         "vscode-languageclient": "^5.1.0",
         "xml-writer": "^1.7.0"
     },
