@@ -1,20 +1,20 @@
-import { LanguageClient, Disposable, TextDocumentIdentifier } from 'vscode-languageclient';
+import { LanguageClient as BaseClient, Disposable, TextDocumentIdentifier } from 'vscode-languageclient';
 import { workspace } from 'vscode';
 
 import { DocumentScriptInfo, documentScriptInfoRequestType } from './messages/DocumentScriptInfo';
 import { DocumentSyntaxTree, documentSyntaxTreeRequestType } from './messages/DocumentSyntaxTree';
 
-export interface IPapyrusLanguageClientOptions {
+export interface ILanguageClientOptions {
     executablePath: string;
 }
 
-export class PapyrusLanguageClient {
-    private readonly _client: LanguageClient;
+export class LanguageClient {
+    private readonly _client: BaseClient;
     private readonly _fsWatcher: Disposable;
 
-    constructor(options: IPapyrusLanguageClientOptions) {
+    constructor(options: ILanguageClientOptions) {
         this._fsWatcher = workspace.createFileSystemWatcher('**/*.{flg,ppj,psc}');
-        this._client = new LanguageClient('papyrus', 'Papyrus Language Service', null, null); // TODO: Options
+        this._client = new BaseClient('papyrus', 'Papyrus Language Service', null, null); // TODO: Options
     }
 
     async start() {

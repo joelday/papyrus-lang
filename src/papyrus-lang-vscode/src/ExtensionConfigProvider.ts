@@ -5,22 +5,22 @@ import { createDecorator } from 'decoration-ioc';
 import { workspace } from 'vscode';
 import { eventToValueObservable } from './common/vscode/Reactive';
 
-export interface IPapyrusExtensionGameConfig {
+export interface IExtensionGameConfig {
     creationKitIniFiles: string[];
     installPath: string;
 }
 
-export interface IPapyrusExtensionConfig {
-    fallout4?: IPapyrusExtensionGameConfig;
-    skyrim?: IPapyrusExtensionGameConfig;
-    skyrimSpecialEdition?: IPapyrusExtensionGameConfig;
+export interface IExtensionConfig {
+    fallout4?: IExtensionGameConfig;
+    skyrim?: IExtensionGameConfig;
+    skyrimSpecialEdition?: IExtensionGameConfig;
 }
 
-export interface IPapyrusExtensionConfigProvider {
-    readonly config: rx.Observable<IPapyrusExtensionConfig>;
+export interface IExtensionConfigProvider {
+    readonly config: rx.Observable<IExtensionConfig>;
 }
 
-export class PapyrusExtensionConfigProvider {
+export class ExtensionConfigProvider {
     private readonly _config = eventToValueObservable(
         workspace.onDidChangeConfiguration,
         () => workspace.getConfiguration('papyrus'),
@@ -32,7 +32,7 @@ export class PapyrusExtensionConfigProvider {
                     fallout4: workspaceConfig.get('fallout4'),
                     skyrim: workspaceConfig.get('skyrim'),
                     skyrimSpecialEdition: workspaceConfig.get('skyrimSpecialEdition'),
-                } as IPapyrusExtensionConfig)
+                } as IExtensionConfig)
         )
     );
 
@@ -41,6 +41,4 @@ export class PapyrusExtensionConfigProvider {
     }
 }
 
-export const IPapyrusExtensionConfigProvider = createDecorator<IPapyrusExtensionConfigProvider>(
-    'papyrusExtensionConfigProvider'
-);
+export const IExtensionConfigProvider = createDecorator<IExtensionConfigProvider>('extensionConfigProvider');

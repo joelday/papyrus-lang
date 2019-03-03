@@ -16,12 +16,18 @@ export function eventToObservable<T>(event: Event<T>) {
 
 export function eventToValueObservable<TEvent, TValue>(
     event: Event<TEvent>,
-    initialValue: () => TValue,
-    eventToValue: (event: TEvent) => TValue
+    getCurrent: () => TValue,
+    map: (event: TEvent) => TValue
 ) {
-    const behaviorSubject = new rx.BehaviorSubject(initialValue());
-    eventToObservable(event)
-        .pipe(rxop.map(eventToValue))
-        .subscribe(behaviorSubject);
-    return behaviorSubject;
+    return new rx.Observable<TValue>((s) => {
+        s.next(getCurrent());
+
+        const disposable = event((value) => {
+            s.next(map(value));
+        });
+
+        return {
+            unsubscribe: () => disposable.dispose(),
+        };
+    });
 }

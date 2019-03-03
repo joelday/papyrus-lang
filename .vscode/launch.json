@@ -1,137 +1,122 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Launch Host (Mono)",
-            "type": "mono",
-            "request": "launch",
-            "program": "${workspaceRoot}/src/DarkId.Papyrus.Host/bin/Debug/net461/DarkId.Papyrus.Host.exe",
-            "cwd": "${workspaceRoot}",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "Attach to Host (Mono)",
-            "type": "mono",
-            "request": "attach",
-            "port": 2077,
-            "address": "localhost"
-        },
-        {
-            "name": "Launch (Full Build)",
-            "type": "extensionHost",
-            "request": "launch",
-            "runtimeExecutable": "${execPath}",
-            "preLaunchTask": "build",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
-            ],
-            "outFiles": [
-                "${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"
-            ],
-            "env": {
-                "PAPYRUS_EXTENSION_DEBUG": "1"
-            }
-        },
-        {
-            "name": "Launch (Build Bin Only)",
-            "type": "extensionHost",
-            "request": "launch",
-            "runtimeExecutable": "${execPath}",
-            "preLaunchTask": "updateBin",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
-            ],
-            "outFiles": [
-                "${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"
-            ],
-            "env": {
-                "PAPYRUS_EXTENSION_DEBUG": "1"
-            }
-        },
-        {
-            "name": "Launch (Build TS Only)",
-            "type": "extensionHost",
-            "request": "launch",
-            "runtimeExecutable": "${execPath}",
-            "preLaunchTask": "buildExtension",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
-            ],
-            "outFiles": [
-                "${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"
-            ],
-            "env": {
-                "PAPYRUS_EXTENSION_DEBUG": "1"
-            }
-        },
-        {
-            "name": "Launch (No Build)",
-            "type": "extensionHost",
-            "request": "launch",
-            "runtimeExecutable": "${execPath}",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
-            ],
-            "outFiles": [
-                "${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"
-            ],
-            "env": {
-                "PAPYRUS_EXTENSION_DEBUG": "1"
-            }
-        },
-        {
-            "name": "Launch (Full, No Debug)",
-            "type": "extensionHost",
-            "request": "launch",
-            "runtimeExecutable": "${execPath}",
-            "preLaunchTask": "build",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
-            ],
-            "outFiles": [
-                "${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"
-            ]
-        },
-        {
-            "name": "Launch (Bin, No Debug)",
-            "type": "extensionHost",
-            "request": "launch",
-            "runtimeExecutable": "${execPath}",
-            "preLaunchTask": "updateBin",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
-            ],
-            "outFiles": [
-                "${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"
-            ]
-        },
-        {
-            "name": "Launch (TS, No Debug)",
-            "type": "extensionHost",
-            "request": "launch",
-            "runtimeExecutable": "${execPath}",
-            "preLaunchTask": "buildExtension",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
-            ],
-            "outFiles": [
-                "${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"
-            ]
-        },
-        {
-            "name": "Launch (No Build, No Debug)",
-            "type": "extensionHost",
-            "request": "launch",
-            "runtimeExecutable": "${execPath}",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
-            ],
-            "outFiles": [
-                "${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"
-            ]
-        }
-    ]
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Host (Mono)",
+      "type": "mono",
+      "request": "launch",
+      "program": "${workspaceRoot}/src/DarkId.Papyrus.Host/bin/Debug/net461/DarkId.Papyrus.Host.exe",
+      "cwd": "${workspaceRoot}",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Attach to Host (Mono)",
+      "type": "mono",
+      "request": "attach",
+      "port": 2077,
+      "address": "localhost"
+    },
+    {
+      "name": "Launch (Full Build)",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "preLaunchTask": "build",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+      ],
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"],
+      "env": {
+        "PAPYRUS_EXTENSION_DEBUG": "1"
+      }
+    },
+    {
+      "name": "Launch (Build Bin Only)",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "preLaunchTask": "updateBin",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+      ],
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"],
+      "env": {
+        "PAPYRUS_EXTENSION_DEBUG": "1"
+      }
+    },
+    {
+      "name": "Launch (Build TS Only)",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "preLaunchTask": "buildExtension",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+      ],
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"],
+      "env": {
+        "PAPYRUS_EXTENSION_DEBUG": "1"
+      },
+      "internalConsoleOptions": "openOnFirstSessionStart"
+    },
+    {
+      "name": "Launch (No Build)",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+      ],
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"],
+      "env": {
+        "PAPYRUS_EXTENSION_DEBUG": "1"
+      }
+    },
+    {
+      "name": "Launch (Full, No Debug)",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "preLaunchTask": "build",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+      ],
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
+    },
+    {
+      "name": "Launch (Bin, No Debug)",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "preLaunchTask": "updateBin",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+      ],
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
+    },
+    {
+      "name": "Launch (TS, No Debug)",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "preLaunchTask": "buildExtension",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+      ],
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
+    },
+    {
+      "name": "Launch (No Build, No Debug)",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+      ],
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
+    }
+  ]
 }
