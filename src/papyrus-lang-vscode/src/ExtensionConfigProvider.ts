@@ -4,16 +4,17 @@ import * as rxop from 'rxjs/operators';
 import { createDecorator } from 'decoration-ioc';
 import { workspace } from 'vscode';
 import { eventToValueObservable } from './common/vscode/Reactive';
+import { PapyrusGame } from './common/PapyrusGame';
 
-export interface IExtensionGameConfig {
+export interface IGameConfig {
     creationKitIniFiles: string[];
     installPath: string;
 }
 
 export interface IExtensionConfig {
-    fallout4?: IExtensionGameConfig;
-    skyrim?: IExtensionGameConfig;
-    skyrimSpecialEdition?: IExtensionGameConfig;
+    fallout4: IGameConfig;
+    skyrim: IGameConfig;
+    skyrimSpecialEdition: IGameConfig;
 }
 
 export interface IExtensionConfigProvider {
@@ -38,6 +39,21 @@ export class ExtensionConfigProvider {
 
     get config() {
         return this._config;
+    }
+
+    getConfigForGame(game: PapyrusGame) {
+        return this._config.pipe(
+            rxop.map((config) => {
+                switch (game) {
+                    case PapyrusGame.fallout4:
+                        return config.fallout4;
+                    case PapyrusGame.skyrim:
+                        return config.skyrim;
+                    case PapyrusGame.skyrimSpecialEdition:
+                        return config.skyrimSpecialEdition;
+                }
+            })
+        );
     }
 }
 

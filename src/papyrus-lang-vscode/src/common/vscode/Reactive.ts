@@ -23,7 +23,11 @@ export function eventToValueObservable<TEvent, TValue>(
         s.next(getCurrent());
 
         const disposable = event((value) => {
-            s.next(map(value));
+            const newValue = map(value);
+
+            if (typeof newValue !== 'undefined') {
+                s.next(newValue);
+            }
         });
 
         return {
