@@ -1,10 +1,9 @@
-import * as rx from 'rxjs';
-import * as rxop from 'rxjs/operators';
-
 import { createDecorator } from 'decoration-ioc';
 import { workspace } from 'vscode';
 import { eventToValueObservable } from './common/vscode/Reactive';
 import { PapyrusGame } from './common/PapyrusGame';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 export interface IGameConfig {
     creationKitIniFiles: string[];
@@ -18,23 +17,18 @@ export interface IExtensionConfig {
 }
 
 export interface IExtensionConfigProvider {
-    readonly config: rx.Observable<IExtensionConfig>;
+    readonly config: Observable<IExtensionConfig>;
+}
+
+function getPapyrusConfig() {
+    return workspace.getConfiguration().get<IExtensionConfig>('papyrus');
 }
 
 export class ExtensionConfigProvider {
     private readonly _config = eventToValueObservable(
         workspace.onDidChangeConfiguration,
-        () => workspace.getConfiguration('papyrus'),
-        (e) => (e.affectsConfiguration('papyrus') ? workspace.getConfiguration('papyrus') : undefined)
-    ).pipe(
-        rxop.map(
-            (workspaceConfig) =>
-                ({
-                    fallout4: workspaceConfig.get('fallout4'),
-                    skyrim: workspaceConfig.get('skyrim'),
-                    skyrimSpecialEdition: workspaceConfig.get('skyrimSpecialEdition'),
-                } as IExtensionConfig)
-        )
+        () => getPapyrusConfig(),
+        (e) => (e.affectsConfiguration('papyrus') ? getPapyrusConfig() : undefined)
     );
 
     get config() {
@@ -42,18 +36,7 @@ export class ExtensionConfigProvider {
     }
 
     getConfigForGame(game: PapyrusGame) {
-        return this._config.pipe(
-            rxop.map((config) => {
-                switch (game) {
-                    case PapyrusGame.fallout4:
-                        return config.fallout4;
-                    case PapyrusGame.skyrim:
-                        return config.skyrim;
-                    case PapyrusGame.skyrimSpecialEdition:
-                        return config.skyrimSpecialEdition;
-                }
-            })
-        );
+        return this._config.pipe(map((config) => config[game]));
     }
 }
 

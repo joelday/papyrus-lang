@@ -1,7 +1,7 @@
 export enum PapyrusGame {
-    fallout4,
-    skyrim,
-    skyrimSpecialEdition = 4,
+    fallout4 = 'fallout4',
+    skyrim = 'skyrim',
+    skyrimSpecialEdition = 'skyrimSpecialEdition',
 }
 
 const displayNames = new Map([

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using System.Collections.Generic;
+using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
@@ -31,7 +32,7 @@ namespace DarkId.Papyrus.Server.Host
         public string CreationKitInstallPath { get; set; }
 
         [Option("relativeIniPaths", Required = true)]
-        public string[] RelativeIniPaths { get; set; }
+        public IEnumerable<string> RelativeIniPaths { get; set; }
     }
 
     public class Program
@@ -88,15 +89,15 @@ namespace DarkId.Papyrus.Server.Host
                     {
                         AppDomain.CurrentDomain.Load(File.ReadAllBytes(Path.Combine(options.CompilerAssemblyPath, assemblyName + ".dll")));
                     }
-                    
+
                     RunServer(options).Wait();
                 });
         }
 
         static async Task RunServer(Options options)
         {
-            var server = await PapyrusLanguageServer.From((serverOptions, papyrusOptions) => {
-
+            var server = await PapyrusLanguageServer.From((serverOptions, papyrusOptions) =>
+            {
                 papyrusOptions.AmbientProjectName = options.AmbientProjectName;
                 papyrusOptions.DefaultCreationKitConfig = new CreationKitConfig()
                 {
