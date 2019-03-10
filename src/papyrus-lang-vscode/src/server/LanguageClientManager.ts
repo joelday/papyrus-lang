@@ -3,12 +3,12 @@ import { LanguageClient } from './LanguageClient';
 import { PapyrusGame, getDisplayNameForGame } from '../PapyrusGame';
 import { Observable, Subscription, from } from 'rxjs';
 import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
-import { flatMap, map, catchError } from 'rxjs/operators';
+import { flatMap, map, catchError, filter } from 'rxjs/operators';
 import * as path from 'path';
 import * as fs from 'fs';
 import { asyncDisposable } from '../common/Reactive';
 import { IExtensionContext } from '../common/vscode/IocDecorators';
-import { ExtensionContext, Disposable, DiagnosticSeverity, workspace } from 'vscode';
+import { ExtensionContext, Disposable } from 'vscode';
 import { promisify } from 'util';
 import fastDeepEqual from 'fast-deep-equal';
 import winreg from 'winreg';
@@ -87,11 +87,13 @@ async function resolveInstallPathWithRegistryFallback(game: PapyrusGame, install
         )}`,
     });
 
-    const item = await promisify(reg.get).call(reg, 'installed path');
+    try {
+        const item = await promisify(reg.get).call(reg, 'installed path');
 
-    if (await exists(item.value)) {
-        return item.value;
-    }
+        if (await exists(item.value)) {
+            return item.value;
+        }
+    } catch (_) {}
 
     return null;
 }
@@ -114,6 +116,10 @@ export class LanguageClientManager implements Disposable, ILanguageClientManager
             return this._configProvider.config.pipe(
                 map((config) => config[game]),
                 flatMap(async (gameConfig) => {
+                    if (!gameConfig.enabled) {
+                        return null;
+                    }
+
                     const installPath = await resolveInstallPathWithRegistryFallback(game, gameConfig.installPath);
 
                     const compilerAssemblyPath = getCompilerAssemblyPath(installPath);
@@ -127,7 +133,13 @@ export class LanguageClientManager implements Disposable, ILanguageClientManager
 
                     return { gameConfig, compilerAssemblyPath };
                 }),
-                asyncDisposable(async ({ gameConfig, compilerAssemblyPath }) => {
+                asyncDisposable(async (configAndPath) => {
+                    if (!configAndPath) {
+                        return null;
+                    }
+
+                    const { gameConfig, compilerAssemblyPath } = configAndPath;
+
                     const client = new LanguageClient({
                         game,
                         toolPath: this._context.asAbsolutePath(getToolPath(game)),

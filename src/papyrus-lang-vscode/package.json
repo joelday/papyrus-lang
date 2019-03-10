@@ -17,6 +17,10 @@
     "contributes": {
         "configuration": {
             "properties": {
+                "papyrus.fallout4.enabled": {
+                    "default": true,
+                    "type": "boolean"
+                },
                 "papyrus.fallout4.creationKitIniFiles": {
                     "default": [
                         "CreationKit.ini",
@@ -28,6 +32,10 @@
                     "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Fallout 4\\",
                     "type": "string"
                 },
+                "papyrus.skyrim.enabled": {
+                    "default": true,
+                    "type": "boolean"
+                },
                 "papyrus.skyrim.creationKitIniFiles": {
                     "default": [
                         "SkyrimEditor.ini"
@@ -37,6 +45,10 @@
                 "papyrus.skyrim.installPath": {
                     "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim\\",
                     "type": "string"
+                },
+                "papyrus.skyrimSpecialEdition.enabled": {
+                    "default": true,
+                    "type": "boolean"
                 },
                 "papyrus.skyrimSpecialEdition.creationKitIniFiles": {
                     "default": [

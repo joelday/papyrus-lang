@@ -6,6 +6,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 export interface IGameConfig {
+    enabled: boolean;
     creationKitIniFiles: string[];
     installPath: string;
 }
@@ -37,6 +38,10 @@ export class ExtensionConfigProvider {
 
     getConfigForGame(game: PapyrusGame) {
         return this._config.pipe(map((config) => config[game]));
+    }
+
+    setGameEnabled(game: PapyrusGame, enabled: boolean) {
+        return workspace.getConfiguration('papyrus').update(`${game}.enabled`, enabled ? undefined : false);
     }
 }
 
