@@ -1,10 +1,4 @@
-import {
-    TextDocument,
-    RequestType,
-    TextDocumentIdentifier,
-    TextDocumentRegistrationOptions,
-} from 'vscode-languageclient';
-import { CancellationToken, ProviderResult } from 'vscode';
+import { RequestType, TextDocumentIdentifier, TextDocumentRegistrationOptions } from 'vscode-languageclient';
 
 export interface DocumentScriptInfoParams {
     textDocument: TextDocumentIdentifier;
@@ -19,10 +13,6 @@ export interface DocumentScriptInfo {
     identifiers: string[];
     identifierFiles: IdentifierFiles[];
     searchPaths: string[];
-}
-
-export interface ProvideDocumentScriptInfoSignature {
-    (document: TextDocument, token: CancellationToken): ProviderResult<DocumentScriptInfo>;
 }
 
 export const documentScriptInfoRequestType = {

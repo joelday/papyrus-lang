@@ -35,9 +35,15 @@ export interface IToolArguments {
     relativeIniPaths: string[];
 }
 
-export class LanguageClient {
+export interface ILanguageClient {
+    requestScriptInfo(uri: string): Thenable<DocumentScriptInfo>;
+    requestSyntaxTree(uri: string): Thenable<DocumentSyntaxTree>;
+}
+
+export class LanguageClient implements ILanguageClient {
     private readonly _client: BaseClient;
     private readonly _fsWatcher: FileSystemWatcher;
+    private _isDisposed: boolean;
 
     constructor(options: ILanguageClientOptions) {
         this._fsWatcher = workspace.createFileSystemWatcher('**/*.{flg,ppj,psc}');
@@ -69,6 +75,10 @@ export class LanguageClient {
             await this._client.onReady();
 
             console.log('Language service started.');
+
+            if (this._isDisposed) {
+                await this._client.stop();
+            }
         }
     }
 
@@ -95,7 +105,13 @@ export class LanguageClient {
     }
 
     dispose() {
+        if (this._isDisposed) {
+            return;
+        }
+
         console.log('Disposing language client.');
+
+        this._isDisposed = true;
 
         this.stop();
         this._fsWatcher.dispose();

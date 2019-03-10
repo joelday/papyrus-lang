@@ -23,3 +23,7 @@ const shortDisplayNames = new Map([
 export function getShortDisplayNameForGame(game: PapyrusGame) {
     return shortDisplayNames.get(game);
 }
+
+export function getGames(): PapyrusGame[] {
+    return Object.keys(PapyrusGame).map((k) => PapyrusGame[k]);
+}

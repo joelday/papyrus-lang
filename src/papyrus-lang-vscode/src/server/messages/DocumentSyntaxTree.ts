@@ -1,11 +1,4 @@
-import {
-    TextDocument,
-    RequestType,
-    TextDocumentIdentifier,
-    TextDocumentRegistrationOptions,
-    Range,
-} from 'vscode-languageclient';
-import { CancellationToken, ProviderResult } from 'vscode';
+import { RequestType, TextDocumentIdentifier, TextDocumentRegistrationOptions, Range } from 'vscode-languageclient';
 
 export interface DocumentSyntaxTreeParams {
     textDocument: TextDocumentIdentifier;
@@ -20,10 +13,6 @@ export interface DocumentSyntaxTreeNode {
     text: string;
     children: DocumentSyntaxTreeNode[];
     range: Range;
-}
-
-export interface ProvideDocumentSyntaxTreeSignature {
-    (document: TextDocument, token: CancellationToken): ProviderResult<DocumentSyntaxTree>;
 }
 
 export const documentSyntaxTreeRequestType = {

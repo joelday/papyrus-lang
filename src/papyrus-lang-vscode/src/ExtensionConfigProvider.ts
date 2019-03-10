@@ -1,9 +1,10 @@
 import { createDecorator } from 'decoration-ioc';
 import { workspace } from 'vscode';
-import { eventToValueObservable } from './common/vscode/Reactive';
+import { eventToValueObservable } from './common/vscode/reactive/Events';
 import { PapyrusGame } from './PapyrusGame';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { Disposable } from 'vscode-jsonrpc';
 
 export interface IGameConfig {
     enabled: boolean;
@@ -17,7 +18,7 @@ export interface IExtensionConfig {
     skyrimSpecialEdition: IGameConfig;
 }
 
-export interface IExtensionConfigProvider {
+export interface IExtensionConfigProvider extends Disposable {
     readonly config: Observable<IExtensionConfig>;
 }
 
@@ -25,7 +26,7 @@ function getPapyrusConfig() {
     return workspace.getConfiguration().get<IExtensionConfig>('papyrus');
 }
 
-export class ExtensionConfigProvider {
+export class ExtensionConfigProvider implements IExtensionConfigProvider {
     private readonly _config = eventToValueObservable(
         workspace.onDidChangeConfiguration,
         () => getPapyrusConfig(),
@@ -43,6 +44,8 @@ export class ExtensionConfigProvider {
     setGameEnabled(game: PapyrusGame, enabled: boolean) {
         return workspace.getConfiguration('papyrus').update(`${game}.enabled`, enabled ? undefined : false);
     }
+
+    dispose() {}
 }
 
 export const IExtensionConfigProvider = createDecorator<IExtensionConfigProvider>('extensionConfigProvider');

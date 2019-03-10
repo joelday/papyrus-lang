@@ -1,9 +1,7 @@
 import { Event } from 'vscode';
-import * as rx from 'rxjs';
-import * as rxop from 'rxjs/operators';
-
+import { Observable } from 'rxjs';
 export function eventToObservable<T>(event: Event<T>) {
-    return new rx.Observable<T>((s) => {
+    return new Observable<T>((s) => {
         const disposable = event((value) => {
             s.next(value);
         });
@@ -19,7 +17,7 @@ export function eventToValueObservable<TEvent, TValue>(
     getCurrent: () => TValue,
     map: (event: TEvent) => TValue
 ) {
-    return new rx.Observable<TValue>((s) => {
+    return new Observable<TValue>((s) => {
         s.next(getCurrent());
 
         const disposable = event((value) => {
