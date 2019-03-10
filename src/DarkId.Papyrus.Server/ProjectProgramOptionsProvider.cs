@@ -15,6 +15,7 @@ namespace DarkId.Papyrus.Server
 {
     public class ProjectProgramOptionsProvider : IProgramOptionsProvider
     {
+        private readonly string _projectFlagsFileName;
         private readonly OmniSharp.Extensions.LanguageServer.Server.ILanguageServer _languageServer;
         private readonly IXmlProjectLocator _projectLocator;
         private readonly IXmlProjectLoader _projectLoader;
@@ -22,12 +23,14 @@ namespace DarkId.Papyrus.Server
         private readonly ILogger _logger;
 
         public ProjectProgramOptionsProvider(
+            string projectFlagsFileName,
             OmniSharp.Extensions.LanguageServer.Server.ILanguageServer languageServer,
             IXmlProjectLocator projectLocator,
             IXmlProjectLoader projectLoader,
             CreationKitProgramOptionsProvider ambientOptionsProvider,
             ILogger<ProjectProgramOptionsProvider> logger)
         {
+            _projectFlagsFileName = projectFlagsFileName;
             _languageServer = languageServer;
             _projectLocator = projectLocator;
             _projectLoader = projectLoader;
@@ -67,23 +70,27 @@ namespace DarkId.Papyrus.Server
                     return new Tuple<string, ProgramOptions>(projectPath, null);
                 })
                 .Where(p => p.Item2 != null)
+                .Where(p => p.Item2.FlagsFileName.CaseInsensitiveEquals(_projectFlagsFileName))
                 .ToDictionary(p => p.Item1, p => p.Item2);
 
             var workspacesWithoutProjects = workspaceProjectFiles.Where(p => p.Value.Count() == 0).Select(p => p.Key);
             if (workspacesWithoutProjects.Any())
             {
-                var ambientOptions = _ambientOptionsProvider.GetAmbientProgramOptions();
-                foreach (var ambientWorkspacePath in workspacesWithoutProjects)
-                {
-                    var workspaceAmbientOptions = ambientOptions.Clone();
-                    workspaceAmbientOptions.Name = Path.GetFileName(ambientWorkspacePath);
-                    workspaceAmbientOptions.Sources.Includes.Insert(0, new SourceInclude()
-                    {
-                        Path = ambientWorkspacePath
-                    });
+                // var ambientOptions = _ambientOptionsProvider.GetAmbientProgramOptions();
+                // foreach (var ambientWorkspacePath in workspacesWithoutProjects)
+                // {
+                //     var workspaceAmbientOptions = ambientOptions.Clone();
+                //     workspaceAmbientOptions.Name = Path.GetFileName(ambientWorkspacePath);
+                //     workspaceAmbientOptions.Sources.Includes.Insert(0, new SourceInclude()
+                //     {
+                //         Path = ambientWorkspacePath
+                //     });
 
-                    options.Add(ambientWorkspacePath, workspaceAmbientOptions);
-                }
+                //     options.Add(ambientWorkspacePath, workspaceAmbientOptions);
+                // }
+
+                var ambientOptions = _ambientOptionsProvider.GetAmbientProgramOptions();
+                options.Add(ambientOptions.Name, ambientOptions);
             }
 
             return options;

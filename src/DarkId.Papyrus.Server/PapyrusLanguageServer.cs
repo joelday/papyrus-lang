@@ -46,7 +46,8 @@ namespace DarkId.Papyrus.Server
                             papyrusOptions.AmbientProjectName,
                             papyrusOptions.FlagsFileName,
                             papyrusOptions.DefaultCreationKitConfig))
-                    .AddSingleton<IProgramOptionsProvider, ProjectProgramOptionsProvider>()
+                    .AddSingleton<IProgramOptionsProvider>((provider) =>
+                        provider.CreateInstance<ProjectProgramOptionsProvider>(papyrusOptions.FlagsFileName))
                     .AddSingleton<ProjectManager>())
                 .WithHandler<WorkspaceManager>()
                 .WithHandler<DefinitionHandler>()
