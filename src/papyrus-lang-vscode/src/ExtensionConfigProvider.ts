@@ -1,7 +1,7 @@
 import { createDecorator } from 'decoration-ioc';
 import { workspace } from 'vscode';
 import { eventToValueObservable } from './common/vscode/Reactive';
-import { PapyrusGame } from './common/PapyrusGame';
+import { PapyrusGame } from './PapyrusGame';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 

@@ -3,7 +3,7 @@ import { ServiceCollection, IInstantiationService, InstantiationService, Descrip
 import { IExtensionContext } from './common/vscode/IocDecorators';
 import { IExtensionConfigProvider, ExtensionConfigProvider } from './ExtensionConfigProvider';
 import { LanguageClientManager } from './server/LanguageClientManager';
-import { PapyrusGame } from './common/PapyrusGame';
+import { PapyrusGame } from './PapyrusGame';
 
 class PapyrusExtension implements Disposable {
     private readonly _context: ExtensionContext;

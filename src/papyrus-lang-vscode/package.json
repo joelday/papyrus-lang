@@ -126,6 +126,7 @@
         "ini": "^1.3.5",
         "rxjs": "^6.4.0",
         "vscode-languageclient": "^5.1.0",
+        "winreg": "^1.2.4",
         "xml-writer": "^1.7.0"
     },
     "description": "Advanced language support for Bethesda Game Studio's Papyrus scripting language.",
@@ -133,6 +134,7 @@
         "@types/ini": "^1.3.30",
         "@types/mocha": "^5.2.6",
         "@types/node": "^11.9.4",
+        "@types/winreg": "^1.2.30",
         "cpr": "^3.0.1",
         "prettier": "^1.16.4",
         "rimraf": "^2.6.3",

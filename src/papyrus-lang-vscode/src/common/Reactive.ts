@@ -6,20 +6,24 @@ interface DisposableUnsubscribableProxy<T extends Disposable> extends Unsubscrib
     value: T;
 }
 
-export function disposableToUnsubscribableProxy<T extends Disposable>(disposable: T) {
-    return {
-        value: disposable,
-        unsubscribe: () => {
-            if (disposable) {
-                disposable.dispose();
-            }
-        },
-    };
+class UnsubscribableDisposableProxy {
+    private _disposable: Disposable;
+
+    get disposable() {
+        return this._disposable;
+    }
+
+    set disposable(disposable: Disposable) {
+        this._disposable = disposable;
+    }
+
+    unsubscribe() {
+        this._disposable!.dispose();
+    }
 }
 
 export function asyncDisposable<T, R extends Disposable>(
-    factory: (value: T) => R,
-    start: (created: R) => Promise<void>,
+    factory: (value: T) => Promise<R>,
     compare?: (x: T, y: T) => boolean
 ): OperatorFunction<T, R> {
     return (ob) =>
@@ -27,17 +31,9 @@ export function asyncDisposable<T, R extends Disposable>(
             distinctUntilChanged(compare),
             switchMap((value: T) =>
                 using<R>(
-                    () => disposableToUnsubscribableProxy(factory(value)),
-                    (instance: DisposableUnsubscribableProxy<R>) =>
-                        concat(
-                            (async () => {
-                                if (instance.value) {
-                                    await start(instance.value);
-                                }
-                                return instance.value;
-                            })(),
-                            NEVER
-                        )
+                    () => new UnsubscribableDisposableProxy(),
+                    (proxy: DisposableUnsubscribableProxy<R>) =>
+                        concat((async () => (proxy.value = await factory(value)))(), NEVER)
                 )
             ),
             share()
