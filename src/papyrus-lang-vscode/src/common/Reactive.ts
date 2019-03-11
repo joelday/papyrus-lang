@@ -44,7 +44,7 @@ class UnsubscribableDisposableProxy<T extends Disposable> {
 
 export function asyncDisposable<T, R extends Disposable>(
     factory: (value: T) => R,
-    start: (instance: R) => Promise<void>,
+    start?: (instance: R) => Promise<void>,
     compare?: (x: T, y: T) => boolean
 ): OperatorFunction<T, R> {
     return (ob) =>
@@ -60,7 +60,10 @@ export function asyncDisposable<T, R extends Disposable>(
                         return concat(
                             from([instance]),
                             (async () => {
-                                await start(instance);
+                                if (start) {
+                                    await start(instance);
+                                }
+
                                 return instance;
                             })(),
                             NEVER

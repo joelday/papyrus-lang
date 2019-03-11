@@ -12,10 +12,10 @@ export function eventToObservable<T>(event: Event<T>) {
     });
 }
 
-export function eventToValueObservable<TEvent, TValue>(
+export function eventToValueObservable<TEvent, TValue = TEvent>(
     event: Event<TEvent>,
     getCurrent: () => TValue,
-    map: (event: TEvent) => TValue
+    map: (event: TEvent) => TValue = (e) => (e as any) as TValue
 ) {
     return new Observable<TValue>((s) => {
         s.next(getCurrent());

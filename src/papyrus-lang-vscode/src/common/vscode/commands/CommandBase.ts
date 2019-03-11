@@ -1,18 +1,22 @@
-import * as vs from 'vscode';
+import { commands, Disposable } from 'vscode';
 
-export abstract class CommandBase<TArgs = undefined, TResult = undefined> implements vs.Disposable {
+export abstract class CommandBase<TArgs = void, TResult = void> implements Disposable {
     private readonly _name: string;
-    private readonly _registration: vs.Disposable;
+    private readonly _registration: Disposable;
 
     constructor(name: string) {
         this._name = name;
-        this._registration = vs.commands.registerCommand(this._name, (args) => {
+        this._registration = commands.registerCommand(this._name, (args) => {
             return this.onExecute(args);
         });
     }
 
+    get name() {
+        return this._name;
+    }
+
     execute(args: TArgs) {
-        return vs.commands.executeCommand<TResult>(this._name, args);
+        return commands.executeCommand<TResult>(this._name, args);
     }
 
     dispose() {

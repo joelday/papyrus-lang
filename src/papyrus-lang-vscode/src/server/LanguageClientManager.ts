@@ -3,7 +3,7 @@ import { LanguageClient } from './LanguageClient';
 import { PapyrusGame, getGames } from '../PapyrusGame';
 import { Observable, Subscription, concat } from 'rxjs';
 import { IExtensionConfigProvider, IGameConfig } from '../ExtensionConfigProvider';
-import { map } from 'rxjs/operators';
+import { map, share } from 'rxjs/operators';
 import { asyncDisposable } from '../common/Reactive';
 import { IExtensionContext } from '../common/vscode/IocDecorators';
 import { ExtensionContext, Disposable } from 'vscode';
@@ -27,16 +27,14 @@ export class LanguageClientManager implements Disposable, ILanguageClientManager
         this._configProvider = configProvider;
 
         const createClientObservable = (game: PapyrusGame) => {
-            return concat(
-                this._configProvider.config.pipe(
-                    map((config) => config[game]),
-                    asyncDisposable<IGameConfig, LanguageClientHost>(
-                        (gameConfig) => new LanguageClientHost(game, gameConfig, context),
-                        (host) => host.start(),
-                        fastDeepEqual
-                    )
+            return this._configProvider.config.pipe(
+                map((config) => config[game]),
+                asyncDisposable<IGameConfig, LanguageClientHost>(
+                    (gameConfig) => new LanguageClientHost(game, gameConfig, context),
+                    (host) => host.start(),
+                    fastDeepEqual
                 )
-            ) as Observable<ILanguageClientHost>;
+            );
         };
 
         this._clients = new Map([

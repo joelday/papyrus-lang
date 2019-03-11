@@ -37,14 +37,6 @@ export class ExtensionConfigProvider implements IExtensionConfigProvider {
         return this._config;
     }
 
-    getConfigForGame(game: PapyrusGame) {
-        return this._config.pipe(map((config) => config[game]));
-    }
-
-    setGameEnabled(game: PapyrusGame, enabled: boolean) {
-        return workspace.getConfiguration('papyrus').update(`${game}.enabled`, enabled ? undefined : false);
-    }
-
     dispose() {}
 }
 

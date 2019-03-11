@@ -1,5 +1,5 @@
 import { LanguageClient as BaseClient, TextDocumentIdentifier } from 'vscode-languageclient';
-import { workspace, FileSystemWatcher } from 'vscode';
+import { workspace, FileSystemWatcher, OutputChannel } from 'vscode';
 
 import { DocumentScriptInfo, documentScriptInfoRequestType } from './messages/DocumentScriptInfo';
 import { DocumentSyntaxTree, documentSyntaxTreeRequestType } from './messages/DocumentSyntaxTree';
@@ -20,7 +20,7 @@ function toCommandLineArgs(obj: Object): string[] {
 
 export interface ILanguageClientOptions {
     game: PapyrusGame;
-    serviceDisplayName: string;
+    outputChannel: OutputChannel;
     toolPath: string;
     toolArguments: IToolArguments;
 }
@@ -49,12 +49,12 @@ export class LanguageClient implements ILanguageClient {
         this._fsWatcher = workspace.createFileSystemWatcher('**/*.{flg,ppj,psc}');
         this._client = new BaseClient(
             options.game.toString(),
-            options.serviceDisplayName,
             {
                 command: options.toolPath,
                 args: toCommandLineArgs(options.toolArguments),
             },
             {
+                outputChannel: options.outputChannel,
                 documentSelector: [
                     { scheme: 'file', language: 'papyrus' },
                     { scheme: 'file', language: 'papyrus-project' },

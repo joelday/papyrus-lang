@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import { Disposable, ExtensionContext } from 'vscode';
+import { Disposable, ExtensionContext, OutputChannel, window } from 'vscode';
 import { promisify } from 'util';
 import winreg from 'winreg';
 const exists = promisify(fs.exists);
@@ -9,52 +9,6 @@ import { LanguageClient, ILanguageClient } from './LanguageClient';
 import { PapyrusGame, getShortDisplayNameForGame } from '../PapyrusGame';
 import { IGameConfig } from '../ExtensionConfigProvider';
 import { Observable, BehaviorSubject } from 'rxjs';
-
-// flatMap(async (gameConfig) => {
-//     if (!gameConfig.enabled) {
-//         return { gameConfig };
-//     }
-
-//     const installPath = await resolveInstallPathWithRegistryFallback(game, gameConfig.installPath);
-
-//     const compilerAssemblyPath = getCompilerAssemblyPath(installPath);
-//     const compilerExists = await exists(compilerAssemblyPath);
-
-//     if (!compilerExists) {
-//         return { gameConfig };
-//     }
-
-//     return { gameConfig, compilerAssemblyPath };
-// }),
-// asyncDisposable(
-//     async (setupInfo) => {
-//         const { gameConfig, compilerAssemblyPath } = setupInfo;
-
-//         if (!gameConfig.enabled) {
-//             return { game, client: null, error: null, status: ClientHostStatus.disabled };
-//         }
-
-//         const client = new LanguageClient({
-//             game,
-//             toolPath: this._context.asAbsolutePath(getToolPath(game)),
-//             serviceDisplayName: `Papyrus Language Service (${getDisplayNameForGame(game)})`,
-//             toolArguments: {
-//                 compilerAssemblyPath,
-//                 creationKitInstallPath: gameConfig.installPath,
-//                 relativeIniPaths: gameConfig.creationKitIniFiles,
-//                 flagsFileName: getFlagsFileName(game),
-//                 ambientProjectName: `${getDisplayNameForGame(game)} CreationKit`,
-//                 ...getDefaultImports(game),
-//             },
-//         });
-
-//         await client.start();
-
-//         return client;
-//     },
-//     (host) => host.start(),
-//     fastDeepEqual
-// ),
 
 export enum ClientHostStatus {
     none,
@@ -70,12 +24,14 @@ export interface ILanguageClientHost {
     readonly status: Observable<ClientHostStatus>;
     readonly client: ILanguageClient;
     readonly error: Observable<string>;
+    readonly outputChannel: OutputChannel;
 }
 
 export class LanguageClientHost implements ILanguageClientHost, Disposable {
     private readonly _game: PapyrusGame;
     private readonly _config: IGameConfig;
     private readonly _context: ExtensionContext;
+    private _outputChannel: OutputChannel;
     private _client: LanguageClient;
 
     private readonly _status = new BehaviorSubject(ClientHostStatus.none);
@@ -103,10 +59,18 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
         return this._client;
     }
 
+    get outputChannel() {
+        return this._outputChannel;
+    }
+
     async start() {
         if (!this._config.enabled) {
             this._status.next(ClientHostStatus.disabled);
             return;
+        }
+
+        if (!this._outputChannel) {
+            this._outputChannel = window.createOutputChannel(`Papyrus (${getShortDisplayNameForGame(this._game)})`);
         }
 
         if (this._status.value !== ClientHostStatus.none) {
@@ -127,7 +91,7 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
             this._client = new LanguageClient({
                 game: this._game,
                 toolPath: this._context.asAbsolutePath(getToolPath(this._game)),
-                serviceDisplayName: `Papyrus (${getShortDisplayNameForGame(this._game)})`,
+                outputChannel: this._outputChannel,
                 toolArguments: {
                     compilerAssemblyPath,
                     creationKitInstallPath: this._config.installPath,
@@ -142,12 +106,18 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
             await this._client.start();
             this._status.next(ClientHostStatus.running);
         } catch (error) {
+            this._outputChannel.appendLine(`Error on language service pre-start: ${error.toString()}`);
+
             this._error.next(error.toString());
             this._status.next(ClientHostStatus.error);
         }
     }
 
     dispose() {
+        if (this._outputChannel) {
+            this._outputChannel.dispose();
+        }
+
         if (this._client) {
             this._client.dispose();
         }

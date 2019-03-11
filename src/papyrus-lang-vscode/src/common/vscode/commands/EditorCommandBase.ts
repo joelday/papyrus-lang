@@ -1,24 +1,27 @@
-import * as vs from 'vscode';
+import { Disposable, commands, TextEditor, TextEditorEdit } from 'vscode';
 
-export abstract class EditorCommandBase<TArgs = undefined, TResult = void> implements vs.Disposable {
+export abstract class EditorCommandBase<TArgs = void, TResult = void> implements Disposable {
     private readonly _name: string;
-    private readonly _registration: vs.Disposable;
+    private readonly _registration: Disposable;
 
     constructor(name: string) {
         this._name = name;
-        this._registration = vs.commands.registerTextEditorCommand(this._name, (editor, edit, args) => {
+        this._registration = commands.registerTextEditorCommand(this._name, (editor, edit, args) => {
             return this.onExecute(editor, edit, args);
         });
     }
 
+    get name() {
+        return this._name;
+    }
+
     execute(args: TArgs) {
-        return vs.commands.executeCommand<TResult>(this._name, args);
+        return commands.executeCommand<TResult>(this._name, args);
     }
 
     dispose() {
         this._registration.dispose();
     }
 
-    protected abstract onExecute(
-        editor: vs.TextEditor, edit: vs.TextEditorEdit, args: TArgs): TResult | Thenable<TResult>;
+    protected abstract onExecute(editor: TextEditor, edit: TextEditorEdit, args: TArgs): TResult | Thenable<TResult>;
 }
