@@ -3,7 +3,7 @@ import { StatusBarItem, Disposable, window, StatusBarAlignment, QuickPickItem, w
 import { PapyrusGame, getGames, getShortDisplayNameForGame, getDisplayNameForGame } from '../PapyrusGame';
 import { Observable, Unsubscribable, combineLatest } from 'rxjs';
 import { ILanguageClientHost, ClientHostStatus } from '../server/LanguageClientHost';
-import { mergeMap } from 'rxjs/operators';
+import { mergeMap, shareReplay } from 'rxjs/operators';
 import { CommandBase } from '../common/vscode/commands/CommandBase';
 import { eventToValueObservable } from '../common/vscode/reactive/Events';
 import { asyncDisposable } from '../common/Reactive';
@@ -25,7 +25,7 @@ class LocateOrDisableCommand extends CommandBase {
 
         const disable: QuickPickItem = {
             label: `Disable ${getDisplayNameForGame(this._game)} language service`,
-            detail: `Can be reenabled by changing \`papyrus.${this._game}.enabled\` in global settings.`,
+            detail: `Can be reenabled by changing or removing 'papyrus.${this._game}.enabled' in your global settings.`,
             alwaysShow: true,
         };
 
@@ -74,9 +74,15 @@ class StatusBarItemController implements Disposable {
 
         const activeEditor = eventToValueObservable(window.onDidChangeActiveTextEditor, () => window.activeTextEditor);
 
-        const hostStatus = languageClientHost.pipe(mergeMap((host) => host.status));
+        const hostStatus = languageClientHost.pipe(
+            mergeMap((host) => host.status),
+            shareReplay(1)
+        );
 
-        const hostError = languageClientHost.pipe(mergeMap((host) => host.error));
+        const hostError = languageClientHost.pipe(
+            mergeMap((host) => host.error),
+            shareReplay(1)
+        );
 
         const activeDocumentScriptInfo = combineLatest(languageClientHost, hostStatus, activeEditor).pipe(
             mergeMap(async ([host, status, activeEditor]) => {
@@ -89,7 +95,8 @@ class StatusBarItemController implements Disposable {
                 }
 
                 return null;
-            })
+            }),
+            shareReplay(1)
         );
 
         const showOutputChannelCommand = languageClientHost.pipe(

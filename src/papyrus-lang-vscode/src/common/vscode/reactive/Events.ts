@@ -1,5 +1,6 @@
 import { Event } from 'vscode';
 import { Observable } from 'rxjs';
+import { shareReplay } from 'rxjs/operators';
 export function eventToObservable<T>(event: Event<T>) {
     return new Observable<T>((s) => {
         const disposable = event((value) => {
@@ -31,5 +32,5 @@ export function eventToValueObservable<TEvent, TValue = TEvent>(
         return {
             unsubscribe: () => disposable.dispose(),
         };
-    });
+    }).pipe(shareReplay(1));
 }

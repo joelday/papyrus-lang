@@ -1,6 +1,6 @@
 import { OperatorFunction, using, Unsubscribable, NEVER, concat, Observable, from } from 'rxjs';
 import { Disposable } from 'vscode';
-import { share, switchMap, distinctUntilChanged } from 'rxjs/operators';
+import { share, switchMap, distinctUntilChanged, shareReplay } from 'rxjs/operators';
 
 class DisposableUnsubscribableProxy<T extends Unsubscribable> implements Disposable {
     private _unsubscribable: Unsubscribable;
@@ -71,6 +71,6 @@ export function asyncDisposable<T, R extends Disposable>(
                     }
                 )
             ),
-            share()
+            shareReplay(1)
         );
 }
