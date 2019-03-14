@@ -1,15 +1,14 @@
 import { createDecorator } from 'decoration-ioc';
 import { workspace } from 'vscode';
 import { eventToValueObservable } from './common/vscode/reactive/Events';
-import { PapyrusGame } from './PapyrusGame';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
 import { Disposable } from 'vscode-jsonrpc';
 
 export interface IGameConfig {
     enabled: boolean;
     creationKitIniFiles: string[];
     installPath: string;
+    compilerPath: string;
 }
 
 export interface IExtensionConfig {

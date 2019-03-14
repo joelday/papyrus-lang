@@ -43,6 +43,7 @@ export interface ILanguageClient {
 export class LanguageClient implements ILanguageClient {
     private readonly _client: BaseClient;
     private readonly _fsWatcher: FileSystemWatcher;
+    private readonly _outputChannel: OutputChannel;
     private _isDisposed: boolean;
 
     constructor(options: ILanguageClientOptions) {
@@ -65,16 +66,18 @@ export class LanguageClient implements ILanguageClient {
                 },
             }
         );
+
+        this._outputChannel = options.outputChannel;
     }
 
     async start() {
         if (this._client.needsStart()) {
-            console.log('Starting language service...');
+            this._outputChannel.appendLine('Starting language service...');
 
             this._client.start();
             await this._client.onReady();
 
-            console.log('Language service started.');
+            this._outputChannel.appendLine('Language service started.');
 
             if (this._isDisposed) {
                 await this._client.stop();
@@ -84,11 +87,11 @@ export class LanguageClient implements ILanguageClient {
 
     async stop() {
         if (this._client.needsStop()) {
-            console.log('Stopping language service...');
+            this._outputChannel.appendLine('Stopping language service...');
 
             await this._client.stop();
 
-            console.log('Language service stopped.');
+            this._outputChannel.appendLine('Language service stopped.');
         }
     }
 
@@ -109,7 +112,7 @@ export class LanguageClient implements ILanguageClient {
             return;
         }
 
-        console.log('Disposing language client.');
+        this._outputChannel.appendLine('Disposing language client.');
 
         this._isDisposed = true;
 

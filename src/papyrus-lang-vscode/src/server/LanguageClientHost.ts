@@ -1,14 +1,10 @@
-import * as path from 'path';
-import * as fs from 'fs';
 import { Disposable, ExtensionContext, OutputChannel, window } from 'vscode';
-import { promisify } from 'util';
-import winreg from 'winreg';
-const exists = promisify(fs.exists);
 
 import { LanguageClient, ILanguageClient } from './LanguageClient';
 import { PapyrusGame, getShortDisplayNameForGame } from '../PapyrusGame';
 import { IGameConfig } from '../ExtensionConfigProvider';
 import { Observable, BehaviorSubject } from 'rxjs';
+import { getInstallInfo } from '../Utilities';
 
 export enum ClientHostStatus {
     none,
@@ -17,6 +13,7 @@ export enum ClientHostStatus {
     running,
     error,
     missing,
+    compilerMissing,
 }
 
 export interface ILanguageClientHost {
@@ -78,13 +75,19 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
         }
 
         try {
-            const installPath = await resolveInstallPathWithRegistryFallback(this._game, this._config.installPath);
+            const { installPath, compilerAssemblyPath } = await getInstallInfo(
+                this._game,
+                this._config.installPath,
+                this._config.compilerPath
+            );
 
-            const compilerAssemblyPath = installPath && getCompilerAssemblyPath(installPath);
-            const compilerExists = compilerAssemblyPath && (await exists(compilerAssemblyPath));
-
-            if (!compilerExists) {
+            if (!installPath) {
                 this._status.next(ClientHostStatus.missing);
+                return;
+            }
+
+            if (!compilerAssemblyPath) {
+                this._status.next(ClientHostStatus.compilerMissing);
                 return;
             }
 
@@ -124,10 +127,6 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
     }
 }
 
-function getCompilerAssemblyPath(installPath: string) {
-    return path.join(installPath, 'Papyrus Compiler');
-}
-
 function getToolGameName(game: PapyrusGame) {
     switch (game) {
         case PapyrusGame.fallout4:
@@ -163,37 +162,4 @@ function getDefaultImports(game: PapyrusGame) {
                 defaultScriptSourceFolder: '.\\Data\\Source\\Scripts\\',
             };
     }
-}
-
-function getRegistryKeyForGame(game: PapyrusGame) {
-    switch (game) {
-        case PapyrusGame.fallout4:
-            return 'Fallout4';
-        case PapyrusGame.skyrim:
-            return 'Skyrim';
-        case PapyrusGame.skyrimSpecialEdition:
-            return 'Skyrim Special Edition';
-    }
-}
-
-async function resolveInstallPathWithRegistryFallback(game: PapyrusGame, installPath: string) {
-    if (await exists(installPath)) {
-        return installPath;
-    }
-
-    const reg = new winreg({
-        key: `\\SOFTWARE\\${process.arch === 'x64' ? 'WOW6432Node\\' : ''}Bethesda Softworks\\${getRegistryKeyForGame(
-            game
-        )}`,
-    });
-
-    try {
-        const item = await promisify(reg.get).call(reg, 'installed path');
-
-        if (await exists(item.value)) {
-            return item.value;
-        }
-    } catch (_) {}
-
-    return null;
 }

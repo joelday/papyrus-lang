@@ -15,6 +15,67 @@
         "Programming Languages"
     ],
     "contributes": {
+        "taskDefinitions": [
+            {
+                "type": "papyrus",
+                "properties": {
+                    "papyrus": {
+                        "type": "object",
+                        "properties": {
+                            "game": {
+                                "enum": [
+                                    "fallout4",
+                                    "skyrim",
+                                    "skyrimSpecialEdition"
+                                ]
+                            },
+                            "compilerOptions": {
+                                "type": "object",
+                                "properties": {
+                                    "flags": {
+                                        "type": "string"
+                                    },
+                                    "optimize": {
+                                        "type": "boolean"
+                                    },
+                                    "release": {
+                                        "type": "boolean"
+                                    },
+                                    "final": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            },
+                            "imports": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "uniqueItems": true
+                            },
+                            "output": {
+                                "type": "string"
+                            },
+                            "project": {
+                                "type": "string"
+                            }
+                        },
+                        "dependencies": {
+                            "project": {
+                                "type": "object",
+                                "properties": {
+                                    "game": {
+                                        "enum": [
+                                            "fallout4"
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ],
         "configuration": {
             "properties": {
                 "papyrus.fallout4.enabled": {
@@ -32,6 +93,10 @@
                     "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Fallout 4\\",
                     "type": "string"
                 },
+                "papyrus.fallout4.compilerPath": {
+                    "default": "Papyrus Compiler",
+                    "type": "string"
+                },
                 "papyrus.skyrim.enabled": {
                     "default": true,
                     "type": "boolean"
@@ -44,6 +109,10 @@
                 },
                 "papyrus.skyrim.installPath": {
                     "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim\\",
+                    "type": "string"
+                },
+                "papyrus.skyrim.compilerPath": {
+                    "default": "Papyrus Compiler",
                     "type": "string"
                 },
                 "papyrus.skyrimSpecialEdition.enabled": {
@@ -59,6 +128,10 @@
                 },
                 "papyrus.skyrimSpecialEdition.installPath": {
                     "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition\\",
+                    "type": "string"
+                },
+                "papyrus.skyrimSpecialEdition.compilerPath": {
+                    "default": "Papyrus Compiler",
                     "type": "string"
                 }
             },

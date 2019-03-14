@@ -147,6 +147,10 @@ class StatusBarItemController implements Disposable {
                         this._statusBarItem.tooltip = `Unable to locate ${fullName}. Click for more options...`;
                         this._statusBarItem.command = this._locateOrDisableCommand.name;
                         break;
+                    case ClientHostStatus.compilerMissing:
+                        this._statusBarItem.text = `${displayName} $(alert)`;
+                        this._statusBarItem.tooltip = `Unable to locate the Papyrus compiler.`;
+                        break;
                     case ClientHostStatus.error:
                         this._statusBarItem.text = `${displayName} $(stop)`;
                         this._statusBarItem.tooltip = `Unexpected error while starting ${fullName} language service.`;

@@ -7,19 +7,18 @@ import * as vscode from 'vscode';
 import { LanguageServiceStatusItems } from './features/LanguageServiceStatusItems';
 import { LanguageConfigurations } from './features/LanguageConfigurations';
 import { getInstance } from './common/Ioc';
+import { CompilerTaskProvider } from './features/CompilerTaskProvider';
 
 class PapyrusExtension implements Disposable {
-    private readonly _context: ExtensionContext;
     private readonly _serviceCollection: ServiceCollection;
     private readonly _instantiationService: IInstantiationService;
     private readonly _configProvider: IExtensionConfigProvider;
     private readonly _clientManager: ILanguageClientManager;
     private readonly _statusItems: LanguageServiceStatusItems;
     private readonly _languageConfigurations: LanguageConfigurations;
+    private readonly _taskProvider: CompilerTaskProvider;
 
     constructor(context: ExtensionContext) {
-        this._context = context;
-
         this._languageConfigurations = new LanguageConfigurations();
 
         this._serviceCollection = new ServiceCollection(
@@ -34,9 +33,11 @@ class PapyrusExtension implements Disposable {
         this._clientManager = getInstance(this._serviceCollection, ILanguageClientManager);
 
         this._statusItems = this._instantiationService.createInstance(LanguageServiceStatusItems);
+        this._taskProvider = this._instantiationService.createInstance(CompilerTaskProvider);
     }
 
     dispose() {
+        this._taskProvider.dispose();
         this._statusItems.dispose();
         this._clientManager.dispose();
         this._configProvider.dispose();
