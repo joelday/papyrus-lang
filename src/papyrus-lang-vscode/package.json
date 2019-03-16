@@ -1,7 +1,9 @@
 {
     "activationEvents": [
         "onLanguage:papyrus",
-        "onLanguage:papyrus-project"
+        "onLanguage:papyrus-project",
+        "workspaceContains:**/*.psc",
+        "workspaceContains:**/*.ppj"
     ],
     "author": {
         "email": "joelday@gmail.com",
@@ -20,60 +22,179 @@
                 "type": "papyrus",
                 "properties": {
                     "papyrus": {
-                        "type": "object",
                         "properties": {
                             "game": {
                                 "enum": [
                                     "fallout4",
                                     "skyrim",
                                     "skyrimSpecialEdition"
-                                ]
-                            },
-                            "compilerOptions": {
-                                "type": "object",
-                                "properties": {
-                                    "flags": {
-                                        "type": "string"
-                                    },
-                                    "optimize": {
-                                        "type": "boolean"
-                                    },
-                                    "release": {
-                                        "type": "boolean"
-                                    },
-                                    "final": {
-                                        "type": "boolean"
-                                    }
-                                }
+                                ],
+                                "description": "Which compiler to use."
                             },
                             "imports": {
                                 "type": "array",
-                                "items": {
-                                    "type": "string"
-                                },
-                                "uniqueItems": true
+                                "items": [
+                                    {
+                                        "type": "string"
+                                    }
+                                ],
+                                "uniqueItems": true,
+                                "description": "The compiler's import directories."
+                            },
+                            "flags": {
+                                "type": "string",
+                                "description": "The file to use for user-defined flags."
+                            },
+                            "optimize": {
+                                "type": "boolean",
+                                "description": "Turns on optimization of scripts."
+                            },
+                            "emitCompiledScripts": {
+                                "type": "boolean",
+                                "description": "Generate compiled script (.pex) files."
+                            },
+                            "emitAssemblyFiles": {
+                                "type": "boolean",
+                                "description": "Generate assembly (.pas) files."
+                            },
+                            "debugOutput": {
+                                "type": "boolean",
+                                "description": "Turns on compiler debugging, outputting dev information to the screen."
                             },
                             "output": {
-                                "type": "string"
-                            },
-                            "project": {
-                                "type": "string"
+                                "type": "string",
+                                "description": "The compiler's output directory."
                             }
                         },
-                        "dependencies": {
-                            "project": {
-                                "type": "object",
+                        "anyOf": [
+                            {
                                 "properties": {
                                     "game": {
                                         "enum": [
                                             "fallout4"
                                         ]
+                                    },
+                                    "final": {
+                                        "type": "boolean",
+                                        "default": false,
+                                        "description": "Turns on final-mode processing, removing beta code from the script."
+                                    },
+                                    "release": {
+                                        "type": "boolean",
+                                        "default": false,
+                                        "description": "Turns on release-mode processing, removing debug code from the script."
                                     }
+                                },
+                                "anyOf": [
+                                    {
+                                        "properties": {
+                                            "project": {
+                                                "type": "string",
+                                                "description": "A Papyrus project file (.ppj) to use for compilation."
+                                            }
+                                        },
+                                        "required": [
+                                            "project"
+                                        ]
+                                    },
+                                    {
+                                        "properties": {
+                                            "scripts": {
+                                                "oneOf": [
+                                                    {
+                                                        "properties": {
+                                                            "folder": {
+                                                                "type": "string"
+                                                            },
+                                                            "noRecurse": {
+                                                                "type": "boolean",
+                                                                "default": false,
+                                                                "description": "Tells the compiler not to recurse into subdirectories."
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "folder"
+                                                        ],
+                                                        "additionalProperties": false
+                                                    },
+                                                    {
+                                                        "properties": {
+                                                            "file": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "file"
+                                                        ],
+                                                        "additionalProperties": false
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "required": [
+                                            "scripts"
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "properties": {
+                                    "game": {
+                                        "enum": [
+                                            "skyrim",
+                                            "skyrimSpecialEdition"
+                                        ]
+                                    },
+                                    "scripts": {
+                                        "oneOf": [
+                                            {
+                                                "properties": {
+                                                    "folder": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "folder"
+                                                ],
+                                                "additionalProperties": false
+                                            },
+                                            {
+                                                "properties": {
+                                                    "file": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "file"
+                                                ],
+                                                "additionalProperties": false
+                                            }
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "scripts"
+                                ],
+                                "not": {
+                                    "properties": {
+                                        "project": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "project"
+                                    ]
                                 }
                             }
-                        }
+                        ],
+                        "required": [
+                            "game"
+                        ]
                     }
-                }
+                },
+                "required": [
+                    "papyrus"
+                ]
             }
         ],
         "configuration": {
@@ -87,7 +208,10 @@
                         "CreationKit.ini",
                         "CreationKitCustom.ini"
                     ],
-                    "type": "array"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "papyrus.fallout4.installPath": {
                     "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Fallout 4\\",
@@ -105,7 +229,10 @@
                     "default": [
                         "SkyrimEditor.ini"
                     ],
-                    "type": "array"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "papyrus.skyrim.installPath": {
                     "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim\\",
@@ -124,7 +251,10 @@
                         "CreationKit.ini",
                         "CreationKitCustom.ini"
                     ],
-                    "type": "array"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "papyrus.skyrimSpecialEdition.installPath": {
                     "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition\\",
@@ -210,7 +340,7 @@
         "fast-deep-equal": "^2.0.1",
         "ini": "^1.3.5",
         "rxjs": "^6.4.0",
-        "vscode-languageclient": "^5.1.0",
+        "vscode-languageclient": "^5.2.1",
         "winreg": "^1.2.4",
         "xml-writer": "^1.7.0"
     },
@@ -223,8 +353,8 @@
         "cpr": "^3.0.1",
         "prettier": "^1.16.4",
         "rimraf": "^2.6.3",
-        "tslint": "^5.12.1",
-        "typescript": "^3.3.3",
+        "tslint": "^5.14.0",
+        "typescript": "^3.3.3333",
         "vscode": "^1.1.30"
     },
     "displayName": "Papyrus",
@@ -236,6 +366,7 @@
     "keywords": [
         "Papyrus",
         "Fallout 4",
+        "Skyrim",
         "Scripting",
         "Modding",
         "Creation Kit"

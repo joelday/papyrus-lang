@@ -1,11 +1,6 @@
-import { TaskProvider, Task, tasks, TaskDefinition } from 'vscode';
+import { TaskProvider, Task, tasks } from 'vscode';
 import { CancellationToken, Disposable } from 'vscode-jsonrpc';
 import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
-import { PapyrusGame } from '../PapyrusGame';
-
-interface IPapyrusTaskDefinition extends TaskDefinition {
-    readonly game: PapyrusGame;
-}
 
 export class CompilerTaskProvider implements TaskProvider, Disposable {
     private _taskProviderHandle: Disposable;
