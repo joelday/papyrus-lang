@@ -119,7 +119,7 @@
                                                     },
                                                     {
                                                         "properties": {
-                                                            "objectNames": {
+                                                            "files": {
                                                                 "type": "array",
                                                                 "items": {
                                                                     "type": "string"
@@ -128,7 +128,7 @@
                                                             }
                                                         },
                                                         "required": [
-                                                            "objectNames"
+                                                            "files"
                                                         ],
                                                         "additionalProperties": false
                                                     }
@@ -164,7 +164,7 @@
                                             },
                                             {
                                                 "properties": {
-                                                    "objectNames": {
+                                                    "files": {
                                                         "type": "array",
                                                         "items": {
                                                             "type": "string"
@@ -173,7 +173,7 @@
                                                     }
                                                 },
                                                 "required": [
-                                                    "objectNames"
+                                                    "files"
                                                 ],
                                                 "additionalProperties": false
                                             }

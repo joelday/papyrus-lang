@@ -3,7 +3,6 @@ import { ServiceCollection, IInstantiationService, InstantiationService, Descrip
 import { IExtensionContext } from './common/vscode/IocDecorators';
 import { IExtensionConfigProvider, ExtensionConfigProvider } from './ExtensionConfigProvider';
 import { LanguageClientManager, ILanguageClientManager } from './server/LanguageClientManager';
-import * as vscode from 'vscode';
 import { LanguageServiceStatusItems } from './features/LanguageServiceStatusItems';
 import { LanguageConfigurations } from './features/LanguageConfigurations';
 import { getInstance } from './common/Ioc';
