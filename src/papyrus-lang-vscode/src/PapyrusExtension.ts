@@ -9,6 +9,7 @@ import { LanguageConfigurations } from './features/LanguageConfigurations';
 import { getInstance } from './common/Ioc';
 import { CompilerTaskProvider } from './features/CompilerTaskProvider';
 import { ICreationKitInfoProvider, CreationKitInfoProvider } from './CreationKitInfoProvider';
+import { ScriptStatusCodeLensProvider } from './features/ScriptStatusCodeLensProvider';
 
 class PapyrusExtension implements Disposable {
     private readonly _serviceCollection: ServiceCollection;
@@ -18,6 +19,7 @@ class PapyrusExtension implements Disposable {
     private readonly _statusItems: LanguageServiceStatusItems;
     private readonly _languageConfigurations: LanguageConfigurations;
     private readonly _taskProvider: CompilerTaskProvider;
+    private readonly _scriptStatusCodeLensProvider: ScriptStatusCodeLensProvider;
 
     constructor(context: ExtensionContext) {
         this._languageConfigurations = new LanguageConfigurations();
@@ -36,9 +38,11 @@ class PapyrusExtension implements Disposable {
 
         this._statusItems = this._instantiationService.createInstance(LanguageServiceStatusItems);
         this._taskProvider = this._instantiationService.createInstance(CompilerTaskProvider);
+        this._scriptStatusCodeLensProvider = this._instantiationService.createInstance(ScriptStatusCodeLensProvider);
     }
 
     dispose() {
+        this._scriptStatusCodeLensProvider.dispose();
         this._taskProvider.dispose();
         this._statusItems.dispose();
         this._clientManager.dispose();

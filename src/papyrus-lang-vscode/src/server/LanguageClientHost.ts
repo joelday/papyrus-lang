@@ -1,10 +1,12 @@
-import { Disposable, ExtensionContext, OutputChannel, window } from 'vscode';
+import { Disposable, ExtensionContext, OutputChannel, window, TextDocument } from 'vscode';
 
 import { LanguageClient, ILanguageClient } from './LanguageClient';
 import { PapyrusGame, getShortDisplayNameForGame } from '../PapyrusGame';
 import { IGameConfig } from '../ExtensionConfigProvider';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { ICreationKitInfo } from '../CreationKitInfoProvider';
+import { DocumentScriptInfo } from './messages/DocumentScriptInfo';
+import { shareReplay, take } from 'rxjs/operators';
 
 export enum ClientHostStatus {
     none,
@@ -22,6 +24,14 @@ export interface ILanguageClientHost {
     readonly client: ILanguageClient;
     readonly error: Observable<string>;
     readonly outputChannel: OutputChannel;
+    getDocumentScriptStatus(document: TextDocument): Promise<IScriptDocumentStatus>;
+}
+
+export interface IScriptDocumentStatus {
+    readonly game: PapyrusGame;
+    readonly documentIsUnresolved: boolean;
+    readonly documentIsOverridden: boolean;
+    readonly scriptInfo: DocumentScriptInfo;
 }
 
 export class LanguageClientHost implements ILanguageClientHost, Disposable {
@@ -47,11 +57,11 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
     }
 
     get status() {
-        return this._status.asObservable();
+        return this._status.asObservable().pipe(shareReplay(1));
     }
 
     get error() {
-        return this._error.asObservable();
+        return this._error.asObservable().pipe(shareReplay(1));
     }
 
     get client() {
@@ -111,6 +121,28 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
             this._error.next(error.toString());
             this._status.next(ClientHostStatus.error);
         }
+    }
+
+    async getDocumentScriptStatus(document: TextDocument): Promise<IScriptDocumentStatus> {
+        if ((await this._status.pipe(take(1)).toPromise()) !== ClientHostStatus.running) {
+            return null;
+        }
+
+        const scriptInfo = await this._client.requestScriptInfo(document.uri.toString());
+
+        const documentIsUnresolved = scriptInfo.identifiers.length === 0;
+        const documentIsOverridden =
+            !documentIsUnresolved &&
+            !scriptInfo.identifierFiles.some((identifierFile) =>
+                identifierFile.files.some((file) => file.toLowerCase() === document.uri.fsPath.toLowerCase())
+            );
+
+        return {
+            game: this._game,
+            documentIsUnresolved,
+            documentIsOverridden,
+            scriptInfo,
+        };
     }
 
     dispose() {

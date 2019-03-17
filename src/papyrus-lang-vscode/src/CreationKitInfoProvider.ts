@@ -5,7 +5,6 @@ import { Observable, combineLatest, of } from 'rxjs';
 import { map, mergeMap, catchError, shareReplay } from 'rxjs/operators';
 import { resolveInstallPath } from './Utilities';
 import * as path from 'path';
-import { textFile } from './common/vscode/reactive/Files';
 import * as ini from 'ini';
 import { all as deepMergeAll } from 'deepmerge';
 import * as fs from 'fs';

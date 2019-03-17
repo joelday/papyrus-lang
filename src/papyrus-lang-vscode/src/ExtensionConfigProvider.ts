@@ -20,7 +20,6 @@ export interface IExtensionConfig {
 
 export interface IExtensionConfigProvider extends Disposable {
     readonly config: Observable<IExtensionConfig>;
-    getConfigForGame(game: PapyrusGame): Promise<IGameConfig>;
 }
 
 function getPapyrusConfig() {
@@ -36,10 +35,6 @@ export class ExtensionConfigProvider implements IExtensionConfigProvider {
 
     get config() {
         return this._config;
-    }
-
-    getConfigForGame(game: PapyrusGame) {
-        return this._config.pipe(map((c) => c[game])).toPromise();
     }
 
     dispose() {}

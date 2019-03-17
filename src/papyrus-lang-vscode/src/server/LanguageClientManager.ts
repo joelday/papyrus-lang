@@ -13,7 +13,6 @@ import { ICreationKitInfoProvider, ICreationKitInfo } from '../CreationKitInfoPr
 
 export interface ILanguageClientManager extends Disposable {
     readonly clients: ReadonlyMap<PapyrusGame, Observable<ILanguageClientHost>>;
-    getClientHostForGame(game: PapyrusGame): Promise<ILanguageClientHost>;
 }
 
 export class LanguageClientManager implements Disposable, ILanguageClientManager {
@@ -51,10 +50,6 @@ export class LanguageClientManager implements Disposable, ILanguageClientManager
                 console.log('Client manager instance:', client[0], instance);
             })
         );
-    }
-
-    getClientHostForGame(game: PapyrusGame) {
-        return this._clients.get(game).toPromise();
     }
 
     get clients() {
