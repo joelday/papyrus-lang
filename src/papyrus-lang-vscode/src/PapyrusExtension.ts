@@ -47,6 +47,7 @@ class PapyrusExtension implements Disposable {
         this._statusItems.dispose();
         this._clientManager.dispose();
         this._configProvider.dispose();
+
         this._languageConfigurations.dispose();
     }
 }

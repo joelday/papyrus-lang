@@ -11,9 +11,10 @@ import {
     Uri,
     Disposable,
     languages,
+    EventEmitter,
 } from 'vscode';
-import { getShortDisplayNameForGame } from '../PapyrusGame';
-import { take } from 'rxjs/operators';
+import { take, mergeMap, distinctUntilChanged } from 'rxjs/operators';
+import { Unsubscribable } from 'rxjs';
 
 function createZeroLens() {
     return new CodeLens(new Range(new Position(0, 0), new Position(0, 0)));
@@ -22,12 +23,31 @@ function createZeroLens() {
 export class ScriptStatusCodeLensProvider implements CodeLensProvider, Disposable {
     private readonly _languageClientManager: ILanguageClientManager;
     private readonly _codeLensProviderHandle: Disposable;
+    private readonly _onDidChangeCodeLenses: EventEmitter<void>;
+    private readonly _languageServerSubscriptions: Unsubscribable[];
 
     constructor(@ILanguageClientManager languageClientManager: ILanguageClientManager) {
         this._languageClientManager = languageClientManager;
+
+        // Any server status changes need to trigger the code lenses to refresh.
+        this._onDidChangeCodeLenses = new EventEmitter<void>();
+
         this._codeLensProviderHandle = languages.registerCodeLensProvider(
             { language: 'papyrus', scheme: 'file' },
             this
+        );
+
+        this._languageServerSubscriptions = Array.from(this._languageClientManager.clients.values()).map((client) =>
+            client
+                .pipe(
+                    mergeMap((c) => c && c.status),
+                    distinctUntilChanged()
+                )
+                .subscribe({
+                    next: () => {
+                        this._onDidChangeCodeLenses.fire();
+                    },
+                })
         );
     }
 
@@ -37,25 +57,25 @@ export class ScriptStatusCodeLensProvider implements CodeLensProvider, Disposabl
         );
 
         if (cancellationToken.isCancellationRequested) {
-            return;
+            return [];
         }
 
-        const documentInfos = (await Promise.all(
+        const activeClients = (await Promise.all(
             clients.map(async (client) => {
                 const clientStatus = await client.status.pipe(take(1)).toPromise();
                 if (clientStatus !== ClientHostStatus.running) {
                     return null;
                 }
 
-                return await client.getDocumentScriptStatus(document);
+                return client;
             })
-        )).filter((documentInfo) => documentInfo !== null);
+        )).filter((client) => client !== null);
 
         if (cancellationToken.isCancellationRequested) {
-            return;
+            return [];
         }
 
-        if (documentInfos.length === 0) {
+        if (activeClients.length === 0) {
             const lens = createZeroLens();
 
             lens.command = {
@@ -66,7 +86,16 @@ export class ScriptStatusCodeLensProvider implements CodeLensProvider, Disposabl
             return [lens];
         }
 
-        const unresolvedInAllClients = documentInfos.every((info) => info.documentIsUnresolved);
+        const documentInfos = (await Promise.all(
+            activeClients.map((client) => client.getDocumentScriptStatus(document))
+        )).filter((documentInfo) => documentInfo !== null);
+
+        if (cancellationToken.isCancellationRequested) {
+            return [];
+        }
+
+        const unresolvedInAllClients =
+            documentInfos.length === 0 || documentInfos.every((info) => info.documentIsUnresolved);
         if (unresolvedInAllClients) {
             const lens = createZeroLens();
 
@@ -81,21 +110,6 @@ export class ScriptStatusCodeLensProvider implements CodeLensProvider, Disposabl
         const lenses: CodeLens[] = [];
 
         for (const info of documentInfos) {
-            if (info.documentIsUnresolved) {
-                continue;
-            }
-
-            const serverLens = createZeroLens();
-
-            serverLens.command = {
-                title: `Active in ${getShortDisplayNameForGame(info.game)} as ${info.scriptInfo.identifiers
-                    .map((identifier) => `'${identifier}'`)
-                    .join(', ')}`,
-                command: '',
-            };
-
-            lenses.push(serverLens);
-
             if (info.documentIsOverridden) {
                 const overriddenLens = createZeroLens();
                 const overridingFile = info.scriptInfo.identifierFiles[0].files[0];
@@ -113,7 +127,17 @@ export class ScriptStatusCodeLensProvider implements CodeLensProvider, Disposabl
         return lenses;
     }
 
+    get onDidChangeCodeLenses() {
+        return this._onDidChangeCodeLenses.event;
+    }
+
     dispose() {
+        this._onDidChangeCodeLenses.dispose();
+
+        for (const subscription of this._languageServerSubscriptions) {
+            subscription.unsubscribe();
+        }
+
         this._codeLensProviderHandle.dispose();
     }
 }
