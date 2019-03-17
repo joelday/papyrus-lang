@@ -119,16 +119,12 @@
                                                     },
                                                     {
                                                         "properties": {
-                                                            "files": {
-                                                                "type": "array",
-                                                                "items": {
-                                                                    "type": "string"
-                                                                },
-                                                                "uniqueItems": true
+                                                            "file": {
+                                                                "type": "string"
                                                             }
                                                         },
                                                         "required": [
-                                                            "files"
+                                                            "file"
                                                         ],
                                                         "additionalProperties": false
                                                     }
@@ -164,16 +160,12 @@
                                             },
                                             {
                                                 "properties": {
-                                                    "files": {
-                                                        "type": "array",
-                                                        "items": {
-                                                            "type": "string"
-                                                        },
-                                                        "uniqueItems": true
+                                                    "file": {
+                                                        "type": "string"
                                                     }
                                                 },
                                                 "required": [
-                                                    "files"
+                                                    "file"
                                                 ],
                                                 "additionalProperties": false
                                             }

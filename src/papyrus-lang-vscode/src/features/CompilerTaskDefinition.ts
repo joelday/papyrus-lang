@@ -19,5 +19,10 @@ export interface IPapyrusTaskOptions {
     readonly output?: string;
     readonly final?: boolean;
     readonly release?: boolean;
-    readonly scripts?: { readonly files: string[] } | { readonly folders: string[]; readonly noRecurse?: boolean };
+    readonly project?: string;
+    readonly scripts?: {
+        readonly file?: string;
+        readonly folder?: string;
+        readonly noRecurse?: boolean;
+    };
 }
