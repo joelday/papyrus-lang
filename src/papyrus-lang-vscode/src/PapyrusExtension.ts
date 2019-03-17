@@ -8,6 +8,7 @@ import { LanguageServiceStatusItems } from './features/LanguageServiceStatusItem
 import { LanguageConfigurations } from './features/LanguageConfigurations';
 import { getInstance } from './common/Ioc';
 import { CompilerTaskProvider } from './features/CompilerTaskProvider';
+import { ICreationKitInfoProvider, CreationKitInfoProvider } from './CreationKitInfoProvider';
 
 class PapyrusExtension implements Disposable {
     private readonly _serviceCollection: ServiceCollection;
@@ -24,6 +25,7 @@ class PapyrusExtension implements Disposable {
         this._serviceCollection = new ServiceCollection(
             [IExtensionContext, context],
             [IExtensionConfigProvider, new Descriptor(ExtensionConfigProvider)],
+            [ICreationKitInfoProvider, new Descriptor(CreationKitInfoProvider)],
             [ILanguageClientManager, new Descriptor(LanguageClientManager)]
         );
 

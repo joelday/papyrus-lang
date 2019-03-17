@@ -1,36 +1,39 @@
 import { createDecorator } from 'decoration-ioc';
 import { LanguageClient } from './LanguageClient';
 import { PapyrusGame, getGames } from '../PapyrusGame';
-import { Observable, Subscription, concat } from 'rxjs';
+import { Observable, Subscription, concat, combineLatest } from 'rxjs';
 import { IExtensionConfigProvider, IGameConfig } from '../ExtensionConfigProvider';
-import { map, share } from 'rxjs/operators';
+import { map, share, shareReplay } from 'rxjs/operators';
 import { asyncDisposable } from '../common/Reactive';
 import { IExtensionContext } from '../common/vscode/IocDecorators';
 import { ExtensionContext, Disposable } from 'vscode';
 import fastDeepEqual from 'fast-deep-equal';
 import { ILanguageClientHost, LanguageClientHost } from './LanguageClientHost';
+import { ICreationKitInfoProvider, ICreationKitInfo } from '../CreationKitInfoProvider';
 
 export interface ILanguageClientManager extends Disposable {
     readonly clients: ReadonlyMap<PapyrusGame, Observable<ILanguageClientHost>>;
+    getClientHostForGame(game: PapyrusGame): Promise<ILanguageClientHost>;
 }
 
 export class LanguageClientManager implements Disposable, ILanguageClientManager {
-    private readonly _configProvider: IExtensionConfigProvider;
     private readonly _clients: ReadonlyMap<PapyrusGame, Observable<ILanguageClientHost>>;
 
     private readonly _clientSubscriptions: Subscription[];
 
     constructor(
         @IExtensionConfigProvider configProvider: IExtensionConfigProvider,
+        @ICreationKitInfoProvider infoProvider: ICreationKitInfoProvider,
         @IExtensionContext context: ExtensionContext
     ) {
-        this._configProvider = configProvider;
-
         const createClientObservable = (game: PapyrusGame) => {
-            return this._configProvider.config.pipe(
-                map((config) => config[game]),
-                asyncDisposable<IGameConfig, LanguageClientHost>(
-                    (gameConfig) => new LanguageClientHost(game, gameConfig, context),
+            return combineLatest(
+                configProvider.config.pipe(map((config) => config[game])),
+                infoProvider.infos.get(game)
+            ).pipe(
+                asyncDisposable<[IGameConfig, ICreationKitInfo], LanguageClientHost>(
+                    ([gameConfig, creationKitInfo]) =>
+                        new LanguageClientHost(game, gameConfig, creationKitInfo, context),
                     (host) => host.start(),
                     fastDeepEqual
                 )
@@ -48,6 +51,10 @@ export class LanguageClientManager implements Disposable, ILanguageClientManager
                 console.log('Client manager instance:', client[0], instance);
             })
         );
+    }
+
+    getClientHostForGame(game: PapyrusGame) {
+        return this._clients.get(game).toPromise();
     }
 
     get clients() {

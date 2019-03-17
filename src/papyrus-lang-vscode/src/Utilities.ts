@@ -6,10 +6,6 @@ import winreg from 'winreg';
 import { promisify } from 'util';
 const exists = promisify(fs.exists);
 
-function getCompilerAssemblyPath(installPath: string, compilerPath: string) {
-    return path.join(installPath, compilerPath);
-}
-
 function getRegistryKeyForGame(game: PapyrusGame) {
     switch (game) {
         case PapyrusGame.fallout4:
@@ -21,7 +17,7 @@ function getRegistryKeyForGame(game: PapyrusGame) {
     }
 }
 
-async function resolveInstallPathWithRegistryFallback(game: PapyrusGame, installPath: string) {
+export async function resolveInstallPath(game: PapyrusGame, installPath: string): Promise<string> {
     if (await exists(installPath)) {
         return installPath;
     }
@@ -41,20 +37,4 @@ async function resolveInstallPathWithRegistryFallback(game: PapyrusGame, install
     } catch (_) {}
 
     return null;
-}
-
-export interface IInstallInfo {
-    installPath: string;
-    compilerAssemblyPath: string;
-}
-
-export async function getInstallInfo(game: PapyrusGame, installPath: string, compilerPath: string) {
-    const resolvedInstallPath = await resolveInstallPathWithRegistryFallback(game, installPath);
-    const compilerAssemblyPath = resolvedInstallPath && getCompilerAssemblyPath(resolvedInstallPath, compilerPath);
-    const compilerExists = compilerAssemblyPath && (await exists(compilerAssemblyPath));
-
-    return {
-        installPath: resolvedInstallPath,
-        compilerAssemblyPath: compilerExists ? compilerAssemblyPath : null,
-    };
 }

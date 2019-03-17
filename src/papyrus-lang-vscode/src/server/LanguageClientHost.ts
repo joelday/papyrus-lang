@@ -4,7 +4,7 @@ import { LanguageClient, ILanguageClient } from './LanguageClient';
 import { PapyrusGame, getShortDisplayNameForGame } from '../PapyrusGame';
 import { IGameConfig } from '../ExtensionConfigProvider';
 import { Observable, BehaviorSubject } from 'rxjs';
-import { getInstallInfo } from '../Utilities';
+import { ICreationKitInfo } from '../CreationKitInfoProvider';
 
 export enum ClientHostStatus {
     none,
@@ -27,6 +27,7 @@ export interface ILanguageClientHost {
 export class LanguageClientHost implements ILanguageClientHost, Disposable {
     private readonly _game: PapyrusGame;
     private readonly _config: IGameConfig;
+    private readonly _creationKitInfo: ICreationKitInfo;
     private readonly _context: ExtensionContext;
     private _outputChannel: OutputChannel;
     private _client: LanguageClient;
@@ -34,9 +35,10 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
     private readonly _status = new BehaviorSubject(ClientHostStatus.none);
     private readonly _error = new BehaviorSubject(null);
 
-    constructor(game: PapyrusGame, config: IGameConfig, context: ExtensionContext) {
+    constructor(game: PapyrusGame, config: IGameConfig, creationKitInfo: ICreationKitInfo, context: ExtensionContext) {
         this._game = game;
         this._config = config;
+        this._creationKitInfo = creationKitInfo;
         this._context = context;
     }
 
@@ -75,18 +77,12 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
         }
 
         try {
-            const { installPath, compilerAssemblyPath } = await getInstallInfo(
-                this._game,
-                this._config.installPath,
-                this._config.compilerPath
-            );
-
-            if (!installPath) {
+            if (!this._creationKitInfo.resolvedInstallPath) {
                 this._status.next(ClientHostStatus.missing);
                 return;
             }
 
-            if (!compilerAssemblyPath) {
+            if (!this._creationKitInfo.resolvedCompilerPath) {
                 this._status.next(ClientHostStatus.compilerMissing);
                 return;
             }
@@ -96,12 +92,13 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
                 toolPath: this._context.asAbsolutePath(getToolPath(this._game)),
                 outputChannel: this._outputChannel,
                 toolArguments: {
-                    compilerAssemblyPath,
-                    creationKitInstallPath: this._config.installPath,
+                    compilerAssemblyPath: this._creationKitInfo.resolvedCompilerPath,
+                    creationKitInstallPath: this._creationKitInfo.resolvedInstallPath,
                     relativeIniPaths: this._config.creationKitIniFiles,
                     flagsFileName: getFlagsFileName(this._game),
                     ambientProjectName: `${getShortDisplayNameForGame(this._game)} Creation Kit`,
-                    ...getDefaultImports(this._game),
+                    defaultScriptSourceFolder: this._creationKitInfo.config.Papyrus.sScriptSourceFolder,
+                    defaultAdditionalImports: this._creationKitInfo.config.Papyrus.sAdditionalImports,
                 },
             });
 
@@ -144,22 +141,4 @@ function getToolPath(game: PapyrusGame) {
 
 function getFlagsFileName(game: PapyrusGame) {
     return game === PapyrusGame.fallout4 ? 'Institute_Papyrus_Flags.flg' : 'TESV_Papyrus_Flags.flg';
-}
-
-function getDefaultImports(game: PapyrusGame) {
-    switch (game) {
-        case PapyrusGame.fallout4:
-            return {
-                defaultScriptSourceFolder: '.\\Data\\Scripts\\Source\\User\\',
-                defaultAdditionalImports: '$(source);.\\Data\\Scripts\\Source\\Base\\',
-            };
-        case PapyrusGame.skyrim:
-            return {
-                defaultScriptSourceFolder: '.\\Data\\Scripts\\Source\\',
-            };
-        case PapyrusGame.skyrimSpecialEdition:
-            return {
-                defaultScriptSourceFolder: '.\\Data\\Source\\Scripts\\',
-            };
-    }
 }

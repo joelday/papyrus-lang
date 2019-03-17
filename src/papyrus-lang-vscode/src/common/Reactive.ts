@@ -1,39 +1,15 @@
-import { OperatorFunction, using, Unsubscribable, NEVER, concat, Observable, from } from 'rxjs';
+import { OperatorFunction, using, NEVER, concat, from } from 'rxjs';
 import { Disposable } from 'vscode';
-import { share, switchMap, distinctUntilChanged, shareReplay } from 'rxjs/operators';
+import { switchMap, distinctUntilChanged, shareReplay } from 'rxjs/operators';
 
-class DisposableUnsubscribableProxy<T extends Unsubscribable> implements Disposable {
-    private _unsubscribable: Unsubscribable;
-
-    constructor(unsubscribable?: Unsubscribable) {
-        this._unsubscribable = unsubscribable;
-    }
-
-    get unsubscribable() {
-        return this._unsubscribable;
-    }
-
-    set unsubscribable(unsubscribable: Unsubscribable) {
-        this._unsubscribable = unsubscribable;
-    }
-
-    dispose() {
-        this._unsubscribable!.unsubscribe();
-    }
-}
-
-export function asDisposable(unsubscribable: Unsubscribable): Disposable {
-    return new DisposableUnsubscribableProxy(unsubscribable);
-}
-
-class UnsubscribableDisposableProxy<T extends Disposable> {
-    private _disposable: Disposable;
+export class UnsubscribableDisposableProxy<T extends Disposable> {
+    private _disposable: T;
 
     get disposable() {
         return this._disposable;
     }
 
-    set disposable(disposable: Disposable) {
+    set disposable(disposable: T) {
         this._disposable = disposable;
     }
 
