@@ -1,24 +1,26 @@
-import { TaskProvider, Task, tasks } from 'vscode';
-import { CancellationToken, Disposable } from 'vscode-jsonrpc';
-import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
-import { IPapyrusTaskDefinition, TaskOf, IPapyrusTaskOptions } from './CompilerTaskDefinition';
-import { ILanguageClientManager } from '../server/LanguageClientManager';
-import { PapyrusGame } from '../PapyrusGame';
-import { ICreationKitInfo } from '../CreationKitInfoProvider';
+// import { TaskProvider, Task, tasks, ProcessExecution, workspace, WorkspaceFolder, TaskScope } from 'vscode';
+// import { CancellationToken, Disposable } from 'vscode-jsonrpc';
+// import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
+// import { IPapyrusTaskDefinition, TaskOf, IPapyrusTaskOptions } from './CompilerTaskDefinition';
+// import { ILanguageClientManager } from '../server/LanguageClientManager';
+// import { PapyrusGame } from '../PapyrusGame';
+// import { ICreationKitInfo, ICreationKitInfoProvider } from '../CreationKitInfoProvider';
+// import { getDefaultFlagsFileNameForGame } from '../Utilities';
+// import { take } from 'rxjs/operators';
+// import * as path from 'path';
 
 // function taskOptionsToCommandLineArguments(options: IPapyrusTaskOptions, creationKitInfo: ICreationKitInfo) {
 //     const args: string[] = [];
 //     const isFallout4 = options.game === PapyrusGame.fallout4;
+//     const project = isFallout4 && options.project;
 
-//     if (isFallout4 && options.project) {
-//         args.push(options.project);
-//     } else {
-//         const imports =
-
-//         if (options.scripts.file) {
-//             args.push(options.scripts.file);
-//         } else if (options.scripts.folder) {
-//             args.push(options.scripts.folder);
+//     if (project) {
+//         args.push(project);
+//     } else if (options.scripts) {
+//         if (options.scripts.files) {
+//             args.push(options.scripts.files.join(';'));
+//         } else if (options.scripts.folders) {
+//             args.push(options.scripts.folders.join(';'));
 //             args.push('-all');
 
 //             if (isFallout4 && options.scripts.noRecurse) {
@@ -27,43 +29,92 @@ import { ICreationKitInfo } from '../CreationKitInfoProvider';
 //         }
 //     }
 
+//     if (isFallout4) {
+//         if (options.final) {
+//             args.push('-final');
+//         }
+
+//         if (options.release) {
+//             args.push('-release');
+//         }
+
+//         args.push('-ignorecwd');
+//     }
+
 //     if (options.debugOutput) {
 //         args.push('-debug');
 //     }
 
-//     if (options.final) {
-//         args.push('-final');
+//     if (options.optimize) {
+//         args.push('-optimize');
 //     }
 
-//     args.push('-final');
+//     const flags = !options.flags && !project ? getDefaultFlagsFileNameForGame(options.game) : options.flags;
+//     if (flags) {
+//         args.push(`-flags="${flags}"`);
+//     }
+
+//     const output = !options.output && !project ? creationKitInfo.config.Papyrus.sScriptCompiledFolder : options.output;
+//     if (output) {
+//         args.push(`-output="${output}"`);
+//     }
 
 //     return args;
 // }
 
-export class CompilerTaskProvider implements TaskProvider, Disposable {
-    private _taskProviderHandle: Disposable;
-    private _configProvider: IExtensionConfigProvider;
-    private _clientManager: ILanguageClientManager;
+// export class CompilerTaskProvider implements TaskProvider, Disposable {
+//     private _taskProviderHandle: Disposable;
+//     private _creationKitInfoProvider: ICreationKitInfoProvider;
 
-    constructor(
-        @IExtensionConfigProvider configProvider: IExtensionConfigProvider,
-        @ILanguageClientManager clientManager: ILanguageClientManager
-    ) {
-        this._taskProviderHandle = tasks.registerTaskProvider('papyrus', this);
+//     constructor(@ICreationKitInfoProvider creationKitInfoProvider: ICreationKitInfoProvider) {
+//         this._creationKitInfoProvider = creationKitInfoProvider;
+//         this._taskProviderHandle = tasks.registerTaskProvider('papyrus', this);
+//     }
 
-        this._configProvider = configProvider;
-        this._clientManager = clientManager;
-    }
+//     async provideTasks(token?: CancellationToken): Promise<Task[]> {
+//         // const creationKitInfo = await this._creationKitInfoProvider.infos
+//         //     .get(PapyrusGame.fallout4)
+//         //     .pipe(take(1))
+//         //     .toPromise();
 
-    async provideTasks(token?: CancellationToken): Promise<Task[]> {
-        return [];
-    }
+//         // return workspace.workspaceFolders.map((folder) => {
+//         //     const task = new Task(
+//         //         { type: 'papyrus', papyrus: { game: PapyrusGame.fallout4, project: '' } },
+//         //         folder,
+//         //         'default',
+//         //         'papyrus'
+//         //     );
 
-    resolveTask(task: TaskOf<IPapyrusTaskDefinition>, token?: CancellationToken): Promise<Task> {
-        throw new Error('Method not implemented.');
-    }
+//         //     task.execution = new ProcessExecution(
+//         //         path.join(creationKitInfo.resolvedCompilerPath, 'PapyrusCompiler.exe'),
+//         //         taskOptionsToCommandLineArguments(task.definition.papyrus, creationKitInfo)
+//         //     );
 
-    dispose() {
-        this._taskProviderHandle.dispose();
-    }
-}
+//         //     return task;
+//         // });
+
+//         return undefined;
+//     }
+
+//     async resolveTask(task: TaskOf<IPapyrusTaskDefinition>, token?: CancellationToken): Promise<Task> {
+//         const creationKitInfo = await this._creationKitInfoProvider.infos
+//             .get(task.definition.papyrus.game)
+//             .pipe(take(1))
+//             .toPromise();
+
+//         if (token.isCancellationRequested) {
+//             return null;
+//         }
+
+//         task.execution = new ProcessExecution(
+//             path.join(creationKitInfo.resolvedCompilerPath, 'PapyrusCompiler.exe'),
+//             taskOptionsToCommandLineArguments(task.definition.papyrus, creationKitInfo)
+//         );
+
+//         return task;
+//     }
+
+//     dispose() {
+//         this._taskProviderHandle.dispose();
+//     }
+// }

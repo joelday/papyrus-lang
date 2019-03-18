@@ -38,3 +38,7 @@ export async function resolveInstallPath(game: PapyrusGame, installPath: string)
 
     return null;
 }
+
+export function getDefaultFlagsFileNameForGame(game: PapyrusGame) {
+    return game === PapyrusGame.fallout4 ? 'Institute_Papyrus_Flags.flg' : 'TESV_Papyrus_Flags.flg';
+}

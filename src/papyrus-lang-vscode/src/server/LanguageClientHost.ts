@@ -7,6 +7,7 @@ import { Observable, BehaviorSubject } from 'rxjs';
 import { ICreationKitInfo } from '../CreationKitInfoProvider';
 import { DocumentScriptInfo } from './messages/DocumentScriptInfo';
 import { shareReplay, take } from 'rxjs/operators';
+import { getDefaultFlagsFileNameForGame } from '../Utilities';
 
 export enum ClientHostStatus {
     none,
@@ -105,7 +106,7 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
                     compilerAssemblyPath: this._creationKitInfo.resolvedCompilerPath,
                     creationKitInstallPath: this._creationKitInfo.resolvedInstallPath,
                     relativeIniPaths: this._config.creationKitIniFiles,
-                    flagsFileName: getFlagsFileName(this._game),
+                    flagsFileName: getDefaultFlagsFileNameForGame(this._game),
                     ambientProjectName: `${getShortDisplayNameForGame(this._game)} Creation Kit`,
                     defaultScriptSourceFolder: this._creationKitInfo.config.Papyrus.sScriptSourceFolder,
                     defaultAdditionalImports: this._creationKitInfo.config.Papyrus.sAdditionalImports,
@@ -169,8 +170,4 @@ function getToolGameName(game: PapyrusGame) {
 function getToolPath(game: PapyrusGame) {
     const toolGameName = getToolGameName(game);
     return `./bin/Debug/net461/DarkId.Papyrus.Host.${toolGameName}/DarkId.Papyrus.Host.${toolGameName}.exe`;
-}
-
-function getFlagsFileName(game: PapyrusGame) {
-    return game === PapyrusGame.fallout4 ? 'Institute_Papyrus_Flags.flg' : 'TESV_Papyrus_Flags.flg';
 }
