@@ -9,30 +9,31 @@ trigger:
 pool:
   vmImage: 'VS2017-Win2016'
 
-# variables:
-#   solution: '**/*.sln'
-#   buildPlatform: 'Any CPU'
-#   buildConfiguration: 'Release'
+variables:
+  solution: 'DarkId.Papyrus.sln'
+  buildPlatform: 'x86'
+  buildConfiguration: 'Debug'
 
 steps:
 - task: PowerShell@1
   inputs:
     scriptType: filePath
     scriptName: './build.ps1'
+    arguments: '--target download-compilers'
     
-# - task: NuGetToolInstaller@0
+- task: NuGetToolInstaller@0
 
-# - task: NuGetCommand@2
-#   inputs:
-#     restoreSolution: '$(solution)'
+- task: NuGetCommand@2
+  inputs:
+    restoreSolution: '$(solution)'
 
-# - task: VSBuild@1
-#   inputs:
-#     solution: '$(solution)'
-#     platform: '$(buildPlatform)'
-#     configuration: '$(buildConfiguration)'
+- task: VSBuild@1
+  inputs:
+    solution: '$(solution)'
+    platform: '$(buildPlatform)'
+    configuration: '$(buildConfiguration)'
 
-# - task: VSTest@2
-#   inputs:
-#     platform: '$(buildPlatform)'
-#     configuration: '$(buildConfiguration)'
+- task: VSTest@2
+  inputs:
+    platform: '$(buildPlatform)'
+    configuration: '$(buildConfiguration)'
