@@ -3,6 +3,8 @@
 
 var target = Argument("target", "default");
 var solution = File("./DarkId.Papyrus.sln");
+var isAppVeyor = EnvironmentVariable("APPVEYOR") == "True";
+var logger = isAppVeyor ? "AppVeyor" : string.Empty;
 
 public void DownloadAndUnzip(string address, DirectoryPath outputPath, DirectoryPath existsPath)
 {
@@ -75,12 +77,14 @@ Task("test")
     {
         VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Fallout4/DarkId.Papyrus.Test.Fallout4.dll", new VSTestSettings()
         {
-            ToolPath = Context.Tools.Resolve("vstest.console.exe")
+            ToolPath = Context.Tools.Resolve("vstest.console.exe"),
+            Logger = logger
         });
 
         VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Skyrim/DarkId.Papyrus.Test.Skyrim.dll", new VSTestSettings()
         {
-            ToolPath = Context.Tools.Resolve("vstest.console.exe")
+            ToolPath = Context.Tools.Resolve("vstest.console.exe"),
+            Logger = logger
         });
     });
 
