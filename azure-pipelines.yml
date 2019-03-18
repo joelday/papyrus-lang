@@ -21,13 +21,13 @@ steps:
       scriptName: "./build.ps1"
       arguments: '--target="download-compilers"'
 
-  - task: NuGetToolInstaller@0
-
-  - task: NuGetCommand@2
+  - task: PowerShell@1
     inputs:
-      restoreSolution: "$(solution)"
+      scriptType: filePath
+      scriptName: "./build.ps1"
+      arguments: '--target="restore"'
 
-  - task: VSBuild@1
+  - task: MSBuild@1
     inputs:
       solution: "$(solution)"
       platform: "$(buildPlatform)"
@@ -35,5 +35,10 @@ steps:
 
   - task: VSTest@2
     inputs:
-      platform: "$(buildPlatform)"
-      configuration: "$(buildConfiguration)"
+      testSelector: testAssemblies
+      testAssemblyVer2: './src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Fallout4/DarkId.Papyrus.Test.Fallout4.dll'
+      
+  - task: VSTest@2
+    inputs:
+      testSelector: testAssemblies
+      testAssemblyVer2: './src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Skyrim/DarkId.Papyrus.Test.Skyrim.dll'
