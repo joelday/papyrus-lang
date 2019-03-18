@@ -1,10 +1,9 @@
 #addin nuget:?package=Cake.Npm&version=0.16.0
+#addin nuget:?package=Cake.VsCode
 #tool nuget:?package=Microsoft.TestPlatform&version=15.9.0
 
 var target = Argument("target", "default");
 var solution = File("./DarkId.Papyrus.sln");
-var isAppveyor = EnvironmentVariable("APPVEYOR") == "True";
-var logger = isAppveyor ? "Appveyor" : string.Empty;
 
 public void DownloadAndUnzip(string address, DirectoryPath outputPath, DirectoryPath existsPath)
 {
@@ -77,14 +76,12 @@ Task("test")
     {
         VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Fallout4/DarkId.Papyrus.Test.Fallout4.dll", new VSTestSettings()
         {
-            ToolPath = Context.Tools.Resolve("vstest.console.exe"),
-            Logger = logger
+            ToolPath = Context.Tools.Resolve("vstest.console.exe")
         });
 
         VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Skyrim/DarkId.Papyrus.Test.Skyrim.dll", new VSTestSettings()
         {
-            ToolPath = Context.Tools.Resolve("vstest.console.exe"),
-            Logger = logger
+            ToolPath = Context.Tools.Resolve("vstest.console.exe")
         });
     });
 
@@ -112,10 +109,5 @@ Task("build-extension")
     .IsDependentOn("npm-clean")
     .IsDependentOn("npm-copy-bin")
     .IsDependentOn("npm-build");
-
-Task("ci-build")
-    .IsDependentOn("download-compilers")
-    .IsDependentOn("restore")
-    .IsDependentOn("build");
 
 RunTarget(target);
