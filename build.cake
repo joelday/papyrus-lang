@@ -109,8 +109,9 @@ Task("build-extension")
     .IsDependentOn("npm-copy-bin")
     .IsDependentOn("npm-build");
 
-Task("build-test")
-    .IsDependentOn("build")
-    .IsDependentOn("test");
+Task("ci-build")
+    .IsDependentOn("download-compilers")
+    .IsDependentOn("restore")
+    .IsDependentOn("build");
 
 RunTarget(target);
