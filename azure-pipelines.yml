@@ -4,36 +4,36 @@
 # https://docs.microsoft.com/azure/devops/pipelines/apps/windows/dot-net
 
 trigger:
-- master
+  - master
 
 pool:
-  vmImage: 'VS2017-Win2016'
+  vmImage: "VS2017-Win2016"
 
 variables:
-  solution: 'DarkId.Papyrus.sln'
-  buildPlatform: 'x86'
-  buildConfiguration: 'Debug'
+  solution: "DarkId.Papyrus.sln"
+  buildPlatform: "x86"
+  buildConfiguration: "Debug"
 
 steps:
-- task: PowerShell@1
-  inputs:
-    scriptType: filePath
-    scriptName: './build.ps1'
-    arguments: '--target download-compilers'
-    
-- task: NuGetToolInstaller@0
+  - task: PowerShell@1
+    inputs:
+      scriptType: filePath
+      scriptName: "./build.ps1"
+      arguments: '--target="download-compilers"'
 
-- task: NuGetCommand@2
-  inputs:
-    restoreSolution: '$(solution)'
+  - task: NuGetToolInstaller@0
 
-- task: VSBuild@1
-  inputs:
-    solution: '$(solution)'
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
+  - task: NuGetCommand@2
+    inputs:
+      restoreSolution: "$(solution)"
 
-- task: VSTest@2
-  inputs:
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
+  - task: VSBuild@1
+    inputs:
+      solution: "$(solution)"
+      platform: "$(buildPlatform)"
+      configuration: "$(buildConfiguration)"
+
+  - task: VSTest@2
+    inputs:
+      platform: "$(buildPlatform)"
+      configuration: "$(buildConfiguration)"
