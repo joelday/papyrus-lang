@@ -3,8 +3,8 @@
 
 var target = Argument("target", "default");
 var solution = File("./DarkId.Papyrus.sln");
-var isAppVeyor = EnvironmentVariable("APPVEYOR") == "True";
-var logger = isAppVeyor ? "AppVeyor" : string.Empty;
+var isAppveyor = EnvironmentVariable("APPVEYOR") == "True";
+var logger = isAppveyor ? "Appveyor" : string.Empty;
 
 public void DownloadAndUnzip(string address, DirectoryPath outputPath, DirectoryPath existsPath)
 {
