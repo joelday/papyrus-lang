@@ -55,7 +55,7 @@ Task("npm-semantic-release")
     .Does(() => {
         NpmRunScript(new NpmRunScriptSettings()
         {
-            ScriptName = "npm-semantic-release",
+            ScriptName = "semantic-release",
             WorkingDirectory = "src/papyrus-lang-vscode"
         });
     });
