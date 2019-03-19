@@ -1,5 +1,4 @@
 #addin nuget:?package=Cake.Npm&version=0.16.0
-#addin nuget:?package=Cake.VsCode
 #tool nuget:?package=Microsoft.TestPlatform&version=15.9.0
 
 var target = Argument("target", "default");
@@ -48,6 +47,15 @@ Task("npm-build")
         NpmRunScript(new NpmRunScriptSettings()
         {
             ScriptName = "compile",
+            WorkingDirectory = "src/papyrus-lang-vscode"
+        });
+    });
+
+Task("npm-semantic-release")
+    .Does(() => {
+        NpmRunScript(new NpmRunScriptSettings()
+        {
+            ScriptName = "npm-semantic-release",
             WorkingDirectory = "src/papyrus-lang-vscode"
         });
     });
@@ -109,5 +117,9 @@ Task("build-extension")
     .IsDependentOn("npm-clean")
     .IsDependentOn("npm-copy-bin")
     .IsDependentOn("npm-build");
+
+Task("build-test")
+    .IsDependentOn("build")
+    .IsDependentOn("test");
 
 RunTarget(target);
