@@ -3,7 +3,7 @@ skip_tags: true
 image: Visual Studio 2017
 environment:
   GH_TOKEN:
-    secure: PVEMzSen58pVotyidb2JF3GESRRcG1z5LkyI5d0qt5LnWUz82FeWwT2YoKXCx/Qu
+    secure: /XavQ5iNF9gdwnv5qItZszSzEgZqu6e9sOtupfpfaJS6vrxAzFDarhsPV8hEK1hl
   VSCE_TOKEN:
     secure: CGwNk3sbtpb/ETgH09D6TkAF8TRRSdBSl2EdqdoaQx8elkzGQ8SVZLO8Z0NGI6t0lKqCjT4Ae2zIh3tFKRkZKQ==
 build_script:
