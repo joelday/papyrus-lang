@@ -5,7 +5,7 @@ environment:
   GH_TOKEN:
     secure: /XavQ5iNF9gdwnv5qItZszSzEgZqu6e9sOtupfpfaJS6vrxAzFDarhsPV8hEK1hl
   VSCE_TOKEN:
-    secure: CGwNk3sbtpb/ETgH09D6TkAF8TRRSdBSl2EdqdoaQx8elkzGQ8SVZLO8Z0NGI6t0lKqCjT4Ae2zIh3tFKRkZKQ==
+    secure: P6jI4JL2Mi4fNYS2/A2DTnSqHGWMu/Px2l4J3iq5HVioG4V8ZsFBkba5KciF+T7xKY+QXeT7g/otf0NH8rfFVA==
 build_script:
   - cmd: powershell ./build.ps1
 test: off
