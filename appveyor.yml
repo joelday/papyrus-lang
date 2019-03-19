@@ -1,14 +1,6 @@
 version: 2.0.0.{build}
 skip_tags: true
 image: Visual Studio 2017
-dotnet_csproj:
-  patch: true
-  file: '**\*.csproj'
-  version: "{version}"
-  package_version: "{version}"
-  assembly_version: "{version}"
-  file_version: "{version}"
-  informational_version: "{version}"
 environment:
   VSCE_TOKEN:
     secure: CGwNk3sbtpb/ETgH09D6TkAF8TRRSdBSl2EdqdoaQx8elkzGQ8SVZLO8Z0NGI6t0lKqCjT4Ae2zIh3tFKRkZKQ==
