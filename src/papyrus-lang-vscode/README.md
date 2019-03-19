@@ -2,7 +2,7 @@
 
 [![](https://vsmarketplacebadge.apphb.com/version-short/joelday.papyrus-lang-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=joelday.papyrus-lang-vscode)
 
-### Fallout 4 Papyrus language support with code completion, jump to definition, hover, symbol search and live updated diagnostics.
+### Fallout 4 and Skyrim Papyrus language support with code completion, jump to definition, hover, symbol search and live updated diagnostics.
 
 <p align="center">
     <img src="https://github.com/joelday/papyrus-lang/raw/master/src/papyrus-lang-vscode/images/icon.png" width="75%" />

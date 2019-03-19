@@ -1,11 +1,11 @@
 # 📜 Papyrus Language Tools
 
 [![](https://vsmarketplacebadge.apphb.com/version-short/joelday.papyrus-lang-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=joelday.papyrus-lang-vscode)
-[![Build status](https://ci.appveyor.com/api/projects/status/ch28gapt2a38rxkn?svg=true)](https://ci.appveyor.com/project/joelday/papyrus-lang)
+[![Build status](https://ci.appveyor.com/api/projects/status/ear84ovxacid2o1v?svg=true)](https://ci.appveyor.com/project/joelday/papyrus-lang)
 
 ## Advanced language tools for the Papyrus scripting language.
 
-You can now write mods for Fallout 4 with the aid of modern code editing features such as code completion, jump to definition, hover, symbol search and live updated diagnostics.
+You can now write mods for Fallout 4 and Skyrim with the aid of modern code editing features such as code completion, jump to definition, hover, symbol search and live updated diagnostics.
 
 ## 📺 Visual Studio Code Extension
 
