@@ -9,9 +9,3 @@
 <p align="center">
     <img src="https://github.com/joelday/papyrus-lang/raw/master/src/papyrus-lang-vscode/images/icon.png" width="75%" />
 </p>
-
----
-
-### 🚧 This project is in early development.
-
-Bugs and breaking changes may be introduced from time to time. Please [file an issue](https://github.com/joelday/papyrus-lang/issues/new) with bug reports or feature requests.

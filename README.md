@@ -12,13 +12,7 @@ You can now write mods for Fallout 4 and Skyrim with the aid of modern code edit
 
 <img align="right" src="src/papyrus-lang-vscode/images/icon-small-trimmed.png" width="128" />
 
-Preview release, updated frequently with new features and improvements.
+Updated frequently with new features and improvements.
 
 🔗 [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=joelday.papyrus-lang-vscode)\
 ⚙️ [Source](src/papyrus-lang-vscode)
-
----
-
-### 🚧 This project is in early development.
-
-Bugs and breaking changes may be introduced from time to time. Please [file an issue](https://github.com/joelday/papyrus-lang/issues/new) with bug reports or feature requests.

@@ -192,7 +192,7 @@
         }
     ],
     "name": "papyrus-lang-vscode",
-    "preview": true,
+    "preview": false,
     "private": true,
     "publisher": "joelday",
     "repository": {
