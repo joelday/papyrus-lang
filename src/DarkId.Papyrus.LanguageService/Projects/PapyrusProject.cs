@@ -6,7 +6,7 @@ namespace DarkId.Papyrus.LanguageService.Projects
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
     [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true, Namespace = "PapyrusProject.xsd")]
-    [System.Xml.Serialization.XmlRootAttribute(Namespace = "PapyrusProject.xsd", IsNullable = false)]
+    [System.Xml.Serialization.XmlRootAttribute(Namespace = "PapyrusProject.xsd")]
     public class PapyrusProject
     {
 
@@ -37,7 +37,7 @@ namespace DarkId.Papyrus.LanguageService.Projects
         private bool finalFieldSpecified;
 
         /// <remarks/>
-        [System.Xml.Serialization.XmlArrayItemAttribute("Import", IsNullable = false)]
+        [System.Xml.Serialization.XmlArrayItemAttribute("Import")]
         public string[] Imports
         {
             get
@@ -51,7 +51,7 @@ namespace DarkId.Papyrus.LanguageService.Projects
         }
 
         /// <remarks/>
-        [System.Xml.Serialization.XmlArrayItemAttribute("Folder", IsNullable = false)]
+        [System.Xml.Serialization.XmlArrayItemAttribute("Folder")]
         public FolderType[] Folders
         {
             get
@@ -65,7 +65,7 @@ namespace DarkId.Papyrus.LanguageService.Projects
         }
 
         /// <remarks/>
-        [System.Xml.Serialization.XmlArrayItemAttribute("Script", IsNullable = false)]
+        [System.Xml.Serialization.XmlArrayItemAttribute("Script")]
         public string[] Scripts
         {
             get

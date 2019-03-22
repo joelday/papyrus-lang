@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
@@ -48,7 +49,7 @@ namespace DarkId.Papyrus.LanguageService.Program
                         return new Tuple<SourceInclude, IEnumerable<string>>(include, new string[] { });
                     }
 
-                    var files = await fileSystem.FindFiles(include.Path, "*.psc", include.Recursive);
+                    var files = include.Scripts.Count > 0 ? include.Scripts.ToList() : await fileSystem.FindFiles(include.Path, "*.psc", include.Recursive);
                     return new Tuple<SourceInclude, IEnumerable<string>>(include, files);
                 })
                 .ToArray());

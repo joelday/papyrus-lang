@@ -73,25 +73,8 @@ namespace DarkId.Papyrus.Server
                 .Where(p => p.Item2.FlagsFileName.CaseInsensitiveEquals(_projectFlagsFileName))
                 .ToDictionary(p => p.Item1, p => p.Item2);
 
-            var workspacesWithoutProjects = workspaceProjectFiles.Where(p => p.Value.Count() == 0).Select(p => p.Key);
-            if (workspacesWithoutProjects.Any())
-            {
-                // var ambientOptions = _ambientOptionsProvider.GetAmbientProgramOptions();
-                // foreach (var ambientWorkspacePath in workspacesWithoutProjects)
-                // {
-                //     var workspaceAmbientOptions = ambientOptions.Clone();
-                //     workspaceAmbientOptions.Name = Path.GetFileName(ambientWorkspacePath);
-                //     workspaceAmbientOptions.Sources.Includes.Insert(0, new SourceInclude()
-                //     {
-                //         Path = ambientWorkspacePath
-                //     });
-
-                //     options.Add(ambientWorkspacePath, workspaceAmbientOptions);
-                // }
-
-                var ambientOptions = _ambientOptionsProvider.GetAmbientProgramOptions();
-                options.Add(ambientOptions.Name, ambientOptions);
-            }
+            var ambientOptions = _ambientOptionsProvider.GetAmbientProgramOptions();
+            options.Add(ambientOptions.Name, ambientOptions);
 
             return options;
         }
