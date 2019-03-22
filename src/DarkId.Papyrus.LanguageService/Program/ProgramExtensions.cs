@@ -49,7 +49,7 @@ namespace DarkId.Papyrus.LanguageService.Program
                         return new Tuple<SourceInclude, IEnumerable<string>>(include, new string[] { });
                     }
 
-                    var files = include.Scripts.Count > 0 ? include.Scripts : await fileSystem.FindFiles(include.Path, "*.psc", include.Recursive);
+                    var files = include.Scripts.Count > 0 ? include.Scripts.ToList() : await fileSystem.FindFiles(include.Path, "*.psc", include.Recursive);
                     return new Tuple<SourceInclude, IEnumerable<string>>(include, files);
                 })
                 .ToArray());

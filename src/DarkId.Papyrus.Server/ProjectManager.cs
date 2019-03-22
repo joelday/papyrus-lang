@@ -59,7 +59,7 @@ namespace DarkId.Papyrus.Server
 
         public ScriptFile GetScriptForFilePath(string filePath)
         {
-            return _projectHosts.Values.Select(p => p.Program.GetScriptForFilePath(filePath)).FirstOrDefault();
+            return _projectHosts.Values.Select(p => p.Program.GetScriptForFilePath(filePath)).WhereNotNull().FirstOrDefault();
         }
 
         public Task PublishDiagnosticsForFilePath(string filePath)

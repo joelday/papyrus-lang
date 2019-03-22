@@ -39,7 +39,8 @@ namespace DarkId.Papyrus.LanguageService.Projects
 
                 foreach (var script in projectInfo.Project.Scripts)
                 {
-                    scriptsInclude.Scripts.Add(Path.GetFullPath(Path.Combine(projectFileDirectory, PathUtilities.Normalize(script))));
+                    var scriptWithExtension = Path.HasExtension(script) ? script : script + ".psc";
+                    scriptsInclude.Scripts.Add(Path.GetFullPath(Path.Combine(projectFileDirectory, PathUtilities.Normalize(scriptWithExtension))));
                 }
 
                 builder.WithSourceIncludes(scriptsInclude);

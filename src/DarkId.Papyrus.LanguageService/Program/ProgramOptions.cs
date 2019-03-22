@@ -21,7 +21,8 @@ namespace DarkId.Papyrus.LanguageService.Program
                     Includes = Sources.Includes.Select(include => new SourceInclude()
                     {
                         Path = include.Path,
-                        Recursive = include.Recursive
+                        Recursive = include.Recursive,
+                        Scripts = include.Scripts
                     }).ToList()
                 }
             };
