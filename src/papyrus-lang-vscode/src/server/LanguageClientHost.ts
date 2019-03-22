@@ -1,6 +1,6 @@
 import { Disposable, ExtensionContext, OutputChannel, window, TextDocument } from 'vscode';
 
-import { LanguageClient, ILanguageClient } from './LanguageClient';
+import { LanguageClient, ILanguageClient, IToolArguments } from './LanguageClient';
 import { PapyrusGame, getShortDisplayNameForGame } from '../PapyrusGame';
 import { IGameConfig } from '../ExtensionConfigProvider';
 import { Observable, BehaviorSubject } from 'rxjs';
@@ -98,19 +98,24 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
                 return;
             }
 
+            const toolArguments: IToolArguments = {
+                compilerAssemblyPath: this._creationKitInfo.resolvedCompilerPath,
+                creationKitInstallPath: this._creationKitInfo.resolvedInstallPath,
+                relativeIniPaths: this._config.creationKitIniFiles,
+                flagsFileName: getDefaultFlagsFileNameForGame(this._game),
+                ambientProjectName: `${getShortDisplayNameForGame(this._game)} Creation Kit`,
+                defaultScriptSourceFolder: this._creationKitInfo.config.Papyrus.sScriptSourceFolder,
+                defaultAdditionalImports: this._creationKitInfo.config.Papyrus.sAdditionalImports,
+            };
+
+            this._outputChannel.appendLine(`Creating Language Client instance with options:`);
+            this._outputChannel.appendLine(JSON.stringify(toolArguments));
+
             this._client = new LanguageClient({
                 game: this._game,
                 toolPath: this._context.asAbsolutePath(getToolPath(this._game)),
                 outputChannel: this._outputChannel,
-                toolArguments: {
-                    compilerAssemblyPath: this._creationKitInfo.resolvedCompilerPath,
-                    creationKitInstallPath: this._creationKitInfo.resolvedInstallPath,
-                    relativeIniPaths: this._config.creationKitIniFiles,
-                    flagsFileName: getDefaultFlagsFileNameForGame(this._game),
-                    ambientProjectName: `${getShortDisplayNameForGame(this._game)} Creation Kit`,
-                    defaultScriptSourceFolder: this._creationKitInfo.config.Papyrus.sScriptSourceFolder,
-                    defaultAdditionalImports: this._creationKitInfo.config.Papyrus.sAdditionalImports,
-                },
+                toolArguments,
             });
 
             this._status.next(ClientHostStatus.starting);

@@ -42,5 +42,6 @@ namespace DarkId.Papyrus.LanguageService.Program
     {
         public string Path { get; set; }
         public bool Recursive { get; set; } = true;
+        public List<string> Scripts { get; set; } = new List<string>();
     }
 }
