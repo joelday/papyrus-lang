@@ -65,6 +65,10 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
         {
             var symbols = GetReferencableSymbolsAtMarker("function-body");
             symbols.AssertAreOfKinds(SymbolKinds.Script | SymbolKinds.Struct | SymbolKinds.Function | SymbolKinds.Variable | SymbolKinds.Property);
+
+#if FALLOUT4
+            Assert.IsNotNull(symbols.SingleOrDefault(s => s.Name == "GroupProperty"));
+#endif
         }
 
         [TestMethod]
