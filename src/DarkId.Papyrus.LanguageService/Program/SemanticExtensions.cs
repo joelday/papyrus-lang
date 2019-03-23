@@ -73,7 +73,7 @@ namespace DarkId.Papyrus.LanguageService.Program
 
             if (!globalOnly)
             {
-                var kindFilter = SymbolKinds.Property | SymbolKinds.Function | SymbolKinds.Struct;
+                var kindFilter = SymbolKinds.Property | SymbolKinds.Function | SymbolKinds.Struct | SymbolKinds.Group;
                 if (includeDeclaredPrivates)
                 {
                     kindFilter |= SymbolKinds.Variable | SymbolKinds.Event;
