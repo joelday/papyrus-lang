@@ -17,17 +17,26 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
     public class SemanticExtensionsTests : ProgramTestBase
     {
         private IEnumerable<PapyrusSymbol> GetReferencableSymbolsAtMarker(
-            string marker, bool assertHasResults = true, bool shouldReturnGlobals = false, string script = "ScopeTests")
+            string marker, bool assertHasResults = true, bool shouldReturnGlobals = false, bool canReturnDeclaredGlobals = false, string script = "ScopeTests")
         {
-            var scopeTestScript = Program.ScriptFiles[script];
+            var testScript = Program.ScriptFiles[script];
 
-            var markerPosition = scopeTestScript.GetTestMarker(marker);
-            var node = scopeTestScript.Node.GetNodeAtPosition(markerPosition);
+            var markerPosition = testScript.GetTestMarker(marker);
+            var node = testScript.Node.GetNodeAtPosition(markerPosition);
             var symbols = node.GetReferencableSymbols();
 
             Debug.WriteLine($"Referencable symbols: {symbols.Select(s => $"{s.Name} ({s.Kind})").Join(",\r\n")}");
 
-            if (shouldReturnGlobals)
+            if (canReturnDeclaredGlobals)
+            {
+                var globalSymbols = symbols.Where(s => (s.Flags & LanguageFlags.Global) != 0);
+                if (globalSymbols.Any())
+                {
+                    Assert.IsTrue(globalSymbols.All(s => s.Script.Id == testScript.Id),
+                        "Only locally declared globals should be referencable in this case.");
+                }
+            }
+            else if (shouldReturnGlobals)
             {
                 Assert.IsTrue(symbols.All(s => (s.Flags & LanguageFlags.Global) != 0), "Only globals should be referencable in this case.");
             }
@@ -63,9 +72,10 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
         [TestMethod]
         public void GetReferencableSymbols_FunctionBody()
         {
-            var symbols = GetReferencableSymbolsAtMarker("function-body");
+            var symbols = GetReferencableSymbolsAtMarker("function-body", canReturnDeclaredGlobals: true);
             symbols.AssertAreOfKinds(SymbolKinds.Script | SymbolKinds.Struct | SymbolKinds.Function | SymbolKinds.Variable | SymbolKinds.Property);
 
+            Assert.IsNotNull(symbols.SingleOrDefault(s => s.Name == "LocalGlobalFunction"));
 #if FALLOUT4
             Assert.IsNotNull(symbols.SingleOrDefault(s => s.Name == "GroupProperty"));
 #endif
@@ -74,7 +84,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
         [TestMethod]
         public void GetReferencableSymbols_NativeFunctionBody()
         {
-            var symbols = GetReferencableSymbolsAtMarker("native-function-body", script: "ScriptObject");
+            var symbols = GetReferencableSymbolsAtMarker("native-function-body", script: "ScriptObject", canReturnDeclaredGlobals: true);
             symbols.AssertAreOfKinds(SymbolKinds.Script | SymbolKinds.Struct | SymbolKinds.Function | SymbolKinds.Variable | SymbolKinds.Event | SymbolKinds.Property);
         }
 

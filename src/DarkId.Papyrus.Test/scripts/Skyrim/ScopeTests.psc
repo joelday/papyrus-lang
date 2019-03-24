@@ -36,3 +36,7 @@ EndFunction
 Function CallingFunction()
     int a = ;/marker:assignment/;ReturningIntFunction(;/marker:function-call-parameter/;0)
 EndFunction
+
+Function LocalGlobalFunction() Global
+
+EndFunction
