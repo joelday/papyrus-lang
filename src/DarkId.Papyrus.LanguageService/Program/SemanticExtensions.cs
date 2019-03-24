@@ -57,7 +57,8 @@ namespace DarkId.Papyrus.LanguageService.Program
 
             var symbolsInScope = symbols.
                 Concat(symbols.OfType<GroupSymbol>().SelectMany(g => g.Children)).Where(s => !(s is GroupSymbol)).
-                Concat(node.Script.Symbol.GetImportedScripts().SelectMany(s => s.GetScriptMemberSymbols(globalOnly: true)));
+                Concat(node.Script.Symbol.GetImportedScripts().SelectMany(s => s.GetScriptMemberSymbols(globalOnly: true))).
+                Concat(node.Script.Symbol.GetScriptMemberSymbols(globalOnly: true, declaredOnly: true));
 
             if (!node.GetContainingScopes().Any(s => s is FunctionDefinitionNode || s is EventDefinitionNode))
             {
@@ -67,7 +68,8 @@ namespace DarkId.Papyrus.LanguageService.Program
             return symbolsInScope;
         }
 
-        public static IEnumerable<PapyrusSymbol> GetScriptMemberSymbols(this ScriptSymbol symbol, bool declaredOnly = false, bool includeDeclaredPrivates = false, bool globalOnly = false)
+        public static IEnumerable<PapyrusSymbol> GetScriptMemberSymbols(
+            this ScriptSymbol symbol, bool declaredOnly = false, bool includeDeclaredPrivates = false, bool globalOnly = false, bool declaredGlobalsOnly = false)
         {
             var symbols = (IEnumerable<PapyrusSymbol>)symbol.Definition.ScopedSymbols.Values;
 
@@ -84,6 +86,11 @@ namespace DarkId.Papyrus.LanguageService.Program
             else
             {
                 symbols = symbols.Where(s => (s.Flags & LanguageFlags.Global) != 0 && (s.Kind & SymbolKinds.Function) != 0);
+
+                if (declaredOnly)
+                {
+                    symbols = symbols.Where(s => s.Script == symbol.Script);
+                }
             }
 
             if (!declaredOnly)

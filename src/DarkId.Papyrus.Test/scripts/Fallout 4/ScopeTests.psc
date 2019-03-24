@@ -30,9 +30,14 @@ int Function ReturningIntFunction(;/marker:function-parameter-type/;int\
     var ;/marker:local-variable-name/;value = 0 as ;/marker:as-expression/;int
     ;/marker:function-body/;
     bool isInt = value is ;/marker:is-expression/;int
+
     return arg
 EndFunction
 
 Function CallingFunction()
     int a = ;/marker:assignment/;ReturningIntFunction(;/marker:function-call-parameter/;0)
+EndFunction
+
+Function LocalGlobalFunction() Global
+
 EndFunction
