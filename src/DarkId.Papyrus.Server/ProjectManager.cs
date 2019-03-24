@@ -79,7 +79,7 @@ namespace DarkId.Papyrus.Server
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, "Failed to publish diagnostics.");
+                    _logger.LogWarning(e, "Failed to publish diagnostics.");
                 }
             });
         }
@@ -112,7 +112,7 @@ namespace DarkId.Papyrus.Server
                         }
                         catch (Exception e)
                         {
-                            _logger.LogError(e, "Failed to load project: {0}", key);
+                            _logger.LogWarning(e, "Failed to load project: {0}", key);
                         }
 
                         return null;

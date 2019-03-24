@@ -64,7 +64,7 @@ namespace DarkId.Papyrus.Server
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError(e, "Failed to load project file.");
+                        _logger.LogWarning(e, "Failed to load project file.");
                     }
 
                     return new Tuple<string, ProgramOptions>(projectPath, null);

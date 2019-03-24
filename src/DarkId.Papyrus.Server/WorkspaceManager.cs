@@ -33,7 +33,7 @@ namespace DarkId.Papyrus.Server
         {
             TaskScheduler.UnobservedTaskException += (s, e) =>
             {
-                logger.LogError(e.Exception, "Unobserved exception thrown.");
+                logger.LogWarning(e.Exception, "Unobserved exception thrown.");
             };
 
             _languageServer = languageServer;

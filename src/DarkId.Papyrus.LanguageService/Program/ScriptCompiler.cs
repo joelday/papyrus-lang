@@ -212,7 +212,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"Error in LoadObject for {_targetScript.Id}");
+                _logger.LogWarning(e, $"Error in LoadObject for {_targetScript.Id}");
             }
 
             if (result == null)

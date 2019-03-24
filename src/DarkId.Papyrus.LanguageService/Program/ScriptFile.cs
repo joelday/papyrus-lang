@@ -154,7 +154,7 @@ namespace DarkId.Papyrus.LanguageService.Program
                             }
                             catch (Exception e)
                             {
-                                _logger.LogError(e, $"Thrown during type checking of {_id}");
+                                _logger.LogWarning(e, $"Thrown during type checking of {_id}");
                             }
 
                             return compilationResult;

@@ -116,7 +116,7 @@ namespace DarkId.Papyrus.Server.Features
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error while handling request.");
+                _logger.LogWarning(e, "Error while handling request.");
             }
 
             return Task.FromResult<CompletionList>(null);
