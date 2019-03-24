@@ -1,7 +1,3 @@
-[![](https://vsmarketplacebadge.apphb.com/version-short/joelday.papyrus-lang-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=joelday.papyrus-lang-vscode)
-[![Build status](https://ci.appveyor.com/api/projects/status/ear84ovxacid2o1v?svg=true)](https://ci.appveyor.com/project/joelday/papyrus-lang)
-[![Discord](https://img.shields.io/discord/558746231665328139.svg?color=%23738ADB)](https://discord.gg/E4dWujQ)
-
 <h1 align="center">
     📜 Papyrus for Visual Studio Code
     <br/>
@@ -10,8 +6,12 @@
     <br/>
     <br/>
     <h3 align="center">Fallout 4 and Skyrim language support with code completion, definitions, hover, symbol outlines and live updated diagnostics.</h3>
-    <br/>
 </h1>
+<hr/>
+
+[![](https://vsmarketplacebadge.apphb.com/version-short/joelday.papyrus-lang-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=joelday.papyrus-lang-vscode)
+[![Build status](https://ci.appveyor.com/api/projects/status/ear84ovxacid2o1v?svg=true)](https://ci.appveyor.com/project/joelday/papyrus-lang)
+[![Discord](https://img.shields.io/discord/558746231665328139.svg?color=%23738ADB)](https://discord.gg/E4dWujQ)
 
 ## Features
 ### Autocomplete
