@@ -17,6 +17,6 @@ Updated frequently with new features and improvements.
 🔗 [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=joelday.papyrus-lang-vscode)\
 ⚙️ [Source](src/papyrus-lang-vscode)
 
-<br>
+<br />
 
-![](src/papyrus-lang-vscode/images/demo-autocomplete.gif)
+<img src="src/papyrus-lang-vscode/images/demo-autocomplete.gif" width="100%" />
