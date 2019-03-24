@@ -5,6 +5,7 @@
     <img src="https://github.com/joelday/papyrus-lang/raw/master/src/papyrus-lang-vscode/images/icon.png" width="50%" />
     <br/>
     <h3 align="center">Fallout 4 and Skyrim language support with code completion, definitions, hover, symbol outlines and live updated diagnostics.</h3>
+    <br/>
 </h1>
 
 [![](https://vsmarketplacebadge.apphb.com/version-short/joelday.papyrus-lang-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=joelday.papyrus-lang-vscode)
