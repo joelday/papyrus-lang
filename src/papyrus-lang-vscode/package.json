@@ -210,12 +210,11 @@
         "semantic-release": "semantic-release"
     },
     "release": {
-        "repositoryUrl": "git://github.com/joelday/papyrus-lang.git",
+        "repositoryUrl": "https://github.com/joelday/papyrus-lang.git",
         "plugins": [
             "@semantic-release/commit-analyzer",
             "@semantic-release/release-notes-generator",
             "@semantic-release/changelog",
-            "@semantic-release/npm",
             "@semantic-release/git",
             "@semantic-release/github"
         ],
@@ -223,10 +222,13 @@
             "semantic-release-vsce",
             "@semantic-release/github"
         ],
-        "prepare": {
-            "path": "semantic-release-vsce",
-            "packageVsix": "papyrus-lang-vscode.vsix"
-        },
+        "prepare": [
+            "semantic-release-vsce",
+            {
+                "path": "semantic-release-vsce",
+                "packageVsix": "papyrus-lang-vscode.vsix"
+            }
+        ],
         "publish": [
             "semantic-release-vsce",
             {
