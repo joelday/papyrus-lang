@@ -223,6 +223,8 @@
             "@semantic-release/github"
         ],
         "prepare": [
+            "@semantic-release/changelog",
+            "@semantic-release/git",
             "semantic-release-vsce",
             {
                 "path": "semantic-release-vsce",
