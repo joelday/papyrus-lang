@@ -109,7 +109,8 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
             };
 
             this._outputChannel.appendLine(`Creating Language Client instance with options:`);
-            this._outputChannel.appendLine(JSON.stringify(toolArguments));
+            this._outputChannel.appendLine(JSON.stringify(toolArguments, null, 4));
+            this._outputChannel.appendLine('');
 
             this._client = new LanguageClient({
                 game: this._game,
@@ -123,6 +124,9 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
             this._status.next(ClientHostStatus.running);
         } catch (error) {
             this._outputChannel.appendLine(`Error on language service pre-start: ${error.toString()}`);
+            if (error instanceof Error) {
+                this._outputChannel.appendLine(error.stack);
+            }
 
             this._error.next(error.toString());
             this._status.next(ClientHostStatus.error);
