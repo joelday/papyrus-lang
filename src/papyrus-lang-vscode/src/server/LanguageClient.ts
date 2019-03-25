@@ -10,6 +10,10 @@ function toCommandLineArgs(obj: Object): string[] {
         ...Object.keys(obj).map((key) => {
             const value = obj[key];
 
+            if (typeof value === 'undefined' || value === null) {
+                return [];
+            }
+
             return [
                 `--${key}`,
                 ...(Array.isArray(value) ? value.map((element) => element.toString()) : [value.toString()]),
