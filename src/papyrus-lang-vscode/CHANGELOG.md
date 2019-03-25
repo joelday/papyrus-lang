@@ -1,3 +1,10 @@
+## [2.0.9](https://github.com/joelday/papyrus-lang/compare/v2.0.8...v2.0.9) (2019-03-25)
+
+
+### Bug Fixes
+
+* null/undefined check for command line args builder ([#29](https://github.com/joelday/papyrus-lang/issues/29)) ([#32](https://github.com/joelday/papyrus-lang/issues/32)) ([7fbbb8e](https://github.com/joelday/papyrus-lang/commit/7fbbb8e))
+
 ## [2.0.8](https://github.com/joelday/papyrus-lang/compare/v2.0.7...v2.0.8) (2019-03-24)
 
 
@@ -55,5 +62,3 @@
 ## [2.0.2](https://github.com/joelday/papyrus-lang/compare/d38adbf...v2.0.2) (2019-03-22)
 
 * Initial 2.0 release
-
-
