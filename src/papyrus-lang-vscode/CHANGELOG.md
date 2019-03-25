@@ -1,3 +1,10 @@
+## [2.0.10](https://github.com/joelday/papyrus-lang/compare/v2.0.9...v2.0.10) (2019-03-25)
+
+
+### Bug Fixes
+
+* README.md urls ([fc3f648](https://github.com/joelday/papyrus-lang/commit/fc3f648))
+
 ## [2.0.9](https://github.com/joelday/papyrus-lang/compare/v2.0.8...v2.0.9) (2019-03-25)
 
 
