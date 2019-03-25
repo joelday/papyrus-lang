@@ -15,10 +15,10 @@
 
 ## Features
 ### Autocomplete
-![](images/demo-autocomplete.gif)
+![](https://github.com/joelday/papyrus-lang/raw/master/src/papyrus-lang-vscode/images/demo-autocomplete.gif)
 
 ### Go to and Peek Definition
-![](images/demo-go-to-peek-definition.gif)
+![](https://github.com/joelday/papyrus-lang/raw/master/src/papyrus-lang-vscode/images/demo-go-to-peek-definition.gif)
 
 ### Symbol Outline
-![](images/demo-symbol-outlines-breadcrumbs.gif)
+![](https://github.com/joelday/papyrus-lang/raw/master/src/papyrus-lang-vscode/images/demo-symbol-outlines-breadcrumbs.gif)
