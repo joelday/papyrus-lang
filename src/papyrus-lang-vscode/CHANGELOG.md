@@ -1,3 +1,10 @@
+## [2.0.11](https://github.com/joelday/papyrus-lang/compare/v2.0.10...v2.0.11) (2019-03-27)
+
+
+### Bug Fixes
+
+* corrected references to the sCompilerFolder ini setting. ([c99cfcc](https://github.com/joelday/papyrus-lang/commit/c99cfcc))
+
 ## [2.0.10](https://github.com/joelday/papyrus-lang/compare/v2.0.9...v2.0.10) (2019-03-25)
 
 
