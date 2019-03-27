@@ -27,31 +27,38 @@ export interface ICreationKitPapyrusConfig {
     sScriptSourceFolder?: string;
     sAdditionalImports?: string;
     sScriptCompiledFolder?: string;
+    /**
+     * @deprecated (This is incorrect, just keeping it around to avoid a breaking change.)
+     */
     sCompilerPath?: string;
+    sCompilerFolder?: string;
 }
 
 function getDefaultPapyrusConfigForGame(game: PapyrusGame): ICreationKitPapyrusConfig {
-    const sScriptCompiledFolder = 'sScriptCompiledFolder';
-    const sCompilerPath = 'Papyrus Compiler';
+    const sScriptCompiledFolder = 'Data/Scripts/';
+    const sCompilerFolder = 'Papyrus Compiler/';
 
     switch (game) {
         case PapyrusGame.fallout4:
             return {
                 sScriptSourceFolder: '.\\Data\\Scripts\\Source\\User\\',
                 sAdditionalImports: '$(source);.\\Data\\Scripts\\Source\\Base\\',
-                sCompilerPath,
+                sCompilerPath: sCompilerFolder,
+                sCompilerFolder,
                 sScriptCompiledFolder,
             };
         case PapyrusGame.skyrim:
             return {
                 sScriptSourceFolder: '.\\Data\\Scripts\\Source\\',
-                sCompilerPath,
+                sCompilerPath: sCompilerFolder,
+                sCompilerFolder,
                 sScriptCompiledFolder,
             };
         case PapyrusGame.skyrimSpecialEdition:
             return {
                 sScriptSourceFolder: '.\\Data\\Source\\Scripts\\',
-                sCompilerPath,
+                sCompilerPath: sCompilerFolder,
+                sCompilerFolder,
                 sScriptCompiledFolder,
             };
     }
@@ -119,7 +126,7 @@ export class CreationKitInfoProvider {
                         ({
                             resolvedInstallPath,
                             resolvedCompilerPath: resolvedInstallPath
-                                ? path.resolve(resolvedInstallPath, mergedIni.Papyrus.sCompilerPath)
+                                ? path.resolve(resolvedInstallPath, mergedIni.Papyrus.sCompilerFolder || mergedIni.Papyrus.sCompilerPath)
                                 : null,
                             config: mergedIni,
                         } as ICreationKitInfo)
