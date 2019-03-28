@@ -1,3 +1,10 @@
+## [2.0.12](https://github.com/joelday/papyrus-lang/compare/v2.0.11...v2.0.12) (2019-03-28)
+
+
+### Bug Fixes
+
+* autocomplete and error refinements ([3488a3d](https://github.com/joelday/papyrus-lang/commit/3488a3d))
+
 ## [2.0.11](https://github.com/joelday/papyrus-lang/compare/v2.0.10...v2.0.11) (2019-03-27)
 
 
