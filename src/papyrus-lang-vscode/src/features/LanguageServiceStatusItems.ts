@@ -139,7 +139,7 @@ class StatusBarItemController implements Disposable {
                             activeDocumentScriptInfo && activeDocumentScriptInfo.identifiers.length > 0
                                 ? '$(verified)'
                                 : '$(check)'
-                        }`;
+                            }`;
                         this._statusBarItem.tooltip = `${fullName} language service running.`;
                         break;
                     case ClientHostStatus.missing:
@@ -149,7 +149,8 @@ class StatusBarItemController implements Disposable {
                         break;
                     case ClientHostStatus.compilerMissing:
                         this._statusBarItem.text = `${displayName} $(alert)`;
-                        this._statusBarItem.tooltip = `Unable to locate the Papyrus compiler.`;
+                        this._statusBarItem.tooltip = `Unable to locate the Papyrus compiler. Make sure that the game install path is correct, Creation Kit has been installed and that, if specified in an ini file, sCompilerFolder is also correct.`;
+                        this._statusBarItem.command = this._locateOrDisableCommand.name;
                         break;
                     case ClientHostStatus.error:
                         this._statusBarItem.text = `${displayName} $(stop)`;

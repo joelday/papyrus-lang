@@ -1,14 +1,16 @@
 import { createDecorator } from 'decoration-ioc';
 import { PapyrusGame, getGames } from './PapyrusGame';
 import { IExtensionConfigProvider } from './ExtensionConfigProvider';
-import { Observable, combineLatest, of } from 'rxjs';
-import { map, mergeMap, catchError, shareReplay } from 'rxjs/operators';
-import { resolveInstallPath } from './Utilities';
+import { Observable, combineLatest } from 'rxjs';
+import { map, mergeMap, shareReplay } from 'rxjs/operators';
+import { resolveInstallPath, inDevelopmentEnvironment, getDevelopmentCompilerFolderForGame } from './Utilities';
 import * as path from 'path';
 import * as ini from 'ini';
 import { all as deepMergeAll } from 'deepmerge';
 import * as fs from 'fs';
 import { promisify } from 'util';
+import { IExtensionContext } from './common/vscode/IocDecorators';
+import { ExtensionContext } from 'vscode';
 
 const readFile = promisify(fs.readFile);
 const exists = promisify(fs.exists);
@@ -27,10 +29,6 @@ export interface ICreationKitPapyrusConfig {
     sScriptSourceFolder?: string;
     sAdditionalImports?: string;
     sScriptCompiledFolder?: string;
-    /**
-     * @deprecated (This is incorrect, just keeping it around to avoid a breaking change.)
-     */
-    sCompilerPath?: string;
     sCompilerFolder?: string;
 }
 
@@ -43,21 +41,18 @@ function getDefaultPapyrusConfigForGame(game: PapyrusGame): ICreationKitPapyrusC
             return {
                 sScriptSourceFolder: '.\\Data\\Scripts\\Source\\User\\',
                 sAdditionalImports: '$(source);.\\Data\\Scripts\\Source\\Base\\',
-                sCompilerPath: sCompilerFolder,
                 sCompilerFolder,
                 sScriptCompiledFolder,
             };
         case PapyrusGame.skyrim:
             return {
                 sScriptSourceFolder: '.\\Data\\Scripts\\Source\\',
-                sCompilerPath: sCompilerFolder,
                 sCompilerFolder,
                 sScriptCompiledFolder,
             };
         case PapyrusGame.skyrimSpecialEdition:
             return {
                 sScriptSourceFolder: '.\\Data\\Source\\Scripts\\',
-                sCompilerPath: sCompilerFolder,
                 sCompilerFolder,
                 sScriptCompiledFolder,
             };
@@ -77,12 +72,12 @@ export interface ICreationKitInfoProvider {
 export class CreationKitInfoProvider {
     private readonly _infos: Map<PapyrusGame, Observable<ICreationKitInfo>>;
 
-    constructor(@IExtensionConfigProvider infoProvider: IExtensionConfigProvider) {
+    constructor(@IExtensionConfigProvider infoProvider: IExtensionConfigProvider, @IExtensionContext extensionContext: ExtensionContext) {
         const createInfoObservable = (game: PapyrusGame) => {
             const gameConfig = infoProvider.config.pipe(map((config) => config[game]));
 
             const resolvedInstallPath = gameConfig.pipe(
-                mergeMap((gameConfig) => resolveInstallPath(game, gameConfig.installPath)),
+                mergeMap((gameConfig) => resolveInstallPath(game, gameConfig.installPath, extensionContext)),
                 shareReplay(1)
             );
 
@@ -121,15 +116,18 @@ export class CreationKitInfoProvider {
             );
 
             return combineLatest(resolvedInstallPath, mergedIni).pipe(
-                map(
-                    ([resolvedInstallPath, mergedIni]) =>
-                        ({
+                mergeMap(
+                    async ([resolvedInstallPath, mergedIni]) => {
+                        const compilerPath = path.resolve(resolvedInstallPath, mergedIni.Papyrus.sCompilerFolder);
+                        const resolvedCompilerPath = await exists(compilerPath) ? compilerPath : inDevelopmentEnvironment() ?
+                            path.resolve(resolvedInstallPath, getDevelopmentCompilerFolderForGame(game)) : null;
+
+                        return {
                             resolvedInstallPath,
-                            resolvedCompilerPath: resolvedInstallPath
-                                ? path.resolve(resolvedInstallPath, mergedIni.Papyrus.sCompilerFolder || mergedIni.Papyrus.sCompilerPath)
-                                : null,
+                            resolvedCompilerPath: inDevelopmentEnvironment() && !(await exists(resolvedCompilerPath)) ? null : resolvedCompilerPath,
                             config: mergedIni,
-                        } as ICreationKitInfo)
+                        } as ICreationKitInfo;
+                    }
                 ),
                 shareReplay(1)
             );

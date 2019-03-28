@@ -2,7 +2,7 @@
 <PapyrusProject xmlns="PapyrusProject.xsd"
     Flags="Institute_Papyrus_Flags.flg">
     <Imports>
-    </Imports> 
+    </Imports>
 
     <Folders>
         <Folder>.</Folder>
