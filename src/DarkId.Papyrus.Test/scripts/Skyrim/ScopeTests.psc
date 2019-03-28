@@ -28,7 +28,10 @@ int Function ReturningIntFunction(;/marker:function-parameter-type/;int\
     obj.;/marker:nested-function-call/;ReturnsScriptObject().ReturnsScriptObject();
 
     int ;/marker:local-variable-name/;value = 0 as ;/marker:as-expression/;int
+    
     ;/marker:function-body/;
+    
+    bool ;/marker:incomplete-declaration/;
 
     return arg
 EndFunction

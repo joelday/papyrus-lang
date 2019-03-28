@@ -54,6 +54,15 @@ namespace DarkId.Papyrus.LanguageService.Program
 
         public static Range GetRange(this CommonTree node, ITokenStream tokenStream, IReadOnlyScriptText scriptText)
         {
+            if (node is CommonErrorNode errorNode)
+            {
+                return new Range()
+                {
+                    Start = scriptText.PositionAt(((CommonToken)tokenStream.Get(errorNode.start.TokenIndex)).StartIndex),
+                    End = scriptText.PositionAt(((CommonToken)tokenStream.Get(errorNode.stop.TokenIndex)).StopIndex + 1)
+                };
+            }
+
             if (node.TokenStartIndex == -1 || node.TokenStopIndex == -1)
             {
                 return Range.Empty;

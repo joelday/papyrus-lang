@@ -17,15 +17,24 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
     public class SemanticExtensionsTests : ProgramTestBase
     {
         private IEnumerable<PapyrusSymbol> GetReferencableSymbolsAtMarker(
-            string marker, bool assertHasResults = true, bool shouldReturnGlobals = false, bool canReturnDeclaredGlobals = false, string script = "ScopeTests")
+            string marker, bool beforeMarker = false, bool shouldHaveResults = true, bool shouldReturnGlobals = false, bool canReturnDeclaredGlobals = false, string script = "ScopeTests")
         {
             var testScript = Program.ScriptFiles[script];
 
-            var markerPosition = testScript.GetTestMarker(marker);
+            var markerPosition = testScript.GetTestMarker(marker, beforeMarker);
             var node = testScript.Node.GetNodeAtPosition(markerPosition);
             var symbols = node.GetReferencableSymbols();
 
             Debug.WriteLine($"Referencable symbols: {symbols.Select(s => $"{s.Name} ({s.Kind})").Join(",\r\n")}");
+
+            if (shouldHaveResults)
+            {
+                Assert.IsTrue(symbols.Count() > 0, "One or more symbols should be referencable in this case.");
+            }
+            else
+            {
+                Assert.IsFalse(symbols.Count() > 0, "No symbols should be referencable in this case.");
+            }
 
             if (canReturnDeclaredGlobals)
             {
@@ -43,11 +52,6 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
             else
             {
                 Assert.IsTrue(symbols.All(s => (s.Flags & LanguageFlags.Global) == 0), "Only non-globals should be referencable in this case.");
-            }
-
-            if (assertHasResults)
-            {
-                Assert.IsTrue(symbols.Count() > 0, "One or more symbols should be referencable in this case.");
             }
 
             var symbolsWithKindNames = symbols.Select(n => n.Name + n.Kind.ToString());
@@ -114,6 +118,21 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
         {
             var symbols = GetReferencableSymbolsAtMarker("array-member-access");
             symbols.AssertAreOfKinds(SymbolKinds.Function | SymbolKinds.Property);
+        }
+
+        [TestMethod]
+        public void GetReferencableSymbols_LocalVariableName()
+        {
+            GetReferencableSymbolsAtMarker("local-variable-name", shouldHaveResults: false);
+            GetReferencableSymbolsAtMarker("local-variable-name", true, shouldHaveResults: false);
+            GetReferencableSymbolsAtMarker("incomplete-declaration", true, shouldHaveResults: false);
+        }
+
+        [TestMethod]
+        public void GetReferencableSymbols_FunctionParameterName()
+        {
+            GetReferencableSymbolsAtMarker("function-parameter-name", shouldHaveResults: false);
+            GetReferencableSymbolsAtMarker("function-parameter-name", true, shouldHaveResults: false);
         }
     }
 }
