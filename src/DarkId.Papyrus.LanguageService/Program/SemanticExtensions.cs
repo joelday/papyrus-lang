@@ -366,6 +366,37 @@ namespace DarkId.Papyrus.LanguageService.Program
             return functionDefinition.Header.Parameters.ElementAtOrDefault(parameterIndex);
         }
 
+        public static IEnumerable<PapyrusSymbol> GetKnownParameterValueSymbols(this FunctionCallExpressionParameterNode callParameterNode)
+        {
+            var callExpression = (FunctionCallExpressionNode)callParameterNode.Parent;
+            var definedParameter = callParameterNode.GetParameterDefinition();
+            if (definedParameter == null)
+            {
+                return Enumerable.Empty<PapyrusSymbol>();
+            }
+
+            var definedHeader = (FunctionHeaderNode)definedParameter.Parent;
+
+#if FALLOUT4
+            if (definedParameter.TypeIdentifier.Text.CaseInsensitiveEquals("CustomEventName"))
+            {
+                var definedSourceTypeParameter = definedHeader.Parameters.IndexOf(definedParameter) > 0 ?
+                    definedHeader.Parameters.First() : null;
+
+                var expressionForSourceType = definedSourceTypeParameter != null ?
+                    callExpression.Parameters.FirstOrDefault(p => p.GetParameterDefinition() == definedSourceTypeParameter) : null;
+
+                var sourceType = (expressionForSourceType != null ?
+                    expressionForSourceType.GetTypeOfExpression() : callParameterNode.Script.Symbol.GetPapyrusType()) as ScriptType;
+
+                return sourceType.Symbol.Children.OfType<CustomEventSymbol>().ToArray();
+                // var targetType = definedHeader.Parameters.IndexOf(definedParameter) == 0 ? definedHeader.Script.Symbol.GetPapyrusType() : definedHead
+            }
+#endif
+
+            return Enumerable.Empty<PapyrusSymbol>();
+        }
+
         // TODO: Move these elsewhere?
         public static Task<IEnumerable<SyntaxNode>> FindReferences(this PapyrusSymbol symbol)
         {

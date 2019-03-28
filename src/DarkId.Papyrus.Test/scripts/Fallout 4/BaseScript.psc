@@ -1,5 +1,7 @@
 Scriptname BaseScript extends ScriptObject
 
+CustomEvent baseScriptCustomEvent
+
 int scriptObjectIntVariable
 int Property ScriptObjectIntProperty Auto
 

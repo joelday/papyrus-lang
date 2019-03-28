@@ -54,7 +54,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Types
         where TSymbol : TypeSymbol
         where TCompilerType : ScriptComplexType
     {
-        protected new TSymbol Symbol => base.Symbol as TSymbol;
+        public new TSymbol Symbol => base.Symbol as TSymbol;
         protected new TCompilerType CompilerType => base.CompilerType as TCompilerType;
 
         internal ComplexType(PapyrusProgram program, TSymbol symbol, TCompilerType compilerType) :
@@ -69,6 +69,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Types
         private readonly Dictionary<ObjectIdentifier, StructType> _structTypes;
         public IReadOnlyDictionary<ObjectIdentifier, StructType> StructTypes => _structTypes;
 #endif
+
         public ScriptType(PapyrusProgram program, ScriptSymbol symbol, ScriptObjectType compilerType)
             : base(program, symbol, compilerType)
         {

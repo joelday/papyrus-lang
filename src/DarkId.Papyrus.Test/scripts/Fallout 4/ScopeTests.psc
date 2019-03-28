@@ -1,6 +1,8 @@
 ;/test:ignore-diagnostics/;
 Scriptname ScopeTests extends BaseScript
 
+CustomEvent scopeTestsCustomEvent
+
 ;/marker:script-body/;
 
 int ;/marker:script-variable-name/;localPrivateVariable
@@ -35,6 +37,9 @@ int Function ReturningIntFunction(;/marker:function-parameter-type/;int\
     bool ;/marker:incomplete-declaration/;
 
     FunctionWithOptionalParams(;/marker:first-func-param/;0, 1, ;/marker:named-func-param/;d = 5)
+
+    SendCustomEvent("scopeTestsCustomEvent")
+    SendCustomEvent("baseScriptCustomEvent")
 
     return arg
 EndFunction
