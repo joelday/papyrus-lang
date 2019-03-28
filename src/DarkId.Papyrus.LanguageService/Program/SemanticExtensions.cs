@@ -339,6 +339,15 @@ namespace DarkId.Papyrus.LanguageService.Program
                 || ScopeCanReferenceScriptsInternal((SyntaxNode)node.Scope);
         }
 
+        public static FunctionParameterNode GetFunctionParameter(this FunctionCallExpressionParameterNode expressionParameterNode)
+        {
+            var callExpression = ((FunctionCallExpressionNode)expressionParameterNode.Parent);
+            var functionDefinition = callExpression.Identifier.GetDeclaredOrReferencedSymbol();
+            var parameterIndex = callExpression.Parameters.IndexOf(expressionParameterNode);
+
+            return null;
+        }
+
         public static Task<IEnumerable<SyntaxNode>> FindReferences(this PapyrusSymbol symbol)
         {
             return symbol.FindReferences(CancellationToken.None);

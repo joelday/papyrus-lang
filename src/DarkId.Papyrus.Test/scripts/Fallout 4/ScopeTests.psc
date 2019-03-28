@@ -34,6 +34,8 @@ int Function ReturningIntFunction(;/marker:function-parameter-type/;int\
     bool isInt = value is ;/marker:is-expression/;int
     bool ;/marker:incomplete-declaration/;
 
+    FunctionWithOptionalParams(;/marker:first-func-param/;0, 1, ;/marker:named-func-param/;d = 5)
+
     return arg
 EndFunction
 
@@ -43,4 +45,7 @@ EndFunction
 
 Function LocalGlobalFunction() Global
 
+EndFunction
+
+Function FunctionWithOptionalParams(int a = 1, int b = 2, int c = 3, int d = 4)
 EndFunction
