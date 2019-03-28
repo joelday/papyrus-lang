@@ -764,6 +764,12 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
             return CreateNode<FunctionCallExpressionParameterNode>(parent, parentChildren, (node, children) =>
             {
                 children.Next();
+
+                if (children.Current.GetAstType() == AstType.Identifier)
+                {
+                    node.Identifier = BindIdentifier(node, children);
+                }
+
                 children.Next();
 
                 node.Value = BindExpression(node, children);

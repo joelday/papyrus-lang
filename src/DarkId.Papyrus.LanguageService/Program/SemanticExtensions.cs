@@ -315,6 +315,12 @@ namespace DarkId.Papyrus.LanguageService.Program
                 return asTypeIdentifier.GetReferencedTypeSymbol();
             }
 
+            if (node is IdentifierNode && node.Parent is FunctionCallExpressionParameterNode callParameterNode)
+            {
+                var parameterNode = callParameterNode.GetParameterDefinition();
+                return parameterNode.Identifier.GetDeclaredOrReferencedSymbol();
+            }
+
             var referenced = node.GetReferencableSymbols().FirstOrDefault(n => n.Name.CaseInsensitiveEquals(node.Text));
             if (referenced != null)
             {
@@ -339,15 +345,28 @@ namespace DarkId.Papyrus.LanguageService.Program
                 || ScopeCanReferenceScriptsInternal((SyntaxNode)node.Scope);
         }
 
-        public static FunctionParameterNode GetFunctionParameter(this FunctionCallExpressionParameterNode expressionParameterNode)
+        public static FunctionParameterNode GetParameterDefinition(this FunctionCallExpressionParameterNode callParameterNode)
         {
-            var callExpression = ((FunctionCallExpressionNode)expressionParameterNode.Parent);
-            var functionDefinition = callExpression.Identifier.GetDeclaredOrReferencedSymbol();
-            var parameterIndex = callExpression.Parameters.IndexOf(expressionParameterNode);
+            var callExpression = ((FunctionCallExpressionNode)callParameterNode.Parent);
 
-            return null;
+            var functionDefinition = (callExpression.Identifier.GetDeclaredOrReferencedSymbol() as FunctionSymbol)?.Definition;
+            if (functionDefinition == null)
+            {
+                return null;
+            }
+            
+            if (callParameterNode.Identifier != null)
+            {
+                return functionDefinition.Header.Parameters.FirstOrDefault(p =>
+                    p.Identifier.Text.CaseInsensitiveEquals(callParameterNode.Identifier.Text));
+            }
+
+            var parameterIndex = callExpression.Parameters.IndexOf(callParameterNode);
+
+            return functionDefinition.Header.Parameters.ElementAtOrDefault(parameterIndex);
         }
 
+        // TODO: Move these elsewhere?
         public static Task<IEnumerable<SyntaxNode>> FindReferences(this PapyrusSymbol symbol)
         {
             return symbol.FindReferences(CancellationToken.None);
@@ -387,6 +406,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             });
         }
 
+        // TODO: Move this elsewhere?
         public static string GetDocumentationMarkdown(this PapyrusSymbol symbol)
         {
             var docs = symbol.Documentation.
