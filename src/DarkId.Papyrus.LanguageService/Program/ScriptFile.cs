@@ -130,7 +130,10 @@ namespace DarkId.Papyrus.LanguageService.Program
                             var typeWalker = new TypeWalker(this, type, _logger);
                             typeWalker.OnError((s, e) =>
                             {
-                                diagnostics.Add(e.ToDiagnostic());
+                                if (!e.ErrorText.StartsWith("mismatched tree node"))
+                                {
+                                    diagnostics.Add(e.ToDiagnostic());
+                                }
                             });
 
                             try

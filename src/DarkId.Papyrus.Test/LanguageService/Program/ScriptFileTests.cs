@@ -17,7 +17,8 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
         [TestMethod]
         public void ScriptFile_ShouldNotProduceDiagnostics()
         {
-            var allDiagnostics = Program.ScriptFiles.Values.AsParallel().AsOrdered().SelectMany(s => s.Diagnostics).ToList();
+            var allDiagnostics = Program.ScriptFiles.Values.AsParallel().AsOrdered().
+                Where(s => s.Text.Text.IndexOf(";/test:ignore-diagnostics/;") == -1).SelectMany(s => s.Diagnostics).ToList();
 
             Console.WriteLine(allDiagnostics.Select(d => d.Message).Join(",\r\n\r\n"));
 

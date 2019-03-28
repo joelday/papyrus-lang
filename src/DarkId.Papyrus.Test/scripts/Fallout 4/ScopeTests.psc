@@ -19,7 +19,7 @@ int Function ReturningIntFunction(;/marker:function-parameter-type/;int\
 
     StructA hello
 
-    StructA[] helloArray = new StructA[0]
+    StructA[] ;/marker:declaration-identifier/;helloArray = new StructA[0]
     var len = helloArray.;/marker:array-member-access/;Length
 
     ScriptObject.;/marker:global-function-call/;NativeGlobalFunction()
@@ -28,8 +28,11 @@ int Function ReturningIntFunction(;/marker:function-parameter-type/;int\
     obj.;/marker:nested-function-call/;ReturnsScriptObject().ReturnsScriptObject();
 
     var ;/marker:local-variable-name/;value = 0 as ;/marker:as-expression/;int
+    
     ;/marker:function-body/;
+    
     bool isInt = value is ;/marker:is-expression/;int
+    bool ;/marker:incomplete-declaration/;
 
     return arg
 EndFunction

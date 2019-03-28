@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Antlr.Runtime;
+using Antlr.Runtime.Tree;
 using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
 using DarkId.Papyrus.LanguageService.Program.Syntax;
@@ -271,6 +273,22 @@ namespace DarkId.Papyrus.LanguageService.Program
                 {
                     return accessExpression.GetReferencableSymbolsForMemberAccess();
                 }
+            }
+
+            if (node is IdentifierNode &&
+                (node.Parent is DeclareStatementNode || node.Parent is FunctionParameterNode))
+            {
+                return Enumerable.Empty<PapyrusSymbol>();
+            }
+
+            if (!(node is ScriptHeaderNode) && node is ITypedIdentifiable typed && typed.TypeIdentifier.Text != string.Empty)
+            {
+                return Enumerable.Empty<PapyrusSymbol>();
+            }
+            
+            if (node.CompilerNode is CommonErrorNode)
+            {
+                return Enumerable.Empty<PapyrusSymbol>();
             }
 
             var symbolsInScope = GetSymbolsInScope(node, node is ScriptHeaderNode || node is ScriptNode);

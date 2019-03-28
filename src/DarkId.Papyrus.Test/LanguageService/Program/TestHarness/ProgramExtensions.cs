@@ -12,9 +12,16 @@ namespace DarkId.Papyrus.Test.LanguageService.Program.TestHarness
 {
     public static class ProgramExtensions
     {
-        public static Position GetTestMarker(this ScriptFile file, string marker)
+        public static Position GetTestMarker(this ScriptFile file, string marker, bool before = false)
         {
-            return file.Text.PositionAt(file.Text.Text.IndexOf($";/marker:{marker}/;"));
+            var markerComment = $";/marker:{marker}/;";
+            var markerCommentIndex = file.Text.Text.IndexOf(markerComment);
+            if (markerCommentIndex == -1)
+            {
+                return new Position();
+            }
+
+            return file.Text.PositionAt(markerCommentIndex + (before ? 0 : markerComment.Length));
         }
 
         public static void AssertAreOfKinds(this IEnumerable<PapyrusSymbol> symbols, SymbolKinds kinds)

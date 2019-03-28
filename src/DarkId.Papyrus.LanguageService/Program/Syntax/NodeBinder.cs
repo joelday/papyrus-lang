@@ -390,9 +390,9 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
             });
         }
 
-#endregion
+        #endregion
 
-#region Statements
+        #region Statements
 
         private SyntaxNode BindStatement(IStatementBlock parent, Scanner<CommonTree> parentChildren)
         {
@@ -544,9 +544,9 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
             });
         }
 
-#endregion
+        #endregion
 
-#region Expressions
+        #region Expressions
 
         private ExpressionNode BindExpression(SyntaxNode parent, Scanner<CommonTree> parentChildren)
         {
@@ -793,17 +793,23 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         private static bool ShouldContractNodeEnd(SyntaxNode node)
         {
             return node is IStatementBlock
-                || node is PropertyHeaderNode;
+                || node is PropertyHeaderNode
+                || node is DeclareStatementNode;
         }
 
-#endregion
-        
+        #endregion
+
         private T CreateNode<T>(SyntaxNode parent, Scanner<CommonTree> parentChildren, Action<T, Scanner<CommonTree>> bindAction = null)
             where T : SyntaxNode
         {
             var compilerNode = parentChildren.Current;
-
             var range = compilerNode.GetRange(_tokenStream, _text);
+
+            if (compilerNode is CommonErrorNode errorNode)
+            {
+                _diagnostics.Add(errorNode.trappedException.ToDiagnostic(range));
+            }
+
             var text = _text.GetTextInRange(range).TrimEnd();
 
             var node = Activator.CreateInstance<T>();
