@@ -14,3 +14,6 @@ EndFunction
 ScriptObject Function ReturnsScriptObject()
     return none
 EndFunction
+
+Function RegisterForCustomEvent(ScriptObject akEventSource, CustomEventName asEventName) native
+Function SendCustomEvent(CustomEventName asEventName, Var[] akArgs = None) native

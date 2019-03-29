@@ -117,6 +117,59 @@ namespace DarkId.Papyrus.LanguageService.Program
             return descendant as T ?? (T)descendant.GetAncestors().FirstOrDefault(a => a is T);
         }
 
+        public static int GetFunctionParameterIndexAtPosition(this FunctionCallExpressionNode functionCallExpression, Position position)
+        {
+            var intersectingParameterIndex = 0;
+
+            // Here, we're making the parameter node ranges contiguous
+            var parameterRanges = new List<Range>();
+            for (var i = 0; i < functionCallExpression.Parameters.Count; i++)
+            {
+                var range = functionCallExpression.Parameters[i].Range;
+                if (i > 0)
+                {
+                    var previousParameterEnd = functionCallExpression.Parameters[i - 1].Range.End;
+
+                    range = new Range()
+                    {
+                        Start = new Position()
+                        {
+                            Line = previousParameterEnd.Line,
+                            Character = previousParameterEnd.Character + 1
+                        },
+                        End = new Position()
+                        {
+                            Line = range.End.Line,
+                            Character = range.End.Character + 1
+                        }
+                    };
+                }
+
+                parameterRanges.Add(range);
+            }
+
+            var intersectingRange = parameterRanges.LastOrDefault(r => position >= r.Start);
+            intersectingParameterIndex = parameterRanges.IndexOf(intersectingRange);
+
+            // If we're intersecting a named call parameter, we want to adjust the index to match the actual signature index.
+            var intersectingCallParameter = functionCallExpression.Parameters.ElementAtOrDefault(intersectingParameterIndex);
+            if (intersectingCallParameter != null)
+            {
+                if (intersectingCallParameter.Identifier != null)
+                {
+                    var parameterDefinition = intersectingCallParameter.GetParameterDefinition();
+                    return functionCallExpression.GetDefinition().Header.Parameters.IndexOf(parameterDefinition);
+                }
+            }
+
+            if (intersectingParameterIndex == -1)
+            {
+                intersectingParameterIndex = 0;
+            }
+
+            return intersectingParameterIndex;
+        }
+
         public static string GetLeadingComments(this SyntaxNode node)
         {
             if (string.IsNullOrWhiteSpace(node.LeadingText))

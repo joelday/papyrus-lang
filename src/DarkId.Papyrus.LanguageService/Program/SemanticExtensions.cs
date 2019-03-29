@@ -62,10 +62,12 @@ namespace DarkId.Papyrus.LanguageService.Program
                 Concat(node.Script.Symbol.GetImportedScripts().SelectMany(s => s.GetScriptMemberSymbols(globalOnly: true))).
                 Concat(node.Script.Symbol.GetScriptMemberSymbols(globalOnly: true, declaredOnly: true));
 
+#if FALLOUT4
             if (!node.GetContainingScopes().Any(s => s is FunctionDefinitionNode || s is EventDefinitionNode))
             {
                 symbolsInScope = symbolsInScope.Where(s => s.Kind == SymbolKinds.Struct);
             }
+#endif
 
             return symbolsInScope;
         }
@@ -107,8 +109,13 @@ namespace DarkId.Papyrus.LanguageService.Program
             return symbols.DistinctBy(s => s.Name + "_" + s.Kind);
         }
 
-        public static IEnumerable<ScriptSymbol> GetExtendedScriptChain(this ScriptSymbol symbol)
+        public static IEnumerable<ScriptSymbol> GetExtendedScriptChain(this ScriptSymbol symbol, bool includeSelf = false)
         {
+            if (includeSelf)
+            {
+                yield return symbol;
+            }
+
             var extended = symbol?.ExtendedScript;
             while (extended != null)
             {
@@ -281,6 +288,7 @@ namespace DarkId.Papyrus.LanguageService.Program
                 return Enumerable.Empty<PapyrusSymbol>();
             }
 
+            // Declaration identifiers shouldn't return any referencable symbols.
             if (!(node is ScriptHeaderNode) && node is ITypedIdentifiable typed && typed.TypeIdentifier.Text != string.Empty)
             {
                 return Enumerable.Empty<PapyrusSymbol>();
@@ -315,6 +323,12 @@ namespace DarkId.Papyrus.LanguageService.Program
                 return asTypeIdentifier.GetReferencedTypeSymbol();
             }
 
+            if (node is IdentifierNode && node.Parent is FunctionCallExpressionParameterNode callParameterNode)
+            {
+                var parameterNode = callParameterNode.GetParameterDefinition();
+                return parameterNode.Identifier.GetDeclaredOrReferencedSymbol();
+            }
+
             var referenced = node.GetReferencableSymbols().FirstOrDefault(n => n.Name.CaseInsensitiveEquals(node.Text));
             if (referenced != null)
             {
@@ -339,6 +353,73 @@ namespace DarkId.Papyrus.LanguageService.Program
                 || ScopeCanReferenceScriptsInternal((SyntaxNode)node.Scope);
         }
 
+        public static FunctionDefinitionNode GetDefinition(this FunctionCallExpressionNode callExpression)
+        {
+            return (callExpression.Identifier.GetDeclaredOrReferencedSymbol() as FunctionSymbol)?.Definition;
+        }
+
+        public static FunctionParameterNode GetParameterDefinition(this FunctionCallExpressionNode callExpression, int parameterIndex)
+        {
+            var functionDefinition = callExpression.GetDefinition();
+            if (functionDefinition == null)
+            {
+                return null;
+            }
+
+            return functionDefinition.Header.Parameters.ElementAtOrDefault(parameterIndex);
+        }
+
+        public static FunctionParameterNode GetParameterDefinition(this FunctionCallExpressionParameterNode callParameterNode)
+        {
+            var callExpression = ((FunctionCallExpressionNode)callParameterNode.Parent);
+
+            if (callParameterNode.Identifier != null)
+            {
+                return callExpression.GetDefinition().Header.Parameters.FirstOrDefault(p =>
+                    p.Identifier.Text.CaseInsensitiveEquals(callParameterNode.Identifier.Text));
+            }
+
+            var parameterIndex = callExpression.Parameters.IndexOf(callParameterNode);
+            return callExpression.GetParameterDefinition(parameterIndex);
+        }
+
+        public static IEnumerable<PapyrusSymbol> GetKnownParameterValueSymbols(this FunctionCallExpressionNode functionCallExpression, int parameterIndex, out bool valuesAreValidExclusively)
+        {
+            var definedFunction = functionCallExpression.GetDefinition();
+            var parameterDefinition = functionCallExpression.GetParameterDefinition(parameterIndex);
+
+#if FALLOUT4
+            if (parameterDefinition != null && parameterDefinition.TypeIdentifier.Text.CaseInsensitiveEquals("CustomEventName"))
+            {
+                // CustomEventName can only be string literals.
+                valuesAreValidExclusively = true;
+
+                // If the CustomEventName parameter is not the first parameter:
+                // We assume that the first parameter's expression result is of the source type.
+
+                // If it *is* the first parameter:
+                // The defined function most likely lives on ScriptObject, so we need to find the derived type that is the subject of the call.
+                // So, either the source type is the base expression of the parent member access expression, -or-, if there is no member access expression,
+                // then it must be the current script type.
+
+                var expressionForSourceType = parameterIndex > 0 ?
+                    functionCallExpression.Parameters.ElementAtOrDefault(0).Value : functionCallExpression.GetMemberAccessExpression()?.BaseExpression;
+
+                var sourceType = expressionForSourceType?.GetTypeOfExpression() as ScriptType ?? functionCallExpression.Script.Symbol.GetPapyrusType() as ScriptType;
+
+                // CustomEventNames can be inherited, so the symbols are sourced from the full extended script chain
+                return sourceType.Symbol.GetExtendedScriptChain(true).SelectMany(scriptSymbol => scriptSymbol.Children.OfType<CustomEventSymbol>()).ToArray();
+            }
+#endif
+
+            // TODO: Go to state
+            // TODO: Struct array members
+
+            valuesAreValidExclusively = false;
+            return Enumerable.Empty<PapyrusSymbol>();
+        }
+        
+        // TODO: Move these elsewhere?
         public static Task<IEnumerable<SyntaxNode>> FindReferences(this PapyrusSymbol symbol)
         {
             return symbol.FindReferences(CancellationToken.None);
@@ -378,6 +459,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             });
         }
 
+        // TODO: Move this elsewhere?
         public static string GetDocumentationMarkdown(this PapyrusSymbol symbol)
         {
             var docs = symbol.Documentation.

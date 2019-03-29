@@ -6,13 +6,14 @@ using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
+using DarkId.Papyrus.LanguageService.Program.Syntax;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DarkId.Papyrus.Test.LanguageService.Program.TestHarness
 {
     public static class ProgramExtensions
     {
-        public static Position GetTestMarker(this ScriptFile file, string marker, bool before = false)
+        public static Position GetTestMarker(this ScriptFile file, string marker, bool beforeMarker = false)
         {
             var markerComment = $";/marker:{marker}/;";
             var markerCommentIndex = file.Text.Text.IndexOf(markerComment);
@@ -21,8 +22,21 @@ namespace DarkId.Papyrus.Test.LanguageService.Program.TestHarness
                 return new Position();
             }
 
-            return file.Text.PositionAt(markerCommentIndex + (before ? 0 : markerComment.Length));
+            return file.Text.PositionAt(markerCommentIndex + (beforeMarker ? 0 : markerComment.Length));
         }
+
+        public static SyntaxNode GetNodeAtMarker(this ScriptFile file, string marker, bool beforeMarker = false)
+        {
+            var markerPosition = file.GetTestMarker(marker, beforeMarker);
+            return file.Node.GetNodeAtPosition(markerPosition);
+        }
+
+        public static T GetNodeAtMarker<T>(this ScriptFile file, string marker, bool beforeMarker = false) where T : SyntaxNode
+        {
+            var markerPosition = file.GetTestMarker(marker, beforeMarker);
+            return file.Node.GetDescendantNodeOfTypeAtPosition<T>(markerPosition);
+        }
+
 
         public static void AssertAreOfKinds(this IEnumerable<PapyrusSymbol> symbols, SymbolKinds kinds)
         {

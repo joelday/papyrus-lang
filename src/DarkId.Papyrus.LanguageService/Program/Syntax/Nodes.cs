@@ -215,10 +215,11 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         public List<FunctionCallExpressionParameterNode> Parameters { get; } = new List<FunctionCallExpressionParameterNode>();
     }
 
-    public class FunctionCallExpressionParameterNode : ExpressionNode
+    public class FunctionCallExpressionParameterNode : ExpressionNode, IIdentifiable
     {
         public override NodeKind Kind => NodeKind.FunctionCallExpressionParameter;
 
+        public IdentifierNode Identifier { get; set; }
         public ExpressionNode Value { get; set; }
     }
 

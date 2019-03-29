@@ -98,6 +98,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
         }
     }
 
+#if FALLOUT4
     public class CustomEventSymbol : PapyrusSymbol
     {
         public CustomEventSymbol(CustomEventDefinitionNode node, PapyrusSymbol parent) : base(node, node.Identifier, parent)
@@ -108,6 +109,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
 
         public override SymbolKinds Kind => SymbolKinds.CustomEvent;
     }
+#endif
 
     public class EventSymbol : PapyrusSymbol
     {

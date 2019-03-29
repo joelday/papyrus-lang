@@ -16,7 +16,7 @@
       "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
     },
     {
-      "name": "Launch (Copy binaries only)",
+      "name": "Launch (Build and copy binaries only)",
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",

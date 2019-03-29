@@ -16,13 +16,16 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
     [TestClass]
     public class SemanticExtensionsTests : ProgramTestBase
     {
+        private ScriptFile GetScript(string script = "ScopeTests")
+        {
+            return Program.ScriptFiles[script];
+        }
+
         private IEnumerable<PapyrusSymbol> GetReferencableSymbolsAtMarker(
             string marker, bool beforeMarker = false, bool shouldHaveResults = true, bool shouldReturnGlobals = false, bool canReturnDeclaredGlobals = false, string script = "ScopeTests")
         {
-            var testScript = Program.ScriptFiles[script];
-
-            var markerPosition = testScript.GetTestMarker(marker, beforeMarker);
-            var node = testScript.Node.GetNodeAtPosition(markerPosition);
+            var testScript = GetScript(script);
+            var node = testScript.GetNodeAtMarker(marker, beforeMarker);
             var symbols = node.GetReferencableSymbols();
 
             Debug.WriteLine($"Referencable symbols: {symbols.Select(s => $"{s.Name} ({s.Kind})").Join(",\r\n")}");
@@ -134,5 +137,22 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
             GetReferencableSymbolsAtMarker("function-parameter-name", shouldHaveResults: false);
             GetReferencableSymbolsAtMarker("function-parameter-name", true, shouldHaveResults: false);
         }
+
+#if FALLOUT4
+        [TestMethod]
+        public void GetKnownParameterValueSymbols_CustomEvents()
+        {
+            var script = GetScript();
+            var markerPosition = script.GetTestMarker("send-custom-event-param");
+            var callExpressionNode = script.Node.GetDescendantNodeOfTypeAtPosition<FunctionCallExpressionNode>(markerPosition);
+
+            var currentParameterIndex = callExpressionNode.GetFunctionParameterIndexAtPosition(markerPosition);
+
+            var symbols = callExpressionNode.GetKnownParameterValueSymbols(currentParameterIndex, out var areValidExclusively);
+
+            Assert.IsTrue(symbols.Count() > 0);
+            Assert.IsTrue(symbols.All(s => s is CustomEventSymbol));
+        }
+#endif
     }
 }

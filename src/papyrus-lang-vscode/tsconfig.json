@@ -5,10 +5,15 @@
         "allowSyntheticDefaultImports": true,
         "target": "es6",
         "outDir": "out",
-        "lib": ["es6"],
+        "lib": [
+            "es6"
+        ],
         "sourceMap": true,
         "rootDir": "src",
         "experimentalDecorators": true
     },
-    "exclude": ["node_modules", ".vscode-test"]
+    "exclude": [
+        "node_modules",
+        ".vscode-test"
+    ]
 }

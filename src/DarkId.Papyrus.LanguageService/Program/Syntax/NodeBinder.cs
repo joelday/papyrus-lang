@@ -341,21 +341,26 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
             return CreateNode<TypeIdentifierNode>(parent, parentChildren, (node, children) =>
             {
-                node.Range = new Range()
-                {
-                    Start = new Position()
-                    {
-                        Character = node.CompilerNode.CharPositionInLine,
-                        Line = node.CompilerNode.Line - 1
-                    },
-                    End = new Position()
-                    {
-                        Character = node.CompilerNode.CharPositionInLine + node.CompilerNode.Text.Length,
-                        Line = node.CompilerNode.Line - 1
-                    }
-                };
+                node.Text = _text.GetTextInRange(node.Range);
 
-                node.Text = node.CompilerNode.Text;
+                if (!node.Text.CaseInsensitiveEquals("CustomEventName"))
+                {
+                    node.Range = new Range()
+                    {
+                        Start = new Position()
+                        {
+                            Character = node.CompilerNode.CharPositionInLine,
+                            Line = node.CompilerNode.Line - 1
+                        },
+                        End = new Position()
+                        {
+                            Character = node.CompilerNode.CharPositionInLine + node.CompilerNode.Text.Length,
+                            Line = node.CompilerNode.Line - 1
+                        }
+                    };
+
+                    node.Text = _text.GetTextInRange(node.Range);
+                }
 
                 while (parentChildren.PeekType() == AstType.LeftBracket || parentChildren.PeekType() == AstType.RightBracket)
                 {
@@ -764,6 +769,12 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
             return CreateNode<FunctionCallExpressionParameterNode>(parent, parentChildren, (node, children) =>
             {
                 children.Next();
+
+                if (children.Current.Text != string.Empty)
+                {
+                    node.Identifier = BindIdentifier(node, children);
+                }
+
                 children.Next();
 
                 node.Value = BindExpression(node, children);

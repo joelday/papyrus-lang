@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
+using DarkId.Papyrus.LanguageService.Program.Syntax;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
@@ -83,6 +84,33 @@ namespace DarkId.Papyrus.Server.Features
 
                 var displayTextEmitter = new DisplayTextEmitter();
 
+                var callExpressionNode = scriptFile.Node.GetDescendantNodeOfTypeAtPosition<FunctionCallExpressionNode>(request.Position.ToPosition());
+                var callExpressionParameterIndex = callExpressionNode?.GetFunctionParameterIndexAtPosition(request.Position.ToPosition());
+                var valuesAreExclusive = false;
+
+                var knownParamValues = callExpressionParameterIndex.HasValue && callExpressionParameterIndex != -1 ?
+                    callExpressionNode.GetKnownParameterValueSymbols(callExpressionParameterIndex.Value, out valuesAreExclusive) : null;
+
+                var knownParamValuesCompletions = knownParamValues != null ?
+                    knownParamValues.Select(symbol => {
+                        var displayText = displayTextEmitter.GetDisplayText(symbol);
+
+                        return new CompletionItem()
+                        {
+                            Kind = GetCompletionItemKind(symbol), 
+                            Label = symbol.Name,
+                            InsertText = $"\"{symbol.Name}\"",
+                            Detail = displayText.Text,
+                            SortText = $"_{symbol.Name}",
+                            Documentation = displayText.Documentation
+                        };
+                    }).ToArray() : Enumerable.Empty<CompletionItem>();
+
+                if (valuesAreExclusive)
+                {
+                    return Task.FromResult(new CompletionList(knownParamValuesCompletions));
+                }
+
                 var symbols = node.GetReferencableSymbols();
                 var symbolCompletions = symbols.Select(symbol => {
                     var displayText = displayTextEmitter.GetDisplayText(symbol);
@@ -112,7 +140,7 @@ namespace DarkId.Papyrus.Server.Features
                 }).ToArray()
                 : Enumerable.Empty<CompletionItem>();
 
-                return Task.FromResult(new CompletionList(symbolCompletions.Concat(scriptCompletions)));
+                return Task.FromResult(new CompletionList(knownParamValuesCompletions.Concat(symbolCompletions.Concat(scriptCompletions))));
             }
             catch (Exception e)
             {

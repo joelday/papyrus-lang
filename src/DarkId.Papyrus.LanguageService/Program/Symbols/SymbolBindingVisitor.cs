@@ -64,10 +64,12 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
             }
         }
 
+#if FALLOUT4
         public override PapyrusSymbol VisitCustomEventDefinition(CustomEventDefinitionNode node, PapyrusSymbol parent)
         {
             return new CustomEventSymbol(node, parent);
         }
+#endif
 
         public override PapyrusSymbol VisitEventDefinition(EventDefinitionNode node, PapyrusSymbol parent)
         {
