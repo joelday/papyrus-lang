@@ -393,17 +393,39 @@ namespace DarkId.Papyrus.LanguageService.Program
 #if FALLOUT4
             if (parameterDefinition != null)
             {
-                var parameterName = parameterDefinition.TypeIdentifier.Text;
+                var parameterTypeName = parameterDefinition.TypeIdentifier.Text;
 
-                if (parameterName.CaseInsensitiveEquals("CustomEventName"))
+                if (parameterTypeName.CaseInsensitiveEquals("CustomEventName"))
                 {
                     valuesAreValidExclusively = true;
                     return GetKnownEventParameterSymbols<CustomEventSymbol>(functionCallExpression, parameterIndex);
                 }
-                else if (parameterName.CaseInsensitiveEquals("ScriptEventName"))
+
+                if (parameterTypeName.CaseInsensitiveEquals("ScriptEventName"))
                 {
                     valuesAreValidExclusively = true;
                     return GetKnownEventParameterSymbols<EventSymbol>(functionCallExpression, parameterIndex);
+                }
+
+                var functionName = definedFunction.Header.Identifier.Text;
+                if (functionName.CaseInsensitiveEquals("FindStruct") || functionName.CaseInsensitiveEquals("RFindStruct"))
+                {
+                    if (parameterDefinition.Identifier.Text.CaseInsensitiveEquals("asVarName"))
+                    {
+                        valuesAreValidExclusively = true;
+
+                        var definedFunctionScriptSymbol = definedFunction.Symbol.Script;
+                        var elementTypeId = definedFunctionScriptSymbol.SyntheticArrayType?.ElementType;
+                        if (elementTypeId.HasValue)
+                        {
+                            if (functionCallExpression.GetTypeChecker().GetTypeForObjectId(elementTypeId.Value) is StructType elementType)
+                            {
+                                return elementType.Symbol.Children;
+                            }
+                        }
+
+                        return Enumerable.Empty<PapyrusSymbol>();
+                    }
                 }
             }
 #endif
@@ -415,9 +437,6 @@ namespace DarkId.Papyrus.LanguageService.Program
 
                 return scriptType.Symbol.GetExtendedScriptChain(true).SelectMany(scriptSymbol => scriptSymbol.Children.OfType<StateSymbol>()).ToArray();
             }
-
-            // TODO: Go to state
-            // TODO: Struct array members
 
             return Enumerable.Empty<PapyrusSymbol>();
         }

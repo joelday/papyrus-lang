@@ -40,14 +40,16 @@ Function RemoveLast() native
 int Function Find({elementTypeName} akElement, int aiStartIndex = 0) native
 {{Locates a particular value inside an array and returns the index.}}
 
-int Function FindStruct(string asVarName, var akElement, int aiStartIndex = 0) native
-{{Locates a particular value in a struct inside an array and returns the index}}
-
 int Function RFind({elementTypeName} akElement, int aiStartIndex = -1) native
 {{Locates a particular value inside an array and returns the index, starting from the end of the array, and moving to the beginning.}}
 
+{(string.IsNullOrEmpty(objectIdentifier.StructName) ? string.Empty : $@"
+int Function FindStruct(string asVarName, var akElement, int aiStartIndex = 0) native
+{{Locates a particular value in a struct inside an array and returns the index}}
+
 int Function RFindStruct(string asVarName, var akElement, int aiStartIndex = -1) native
 {{Locates a particular value in a struct inside an array and returns the index, starting from the end of the array, and moving to the beginning.}}
+")}
 
 int Property Length_ const auto
 {{The length of the array.}}
