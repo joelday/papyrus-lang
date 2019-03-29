@@ -112,6 +112,11 @@ namespace DarkId.Papyrus.Server.Features
                 }
 
                 var symbols = node.GetReferencableSymbols();
+
+#if FALLOUT4
+                symbols = symbols.Where(symbol => !(symbol is EventSymbol) && !(symbol is CustomEventSymbol));
+#endif
+
                 var symbolCompletions = symbols.Select(symbol => {
                     var displayText = displayTextEmitter.GetDisplayText(symbol);
 
