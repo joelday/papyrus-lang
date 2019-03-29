@@ -1,3 +1,15 @@
+# [2.4.0](https://github.com/joelday/papyrus-lang/compare/v2.3.0...v2.4.0) (2019-03-29)
+
+
+### Bug Fixes
+
+* remove duplicate state names from extended scripts in autocomplete ([7cc78e1](https://github.com/joelday/papyrus-lang/commit/7cc78e1))
+
+
+### Features
+
+* context menu command to open creationkit.com and search for the current hovered/selected text ([03418b3](https://github.com/joelday/papyrus-lang/commit/03418b3))
+
 # [2.3.0](https://github.com/joelday/papyrus-lang/compare/v2.2.0...v2.3.0) (2019-03-29)
 
 
