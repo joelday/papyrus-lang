@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/joelday/papyrus-lang/compare/v2.0.12...v2.1.0) (2019-03-29)
+
+
+### Features
+
+* release ([25f7ca7](https://github.com/joelday/papyrus-lang/commit/25f7ca7))
+
 ## [2.0.12](https://github.com/joelday/papyrus-lang/compare/v2.0.11...v2.0.12) (2019-03-28)
 
 
