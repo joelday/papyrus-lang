@@ -1,3 +1,15 @@
+# [2.2.0](https://github.com/joelday/papyrus-lang/compare/v2.1.0...v2.2.0) (2019-03-29)
+
+
+### Bug Fixes
+
+* exclude event definitions and remote event handlers from autocomplete. ([4a1171c](https://github.com/joelday/papyrus-lang/commit/4a1171c))
+
+
+### Features
+
+* RemoteEvent and GoToState autocomplete suggestions ([6a23778](https://github.com/joelday/papyrus-lang/commit/6a23778))
+
 # [2.1.0](https://github.com/joelday/papyrus-lang/compare/v2.0.12...v2.1.0) (2019-03-29)
 
 
