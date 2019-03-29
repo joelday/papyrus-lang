@@ -435,7 +435,9 @@ namespace DarkId.Papyrus.LanguageService.Program
                 var expressionForScriptType = functionCallExpression.GetMemberAccessExpression()?.BaseExpression;
                 var scriptType = expressionForScriptType?.GetTypeOfExpression() as ScriptType ?? functionCallExpression.Script.Symbol.GetPapyrusType() as ScriptType;
 
-                return scriptType.Symbol.GetExtendedScriptChain(true).SelectMany(scriptSymbol => scriptSymbol.Children.OfType<StateSymbol>()).ToArray();
+                return scriptType.Symbol.GetExtendedScriptChain(true).
+                    SelectMany(scriptSymbol => scriptSymbol.Children.OfType<StateSymbol>()).
+                    DistinctBy(s => s.Name.ToLower()).ToArray();
             }
 
             return Enumerable.Empty<PapyrusSymbol>();
