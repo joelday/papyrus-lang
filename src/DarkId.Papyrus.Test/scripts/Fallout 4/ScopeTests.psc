@@ -38,7 +38,7 @@ int Function ReturningIntFunction(;/marker:function-parameter-type/;int\
 
     FunctionWithOptionalParams(;/marker:first-func-param/;0, 1, ;/marker:named-func-param/;d = 5)
 
-    SendCustomEvent("scopeTestsCustomEvent")
+    SendCustomEvent(;/marker:send-custom-event-param/;"scopeTestsCustomEvent")
     SendCustomEvent("baseScriptCustomEvent")
 
     return arg

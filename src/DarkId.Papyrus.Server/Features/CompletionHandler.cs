@@ -84,20 +84,32 @@ namespace DarkId.Papyrus.Server.Features
 
                 var displayTextEmitter = new DisplayTextEmitter();
 
-                var knownParamValues = (node as FunctionCallExpressionParameterNode)?.GetKnownParameterValueSymbols();
-                var knownParamValuesCompletions = knownParamValues != null ? knownParamValues.Select(symbol => {
-                    var displayText = displayTextEmitter.GetDisplayText(symbol);
+                var callExpressionNode = scriptFile.Node.GetDescendantNodeOfTypeAtPosition<FunctionCallExpressionNode>(request.Position.ToPosition());
+                var callExpressionParameterIndex = callExpressionNode?.GetFunctionParameterIndexAtPosition(request.Position.ToPosition());
+                var valuesAreExclusive = false;
 
-                    return new CompletionItem()
-                    {
-                        Kind = GetCompletionItemKind(symbol),
-                        Label = symbol.Name,
-                        InsertText = $"\"{symbol.Name}\"",
-                        Detail = displayText.Text,
-                        SortText = symbol.Name,
-                        Documentation = displayText.Documentation
-                    };
-                }).ToArray() : Enumerable.Empty<CompletionItem>();
+                var knownParamValues = callExpressionParameterIndex.HasValue && callExpressionParameterIndex != -1 ?
+                    callExpressionNode.GetKnownParameterValueSymbols(callExpressionParameterIndex.Value, out valuesAreExclusive) : null;
+
+                var knownParamValuesCompletions = knownParamValues != null ?
+                    knownParamValues.Select(symbol => {
+                        var displayText = displayTextEmitter.GetDisplayText(symbol);
+
+                        return new CompletionItem()
+                        {
+                            Kind = GetCompletionItemKind(symbol), 
+                            Label = symbol.Name,
+                            InsertText = $"\"{symbol.Name}\"",
+                            Detail = displayText.Text,
+                            SortText = $"_{symbol.Name}",
+                            Documentation = displayText.Documentation
+                        };
+                    }).ToArray() : Enumerable.Empty<CompletionItem>();
+
+                if (valuesAreExclusive)
+                {
+                    return Task.FromResult(new CompletionList(knownParamValuesCompletions));
+                }
 
                 var symbols = node.GetReferencableSymbols();
                 var symbolCompletions = symbols.Select(symbol => {

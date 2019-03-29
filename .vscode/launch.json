@@ -13,12 +13,10 @@
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
       ],
-      "outFiles": [
-        "${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"
-      ]
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
     },
     {
-      "name": "Launch (Copy binaries only)",
+      "name": "Launch (Build and copy binaries only)",
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
@@ -26,9 +24,7 @@
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
       ],
-      "outFiles": [
-        "${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"
-      ],
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
     },
     {
       "name": "Launch (Build extension only)",
@@ -39,9 +35,7 @@
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
       ],
-      "outFiles": [
-        "${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"
-      ]
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
     },
     {
       "name": "Launch (No build)",
@@ -51,9 +45,7 @@
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
       ],
-      "outFiles": [
-        "${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"
-      ]
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
     }
   ]
 }

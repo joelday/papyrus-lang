@@ -16,29 +16,16 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
     [TestClass]
     public class SemanticExtensionsTests : ProgramTestBase
     {
-        private ScriptFile GetScript(string script)
+        private ScriptFile GetScript(string script = "ScopeTests")
         {
             return Program.ScriptFiles[script];
-        }
-
-        private SyntaxNode GetNodeAtMarker(ScriptFile script, string marker, bool beforeMarker = false)
-        {
-            var markerPosition = script.GetTestMarker(marker, beforeMarker);
-            return script.Node.GetNodeAtPosition(markerPosition);
-        }
-
-        private SyntaxNode GetNodeAtMarker(string marker, bool beforeMarker = false)
-        {
-            var script = GetScript("ScopeTests");
-            var markerPosition = script.GetTestMarker(marker, beforeMarker);
-            return script.Node.GetNodeAtPosition(markerPosition);
         }
 
         private IEnumerable<PapyrusSymbol> GetReferencableSymbolsAtMarker(
             string marker, bool beforeMarker = false, bool shouldHaveResults = true, bool shouldReturnGlobals = false, bool canReturnDeclaredGlobals = false, string script = "ScopeTests")
         {
             var testScript = GetScript(script);
-            var node = GetNodeAtMarker(testScript, marker, beforeMarker);
+            var node = testScript.GetNodeAtMarker(marker, beforeMarker);
             var symbols = node.GetReferencableSymbols();
 
             Debug.WriteLine($"Referencable symbols: {symbols.Select(s => $"{s.Name} ({s.Kind})").Join(",\r\n")}");
@@ -151,11 +138,21 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
             GetReferencableSymbolsAtMarker("function-parameter-name", true, shouldHaveResults: false);
         }
 
+#if FALLOUT4
         [TestMethod]
-        public void GetFunctionParameter_Parameter()
+        public void GetKnownParameterValueSymbols_CustomEvents()
         {
-            var parameterNode = GetNodeAtMarker("first-func-param");
-            System.Diagnostics.Debugger.Break();
+            var script = GetScript();
+            var markerPosition = script.GetTestMarker("send-custom-event-param");
+            var callExpressionNode = script.Node.GetDescendantNodeOfTypeAtPosition<FunctionCallExpressionNode>(markerPosition);
+
+            var currentParameterIndex = callExpressionNode.GetFunctionParameterIndexAtPosition(markerPosition);
+
+            var symbols = callExpressionNode.GetKnownParameterValueSymbols(currentParameterIndex, out var areValidExclusively);
+
+            Assert.IsTrue(symbols.Count() > 0);
+            Assert.IsTrue(symbols.All(s => s is CustomEventSymbol));
         }
+#endif
     }
 }

@@ -54,42 +54,7 @@ namespace DarkId.Papyrus.Server.Features
                     return Task.FromResult<SignatureHelp>(null);
                 }
 
-                var activeParameterIndex = 0;
-
-                // Here, we're making the parameter node ranges contiguous
-                var parameterRanges = new List<Common.Range>();
-                for (var i = 0; i < functionCallExpression.Parameters.Count; i++)
-                {
-                    var range = functionCallExpression.Parameters[i].Range;
-                    if (i > 0)
-                    {
-                        var previousParameterEnd = functionCallExpression.Parameters[i - 1].Range.End;
-
-                        range = new Common.Range()
-                        {
-                            Start = new Common.Position()
-                            {
-                                Line = previousParameterEnd.Line,
-                                Character = previousParameterEnd.Character + 1
-                            },
-                            End = new Common.Position()
-                            {
-                                Line = range.End.Line,
-                                Character = range.End.Character + 1
-                            }
-                        };
-                    }
-
-                    parameterRanges.Add(range);
-                }
-
-                var intersectingRange = parameterRanges.LastOrDefault(r => requestPosition >= r.Start);
-                activeParameterIndex = parameterRanges.IndexOf(intersectingRange);
-
-                if (activeParameterIndex == -1)
-                {
-                    activeParameterIndex = 0;
-                }
+                var activeParameterIndex = functionCallExpression.GetFunctionParameterIndexAtPosition(requestPosition);
 
                 var displayTextEmitter = new DisplayTextEmitter();
 

@@ -62,10 +62,12 @@ namespace DarkId.Papyrus.LanguageService.Program
                 Concat(node.Script.Symbol.GetImportedScripts().SelectMany(s => s.GetScriptMemberSymbols(globalOnly: true))).
                 Concat(node.Script.Symbol.GetScriptMemberSymbols(globalOnly: true, declaredOnly: true));
 
+#if FALLOUT4
             if (!node.GetContainingScopes().Any(s => s is FunctionDefinitionNode || s is EventDefinitionNode))
             {
                 symbolsInScope = symbolsInScope.Where(s => s.Kind == SymbolKinds.Struct);
             }
+#endif
 
             return symbolsInScope;
         }
@@ -107,8 +109,13 @@ namespace DarkId.Papyrus.LanguageService.Program
             return symbols.DistinctBy(s => s.Name + "_" + s.Kind);
         }
 
-        public static IEnumerable<ScriptSymbol> GetExtendedScriptChain(this ScriptSymbol symbol)
+        public static IEnumerable<ScriptSymbol> GetExtendedScriptChain(this ScriptSymbol symbol, bool includeSelf = false)
         {
+            if (includeSelf)
+            {
+                yield return symbol;
+            }
+
             var extended = symbol?.ExtendedScript;
             while (extended != null)
             {
@@ -281,6 +288,7 @@ namespace DarkId.Papyrus.LanguageService.Program
                 return Enumerable.Empty<PapyrusSymbol>();
             }
 
+            // Declaration identifiers shouldn't return any referencable symbols.
             if (!(node is ScriptHeaderNode) && node is ITypedIdentifiable typed && typed.TypeIdentifier.Text != string.Empty)
             {
                 return Enumerable.Empty<PapyrusSymbol>();
@@ -345,58 +353,72 @@ namespace DarkId.Papyrus.LanguageService.Program
                 || ScopeCanReferenceScriptsInternal((SyntaxNode)node.Scope);
         }
 
-        public static FunctionParameterNode GetParameterDefinition(this FunctionCallExpressionParameterNode callParameterNode)
+        public static FunctionDefinitionNode GetDefinition(this FunctionCallExpressionNode callExpression)
         {
-            var callExpression = ((FunctionCallExpressionNode)callParameterNode.Parent);
+            return (callExpression.Identifier.GetDeclaredOrReferencedSymbol() as FunctionSymbol)?.Definition;
+        }
 
-            var functionDefinition = (callExpression.Identifier.GetDeclaredOrReferencedSymbol() as FunctionSymbol)?.Definition;
+        public static FunctionParameterNode GetParameterDefinition(this FunctionCallExpressionNode callExpression, int parameterIndex)
+        {
+            var functionDefinition = callExpression.GetDefinition();
             if (functionDefinition == null)
             {
                 return null;
             }
-            
-            if (callParameterNode.Identifier != null)
-            {
-                return functionDefinition.Header.Parameters.FirstOrDefault(p =>
-                    p.Identifier.Text.CaseInsensitiveEquals(callParameterNode.Identifier.Text));
-            }
-
-            var parameterIndex = callExpression.Parameters.IndexOf(callParameterNode);
 
             return functionDefinition.Header.Parameters.ElementAtOrDefault(parameterIndex);
         }
 
-        public static IEnumerable<PapyrusSymbol> GetKnownParameterValueSymbols(this FunctionCallExpressionParameterNode callParameterNode)
+        public static FunctionParameterNode GetParameterDefinition(this FunctionCallExpressionParameterNode callParameterNode)
         {
-            var callExpression = (FunctionCallExpressionNode)callParameterNode.Parent;
-            var definedParameter = callParameterNode.GetParameterDefinition();
-            if (definedParameter == null)
+            var callExpression = ((FunctionCallExpressionNode)callParameterNode.Parent);
+
+            if (callParameterNode.Identifier != null)
             {
-                return Enumerable.Empty<PapyrusSymbol>();
+                return callExpression.GetDefinition().Header.Parameters.FirstOrDefault(p =>
+                    p.Identifier.Text.CaseInsensitiveEquals(callParameterNode.Identifier.Text));
             }
 
-            var definedHeader = (FunctionHeaderNode)definedParameter.Parent;
+            var parameterIndex = callExpression.Parameters.IndexOf(callParameterNode);
+            return callExpression.GetParameterDefinition(parameterIndex);
+        }
+
+        public static IEnumerable<PapyrusSymbol> GetKnownParameterValueSymbols(this FunctionCallExpressionNode functionCallExpression, int parameterIndex, out bool valuesAreValidExclusively)
+        {
+            var definedFunction = functionCallExpression.GetDefinition();
+            var parameterDefinition = functionCallExpression.GetParameterDefinition(parameterIndex);
 
 #if FALLOUT4
-            if (definedParameter.TypeIdentifier.Text.CaseInsensitiveEquals("CustomEventName"))
+            if (parameterDefinition != null && parameterDefinition.TypeIdentifier.Text.CaseInsensitiveEquals("CustomEventName"))
             {
-                var definedSourceTypeParameter = definedHeader.Parameters.IndexOf(definedParameter) > 0 ?
-                    definedHeader.Parameters.First() : null;
+                // CustomEventName can only be string literals.
+                valuesAreValidExclusively = true;
 
-                var expressionForSourceType = definedSourceTypeParameter != null ?
-                    callExpression.Parameters.FirstOrDefault(p => p.GetParameterDefinition() == definedSourceTypeParameter) : null;
+                // If the CustomEventName parameter is not the first parameter:
+                // We assume that the first parameter's expression result is of the source type.
 
-                var sourceType = (expressionForSourceType != null ?
-                    expressionForSourceType.GetTypeOfExpression() : callParameterNode.Script.Symbol.GetPapyrusType()) as ScriptType;
+                // If it *is* the first parameter:
+                // The defined function most likely lives on ScriptObject, so we need to find the derived type that is the subject of the call.
+                // So, either the source type is the base expression of the parent member access expression, -or-, if there is no member access expression,
+                // then it must be the current script type.
 
-                return sourceType.Symbol.Children.OfType<CustomEventSymbol>().ToArray();
-                // var targetType = definedHeader.Parameters.IndexOf(definedParameter) == 0 ? definedHeader.Script.Symbol.GetPapyrusType() : definedHead
+                var expressionForSourceType = parameterIndex > 0 ?
+                    functionCallExpression.Parameters.ElementAtOrDefault(0).Value : functionCallExpression.GetMemberAccessExpression()?.BaseExpression;
+
+                var sourceType = expressionForSourceType?.GetTypeOfExpression() as ScriptType ?? functionCallExpression.Script.Symbol.GetPapyrusType() as ScriptType;
+
+                // CustomEventNames can be inherited, so the symbols are sourced from the full extended script chain
+                return sourceType.Symbol.GetExtendedScriptChain(true).SelectMany(scriptSymbol => scriptSymbol.Children.OfType<CustomEventSymbol>()).ToArray();
             }
 #endif
 
+            // TODO: Go to state
+            // TODO: Struct array members
+
+            valuesAreValidExclusively = false;
             return Enumerable.Empty<PapyrusSymbol>();
         }
-
+        
         // TODO: Move these elsewhere?
         public static Task<IEnumerable<SyntaxNode>> FindReferences(this PapyrusSymbol symbol)
         {
