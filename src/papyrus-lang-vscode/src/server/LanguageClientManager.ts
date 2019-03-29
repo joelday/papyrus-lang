@@ -3,16 +3,17 @@ import { LanguageClient } from './LanguageClient';
 import { PapyrusGame, getGames } from '../PapyrusGame';
 import { Observable, Subscription, concat, combineLatest } from 'rxjs';
 import { IExtensionConfigProvider, IGameConfig } from '../ExtensionConfigProvider';
-import { map, share, shareReplay } from 'rxjs/operators';
+import { map, share, shareReplay, take } from 'rxjs/operators';
 import { asyncDisposable } from '../common/Reactive';
 import { IExtensionContext } from '../common/vscode/IocDecorators';
-import { ExtensionContext, Disposable } from 'vscode';
+import { ExtensionContext, Disposable, CancellationTokenSource, CancellationToken } from 'vscode';
 import fastDeepEqual from 'fast-deep-equal';
-import { ILanguageClientHost, LanguageClientHost } from './LanguageClientHost';
+import { ILanguageClientHost, LanguageClientHost, ClientHostStatus } from './LanguageClientHost';
 import { ICreationKitInfoProvider, ICreationKitInfo } from '../CreationKitInfoProvider';
 
 export interface ILanguageClientManager extends Disposable {
     readonly clients: ReadonlyMap<PapyrusGame, Observable<ILanguageClientHost>>;
+    getActiveLanguageClients(cancellationToken?: CancellationToken): Promise<ILanguageClientHost[]>;
 }
 
 export class LanguageClientManager implements Disposable, ILanguageClientManager {
@@ -54,6 +55,27 @@ export class LanguageClientManager implements Disposable, ILanguageClientManager
 
     get clients() {
         return this._clients;
+    }
+
+    async getActiveLanguageClients(cancellationToken: CancellationToken = new CancellationTokenSource().token) {
+        const clients = await Promise.all(
+            Array.from(this.clients.values()).map((client) => client.pipe(take(1)).toPromise())
+        );
+
+        if (cancellationToken.isCancellationRequested) {
+            return [];
+        }
+
+        return (await Promise.all(
+            clients.map(async (client) => {
+                const clientStatus = await client.status.pipe(take(1)).toPromise();
+                if (clientStatus !== ClientHostStatus.running) {
+                    return null;
+                }
+
+                return client;
+            })
+        )).filter((client) => client !== null);
     }
 
     dispose() {

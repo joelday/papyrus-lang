@@ -3,8 +3,7 @@
         "onLanguage:papyrus",
         "onLanguage:papyrus-project",
         "workspaceContains:**/*.psc",
-        "workspaceContains:**/*.ppj",
-        "onCommand:workbench.action.tasks.runTask"
+        "workspaceContains:**/*.ppj"
     ],
     "author": {
         "email": "joelday@gmail.com",
@@ -111,19 +110,19 @@
                 "id": "papyrus-project"
             }
         ],
-        "keybindings": [
+        "commands": [
             {
-                "command": "papyrus.compile",
-                "key": "Ctrl+B",
-                "when": "editorTextFocus && editorLangId == papyrus"
+                "category": "Papyrus",
+                "command": "papyrus.searchCreationKitWiki",
+                "title": "Search Creation Kit Wiki"
             }
         ],
-        "views": {
-            "explorer": [
+        "menus": {
+            "editor/context": [
                 {
-                    "id": "papyrus-lang-vscode.astTreeView",
-                    "name": "Papyrus Syntax Tree",
-                    "when": "papyrus-lang-vscode.astTreeView:enabled"
+                    "command": "papyrus.searchCreationKitWiki",
+                    "group": "a_papyrus",
+                    "when": "editorLangId == papyrus"
                 }
             ]
         }

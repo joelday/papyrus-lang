@@ -29,7 +29,11 @@ export function getDevelopmentCompilerFolderForGame(game: PapyrusGame) {
     }
 }
 
-export async function resolveInstallPath(game: PapyrusGame, installPath: string, context: ExtensionContext): Promise<string> {
+export async function resolveInstallPath(
+    game: PapyrusGame,
+    installPath: string,
+    context: ExtensionContext
+): Promise<string> {
     if (await exists(installPath)) {
         return installPath;
     }
@@ -46,7 +50,7 @@ export async function resolveInstallPath(game: PapyrusGame, installPath: string,
         if (await exists(item.value)) {
             return item.value;
         }
-    } catch (_) { }
+    } catch (_) {}
 
     if (inDevelopmentEnvironment()) {
         return context.asAbsolutePath('../../dependencies/compilers');
@@ -60,5 +64,5 @@ export function getDefaultFlagsFileNameForGame(game: PapyrusGame) {
 }
 
 export function inDevelopmentEnvironment() {
-    return process.execArgv.some(arg => arg.startsWith('--inspect-brk'));
+    return process.execArgv.some((arg) => arg.startsWith('--inspect-brk'));
 }

@@ -52,28 +52,7 @@ export class ScriptStatusCodeLensProvider implements CodeLensProvider, Disposabl
     }
 
     async provideCodeLenses(document: TextDocument, cancellationToken: CancellationToken): Promise<CodeLens[]> {
-        const clients = await Promise.all(
-            Array.from(this._languageClientManager.clients.values()).map((client) => client.pipe(take(1)).toPromise())
-        );
-
-        if (cancellationToken.isCancellationRequested) {
-            return [];
-        }
-
-        const activeClients = (await Promise.all(
-            clients.map(async (client) => {
-                const clientStatus = await client.status.pipe(take(1)).toPromise();
-                if (clientStatus !== ClientHostStatus.running) {
-                    return null;
-                }
-
-                return client;
-            })
-        )).filter((client) => client !== null);
-
-        if (cancellationToken.isCancellationRequested) {
-            return [];
-        }
+        const activeClients = await this._languageClientManager.getActiveLanguageClients(cancellationToken);
 
         if (activeClients.length === 0) {
             const lens = createZeroLens();
