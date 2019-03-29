@@ -343,7 +343,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
             {
                 node.Text = _text.GetTextInRange(node.Range);
 
-                if (!node.Text.CaseInsensitiveEquals("CustomEventName"))
+                if (!node.Text.CaseInsensitiveEquals("CustomEventName") && !node.Text.CaseInsensitiveEquals("ScriptEventName"))
                 {
                     node.Range = new Range()
                     {

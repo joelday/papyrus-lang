@@ -385,40 +385,65 @@ namespace DarkId.Papyrus.LanguageService.Program
 
         public static IEnumerable<PapyrusSymbol> GetKnownParameterValueSymbols(this FunctionCallExpressionNode functionCallExpression, int parameterIndex, out bool valuesAreValidExclusively)
         {
+            valuesAreValidExclusively = false;
+
             var definedFunction = functionCallExpression.GetDefinition();
             var parameterDefinition = functionCallExpression.GetParameterDefinition(parameterIndex);
 
 #if FALLOUT4
-            if (parameterDefinition != null && parameterDefinition.TypeIdentifier.Text.CaseInsensitiveEquals("CustomEventName"))
+            if (parameterDefinition != null)
             {
-                // CustomEventName can only be string literals.
-                valuesAreValidExclusively = true;
+                var parameterName = parameterDefinition.TypeIdentifier.Text;
 
-                // If the CustomEventName parameter is not the first parameter:
-                // We assume that the first parameter's expression result is of the source type.
-
-                // If it *is* the first parameter:
-                // The defined function most likely lives on ScriptObject, so we need to find the derived type that is the subject of the call.
-                // So, either the source type is the base expression of the parent member access expression, -or-, if there is no member access expression,
-                // then it must be the current script type.
-
-                var expressionForSourceType = parameterIndex > 0 ?
-                    functionCallExpression.Parameters.ElementAtOrDefault(0).Value : functionCallExpression.GetMemberAccessExpression()?.BaseExpression;
-
-                var sourceType = expressionForSourceType?.GetTypeOfExpression() as ScriptType ?? functionCallExpression.Script.Symbol.GetPapyrusType() as ScriptType;
-
-                // CustomEventNames can be inherited, so the symbols are sourced from the full extended script chain
-                return sourceType.Symbol.GetExtendedScriptChain(true).SelectMany(scriptSymbol => scriptSymbol.Children.OfType<CustomEventSymbol>()).ToArray();
+                if (parameterName.CaseInsensitiveEquals("CustomEventName"))
+                {
+                    valuesAreValidExclusively = true;
+                    return GetKnownEventParameterSymbols<CustomEventSymbol>(functionCallExpression, parameterIndex);
+                }
+                else if (parameterName.CaseInsensitiveEquals("ScriptEventName"))
+                {
+                    valuesAreValidExclusively = true;
+                    return GetKnownEventParameterSymbols<EventSymbol>(functionCallExpression, parameterIndex);
+                }
             }
 #endif
+
+            if (definedFunction.Symbol.Name.CaseInsensitiveEquals("GotoState"))
+            {
+                var expressionForScriptType = functionCallExpression.GetMemberAccessExpression()?.BaseExpression;
+                var scriptType = expressionForScriptType?.GetTypeOfExpression() as ScriptType ?? functionCallExpression.Script.Symbol.GetPapyrusType() as ScriptType;
+
+                return scriptType.Symbol.GetExtendedScriptChain(true).SelectMany(scriptSymbol => scriptSymbol.Children.OfType<StateSymbol>()).ToArray();
+            }
 
             // TODO: Go to state
             // TODO: Struct array members
 
-            valuesAreValidExclusively = false;
             return Enumerable.Empty<PapyrusSymbol>();
         }
-        
+
+#if FALLOUT4
+        private static IEnumerable<PapyrusSymbol> GetKnownEventParameterSymbols<T>(FunctionCallExpressionNode functionCallExpression, int parameterIndex)
+            where T : PapyrusSymbol
+        {
+            // If the event name parameter is not the first parameter:
+            // We assume that the first parameter's expression result is of the source type.
+
+            // If it *is* the first parameter:
+            // The defined function most likely lives on ScriptObject, so we need to find the derived type that is the subject of the call.
+            // So, either the source type is the base expression of the parent member access expression, -or-, if there is no member access expression,
+            // then it must be the current script type.
+
+            var expressionForSourceType = parameterIndex > 0 ?
+                functionCallExpression.Parameters.ElementAtOrDefault(0).Value : functionCallExpression.GetMemberAccessExpression()?.BaseExpression;
+
+            var sourceType = expressionForSourceType?.GetTypeOfExpression() as ScriptType ?? functionCallExpression.Script.Symbol.GetPapyrusType() as ScriptType;
+
+            // CustomEventNames can be inherited, so the symbols are sourced from the full extended script chain
+            return sourceType.Symbol.GetExtendedScriptChain(true).SelectMany(scriptSymbol => scriptSymbol.Children.OfType<T>()).ToArray();
+        }
+#endif
+
         // TODO: Move these elsewhere?
         public static Task<IEnumerable<SyntaxNode>> FindReferences(this PapyrusSymbol symbol)
         {
