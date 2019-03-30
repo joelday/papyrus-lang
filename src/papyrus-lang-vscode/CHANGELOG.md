@@ -1,3 +1,10 @@
+# [2.5.0](https://github.com/joelday/papyrus-lang/compare/v2.4.0...v2.5.0) (2019-03-30)
+
+
+### Features
+
+* autocomplete for remote event handlers ([b37e354](https://github.com/joelday/papyrus-lang/commit/b37e354))
+
 # [2.4.0](https://github.com/joelday/papyrus-lang/compare/v2.3.0...v2.4.0) (2019-03-29)
 
 
