@@ -399,6 +399,9 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
         public TypeIdentifierNode TypeIdentifier { get; set; }
         public IdentifierNode Identifier { get; set; }
+
+        public MemberAccessExpressionNode RemoteEventExpression { get; set; }
+
         public List<FunctionParameterNode> Parameters { get; } = new List<FunctionParameterNode>();
         public LanguageFlags Flags { get; set; }
         public DocCommentNode DocComment { get; set; }

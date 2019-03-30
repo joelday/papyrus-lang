@@ -80,7 +80,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
         public void GetReferencableSymbols_FunctionBody()
         {
             var symbols = GetReferencableSymbolsAtMarker("function-body", canReturnDeclaredGlobals: true);
-            symbols.AssertAreOfKinds(SymbolKinds.Script | SymbolKinds.Struct | SymbolKinds.Function | SymbolKinds.Variable | SymbolKinds.Property);
+            symbols.AssertAreOfKinds(SymbolKinds.Script | SymbolKinds.Struct | SymbolKinds.Function | SymbolKinds.Variable | SymbolKinds.Property | SymbolKinds.Event);
 
             Assert.IsNotNull(symbols.SingleOrDefault(s => s.Name == "LocalGlobalFunction"));
 #if FALLOUT4
@@ -152,6 +152,14 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
 
             Assert.IsTrue(symbols.Count() > 0);
             Assert.IsTrue(symbols.All(s => s is CustomEventSymbol));
+        }
+
+        [TestMethod]
+        public void GetReferencableSymbols_IncompleteRemoteEvent()
+        {
+            var script = GetScript();
+            GetReferencableSymbolsAtMarker("incomplete-remote-event");
+            GetReferencableSymbolsAtMarker("incomplete-remote-event", true);
         }
 #endif
     }

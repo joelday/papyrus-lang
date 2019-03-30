@@ -54,6 +54,25 @@ namespace DarkId.Papyrus.LanguageService.Program
         }
 #endif
 
+#if FALLOUT4
+
+        // This prevents parsing from failing while a function identifier is incomplete.
+        [HarmonyPatch(typeof(PCompiler.ScriptFunctionType))]
+        [HarmonyPatch(MethodType.Constructor, typeof(string), typeof(string), typeof(string), typeof(string), typeof(bool))]
+        public static class ScriptFunctionTypeCtorPatch
+        {
+            public static bool Prefix(ScriptFunctionType __instance, ref string asFuncName, ref string asObjName, ref string asStateName, ref string asPropName, ref bool abIsEvent)
+            {
+                if (string.IsNullOrEmpty(asFuncName))
+                {
+                    asFuncName = "__Unknown__";
+                }
+
+                return true;
+            }
+        }
+#endif
+
         [HarmonyPatch(typeof(PCompiler.Compiler))]
         [HarmonyPatch("LoadObject", typeof(string), typeof(Dictionary<string, ScriptComplexType>), typeof(Stack<string>), typeof(bool), typeof(ScriptObjectType))]
         public static class LoadObjectPatch
@@ -160,7 +179,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             }
         }
 
-#endregion
+        #endregion
 
 #if FALLOUT4
         private static readonly MethodInfo _disambiguateTypeMethod =

@@ -154,14 +154,14 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
             return CreateNode<EventDefinitionNode>(parent, parentChildren, (node, children) =>
             {
                 children.Next();
-                node.Header = BindFunctionHeader(node, children);
+                node.Header = BindFunctionHeader(node, children, true);
 
                 children.Next();
                 BindStatementsToBlock(node, children);
             });
         }
 
-        private FunctionHeaderNode BindFunctionHeader(SyntaxNode parent, Scanner<CommonTree> parentChildren)
+        private FunctionHeaderNode BindFunctionHeader(SyntaxNode parent, Scanner<CommonTree> parentChildren, bool forEvent = false)
         {
             return CreateNode<FunctionHeaderNode>(parent, parentChildren, (node, children) =>
             {
@@ -169,6 +169,61 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
                 node.TypeIdentifier = BindTypeIdentifier(node, children);
 
                 children.Next();
+
+#if FALLOUT4
+                if (forEvent && children.Current.Text.Contains("."))
+                {
+                    var compilerNode = children.Current;
+                    var nodeRange = compilerNode.GetRange(_tokenStream, _text);
+
+                    var expressionElementTexts = compilerNode.Text.Split('.');
+
+                    var baseExpressionRange = new Range()
+                    {
+                        Start = nodeRange.Start,
+                        End = new Position()
+                        {
+                            Character = nodeRange.Start.Character + expressionElementTexts[0].Length - 1,
+                            Line = nodeRange.Start.Line
+                        }
+                    };
+
+                    var accessExpressionRange = new Range()
+                    {
+                        Start = new Position()
+                        {
+                            Character = nodeRange.End.Character - expressionElementTexts[1].Length - 1,
+                            Line = nodeRange.End.Line
+                        },
+                        End = nodeRange.End
+                    };
+
+                    node.RemoteEventExpression = CreateNode<MemberAccessExpressionNode>(node, children);
+
+                    // TODO: Builder API of some sort.
+                    var baseExpression = CreateNode<IdentifierExpressionNode>(node.RemoteEventExpression, children);
+                    baseExpression.Text = expressionElementTexts[0];
+                    baseExpression.Identifier = CreateNode<TypeIdentifierNode>(baseExpression, children);
+                    baseExpression.Identifier.Text = expressionElementTexts[0];
+
+                    baseExpression.Identifier.Range = baseExpressionRange;
+                    baseExpression.Range = baseExpressionRange;
+
+                    node.RemoteEventExpression.BaseExpression = baseExpression;
+
+                    var accessExpression = CreateNode<IdentifierExpressionNode>(node.RemoteEventExpression, children);
+                    accessExpression.Text = expressionElementTexts[1];
+                    
+                    accessExpression.Identifier = CreateNode<IdentifierNode>(accessExpression, children);
+                    accessExpression.Identifier.Text = expressionElementTexts[1];
+
+                    accessExpression.Range = accessExpressionRange;
+                    accessExpression.Identifier.Range = accessExpressionRange;
+
+                    node.RemoteEventExpression.AccessExpression = accessExpression;
+                }
+#endif
+
                 node.Identifier = BindIdentifier(node, children);
 
                 children.Next();
@@ -314,19 +369,22 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         {
             return CreateNode<IdentifierNode>(parent, parentChildren, (node, children) =>
             {
-                node.Range = new Range()
+                if (!(node.CompilerNode is CommonErrorNode))
                 {
-                    Start = new Position()
+                    node.Range = new Range()
                     {
-                        Character = node.CompilerNode.CharPositionInLine,
-                        Line = node.CompilerNode.Line - 1
-                    },
-                    End = new Position()
-                    {
-                        Character = node.CompilerNode.CharPositionInLine + node.CompilerNode.Text.Length,
-                        Line = node.CompilerNode.Line - 1
-                    }
-                };
+                        Start = new Position()
+                        {
+                            Character = node.CompilerNode.CharPositionInLine,
+                            Line = node.CompilerNode.Line - 1
+                        },
+                        End = new Position()
+                        {
+                            Character = node.CompilerNode.CharPositionInLine + node.CompilerNode.Text.Length,
+                            Line = node.CompilerNode.Line - 1
+                        }
+                    };
+                }
 
                 node.Text = node.CompilerNode.Text;
             });

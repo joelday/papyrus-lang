@@ -43,6 +43,8 @@ namespace DarkId.Papyrus.Server.Features
                 case SymbolKinds.Import:
                 case SymbolKinds.Script:
                     return CompletionItemKind.Class;
+                case SymbolKinds.State:
+                    return CompletionItemKind.Module;
                 default:
                     return CompletionItemKind.Text;
             }
@@ -76,7 +78,7 @@ namespace DarkId.Papyrus.Server.Features
                     return Task.FromResult<CompletionList>(null);
                 }
 
-                var node = scriptFile.Node.GetDescendantNodeAtPosition(request.Position.ToPosition()) ?? scriptFile.Node;
+                var node = scriptFile.Node?.GetDescendantNodeAtPosition(request.Position.ToPosition()) ?? scriptFile.Node;
                 if (node == null)
                 {
                     return Task.FromResult<CompletionList>(null);
@@ -91,13 +93,15 @@ namespace DarkId.Papyrus.Server.Features
                 var knownParamValues = callExpressionParameterIndex.HasValue && callExpressionParameterIndex != -1 ?
                     callExpressionNode.GetKnownParameterValueSymbols(callExpressionParameterIndex.Value, out valuesAreExclusive) : null;
 
+
                 var knownParamValuesCompletions = knownParamValues != null ?
-                    knownParamValues.Select(symbol => {
+                    knownParamValues.Select(symbol =>
+                    {
                         var displayText = displayTextEmitter.GetDisplayText(symbol);
 
                         return new CompletionItem()
                         {
-                            Kind = GetCompletionItemKind(symbol), 
+                            Kind = GetCompletionItemKind(symbol),
                             Label = symbol.Name,
                             InsertText = $"\"{symbol.Name}\"",
                             Detail = displayText.Text,
@@ -113,11 +117,8 @@ namespace DarkId.Papyrus.Server.Features
 
                 var symbols = node.GetReferencableSymbols();
 
-#if FALLOUT4
-                symbols = symbols.Where(symbol => !(symbol is EventSymbol) && !(symbol is CustomEventSymbol));
-#endif
-
-                var symbolCompletions = symbols.Select(symbol => {
+                var symbolCompletions = symbols.Select(symbol =>
+                {
                     var displayText = displayTextEmitter.GetDisplayText(symbol);
 
                     return new CompletionItem()
@@ -138,11 +139,11 @@ namespace DarkId.Papyrus.Server.Features
                     Where(s => !s.Key.ScriptName.StartsWith("TIF__", StringComparison.OrdinalIgnoreCase)).
                     Where(s => !s.Key.NamespaceParts.Any(ns => ns.CaseInsensitiveEquals("Fragments"))).
                     Select(s => new CompletionItem()
-                {
-                    Kind = CompletionItemKind.Class,
-                    Label = s.Key,
-                    SortText = $"\u2129{s.Key}"
-                }).ToArray()
+                    {
+                        Kind = CompletionItemKind.Class,
+                        Label = s.Key,
+                        SortText = $"\u2129{s.Key}"
+                    }).ToArray()
                 : Enumerable.Empty<CompletionItem>();
 
                 return Task.FromResult(new CompletionList(knownParamValuesCompletions.Concat(symbolCompletions.Concat(scriptCompletions))));

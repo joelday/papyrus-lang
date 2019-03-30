@@ -73,7 +73,12 @@ namespace DarkId.Papyrus.LanguageService.Program
         }
 
         public static IEnumerable<PapyrusSymbol> GetScriptMemberSymbols(
-            this ScriptSymbol symbol, bool declaredOnly = false, bool includeDeclaredPrivates = false, bool globalOnly = false, bool declaredGlobalsOnly = false)
+            this ScriptSymbol symbol,
+            bool declaredOnly = false,
+            bool includeDeclaredPrivates = false,
+            bool globalOnly = false,
+            bool declaredGlobalsOnly = false,
+            SymbolKinds additionalNonGlobalKinds = SymbolKinds.None)
         {
             var symbols = (IEnumerable<PapyrusSymbol>)symbol.Definition.ScopedSymbols.Values;
 
@@ -84,6 +89,8 @@ namespace DarkId.Papyrus.LanguageService.Program
                 {
                     kindFilter |= SymbolKinds.Variable | SymbolKinds.Event;
                 }
+
+                kindFilter |= additionalNonGlobalKinds;
 
                 symbols = symbols.Where(s => (s.Flags & LanguageFlags.Global) == 0 && (s.Kind & kindFilter) != 0);
             }
@@ -242,7 +249,15 @@ namespace DarkId.Papyrus.LanguageService.Program
                 var typeSymbol = asComplexType.Symbol;
                 if (typeSymbol is ScriptSymbol asScriptSymbol)
                 {
-                    var memberSymbols = asScriptSymbol.GetScriptMemberSymbols(globalOnly: isGlobalCall, declaredOnly: asScriptSymbol.SyntheticArrayType != null);
+                    var memberSymbols = asScriptSymbol.GetScriptMemberSymbols(
+                        globalOnly: isGlobalCall,
+                        declaredOnly: asScriptSymbol.SyntheticArrayType != null,
+                        additionalNonGlobalKinds: memberAccessExpression.Parent is FunctionHeaderNode ? SymbolKinds.Event | SymbolKinds.CustomEvent : SymbolKinds.None);
+
+                    if (memberAccessExpression.Parent is FunctionHeaderNode)
+                    {
+                        return memberSymbols.Where(s => (s.Kind & SymbolKinds.Event) != 0 || (s.Kind & SymbolKinds.CustomEvent) != 0);
+                    }
 
                     if (!isGlobalCall)
                     {
@@ -282,18 +297,30 @@ namespace DarkId.Papyrus.LanguageService.Program
                 }
             }
 
+            // Declaration identifiers shouldn't return any referencable symbols.
             if (node is IdentifierNode &&
                 (node.Parent is DeclareStatementNode || node.Parent is FunctionParameterNode))
             {
                 return Enumerable.Empty<PapyrusSymbol>();
             }
 
-            // Declaration identifiers shouldn't return any referencable symbols.
-            if (!(node is ScriptHeaderNode) && node is ITypedIdentifiable typed && typed.TypeIdentifier.Text != string.Empty)
+#if FALLOUT4
+            // TODO: Double check on this after resolving remaining issues.
+            // For remote event handler definitions with an empty access expression, this needs to be redirected.
+            if (node is FunctionHeaderNode asFunctionHeaderNode &&
+                asFunctionHeaderNode.Parent is EventDefinitionNode &&
+                asFunctionHeaderNode.RemoteEventExpression != null &&
+                asFunctionHeaderNode.RemoteEventExpression.AccessExpression.Text == string.Empty)
+            {
+                return asFunctionHeaderNode.RemoteEventExpression.AccessExpression.GetReferencableSymbols();
+            }
+#endif
+
+            if (!(node is ScriptHeaderNode) && node is ITypedIdentifiable typed && typed.TypeIdentifier?.Text != string.Empty)
             {
                 return Enumerable.Empty<PapyrusSymbol>();
             }
-            
+
             if (node.CompilerNode is CommonErrorNode)
             {
                 return Enumerable.Empty<PapyrusSymbol>();
