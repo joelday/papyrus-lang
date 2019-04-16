@@ -1,3 +1,10 @@
+## [2.5.1](https://github.com/joelday/papyrus-lang/compare/v2.5.0...v2.5.1) (2019-04-16)
+
+
+### Bug Fixes
+
+* prevent error from attempting to resolve compiler path when install path is null. ([c2de135](https://github.com/joelday/papyrus-lang/commit/c2de135))
+
 # [2.5.0](https://github.com/joelday/papyrus-lang/compare/v2.4.0...v2.5.0) (2019-03-30)
 
 
