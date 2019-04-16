@@ -115,7 +115,20 @@ export class CreationKitInfoProvider {
             );
 
             const mergedIni = parsedInis.pipe(
-                map((iniObjects) => deepMergeAll([getDefaultConfigForGame(game), ...iniObjects]) as ICreationKitConfig)
+                map((iniObjects) => {
+                    for (const iniObject of iniObjects) {
+                        const papyrusSection = iniObject.Papyrus;
+                        if (papyrusSection) {
+                            for (const key of Object.keys(papyrusSection)) {
+                                if (typeof papyrusSection[key] === 'string') {
+                                    papyrusSection[key] = papyrusSection[key].replace(/"/g, '');
+                                }
+                            }
+                        }
+                    }
+
+                    return deepMergeAll([getDefaultConfigForGame(game), ...iniObjects]) as ICreationKitConfig;
+                })
             );
 
             return combineLatest(resolvedInstallPath, mergedIni).pipe(
