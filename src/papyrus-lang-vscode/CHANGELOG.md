@@ -1,3 +1,10 @@
+## [2.5.2](https://github.com/joelday/papyrus-lang/compare/v2.5.1...v2.5.2) (2019-04-16)
+
+
+### Bug Fixes
+
+* now properly parses Papyrus ini properties with quoted values ([6f50fbb](https://github.com/joelday/papyrus-lang/commit/6f50fbb))
+
 ## [2.5.1](https://github.com/joelday/papyrus-lang/compare/v2.5.0...v2.5.1) (2019-04-16)
 
 
