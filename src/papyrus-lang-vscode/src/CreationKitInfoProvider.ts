@@ -72,7 +72,10 @@ export interface ICreationKitInfoProvider {
 export class CreationKitInfoProvider {
     private readonly _infos: Map<PapyrusGame, Observable<ICreationKitInfo>>;
 
-    constructor(@IExtensionConfigProvider infoProvider: IExtensionConfigProvider, @IExtensionContext extensionContext: ExtensionContext) {
+    constructor(
+        @IExtensionConfigProvider infoProvider: IExtensionConfigProvider,
+        @IExtensionContext extensionContext: ExtensionContext
+    ) {
         const createInfoObservable = (game: PapyrusGame) => {
             const gameConfig = infoProvider.config.pipe(map((config) => config[game]));
 
@@ -116,19 +119,29 @@ export class CreationKitInfoProvider {
             );
 
             return combineLatest(resolvedInstallPath, mergedIni).pipe(
-                mergeMap(
-                    async ([resolvedInstallPath, mergedIni]) => {
-                        const compilerPath = path.resolve(resolvedInstallPath, mergedIni.Papyrus.sCompilerFolder);
-                        const resolvedCompilerPath = await exists(compilerPath) ? compilerPath : inDevelopmentEnvironment() ?
-                            path.resolve(resolvedInstallPath, getDevelopmentCompilerFolderForGame(game)) : null;
+                mergeMap(async ([resolvedInstallPath, mergedIni]) => {
+                    const compilerPath = resolvedInstallPath
+                        ? path.resolve(resolvedInstallPath, mergedIni.Papyrus.sCompilerFolder)
+                        : null;
 
-                        return {
-                            resolvedInstallPath,
-                            resolvedCompilerPath: inDevelopmentEnvironment() && !(await exists(resolvedCompilerPath)) ? null : resolvedCompilerPath,
-                            config: mergedIni,
-                        } as ICreationKitInfo;
-                    }
-                ),
+                    const resolvedCompilerPath =
+                        compilerPath && (await exists(compilerPath))
+                            ? compilerPath
+                            : inDevelopmentEnvironment() && game !== PapyrusGame.skyrim
+                            ? path.resolve(resolvedInstallPath, getDevelopmentCompilerFolderForGame(game))
+                            : null;
+
+                    return {
+                        resolvedInstallPath,
+                        resolvedCompilerPath:
+                            inDevelopmentEnvironment() &&
+                            game !== PapyrusGame.skyrim &&
+                            !(await exists(resolvedCompilerPath))
+                                ? null
+                                : resolvedCompilerPath,
+                        config: mergedIni,
+                    } as ICreationKitInfo;
+                }),
                 shareReplay(1)
             );
         };

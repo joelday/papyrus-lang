@@ -52,7 +52,7 @@ export async function resolveInstallPath(
         }
     } catch (_) {}
 
-    if (inDevelopmentEnvironment()) {
+    if (inDevelopmentEnvironment() && game !== PapyrusGame.skyrim) {
         return context.asAbsolutePath('../../dependencies/compilers');
     }
 
