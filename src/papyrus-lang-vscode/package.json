@@ -17,6 +17,21 @@
         "Programming Languages"
     ],
     "contributes": {
+        "breakpoints": [
+            {
+                "language": "papyrus"
+            }
+        ],
+        "debuggers": [
+            {
+                "type": "fallout4",
+                "label": "Fallout 4",
+                "program": ".\\debug-bin\\Debug\\net461\\DarkId.Papyrus.DebugAdapterProxy\\DarkId.Papyrus.DebugAdapterProxy.exe",
+                "attach": {
+                    "properties": {}
+                }
+            }
+        ],
         "configuration": {
             "properties": {
                 "papyrus.fallout4.enabled": {
@@ -149,6 +164,7 @@
         "fast-deep-equal": "^2.0.1",
         "ini": "^1.3.5",
         "rxjs": "^6.4.0",
+        "vscode-debugprotocol": "^1.34.0",
         "vscode-languageclient": "^5.2.1",
         "winreg": "^1.2.4",
         "xml-writer": "^1.7.0"
@@ -202,6 +218,7 @@
     },
     "scripts": {
         "copy-bin": "rimraf ./bin && cpr ../DarkId.Papyrus.Host/bin/ ./bin/ -o",
+        "copy-debug-bin": "rimraf ./debug-bin && cpr ../DarkId.Papyrus.DebugAdapterProxy/bin/ ./debug-bin/ -o",
         "clean": "rimraf out",
         "compile": "tsc -p ./",
         "postinstall": "node ./node_modules/vscode/bin/install",

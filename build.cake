@@ -41,6 +41,14 @@ Task("npm-copy-bin")
         });
     });
 
+Task("npm-copy-debug-bin")
+    .Does(() => {
+        NpmRunScript(new NpmRunScriptSettings()
+        {
+            ScriptName = "copy-debug-bin",
+            WorkingDirectory = "src/papyrus-lang-vscode"
+        });
+    });
 
 Task("npm-build")
     .Does(() => {
@@ -107,15 +115,18 @@ Task("default")
     .IsDependentOn("npm-install")
     .IsDependentOn("npm-clean")
     .IsDependentOn("npm-copy-bin")
+    .IsDependentOn("npm-copy-debug-bin")
     .IsDependentOn("npm-build");
 
 Task("update-bin")
     .IsDependentOn("build")
-    .IsDependentOn("npm-copy-bin");
+    .IsDependentOn("npm-copy-bin")
+    .IsDependentOn("npm-copy-debug-bin");
 
 Task("build-extension")
     .IsDependentOn("npm-clean")
     .IsDependentOn("npm-copy-bin")
+    .IsDependentOn("npm-copy-debug-bin")
     .IsDependentOn("npm-build");
 
 Task("build-test")

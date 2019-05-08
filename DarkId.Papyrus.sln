@@ -29,6 +29,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{61D956
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Languages", "Languages", "{2933A950-7B3F-43C3-9898-F22276472C5C}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.DebugAdapterProxy", "src\DarkId.Papyrus.DebugAdapterProxy\DarkId.Papyrus.DebugAdapterProxy.csproj", "{65A1E272-F2C1-47AC-BAEA-B0723409A103}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -52,6 +54,8 @@ Global
 		{3061E13A-7189-4F14-BBDA-34E4EBF84224}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B638D66E-BFC9-4C3D-8915-F1A3B7A083A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B638D66E-BFC9-4C3D-8915-F1A3B7A083A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{65A1E272-F2C1-47AC-BAEA-B0723409A103}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{65A1E272-F2C1-47AC-BAEA-B0723409A103}.Debug|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -68,6 +72,7 @@ Global
 		{D8EB43E1-73DF-4A72-B4BA-D17781C2006D} = {8D95165B-14A6-4315-92D7-4B49D712259E}
 		{3061E13A-7189-4F14-BBDA-34E4EBF84224} = {8D95165B-14A6-4315-92D7-4B49D712259E}
 		{B638D66E-BFC9-4C3D-8915-F1A3B7A083A8} = {8D95165B-14A6-4315-92D7-4B49D712259E}
+		{65A1E272-F2C1-47AC-BAEA-B0723409A103} = {61D95681-63EA-4064-BE21-93A1A8D9BF28}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F463939D-09F7-4C69-9379-87B29449255B}
