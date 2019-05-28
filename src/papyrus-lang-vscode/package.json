@@ -24,11 +24,24 @@
         ],
         "debuggers": [
             {
-                "type": "fallout4",
-                "label": "Fallout 4",
+                "type": "papyrus",
+                "label": "Papyrus",
                 "program": ".\\debug-bin\\Debug\\net461\\DarkId.Papyrus.DebugAdapterProxy\\DarkId.Papyrus.DebugAdapterProxy.exe",
                 "attach": {
-                    "properties": {}
+                    "properties": {
+                        "game": {
+                            "type": "string",
+                            "enum": [
+                                "fallout4"
+                            ]
+                        },
+                        "projectPath": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "game"
+                    ]
                 }
             }
         ],
