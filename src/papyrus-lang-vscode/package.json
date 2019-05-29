@@ -3,7 +3,10 @@
         "onLanguage:papyrus",
         "onLanguage:papyrus-project",
         "workspaceContains:**/*.psc",
-        "workspaceContains:**/*.ppj"
+        "workspaceContains:**/*.ppj",
+        "onDebug",
+        "onDebugInitialConfigurations",
+        "onDebugResolve:papyrus"
     ],
     "author": {
         "email": "joelday@gmail.com",
@@ -26,22 +29,29 @@
             {
                 "type": "papyrus",
                 "label": "Papyrus",
-                "program": ".\\debug-bin\\Debug\\net461\\DarkId.Papyrus.DebugAdapterProxy\\DarkId.Papyrus.DebugAdapterProxy.exe",
-                "attach": {
-                    "properties": {
-                        "game": {
-                            "type": "string",
-                            "enum": [
-                                "fallout4"
-                            ]
+                "languages": [
+                    "papyrus"
+                ],
+                "contributionAttributes": {
+                    "attach": {
+                        "properties": {
+                            "game": {
+                                "type": "string",
+                                "enum": [
+                                    "fallout4"
+                                ]
+                            },
+                            "projectPath": {
+                                "type": "string"
+                            },
+                            "port": {
+                                "type": "integer"
+                            }
                         },
-                        "projectPath": {
-                            "type": "string"
-                        }
-                    },
-                    "required": [
-                        "game"
-                    ]
+                        "required": [
+                            "game"
+                        ]
+                    }
                 }
             }
         ],

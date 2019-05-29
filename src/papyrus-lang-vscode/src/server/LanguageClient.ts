@@ -4,23 +4,7 @@ import { workspace, FileSystemWatcher, OutputChannel, TextDocument } from 'vscod
 import { DocumentScriptInfo, documentScriptInfoRequestType } from './messages/DocumentScriptInfo';
 import { DocumentSyntaxTree, documentSyntaxTreeRequestType } from './messages/DocumentSyntaxTree';
 import { PapyrusGame } from '../PapyrusGame';
-
-function toCommandLineArgs(obj: Object): string[] {
-    return [].concat(
-        ...Object.keys(obj).map((key) => {
-            const value = obj[key];
-
-            if (typeof value === 'undefined' || value === null) {
-                return [];
-            }
-
-            return [
-                `--${key}`,
-                ...(Array.isArray(value) ? value.map((element) => element.toString()) : [value.toString()]),
-            ];
-        })
-    );
-}
+import { toCommandLineArgs } from '../Utilities';
 
 export interface ILanguageClientOptions {
     game: PapyrusGame;

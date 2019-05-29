@@ -10,6 +10,8 @@ import { getInstance } from './common/Ioc';
 import { ICreationKitInfoProvider, CreationKitInfoProvider } from './CreationKitInfoProvider';
 import { ScriptStatusCodeLensProvider } from './features/ScriptStatusCodeLensProvider';
 import { SearchCreationKitWikiCommand } from './features/SearchCreationKitWikiCommand';
+import { PapyrusDebugConfigurationProvider } from './debugger/PapyrusDebugConfigurationProvider';
+import { PapyrusDebugAdapterDescriptorFactory } from './debugger/PapyrusDebugAdapterDescriptorFactory';
 
 class PapyrusExtension implements Disposable {
     private readonly _serviceCollection: ServiceCollection;
@@ -21,6 +23,8 @@ class PapyrusExtension implements Disposable {
     // private readonly _taskProvider: CompilerTaskProvider;
     private readonly _scriptStatusCodeLensProvider: ScriptStatusCodeLensProvider;
     private readonly _searchWikiCommand: SearchCreationKitWikiCommand;
+    private readonly _debugConfigurationProvider: PapyrusDebugConfigurationProvider;
+    private readonly _debugAdapterDescriptorFactory: PapyrusDebugAdapterDescriptorFactory;
 
     constructor(context: ExtensionContext) {
         this._languageConfigurations = new LanguageConfigurations();
@@ -41,12 +45,22 @@ class PapyrusExtension implements Disposable {
         // this._taskProvider = this._instantiationService.createInstance(CompilerTaskProvider);
         this._scriptStatusCodeLensProvider = this._instantiationService.createInstance(ScriptStatusCodeLensProvider);
         this._searchWikiCommand = this._instantiationService.createInstance(SearchCreationKitWikiCommand);
+
+        this._debugConfigurationProvider = this._instantiationService.createInstance(PapyrusDebugConfigurationProvider);
+        this._debugAdapterDescriptorFactory = this._instantiationService.createInstance(
+            PapyrusDebugAdapterDescriptorFactory
+        );
     }
 
     dispose() {
+        this._debugAdapterDescriptorFactory.dispose();
+        this._debugConfigurationProvider.dispose();
+
         this._searchWikiCommand.dispose();
         this._scriptStatusCodeLensProvider.dispose();
+
         // this._taskProvider.dispose();
+
         this._statusItems.dispose();
         this._clientManager.dispose();
         this._configProvider.dispose();

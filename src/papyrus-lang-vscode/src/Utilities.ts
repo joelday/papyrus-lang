@@ -66,3 +66,20 @@ export function getDefaultFlagsFileNameForGame(game: PapyrusGame) {
 export function inDevelopmentEnvironment() {
     return process.execArgv.some((arg) => arg.startsWith('--inspect-brk'));
 }
+
+export function toCommandLineArgs(obj: Object): string[] {
+    return [].concat(
+        ...Object.keys(obj).map((key) => {
+            const value = obj[key];
+
+            if (typeof value === 'undefined' || value === null) {
+                return [];
+            }
+
+            return [
+                `--${key}`,
+                ...(Array.isArray(value) ? value.map((element) => element.toString()) : [value.toString()]),
+            ];
+        })
+    );
+}

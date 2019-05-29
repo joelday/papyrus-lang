@@ -180,3 +180,7 @@ function getToolPath(game: PapyrusGame) {
     const toolGameName = getToolGameName(game);
     return `./bin/Debug/net461/DarkId.Papyrus.Host.${toolGameName}/DarkId.Papyrus.Host.${toolGameName}.exe`;
 }
+
+function getDebugToolPath() {
+    return './debug-bin/Debug/net461/DarkId.Papyrus.DebugAdapterProxy/DarkId.Papyrus.DebugAdapterProxy.exe';
+}

@@ -3,16 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using DarkId.Papyrus.LanguageService.Configuration.CreationKit;
-using OmniSharp.Extensions.LanguageServer.Protocol;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Newtonsoft.Json.Linq;
 using DarkId.Papyrus.Common;
-using Microsoft.Extensions.Logging;
 
-namespace DarkId.Papyrus.Server
+namespace DarkId.Papyrus.LanguageService.Configuration.CreationKit
 {
-    class CreationKitInisLocator : ICreationKitInisLocator
+    public class CreationKitInisLocator : ICreationKitInisLocator
     {
         private readonly CreationKitIniLocations _locations;
 
