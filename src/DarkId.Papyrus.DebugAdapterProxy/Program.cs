@@ -183,6 +183,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
             client.OnClosed += (reason) =>
             {
                 logger.LogInformation("Connection closed: {0}", reason);
+                Environment.Exit(0);
             };
 
             try
