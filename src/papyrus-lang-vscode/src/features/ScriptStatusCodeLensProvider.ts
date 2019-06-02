@@ -13,7 +13,7 @@ import {
     languages,
     EventEmitter,
 } from 'vscode';
-import { take, mergeMap, distinctUntilChanged } from 'rxjs/operators';
+import { mergeMap, distinctUntilChanged } from 'rxjs/operators';
 import { Unsubscribable } from 'rxjs';
 
 function createZeroLens() {

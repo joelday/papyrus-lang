@@ -11,6 +11,7 @@ export class SearchCreationKitWikiCommand extends EditorCommandBase {
 
         this._languageClientManager = languageClientManager;
     }
+
     protected async onExecute(editor: TextEditor) {
         const { document, selection } = editor;
 
