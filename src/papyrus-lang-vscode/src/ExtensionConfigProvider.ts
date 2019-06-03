@@ -1,10 +1,7 @@
 import { createDecorator } from 'decoration-ioc';
-import { workspace } from 'vscode';
+import { workspace, Disposable } from 'vscode';
 import { eventToValueObservable } from './common/vscode/reactive/Events';
 import { Observable } from 'rxjs';
-import { Disposable } from 'vscode-jsonrpc';
-import { PapyrusGame } from './PapyrusGame';
-import { mergeMap, map } from 'rxjs/operators';
 
 export interface IGameConfig {
     readonly enabled: boolean;

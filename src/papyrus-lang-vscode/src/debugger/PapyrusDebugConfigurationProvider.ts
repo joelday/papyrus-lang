@@ -1,8 +1,5 @@
-import { DebugConfigurationProvider, CancellationToken, WorkspaceFolder, DebugConfiguration, debug } from 'vscode';
-import { ILanguageClientManager } from '../server/LanguageClientManager';
+import { DebugConfigurationProvider, CancellationToken, WorkspaceFolder, debug, Disposable } from 'vscode';
 import { PapyrusGame } from '../PapyrusGame';
-import { LanguageClientConsumerBase } from '../common/LanguageClientConsumerBase';
-import { Disposable } from 'vscode-jsonrpc';
 import { IPapyrusDebugConfiguration } from './PapyrusDebugSession';
 
 // TODO: Auto install F4SE plugin

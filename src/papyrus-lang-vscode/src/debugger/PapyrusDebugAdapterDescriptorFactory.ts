@@ -1,15 +1,11 @@
 import {
-    ProviderResult,
     DebugAdapterDescriptorFactory,
-    DebugSession,
     DebugAdapterExecutable,
     DebugAdapterDescriptor,
     debug,
     Disposable,
-    DebugConfiguration,
     ExtensionContext,
 } from 'vscode';
-import { ILanguageClientManager } from '../server/LanguageClientManager';
 import { PapyrusGame } from '../PapyrusGame';
 import { ICreationKitInfoProvider } from '../CreationKitInfoProvider';
 import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
