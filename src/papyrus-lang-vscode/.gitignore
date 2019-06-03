@@ -1,4 +1,5 @@
 debug-bin
+debug-plugin
 out
 node_modules
 .vscode-test/

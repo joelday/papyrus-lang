@@ -12,6 +12,8 @@ import { ScriptStatusCodeLensProvider } from './features/ScriptStatusCodeLensPro
 import { SearchCreationKitWikiCommand } from './features/SearchCreationKitWikiCommand';
 import { PapyrusDebugConfigurationProvider } from './debugger/PapyrusDebugConfigurationProvider';
 import { PapyrusDebugAdapterDescriptorFactory } from './debugger/PapyrusDebugAdapterDescriptorFactory';
+import { IDebugSupportInstaller, DebugSupportInstaller } from './debugger/DebugSupportInstaller';
+import { InstallDebugSupportCommand } from './features/commands/InstallDebugSupportCommand';
 
 class PapyrusExtension implements Disposable {
     private readonly _serviceCollection: ServiceCollection;
@@ -25,6 +27,7 @@ class PapyrusExtension implements Disposable {
     private readonly _searchWikiCommand: SearchCreationKitWikiCommand;
     private readonly _debugConfigurationProvider: PapyrusDebugConfigurationProvider;
     private readonly _debugAdapterDescriptorFactory: PapyrusDebugAdapterDescriptorFactory;
+    private readonly _installDebugSupportCommand: InstallDebugSupportCommand;
 
     constructor(context: ExtensionContext) {
         this._languageConfigurations = new LanguageConfigurations();
@@ -33,7 +36,8 @@ class PapyrusExtension implements Disposable {
             [IExtensionContext, context],
             [IExtensionConfigProvider, new Descriptor(ExtensionConfigProvider)],
             [ICreationKitInfoProvider, new Descriptor(CreationKitInfoProvider)],
-            [ILanguageClientManager, new Descriptor(LanguageClientManager)]
+            [ILanguageClientManager, new Descriptor(LanguageClientManager)],
+            [IDebugSupportInstaller, new Descriptor(DebugSupportInstaller)]
         );
 
         this._instantiationService = new InstantiationService(this._serviceCollection);
@@ -50,9 +54,13 @@ class PapyrusExtension implements Disposable {
         this._debugAdapterDescriptorFactory = this._instantiationService.createInstance(
             PapyrusDebugAdapterDescriptorFactory
         );
+
+        this._installDebugSupportCommand = this._instantiationService.createInstance(InstallDebugSupportCommand);
     }
 
     dispose() {
+        this._installDebugSupportCommand.dispose();
+
         this._debugAdapterDescriptorFactory.dispose();
         this._debugConfigurationProvider.dispose();
 

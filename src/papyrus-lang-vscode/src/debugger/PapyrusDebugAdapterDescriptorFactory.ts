@@ -5,6 +5,8 @@ import {
     debug,
     Disposable,
     ExtensionContext,
+    window,
+    commands,
 } from 'vscode';
 import { PapyrusGame } from '../PapyrusGame';
 import { ICreationKitInfoProvider } from '../CreationKitInfoProvider';
@@ -13,6 +15,7 @@ import { take } from 'rxjs/operators';
 import { IPapyrusDebugSession } from './PapyrusDebugSession';
 import { toCommandLineArgs } from '../Utilities';
 import { IExtensionContext } from '../common/vscode/IocDecorators';
+import { IDebugSupportInstaller, DebugSupportInstallState, DebugSupportInstaller } from './DebugSupportInstaller';
 
 export interface IDebugToolArguments {
     port?: number;
@@ -27,16 +30,19 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
     private readonly _creationKitInfoProvider: ICreationKitInfoProvider;
     private readonly _configProvider: IExtensionConfigProvider;
     private readonly _context: ExtensionContext;
+    private readonly _debugSupportInstaller: IDebugSupportInstaller;
     private readonly _registration: Disposable;
 
     constructor(
         @ICreationKitInfoProvider creationKitInfoProvider: ICreationKitInfoProvider,
         @IExtensionConfigProvider configProvider: IExtensionConfigProvider,
-        @IExtensionContext context: ExtensionContext
+        @IExtensionContext context: ExtensionContext,
+        @IDebugSupportInstaller debugSupportInstaller: IDebugSupportInstaller
     ) {
         this._creationKitInfoProvider = creationKitInfoProvider;
         this._configProvider = configProvider;
         this._context = context;
+        this._debugSupportInstaller = debugSupportInstaller;
 
         this._registration = debug.registerDebugAdapterDescriptorFactory('papyrus', this);
     }
@@ -45,6 +51,45 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
         session: IPapyrusDebugSession,
         executable: DebugAdapterExecutable
     ): Promise<DebugAdapterDescriptor> {
+        const installState = await this._debugSupportInstaller.getInstallState();
+
+        switch (installState) {
+            case DebugSupportInstallState.incorrectVersion:
+                if (
+                    (await window.showWarningMessage(
+                        'The current language support plugin is out of date. Without updating, the debug session may not be reliable. Make sure Fallout 4 is closed before updating.',
+                        'Update',
+                        'Ignore'
+                    )) === 'Update'
+                ) {
+                    commands.executeCommand('papyrus.fallout4.installDebuggerSupport');
+                    return null;
+                }
+                break;
+            case DebugSupportInstallState.missing:
+                if (
+                    (await window.showInformationMessage(
+                        'Papyrus debugging requires an F4SE plugin to be installed. After installing, relaunch Fallout 4 with F4SE.',
+                        'Install',
+                        'Cancel'
+                    )) === 'Install'
+                ) {
+                    commands.executeCommand('papyrus.fallout4.installDebuggerSupport');
+                }
+
+                return null;
+            case DebugSupportInstallState.gameDisabled:
+                window.showErrorMessage(
+                    'Fallout 4 language support must be enabled before installing the Papyrus debugger plugin.'
+                );
+                return null;
+            case DebugSupportInstallState.gameMissing:
+                window.showErrorMessage('Unable to locate Fallout 4 install path.');
+                return null;
+            case DebugSupportInstallState.cancelled:
+                return null;
+        }
+
         const config = (await this._configProvider.config.pipe(take(1)).toPromise()).fallout4;
         const creationKitInfo = await this._creationKitInfoProvider.infos
             .get(PapyrusGame.fallout4)
