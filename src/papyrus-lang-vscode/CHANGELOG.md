@@ -1,3 +1,10 @@
+# [2.6.0](https://github.com/joelday/papyrus-lang/compare/v2.5.2...v2.6.0) (2019-06-03)
+
+
+### Features
+
+* Fallout 4 debugging support! ([16d7f2f](https://github.com/joelday/papyrus-lang/commit/16d7f2f))
+
 ## [2.5.2](https://github.com/joelday/papyrus-lang/compare/v2.5.1...v2.5.2) (2019-04-16)
 
 
