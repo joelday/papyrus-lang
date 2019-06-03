@@ -4,6 +4,10 @@
 var target = Argument("target", "default");
 var solution = File("./DarkId.Papyrus.sln");
 
+var pluginFileDirectory = Directory("src/papyrus-lang-vscode/debug-plugin/");
+var pluginFileName = File("DarkId.Papyrus.DebugServer.dll");
+var pluginFilePath = pluginFileDirectory + pluginFileName;
+
 public void DownloadAndUnzip(string address, DirectoryPath outputPath, DirectoryPath existsPath)
 {
     if (DirectoryExists(existsPath))
@@ -13,6 +17,22 @@ public void DownloadAndUnzip(string address, DirectoryPath outputPath, Directory
 
     var filePath = DownloadFile(address);
     Unzip(filePath, outputPath);
+}
+
+public void UpdateDebugPlugin()
+{
+    if (!DirectoryExists(pluginFileDirectory))
+    {
+        CreateDirectory(pluginFileDirectory);
+    }
+
+    if (FileExists(pluginFilePath))
+    {
+        DeleteFile(pluginFilePath);
+    }
+
+    var pluginDll = DownloadFile("https://github.com/joelday/papyrus-debug-server/releases/latest/download/DarkId.Papyrus.DebugServer.dll");
+    MoveFile(pluginDll, pluginFilePath);
 }
 
 Task("npm-install")
@@ -57,6 +77,11 @@ Task("npm-build")
             ScriptName = "compile",
             WorkingDirectory = "src/papyrus-lang-vscode"
         });
+    });
+
+Task("update-debug-plugin")
+    .Does(() => {
+        UpdateDebugPlugin();
     });
 
 Task("npm-semantic-release")

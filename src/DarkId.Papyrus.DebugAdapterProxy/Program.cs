@@ -54,8 +54,8 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                 .AddFile(
                     Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                        "My Games\\Fallout4\\F4SE\\papyrus_debug_proxy.log"),
-                    LogLevel.Trace);
+                        "My Games\\Fallout4\\F4SE\\DarkId.Papyrus.DebugAdapterProxy.log"),
+                    LogLevel.Information);
 
             logger = loggerFactory.CreateLogger<Program>();
 
