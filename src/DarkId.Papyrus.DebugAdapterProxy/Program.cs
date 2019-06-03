@@ -24,7 +24,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
     public class Options
     {
         [Option("port")]
-        public int Port { get; set; } = 2700;
+        public int Port { get; set; } = 2077;
 
         [Option("projectPath")]
         public string ProjectPath { get; set; }
