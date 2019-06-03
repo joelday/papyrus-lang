@@ -51,6 +51,9 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
         session: IPapyrusDebugSession,
         executable: DebugAdapterExecutable
     ): Promise<DebugAdapterDescriptor> {
+        // TODO: See if there's a better place to do pre-start checks:
+
+        const noopExecutable = new DebugAdapterExecutable('');
         const installState = await this._debugSupportInstaller.getInstallState();
 
         switch (installState) {
@@ -63,7 +66,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
                     )) === 'Update'
                 ) {
                     commands.executeCommand('papyrus.fallout4.installDebuggerSupport');
-                    return null;
+                    return noopExecutable;
                 }
                 break;
             case DebugSupportInstallState.missing:
@@ -77,17 +80,17 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
                     commands.executeCommand('papyrus.fallout4.installDebuggerSupport');
                 }
 
-                return null;
+                return noopExecutable;
             case DebugSupportInstallState.gameDisabled:
                 window.showErrorMessage(
                     'Fallout 4 language support must be enabled before installing the Papyrus debugger plugin.'
                 );
-                return null;
+                return noopExecutable;
             case DebugSupportInstallState.gameMissing:
                 window.showErrorMessage('Unable to locate Fallout 4 install path.');
-                return null;
+                return noopExecutable;
             case DebugSupportInstallState.cancelled:
-                return null;
+                return noopExecutable;
         }
 
         const config = (await this._configProvider.config.pipe(take(1)).toPromise()).fallout4;
