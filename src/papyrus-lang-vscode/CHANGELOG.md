@@ -1,3 +1,10 @@
+## [2.6.2](https://github.com/joelday/papyrus-lang/compare/v2.6.1...v2.6.2) (2019-06-03)
+
+
+### Bug Fixes
+
+* Default port for debug adapter proxy was wrong. ([694f46d](https://github.com/joelday/papyrus-lang/commit/694f46d))
+
 ## [2.6.1](https://github.com/joelday/papyrus-lang/compare/v2.6.0...v2.6.1) (2019-06-03)
 
 
