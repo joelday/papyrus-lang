@@ -1,3 +1,10 @@
+## [2.6.5](https://github.com/joelday/papyrus-lang/compare/v2.6.4...v2.6.5) (2019-06-04)
+
+
+### Bug Fixes
+
+* Additional error output from debug adapter proxy. ([9006f14](https://github.com/joelday/papyrus-lang/commit/9006f14))
+
 ## [2.6.4](https://github.com/joelday/papyrus-lang/compare/v2.6.3...v2.6.4) (2019-06-04)
 
 
