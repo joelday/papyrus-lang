@@ -1,3 +1,10 @@
+## [2.6.3](https://github.com/joelday/papyrus-lang/compare/v2.6.2...v2.6.3) (2019-06-04)
+
+
+### Bug Fixes
+
+* Papyrus debugging support on Windows 7. ([dacda50](https://github.com/joelday/papyrus-lang/commit/dacda50))
+
 ## [2.6.2](https://github.com/joelday/papyrus-lang/compare/v2.6.1...v2.6.2) (2019-06-03)
 
 
