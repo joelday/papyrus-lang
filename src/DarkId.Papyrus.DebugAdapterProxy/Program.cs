@@ -64,7 +64,15 @@ namespace DarkId.Papyrus.DebugAdapterProxy
             Parser.Default.ParseArguments<Options>(args)
                 .WithParsed(options =>
                 {
-                    exitCode = RunWithSources(ResolveSources(options).WaitForResult(), options.Port);
+                    try
+                    {
+                        exitCode = RunWithSources(ResolveSources(options).WaitForResult(), options.Port);
+                    }
+                    catch (Exception e)
+                    {
+                        logger.LogError(e, "Exception thrown during startup.");
+                        exitCode = 1;
+                    }
                 })
                 .WithNotParsed((error) =>
                 {
