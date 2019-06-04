@@ -1,3 +1,10 @@
+## [2.6.4](https://github.com/joelday/papyrus-lang/compare/v2.6.3...v2.6.4) (2019-06-04)
+
+
+### Bug Fixes
+
+* Debug error messaging. ([587d596](https://github.com/joelday/papyrus-lang/commit/587d596))
+
 ## [2.6.3](https://github.com/joelday/papyrus-lang/compare/v2.6.2...v2.6.3) (2019-06-04)
 
 
