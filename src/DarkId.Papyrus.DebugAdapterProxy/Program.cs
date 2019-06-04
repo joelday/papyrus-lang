@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
-using PureWebSockets;
+using WebSocketSharp;
 using CommandLine;
 using System.Globalization;
 using Newtonsoft.Json;
@@ -50,12 +50,12 @@ namespace DarkId.Papyrus.DebugAdapterProxy
         static int Main(string[] args)
         {
             loggerFactory = new LoggerFactory()
-                .AddDebug(LogLevel.Trace)
+                .AddDebug(Microsoft.Extensions.Logging.LogLevel.Trace)
                 .AddFile(
                     Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
                         "My Games\\Fallout4\\F4SE\\DarkId.Papyrus.DebugAdapterProxy.log"),
-                    LogLevel.Information);
+                    Microsoft.Extensions.Logging.LogLevel.Information);
 
             logger = loggerFactory.CreateLogger<Program>();
 
@@ -131,16 +131,18 @@ namespace DarkId.Papyrus.DebugAdapterProxy
 
             var textWriter = new StringWriter();
 
-            var client = new PureWebSocket(string.Format("ws://localhost:{0}", port), new PureWebSocketOptions());
+            var client = new WebSocket(string.Format("ws://localhost:{0}", port));
 
-            client.OnError += (e) =>
+            client.OnError += (s, e) =>
             {
-                logger.LogError(e, "Socket error");
+                logger.LogError(e.Exception, "Socket error: {0}", e.Message);
             };
 
-            client.OnMessage += (message) =>
+            client.OnMessage += (s, e) =>
             {
-                logger.LogTrace("Forwarding message from server: {0}", message);
+                logger.LogTrace("Forwarding message from server: {0}", e.Data);
+
+                var message = e.Data;
 
                 lock (outputStream)
                 {
@@ -159,9 +161,9 @@ namespace DarkId.Papyrus.DebugAdapterProxy
 
                         message = root.ToString(Formatting.None);
                     }
-                    catch (Exception e)
+                    catch (Exception ex)
                     {
-                        logger.LogError(e, "Exception while inspecting or updating message content.");
+                        logger.LogError(ex, "Exception while inspecting or updating message content.");
                     }
 
                     try
@@ -173,22 +175,24 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                         outputStream.Write(headerBytes, 0, headerBytes.Length);
                         outputStream.Write(messageBytes, 0, messageBytes.Length);
                     }
-                    catch (Exception e)
+                    catch (Exception ex)
                     {
-                        logger.LogError(e, "Exception thrown while forwarding message to client.");
+                        logger.LogError(ex, "Exception thrown while forwarding message to client.");
                     }
                 }
             };
 
-            client.OnClosed += (reason) =>
+            client.OnClose += (s, e) =>
             {
-                logger.LogInformation("Connection closed: {0}", reason);
+                logger.LogInformation("Connection closed: {0}", e.Reason);
                 Environment.Exit(0);
             };
 
             try
             {
-                if (client.Connect())
+                client.Connect();
+
+                if (client.IsAlive)
                 {
                     try
                     {
@@ -214,10 +218,10 @@ namespace DarkId.Papyrus.DebugAdapterProxy
             return 0;
         }
 
-        static void RunReadLoop(PureWebSocket client)
+        static void RunReadLoop(WebSocket client)
         {
             // TODO: Refactor to read from stream.
-            while (client.State == System.Net.WebSockets.WebSocketState.Open)
+            while (client.IsAlive)
             {
                 var headers = new Dictionary<string, string>();
                 while (true)
