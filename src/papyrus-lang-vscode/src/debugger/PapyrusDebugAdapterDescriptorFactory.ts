@@ -16,6 +16,8 @@ import { IPapyrusDebugSession } from './PapyrusDebugSession';
 import { toCommandLineArgs } from '../Utilities';
 import { IExtensionContext } from '../common/vscode/IocDecorators';
 import { IDebugSupportInstaller, DebugSupportInstallState, DebugSupportInstaller } from './DebugSupportInstaller';
+import { LanguageClientConsumerBase } from '../common/LanguageClientConsumerBase';
+import { ILanguageClientManager } from '../server/LanguageClientManager';
 
 export interface IDebugToolArguments {
     port?: number;
@@ -26,7 +28,8 @@ export interface IDebugToolArguments {
     relativeIniPaths: string[];
 }
 
-export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
+export class PapyrusDebugAdapterDescriptorFactory extends LanguageClientConsumerBase
+    implements DebugAdapterDescriptorFactory {
     private readonly _creationKitInfoProvider: ICreationKitInfoProvider;
     private readonly _configProvider: IExtensionConfigProvider;
     private readonly _context: ExtensionContext;
@@ -34,11 +37,14 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
     private readonly _registration: Disposable;
 
     constructor(
+        @ILanguageClientManager clientManager: ILanguageClientManager,
         @ICreationKitInfoProvider creationKitInfoProvider: ICreationKitInfoProvider,
         @IExtensionConfigProvider configProvider: IExtensionConfigProvider,
         @IExtensionContext context: ExtensionContext,
         @IDebugSupportInstaller debugSupportInstaller: IDebugSupportInstaller
     ) {
+        super(clientManager, PapyrusGame.fallout4);
+
         this._creationKitInfoProvider = creationKitInfoProvider;
         this._configProvider = configProvider;
         this._context = context;
@@ -108,10 +114,15 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
             defaultAdditionalImports: creationKitInfo.config.Papyrus.sAdditionalImports,
         };
 
-        const newExecutable = new DebugAdapterExecutable(
-            this._context.asAbsolutePath(getDebugToolPath()),
-            toCommandLineArgs(toolArguments)
+        const toolPath = this._context.asAbsolutePath(getDebugToolPath());
+        const commandLineArgs = toCommandLineArgs(toolArguments);
+
+        const outputChannel = (await this.getLanguageClientHost()).outputChannel;
+        outputChannel.appendLine(
+            `Debug session: Launching debug adapter client: ${toolPath} ${commandLineArgs.join(' ')}`
         );
+
+        const newExecutable = new DebugAdapterExecutable(toolPath, commandLineArgs);
 
         return newExecutable;
     }

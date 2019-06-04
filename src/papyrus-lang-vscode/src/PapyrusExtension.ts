@@ -14,6 +14,7 @@ import { PapyrusDebugConfigurationProvider } from './debugger/PapyrusDebugConfig
 import { PapyrusDebugAdapterDescriptorFactory } from './debugger/PapyrusDebugAdapterDescriptorFactory';
 import { IDebugSupportInstaller, DebugSupportInstaller } from './debugger/DebugSupportInstaller';
 import { InstallDebugSupportCommand } from './features/commands/InstallDebugSupportCommand';
+import { PapyrusDebugAdapterTrackerFactory } from './debugger/PapyrusDebugAdapterTracker';
 
 class PapyrusExtension implements Disposable {
     private readonly _serviceCollection: ServiceCollection;
@@ -28,6 +29,7 @@ class PapyrusExtension implements Disposable {
     private readonly _debugConfigurationProvider: PapyrusDebugConfigurationProvider;
     private readonly _debugAdapterDescriptorFactory: PapyrusDebugAdapterDescriptorFactory;
     private readonly _installDebugSupportCommand: InstallDebugSupportCommand;
+    private readonly _debugAdapterTrackerFactory: PapyrusDebugAdapterTrackerFactory;
 
     constructor(context: ExtensionContext) {
         this._languageConfigurations = new LanguageConfigurations();
@@ -44,9 +46,10 @@ class PapyrusExtension implements Disposable {
 
         this._configProvider = getInstance(this._serviceCollection, IExtensionConfigProvider);
         this._clientManager = getInstance(this._serviceCollection, ILanguageClientManager);
-
         this._statusItems = this._instantiationService.createInstance(LanguageServiceStatusItems);
+
         // this._taskProvider = this._instantiationService.createInstance(CompilerTaskProvider);
+
         this._scriptStatusCodeLensProvider = this._instantiationService.createInstance(ScriptStatusCodeLensProvider);
         this._searchWikiCommand = this._instantiationService.createInstance(SearchCreationKitWikiCommand);
 
@@ -56,9 +59,12 @@ class PapyrusExtension implements Disposable {
         );
 
         this._installDebugSupportCommand = this._instantiationService.createInstance(InstallDebugSupportCommand);
+        this._debugAdapterTrackerFactory = new PapyrusDebugAdapterTrackerFactory();
     }
 
     dispose() {
+        this._debugAdapterTrackerFactory.dispose();
+
         this._installDebugSupportCommand.dispose();
 
         this._debugAdapterDescriptorFactory.dispose();
