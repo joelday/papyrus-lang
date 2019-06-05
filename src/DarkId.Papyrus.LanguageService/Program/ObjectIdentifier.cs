@@ -99,7 +99,7 @@ namespace DarkId.Papyrus.LanguageService.Program
 
         public override string ToString()
         {
-            return FullyQualifiedName;
+            return FullyQualifiedName ?? string.Empty;
         }
 
         public override int GetHashCode()

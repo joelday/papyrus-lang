@@ -171,7 +171,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "Exception while inspecting or updating message content.");
+                        logger.LogError(ex, "Exception while inspecting or updating server message content.");
                     }
 
                     try
@@ -204,7 +204,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                 {
                     try
                     {
-                        RunReadLoop(client);
+                        RunReadLoop(client, sources);
                     }
                     catch (Exception e)
                     {
@@ -226,7 +226,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
             return 0;
         }
 
-        static void RunReadLoop(WebSocket client)
+        static void RunReadLoop(WebSocket client, Dictionary<ObjectIdentifier, string> sources)
         {
             // TODO: Refactor to read from stream.
             while (client.IsAlive)
@@ -253,6 +253,32 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                 }
 
                 var completedMessage = new string(message);
+
+                try
+                {
+                    var root = JObject.Parse(completedMessage);
+
+                    // For any source file that does not have a sourceReference, resolve what the actual script name is.
+                    WalkNode(root, (obj) =>
+                    {
+                        if ((obj.Property("sourceReference") == null || (int)obj["sourceReference"] == 0) && obj["path"] != null && obj["name"] != null)
+                        {
+                            var filePath = obj["path"].ToString();
+                            var matchingPair = sources.FirstOrDefault(pair => pair.Value.CaseInsensitiveEquals(filePath));
+
+                            if (matchingPair.Key != default(ObjectIdentifier))
+                            {
+                                obj["name"] = matchingPair.Key.FullScriptName;
+                            }
+                        }
+                    });
+
+                    completedMessage = root.ToString(Formatting.None);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Exception while inspecting or updating client message content.");
+                }
 
                 logger.LogTrace("Forwarding message from client: {0}", completedMessage);
 
