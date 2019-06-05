@@ -15,6 +15,7 @@ import { PapyrusDebugAdapterDescriptorFactory } from './debugger/PapyrusDebugAda
 import { IDebugSupportInstaller, DebugSupportInstaller } from './debugger/DebugSupportInstaller';
 import { InstallDebugSupportCommand } from './features/commands/InstallDebugSupportCommand';
 import { PapyrusDebugAdapterTrackerFactory } from './debugger/PapyrusDebugAdapterTracker';
+import { AttachDebuggerCommand } from './features/commands/AttachDebuggerCommand';
 
 class PapyrusExtension implements Disposable {
     private readonly _serviceCollection: ServiceCollection;
@@ -30,6 +31,7 @@ class PapyrusExtension implements Disposable {
     private readonly _debugAdapterDescriptorFactory: PapyrusDebugAdapterDescriptorFactory;
     private readonly _installDebugSupportCommand: InstallDebugSupportCommand;
     private readonly _debugAdapterTrackerFactory: PapyrusDebugAdapterTrackerFactory;
+    private readonly _attachCommand: AttachDebuggerCommand;
 
     constructor(context: ExtensionContext) {
         this._languageConfigurations = new LanguageConfigurations();
@@ -60,9 +62,13 @@ class PapyrusExtension implements Disposable {
 
         this._installDebugSupportCommand = this._instantiationService.createInstance(InstallDebugSupportCommand);
         this._debugAdapterTrackerFactory = new PapyrusDebugAdapterTrackerFactory();
+
+        this._attachCommand = new AttachDebuggerCommand();
     }
 
     dispose() {
+        this._attachCommand.dispose();
+
         this._debugAdapterTrackerFactory.dispose();
 
         this._installDebugSupportCommand.dispose();

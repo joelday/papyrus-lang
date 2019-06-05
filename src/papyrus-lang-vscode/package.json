@@ -158,6 +158,11 @@
                 "category": "Papyrus",
                 "command": "papyrus.fallout4.installDebuggerSupport",
                 "title": "Install Papyrus debugging support for Fallout 4"
+            },
+            {
+                "category": "Debug",
+                "command": "papyrus.fallout4.attachDebugger",
+                "title": "Attach to Fallout 4"
             }
         ],
         "menus": {
