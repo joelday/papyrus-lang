@@ -1,3 +1,10 @@
+## [2.6.6](https://github.com/joelday/papyrus-lang/compare/v2.6.5...v2.6.6) (2019-06-05)
+
+
+### Bug Fixes
+
+* Ensure that breakpoints are restored and applied for files not opened from the Loaded Scripts panel. ([8efbb0f](https://github.com/joelday/papyrus-lang/commit/8efbb0f))
+
 ## [2.6.5](https://github.com/joelday/papyrus-lang/compare/v2.6.4...v2.6.5) (2019-06-04)
 
 
