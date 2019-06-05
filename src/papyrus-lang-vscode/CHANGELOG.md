@@ -1,3 +1,10 @@
+# [2.8.0](https://github.com/joelday/papyrus-lang/compare/v2.7.0...v2.8.0) (2019-06-05)
+
+
+### Features
+
+* Added some language snippets. ([#42](https://github.com/joelday/papyrus-lang/issues/42)) ([abfe0fd](https://github.com/joelday/papyrus-lang/commit/abfe0fd))
+
 # [2.7.0](https://github.com/joelday/papyrus-lang/compare/v2.6.6...v2.7.0) (2019-06-05)
 
 
