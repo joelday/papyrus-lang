@@ -1,0 +1,138 @@
+{
+    "Script": {
+        "prefix": "script",
+        "body": [
+            "Scriptname ${1:Namespace:}${2:$TM_FILENAME_BASE} extends ${3:ScriptObject}",
+            "{${4:The documentation string.}}\n"
+        ],
+        "description": [
+            "Script Header Snippet"
+        ]
+    },
+    "Import": {
+        "prefix": "import",
+        "body": [
+            "import ${1:scriptname}",
+            "${0}"
+        ],
+        "description": [
+            "Script Import Snippet"
+        ]
+    },
+    "Comment Region Class Snippet": {
+        "prefix": "comment region",
+        "body": [
+            "; ${1:Region}",
+            ";---------------------------------------------",
+            "\n${0}"
+        ],
+        "description": [
+            "Comment Region Snippet"
+        ]
+    },
+    "If": {
+        "prefix": "if",
+        "body": [
+            "\r\nIf (${1:$SELECTION})\r\n\t${0}\r\nEndIf"
+        ],
+        "description": [
+            "If Condition Snippet"
+        ]
+    },
+    "While": {
+        "prefix": "while",
+        "body": [
+            "While (${1:$SELECTION})\r\n\t${0}\r\nEndWhile"
+        ],
+        "description": [
+            "While Loop Snippet"
+        ]
+    },
+    "For": {
+        "prefix": "for",
+        "body": [
+            "int ${1:index} = 0\r\nWhile (${1:index} < ${2:size})\r\n\t${3:; code}\t${0}\r\n\t${1:index} += 1\r\nEndWhile"
+        ],
+        "description": [
+            "Pseudo For Loop Snippet"
+        ]
+    },
+    "For Each": {
+        "prefix": "for each",
+        "body": [
+            "int ${1:index} = 0\r\nWhile (${1:index} < ${2:array}.Length)\r\n\t${3:type} item = ${2:array}[${1:index}]\r\n\t${3:; code}\r\n\t${0}\r\n\t${1:index} += 1\r\nEndWhile"
+        ],
+        "description": [
+            "Pseudo For-Each Loop Snippet"
+        ]
+    },
+    "Function": {
+        "prefix": "func",
+        "body": [
+            "Function ${1:Foo}()\r\n\t${0:; code}\r\nEndFunction"
+        ],
+        "description": [
+            "Function Snippet"
+        ]
+    },
+    "Function Full": {
+        "prefix": "funcFull",
+        "body": [
+            "${1:var} Function ${2:Foobar}(${3:var} ${4:argument})",
+            "\t${0:; code}",
+            "\treturn ${5:none}",
+            "EndFunction"
+        ],
+        "description": [
+            "Function Full Snippet"
+        ]
+    },
+    "Function Getter": {
+        "prefix": "funcGet",
+        "body": [
+            "${1:var} Function ${2:GetFoo}()\r\n\t${1:var} ${3:value} = ${4:\"type\"}\n\t${0:; code}\r\n\treturn ${3:value}\nEndFunction",
+            "",
+            "",
+            ""
+        ],
+        "description": [
+            "Function Getter Snippet"
+        ]
+    },
+    "Function Setter": {
+        "prefix": "funcSet",
+        "body": [
+            "Function ${1:SetFoo}(${2:var} ${3:argument})\r\n\t${0:; code}\r\nEndFunction"
+        ],
+        "description": [
+            "Function Setter Snippet"
+        ]
+    },
+    "Event": {
+        "prefix": "event",
+        "body": [
+            "Event ${1:EventName}(${2:params})\r\n\t${0}\r\nEndEvent"
+        ],
+        "description": [
+            "Event Snippet"
+        ]
+    },
+    "State": {
+        "prefix": "state",
+        "body": [
+            "State ${1:state}\r\n\t${0}\r\nEndState"
+        ],
+        "description": [
+            "State Snippet"
+        ]
+    },
+    "State Auto": {
+        "prefix": "stateAuto",
+        "body": [
+            "Auto State ${1:state}\r\n\t${0}\r\nEndState"
+        ],
+        "description": [
+            "Auto State Snippet"
+        ]
+    }
+}

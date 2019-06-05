@@ -126,6 +126,16 @@
                 "scopeName": "text.xml.papyrus-project"
             }
         ],
+        "snippets": [
+            {
+                "language": "papyrus",
+                "path": "./snippets/papyrus/papyrus.json"
+            },
+            {
+                "language": "papyrus",
+                "path": "./snippets/papyrus/papyrus-fallout4.json"
+            }
+        ],
         "languages": [
             {
                 "aliases": [
