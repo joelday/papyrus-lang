@@ -1,3 +1,10 @@
+# [2.7.0](https://github.com/joelday/papyrus-lang/compare/v2.6.6...v2.7.0) (2019-06-05)
+
+
+### Features
+
+* Adds new Attach to Fallout 4 command. No launch.json needed! ([7d91f96](https://github.com/joelday/papyrus-lang/commit/7d91f96))
+
 ## [2.6.6](https://github.com/joelday/papyrus-lang/compare/v2.6.5...v2.6.6) (2019-06-05)
 
 
