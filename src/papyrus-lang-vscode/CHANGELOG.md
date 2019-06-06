@@ -1,3 +1,10 @@
+## [2.8.2](https://github.com/joelday/papyrus-lang/compare/v2.8.1...v2.8.2) (2019-06-06)
+
+
+### Bug Fixes
+
+* Changing logging level for debugging. ([41f30c8](https://github.com/joelday/papyrus-lang/commit/41f30c8))
+
 ## [2.8.1](https://github.com/joelday/papyrus-lang/compare/v2.8.0...v2.8.1) (2019-06-06)
 
 
