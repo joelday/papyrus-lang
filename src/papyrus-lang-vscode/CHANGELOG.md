@@ -1,3 +1,10 @@
+## [2.8.1](https://github.com/joelday/papyrus-lang/compare/v2.8.0...v2.8.1) (2019-06-06)
+
+
+### Bug Fixes
+
+* Debugging setup/install improvements ([#43](https://github.com/joelday/papyrus-lang/issues/43)) ([b867442](https://github.com/joelday/papyrus-lang/commit/b867442))
+
 # [2.8.0](https://github.com/joelday/papyrus-lang/compare/v2.7.0...v2.8.0) (2019-06-05)
 
 
