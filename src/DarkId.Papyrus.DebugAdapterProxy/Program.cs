@@ -65,7 +65,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                         "My Games\\Skyrim Special Edition\\SKSE\\DarkId.Papyrus.DebugAdapterProxy.log"
 #endif
                         ),
-                    Microsoft.Extensions.Logging.LogLevel.Information);
+                    Microsoft.Extensions.Logging.LogLevel.Trace);
 
             logger = loggerFactory.CreateLogger<Program>();
 
