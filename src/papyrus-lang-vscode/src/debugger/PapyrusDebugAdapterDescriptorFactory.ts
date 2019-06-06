@@ -21,7 +21,7 @@ import { ICreationKitInfoProvider } from '../CreationKitInfoProvider';
 import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
 import { take } from 'rxjs/operators';
 import { IPapyrusDebugSession } from './PapyrusDebugSession';
-import { toCommandLineArgs, getGameIsRunning } from '../Utilities';
+import { toCommandLineArgs, getGameIsRunning, getDebugToolPath } from '../Utilities';
 import { IExtensionContext } from '../common/vscode/IocDecorators';
 import { IDebugSupportInstallService, DebugSupportInstallState } from './DebugSupportInstallService';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
@@ -173,7 +173,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
             defaultAdditionalImports: creationKitInfo.config.Papyrus.sAdditionalImports,
         };
 
-        const toolPath = this._context.asAbsolutePath(getDebugToolPath());
+        const toolPath = this._context.asAbsolutePath(getDebugToolPath(game));
         const commandLineArgs = toCommandLineArgs(toolArguments);
 
         const outputChannel = (await this._languageClientManager.getLanguageClientHost(session.configuration.game))
@@ -188,8 +188,4 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
     dispose() {
         this._registration.dispose();
     }
-}
-
-function getDebugToolPath() {
-    return './debug-bin/Debug/net461/DarkId.Papyrus.DebugAdapterProxy/DarkId.Papyrus.DebugAdapterProxy.exe';
 }

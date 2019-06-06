@@ -112,3 +112,23 @@ export function toCommandLineArgs(obj: Object): string[] {
         })
     );
 }
+
+function getToolGameName(game: PapyrusGame) {
+    switch (game) {
+        case PapyrusGame.fallout4:
+            return 'Fallout4';
+        case PapyrusGame.skyrim:
+        case PapyrusGame.skyrimSpecialEdition:
+            return 'Skyrim';
+    }
+}
+
+export function getLanguageToolPath(game: PapyrusGame) {
+    const toolGameName = getToolGameName(game);
+    return `./bin/Debug/net461/DarkId.Papyrus.Host.${toolGameName}/DarkId.Papyrus.Host.${toolGameName}.exe`;
+}
+
+export function getDebugToolPath(game: PapyrusGame) {
+    const toolGameName = getToolGameName(game);
+    return `./debug-bin/Debug/net461/DarkId.Papyrus.DebugAdapterProxy.${toolGameName}/DarkId.Papyrus.DebugAdapterProxy.${toolGameName}.exe`;
+}

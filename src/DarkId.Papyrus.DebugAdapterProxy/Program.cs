@@ -24,7 +24,12 @@ namespace DarkId.Papyrus.DebugAdapterProxy
     public class Options
     {
         [Option("port")]
-        public int Port { get; set; } = 2077;
+        public int Port { get; set; } =
+#if FALLOUT4
+            2077;
+#else
+            43201;
+#endif
 
         [Option("projectPath")]
         public string ProjectPath { get; set; }
@@ -54,7 +59,12 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                 .AddFile(
                     Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                        "My Games\\Fallout4\\F4SE\\DarkId.Papyrus.DebugAdapterProxy.log"),
+#if FALLOUT4
+                        "My Games\\Fallout4\\F4SE\\DarkId.Papyrus.DebugAdapterProxy.log"
+#else
+                        "My Games\\Skyrim Special Edition\\SKSE\\DarkId.Papyrus.DebugAdapterProxy.log"
+#endif
+                        ),
                     Microsoft.Extensions.Logging.LogLevel.Information);
 
             logger = loggerFactory.CreateLogger<Program>();

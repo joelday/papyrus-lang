@@ -21,6 +21,8 @@
     <ApplicationIcon />
     <OutputType>Exe</OutputType>
     <StartupObject />
+    <DefineConstants>TRACE;SKYRIM</DefineConstants>
+    <RootNamespace>DarkId.Papyrus.DebugAdapterProxy</RootNamespace>
   </PropertyGroup>
   
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
@@ -35,6 +37,6 @@
   
   <ItemGroup>
     <ProjectReference Include="..\DarkId.Papyrus.Common\DarkId.Papyrus.Common.csproj" />
-    <ProjectReference Include="..\DarkId.Papyrus.LanguageService\DarkId.Papyrus.LanguageService.Fallout4.csproj" />
+    <ProjectReference Include="..\DarkId.Papyrus.LanguageService\DarkId.Papyrus.LanguageService.Skyrim.csproj" />
   </ItemGroup>
 </Project>
