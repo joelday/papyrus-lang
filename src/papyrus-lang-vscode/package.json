@@ -38,8 +38,7 @@
                             "game": {
                                 "type": "string",
                                 "enum": [
-                                    "fallout4",
-                                    "skyrimSpecialEdition"
+                                    "fallout4"
                                 ]
                             },
                             "projectPath": {
