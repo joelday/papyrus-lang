@@ -40,7 +40,8 @@ namespace DarkId.Papyrus.Server
                 if (!_debouncedChangeHandlers.ContainsKey(e.ScriptFile.Id))
                 {
                     _debouncedChangeHandlers.Add(e.ScriptFile.Id,
-                        new Debounce(() => Task.Run(() => {
+                        new Debounce(() => Task.Run(() =>
+                        {
                             _program.ScriptFiles.TryGetValue(e.ScriptFile.Id, out var scriptFile);
                             if (scriptFile != null)
                             {
@@ -72,6 +73,8 @@ namespace DarkId.Papyrus.Server
             {
                 _logger.LogInformation("Resolving script files for {0}...", Name);
                 _program.ResolveSources().Wait();
+
+                _logger.LogInformation("Done");
             }
         }
 

@@ -3,7 +3,9 @@ import { PapyrusGame } from './PapyrusGame';
 
 import winreg from 'winreg';
 import { promisify } from 'util';
-import { ExtensionContext } from 'vscode';
+import procList from 'ps-list';
+
+import { ExtensionContext, CancellationTokenSource } from 'vscode';
 const exists = promisify(fs.exists);
 
 function getRegistryKeyForGame(game: PapyrusGame) {
@@ -58,8 +60,36 @@ export async function resolveInstallPath(
     return null;
 }
 
+export function delayAsync(durationMs: number): Promise<void> {
+    return new Promise((r) => setTimeout(r, durationMs));
+}
+
 export function getDefaultFlagsFileNameForGame(game: PapyrusGame) {
     return game === PapyrusGame.fallout4 ? 'Institute_Papyrus_Flags.flg' : 'TESV_Papyrus_Flags.flg';
+}
+
+const executableNames = new Map([
+    [PapyrusGame.fallout4, 'Fallout4.exe'],
+    [PapyrusGame.skyrimSpecialEdition, 'SkyrimSE.exe'],
+]);
+
+export function getExecutableNameForGame(game: PapyrusGame) {
+    return executableNames.get(game);
+}
+
+export async function getGameIsRunning(game: PapyrusGame) {
+    const processList = await procList();
+    return processList.some((p) => p.name.toLowerCase() === getExecutableNameForGame(game).toLowerCase());
+}
+
+export async function waitWhile(
+    func: () => Promise<boolean>,
+    cancellationToken = new CancellationTokenSource().token,
+    pollingFrequencyMs = 1000
+) {
+    while ((await func()) && !cancellationToken.isCancellationRequested) {
+        await delayAsync(pollingFrequencyMs);
+    }
 }
 
 export function inDevelopmentEnvironment() {

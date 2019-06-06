@@ -9,10 +9,10 @@ import { getInstance } from './common/Ioc';
 // import { CompilerTaskProvider } from './features/CompilerTaskProvider';
 import { ICreationKitInfoProvider, CreationKitInfoProvider } from './CreationKitInfoProvider';
 import { ScriptStatusCodeLensProvider } from './features/ScriptStatusCodeLensProvider';
-import { SearchCreationKitWikiCommand } from './features/SearchCreationKitWikiCommand';
+import { SearchCreationKitWikiCommand } from './features/commands/SearchCreationKitWikiCommand';
 import { PapyrusDebugConfigurationProvider } from './debugger/PapyrusDebugConfigurationProvider';
 import { PapyrusDebugAdapterDescriptorFactory } from './debugger/PapyrusDebugAdapterDescriptorFactory';
-import { IDebugSupportInstaller, DebugSupportInstaller } from './debugger/DebugSupportInstaller';
+import { IDebugSupportInstallService, DebugSupportInstallService } from './debugger/DebugSupportInstallService';
 import { InstallDebugSupportCommand } from './features/commands/InstallDebugSupportCommand';
 import { PapyrusDebugAdapterTrackerFactory } from './debugger/PapyrusDebugAdapterTracker';
 import { AttachDebuggerCommand } from './features/commands/AttachDebuggerCommand';
@@ -41,7 +41,7 @@ class PapyrusExtension implements Disposable {
             [IExtensionConfigProvider, new Descriptor(ExtensionConfigProvider)],
             [ICreationKitInfoProvider, new Descriptor(CreationKitInfoProvider)],
             [ILanguageClientManager, new Descriptor(LanguageClientManager)],
-            [IDebugSupportInstaller, new Descriptor(DebugSupportInstaller)]
+            [IDebugSupportInstallService, new Descriptor(DebugSupportInstallService)]
         );
 
         this._instantiationService = new InstantiationService(this._serviceCollection);

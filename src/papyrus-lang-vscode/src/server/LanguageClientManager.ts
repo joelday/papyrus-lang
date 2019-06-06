@@ -1,9 +1,9 @@
 import { createDecorator } from 'decoration-ioc';
-import { LanguageClient } from './LanguageClient';
+import { ILanguageClient } from './LanguageClient';
 import { PapyrusGame, getGames } from '../PapyrusGame';
-import { Observable, Subscription, concat, combineLatest } from 'rxjs';
+import { Observable, Subscription, combineLatest } from 'rxjs';
 import { IExtensionConfigProvider, IGameConfig } from '../ExtensionConfigProvider';
-import { map, share, shareReplay, take } from 'rxjs/operators';
+import { map, take } from 'rxjs/operators';
 import { asyncDisposable } from '../common/Reactive';
 import { IExtensionContext } from '../common/vscode/IocDecorators';
 import { ExtensionContext, Disposable, CancellationTokenSource, CancellationToken } from 'vscode';
@@ -14,6 +14,8 @@ import { ICreationKitInfoProvider, ICreationKitInfo } from '../CreationKitInfoPr
 export interface ILanguageClientManager extends Disposable {
     readonly clients: ReadonlyMap<PapyrusGame, Observable<ILanguageClientHost>>;
     getActiveLanguageClients(cancellationToken?: CancellationToken): Promise<ILanguageClientHost[]>;
+    getLanguageClientHost(game: PapyrusGame): Promise<ILanguageClientHost>;
+    getLanguageClient(game: PapyrusGame): Promise<ILanguageClient>;
 }
 
 export class LanguageClientManager implements Disposable, ILanguageClientManager {
@@ -57,7 +59,7 @@ export class LanguageClientManager implements Disposable, ILanguageClientManager
         return this._clients;
     }
 
-    async getActiveLanguageClients(cancellationToken: CancellationToken = new CancellationTokenSource().token) {
+    async getActiveLanguageClients(cancellationToken = new CancellationTokenSource().token) {
         const clients = await Promise.all(
             Array.from(this.clients.values()).map((client) => client.pipe(take(1)).toPromise())
         );
@@ -76,6 +78,24 @@ export class LanguageClientManager implements Disposable, ILanguageClientManager
                 return client;
             })
         )).filter((client) => client !== null);
+    }
+
+    async getLanguageClientHost(game: PapyrusGame): Promise<ILanguageClientHost> {
+        return await this.clients
+            .get(game)
+            .pipe(take(1))
+            .toPromise();
+    }
+
+    async getLanguageClient(game: PapyrusGame): Promise<ILanguageClient> {
+        const clientHost = await this.getLanguageClientHost(game);
+
+        const status = await clientHost.status.pipe(take(1)).toPromise();
+        if (status !== ClientHostStatus.running) {
+            return null;
+        }
+
+        return clientHost.client;
     }
 
     dispose() {

@@ -30,7 +30,7 @@ export class PapyrusDebugAdapterTracker implements DebugAdapterTracker {
     }
 
     onError(error: Error) {
-        if (!this._showErrorMessages) {
+        if (!this._showErrorMessages || this._session.configuration.noop) {
             return;
         }
 
@@ -38,7 +38,7 @@ export class PapyrusDebugAdapterTracker implements DebugAdapterTracker {
     }
 
     onExit(code: number | undefined, signal: string | undefined) {
-        if (!this._showErrorMessages) {
+        if (!this._showErrorMessages || this._session.configuration.noop) {
             return;
         }
 
