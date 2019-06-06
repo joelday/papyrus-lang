@@ -7,17 +7,31 @@ import {
     ExtensionContext,
     window,
     commands,
+    Uri,
+    env,
 } from 'vscode';
-import { PapyrusGame } from '../PapyrusGame';
+import {
+    PapyrusGame,
+    getDisplayNameForGame,
+    getScriptExtenderName,
+    getScriptExtenderUrl,
+    getShortDisplayNameForGame,
+} from '../PapyrusGame';
 import { ICreationKitInfoProvider } from '../CreationKitInfoProvider';
 import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
 import { take } from 'rxjs/operators';
 import { IPapyrusDebugSession } from './PapyrusDebugSession';
-import { toCommandLineArgs } from '../Utilities';
+import { toCommandLineArgs, getGameIsRunning, getDebugToolPath } from '../Utilities';
 import { IExtensionContext } from '../common/vscode/IocDecorators';
-import { IDebugSupportInstaller, DebugSupportInstallState, DebugSupportInstaller } from './DebugSupportInstaller';
-import { LanguageClientConsumerBase } from '../common/LanguageClientConsumerBase';
+import { IDebugSupportInstallService, DebugSupportInstallState } from './DebugSupportInstallService';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
+import {
+    DebugSupportInstallKind,
+    showGameDisabledMessage,
+    showGameMissingMessage,
+} from '../features/commands/InstallDebugSupportCommand';
+
+const noopExecutable = new DebugAdapterExecutable('node', ['-e', '""']);
 
 export interface IDebugToolArguments {
     port?: number;
@@ -28,23 +42,26 @@ export interface IDebugToolArguments {
     relativeIniPaths: string[];
 }
 
-export class PapyrusDebugAdapterDescriptorFactory extends LanguageClientConsumerBase
-    implements DebugAdapterDescriptorFactory {
+function getDefaultPortForGame(game: PapyrusGame) {
+    return game === PapyrusGame.fallout4 ? 2077 : 43201;
+}
+
+export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
+    private readonly _languageClientManager: ILanguageClientManager;
     private readonly _creationKitInfoProvider: ICreationKitInfoProvider;
     private readonly _configProvider: IExtensionConfigProvider;
     private readonly _context: ExtensionContext;
-    private readonly _debugSupportInstaller: IDebugSupportInstaller;
+    private readonly _debugSupportInstaller: IDebugSupportInstallService;
     private readonly _registration: Disposable;
 
     constructor(
-        @ILanguageClientManager clientManager: ILanguageClientManager,
+        @ILanguageClientManager languageClientManager: ILanguageClientManager,
         @ICreationKitInfoProvider creationKitInfoProvider: ICreationKitInfoProvider,
         @IExtensionConfigProvider configProvider: IExtensionConfigProvider,
         @IExtensionContext context: ExtensionContext,
-        @IDebugSupportInstaller debugSupportInstaller: IDebugSupportInstaller
+        @IDebugSupportInstallService debugSupportInstaller: IDebugSupportInstallService
     ) {
-        super(clientManager, PapyrusGame.fallout4);
-
+        this._languageClientManager = languageClientManager;
         this._creationKitInfoProvider = creationKitInfoProvider;
         this._configProvider = configProvider;
         this._context = context;
@@ -53,60 +70,102 @@ export class PapyrusDebugAdapterDescriptorFactory extends LanguageClientConsumer
         this._registration = debug.registerDebugAdapterDescriptorFactory('papyrus', this);
     }
 
+    private async ensureReadyFlow(game: PapyrusGame) {
+        const installState = await this._debugSupportInstaller.getInstallState(game);
+
+        switch (installState) {
+            case DebugSupportInstallState.incorrectVersion:
+                const selectedUpdateOption = await window.showWarningMessage(
+                    `The Papyrus debugging support ${getScriptExtenderName(game)} plugin needs to be updated.`,
+                    'Update',
+                    'Remind Me Later',
+                    'Cancel'
+                );
+
+                if (selectedUpdateOption === 'Update') {
+                    commands.executeCommand(`papyrus.${game}.installDebuggerSupport`, DebugSupportInstallKind.update);
+                    return false;
+                }
+
+                if (selectedUpdateOption === 'Cancel' || selectedUpdateOption === undefined) {
+                    return false;
+                }
+
+                break;
+            case DebugSupportInstallState.notInstalled:
+                const getExtenderOption = `Get ${getScriptExtenderName(game)}`;
+                const installOption = `Install ${getScriptExtenderName(game)} Plugin`;
+
+                const selectedInstallOption = await window.showInformationMessage(
+                    `Papyrus debugging support requires a plugin for ${getDisplayNameForGame(
+                        game
+                    )} Script Extender (${getScriptExtenderName(
+                        game
+                    )}) to be installed. After installation has completed, launch ${getShortDisplayNameForGame(
+                        game
+                    )} with ${getScriptExtenderName(game)} and wait until the main menu has loaded.`,
+                    getExtenderOption,
+                    installOption,
+                    'Cancel'
+                );
+
+                switch (selectedInstallOption) {
+                    case installOption:
+                        commands.executeCommand(`papyrus.fallout4.installDebuggerSupport`);
+                        break;
+                    case getExtenderOption:
+                        env.openExternal(Uri.parse(getScriptExtenderUrl(game)));
+                        break;
+                }
+
+                return false;
+            case DebugSupportInstallState.gameDisabled:
+                showGameDisabledMessage(game);
+                return false;
+            case DebugSupportInstallState.gameMissing:
+                showGameMissingMessage(game);
+                return false;
+        }
+
+        if (!(await getGameIsRunning(game))) {
+            const selectedGameRunningOption = await window.showWarningMessage(
+                `Make sure that ${getDisplayNameForGame(game)} is running and is either in-game or at the main menu.`,
+                'Continue',
+                'Cancel'
+            );
+
+            if (selectedGameRunningOption !== 'Continue') {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     async createDebugAdapterDescriptor(
         session: IPapyrusDebugSession,
         executable: DebugAdapterExecutable
     ): Promise<DebugAdapterDescriptor> {
-        // TODO: See if there's a better place to do pre-start checks:
+        const game = session.configuration.game;
 
-        const noopExecutable = new DebugAdapterExecutable('');
-        const installState = await this._debugSupportInstaller.getInstallState();
-
-        switch (installState) {
-            case DebugSupportInstallState.incorrectVersion:
-                if (
-                    (await window.showWarningMessage(
-                        'The current language support plugin is out of date. Without updating, the debug session may not be reliable. Make sure Fallout 4 is closed before updating.',
-                        'Update',
-                        'Ignore'
-                    )) === 'Update'
-                ) {
-                    commands.executeCommand('papyrus.fallout4.installDebuggerSupport');
-                    return noopExecutable;
-                }
-                break;
-            case DebugSupportInstallState.missing:
-                if (
-                    (await window.showInformationMessage(
-                        'Papyrus debugging requires an F4SE plugin to be installed. After installing, relaunch Fallout 4 with F4SE.',
-                        'Install',
-                        'Cancel'
-                    )) === 'Install'
-                ) {
-                    commands.executeCommand('papyrus.fallout4.installDebuggerSupport');
-                }
-
-                return noopExecutable;
-            case DebugSupportInstallState.gameDisabled:
-                window.showErrorMessage(
-                    'Fallout 4 language support must be enabled before installing the Papyrus debugger plugin.'
-                );
-                return noopExecutable;
-            case DebugSupportInstallState.gameMissing:
-                window.showErrorMessage('Unable to locate Fallout 4 install path.');
-                return noopExecutable;
-            case DebugSupportInstallState.cancelled:
-                return noopExecutable;
+        if (game !== PapyrusGame.fallout4 && game !== PapyrusGame.skyrimSpecialEdition) {
+            throw new Error(`'${game}' is not supported by the Papyrus debugger.`);
         }
 
-        const config = (await this._configProvider.config.pipe(take(1)).toPromise()).fallout4;
+        if (!(await this.ensureReadyFlow(game))) {
+            session.configuration.noop = true;
+
+            return noopExecutable;
+        }
+
+        const config = (await this._configProvider.config.pipe(take(1)).toPromise())[game];
         const creationKitInfo = await this._creationKitInfoProvider.infos
-            .get(PapyrusGame.fallout4)
+            .get(game)
             .pipe(take(1))
             .toPromise();
 
         const toolArguments: IDebugToolArguments = {
-            port: session.configuration.port || 2077,
+            port: session.configuration.port || getDefaultPortForGame(game),
             projectPath: session.configuration.projectPath,
             creationKitInstallPath: creationKitInfo.resolvedInstallPath,
             relativeIniPaths: config.creationKitIniFiles,
@@ -114,24 +173,19 @@ export class PapyrusDebugAdapterDescriptorFactory extends LanguageClientConsumer
             defaultAdditionalImports: creationKitInfo.config.Papyrus.sAdditionalImports,
         };
 
-        const toolPath = this._context.asAbsolutePath(getDebugToolPath());
+        const toolPath = this._context.asAbsolutePath(getDebugToolPath(game));
         const commandLineArgs = toCommandLineArgs(toolArguments);
 
-        const outputChannel = (await this.getLanguageClientHost()).outputChannel;
+        const outputChannel = (await this._languageClientManager.getLanguageClientHost(session.configuration.game))
+            .outputChannel;
         outputChannel.appendLine(
             `Debug session: Launching debug adapter client: ${toolPath} ${commandLineArgs.join(' ')}`
         );
 
-        const newExecutable = new DebugAdapterExecutable(toolPath, commandLineArgs);
-
-        return newExecutable;
+        return new DebugAdapterExecutable(toolPath, commandLineArgs);
     }
 
     dispose() {
         this._registration.dispose();
     }
-}
-
-function getDebugToolPath() {
-    return './debug-bin/Debug/net461/DarkId.Papyrus.DebugAdapterProxy/DarkId.Papyrus.DebugAdapterProxy.exe';
 }

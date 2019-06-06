@@ -7,7 +7,7 @@ import { Observable, BehaviorSubject } from 'rxjs';
 import { ICreationKitInfo } from '../CreationKitInfoProvider';
 import { DocumentScriptInfo } from './messages/DocumentScriptInfo';
 import { shareReplay, take } from 'rxjs/operators';
-import { getDefaultFlagsFileNameForGame } from '../Utilities';
+import { getDefaultFlagsFileNameForGame, getLanguageToolPath } from '../Utilities';
 
 export enum ClientHostStatus {
     none,
@@ -114,7 +114,7 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
 
             this._client = new LanguageClient({
                 game: this._game,
-                toolPath: this._context.asAbsolutePath(getToolPath(this._game)),
+                toolPath: this._context.asAbsolutePath(getLanguageToolPath(this._game)),
                 outputChannel: this._outputChannel,
                 toolArguments,
             });
@@ -164,23 +164,4 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
             this._client.dispose();
         }
     }
-}
-
-function getToolGameName(game: PapyrusGame) {
-    switch (game) {
-        case PapyrusGame.fallout4:
-            return 'Fallout4';
-        case PapyrusGame.skyrim:
-        case PapyrusGame.skyrimSpecialEdition:
-            return 'Skyrim';
-    }
-}
-
-function getToolPath(game: PapyrusGame) {
-    const toolGameName = getToolGameName(game);
-    return `./bin/Debug/net461/DarkId.Papyrus.Host.${toolGameName}/DarkId.Papyrus.Host.${toolGameName}.exe`;
-}
-
-function getDebugToolPath() {
-    return './debug-bin/Debug/net461/DarkId.Papyrus.DebugAdapterProxy/DarkId.Papyrus.DebugAdapterProxy.exe';
 }

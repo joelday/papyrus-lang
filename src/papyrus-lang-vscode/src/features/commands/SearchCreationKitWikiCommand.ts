@@ -1,7 +1,7 @@
-import { EditorCommandBase } from '../common/vscode/commands/EditorCommandBase';
+import { EditorCommandBase } from '../../common/vscode/commands/EditorCommandBase';
 import { TextEditor, env, Uri, window } from 'vscode';
-import { ILanguageClientManager } from '../server/LanguageClientManager';
-import { PapyrusGame } from '../PapyrusGame';
+import { ILanguageClientManager } from '../../server/LanguageClientManager';
+import { PapyrusGame } from '../../PapyrusGame';
 
 export class SearchCreationKitWikiCommand extends EditorCommandBase {
     private readonly _languageClientManager: ILanguageClientManager;

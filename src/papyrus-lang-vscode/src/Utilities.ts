@@ -3,7 +3,9 @@ import { PapyrusGame } from './PapyrusGame';
 
 import winreg from 'winreg';
 import { promisify } from 'util';
-import { ExtensionContext } from 'vscode';
+import procList from 'ps-list';
+
+import { ExtensionContext, CancellationTokenSource } from 'vscode';
 const exists = promisify(fs.exists);
 
 function getRegistryKeyForGame(game: PapyrusGame) {
@@ -58,8 +60,36 @@ export async function resolveInstallPath(
     return null;
 }
 
+export function delayAsync(durationMs: number): Promise<void> {
+    return new Promise((r) => setTimeout(r, durationMs));
+}
+
 export function getDefaultFlagsFileNameForGame(game: PapyrusGame) {
     return game === PapyrusGame.fallout4 ? 'Institute_Papyrus_Flags.flg' : 'TESV_Papyrus_Flags.flg';
+}
+
+const executableNames = new Map([
+    [PapyrusGame.fallout4, 'Fallout4.exe'],
+    [PapyrusGame.skyrimSpecialEdition, 'SkyrimSE.exe'],
+]);
+
+export function getExecutableNameForGame(game: PapyrusGame) {
+    return executableNames.get(game);
+}
+
+export async function getGameIsRunning(game: PapyrusGame) {
+    const processList = await procList();
+    return processList.some((p) => p.name.toLowerCase() === getExecutableNameForGame(game).toLowerCase());
+}
+
+export async function waitWhile(
+    func: () => Promise<boolean>,
+    cancellationToken = new CancellationTokenSource().token,
+    pollingFrequencyMs = 1000
+) {
+    while ((await func()) && !cancellationToken.isCancellationRequested) {
+        await delayAsync(pollingFrequencyMs);
+    }
 }
 
 export function inDevelopmentEnvironment() {
@@ -81,4 +111,24 @@ export function toCommandLineArgs(obj: Object): string[] {
             ];
         })
     );
+}
+
+function getToolGameName(game: PapyrusGame) {
+    switch (game) {
+        case PapyrusGame.fallout4:
+            return 'Fallout4';
+        case PapyrusGame.skyrim:
+        case PapyrusGame.skyrimSpecialEdition:
+            return 'Skyrim';
+    }
+}
+
+export function getLanguageToolPath(game: PapyrusGame) {
+    const toolGameName = getToolGameName(game);
+    return `./bin/Debug/net461/DarkId.Papyrus.Host.${toolGameName}/DarkId.Papyrus.Host.${toolGameName}.exe`;
+}
+
+export function getDebugToolPath(game: PapyrusGame) {
+    const toolGameName = getToolGameName(game);
+    return `./debug-bin/Debug/net461/DarkId.Papyrus.DebugAdapterProxy.${toolGameName}/DarkId.Papyrus.DebugAdapterProxy.${toolGameName}.exe`;
 }

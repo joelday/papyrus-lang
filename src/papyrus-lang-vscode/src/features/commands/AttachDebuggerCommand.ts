@@ -1,17 +1,17 @@
-import { CommandBase } from '../../common/vscode/commands/CommandBase';
-import { IDebugSupportInstaller, DebugSupportInstallState } from '../../debugger/DebugSupportInstaller';
-import { window, ProgressLocation, debug, workspace, Uri } from 'vscode';
+import { debug } from 'vscode';
 import { IPapyrusDebugConfiguration } from '../../debugger/PapyrusDebugSession';
+import { PapyrusGame, getShortDisplayNameForGame } from '../../PapyrusGame';
+import { GameCommandBase } from './GameCommandBase';
 
-export class AttachDebuggerCommand extends CommandBase {
+export class AttachDebuggerCommand extends GameCommandBase {
     constructor() {
-        super('papyrus.fallout4.attachDebugger');
+        super('attachDebugger', [PapyrusGame.fallout4, PapyrusGame.skyrimSpecialEdition]);
     }
 
-    protected async onExecute() {
+    protected async onExecute(game: PapyrusGame) {
         debug.startDebugging(undefined, {
-            game: 'fallout4',
-            name: 'Fallout 4',
+            game,
+            name: getShortDisplayNameForGame(game),
             type: 'papyrus',
             request: 'attach',
         } as IPapyrusDebugConfiguration);
