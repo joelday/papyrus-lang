@@ -1,3 +1,10 @@
+## [2.8.3](https://github.com/joelday/papyrus-lang/compare/v2.8.2...v2.8.3) (2019-06-06)
+
+
+### Bug Fixes
+
+* Increasing new websocket client's heartbeat timeout. ([87a4222](https://github.com/joelday/papyrus-lang/commit/87a4222))
+
 ## [2.8.2](https://github.com/joelday/papyrus-lang/compare/v2.8.1...v2.8.2) (2019-06-06)
 
 
