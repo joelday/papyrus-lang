@@ -80,7 +80,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                     }
                     catch (Exception e)
                     {
-                        logger.LogError(e, "Exception thrown during startup.");
+                        logger.LogError(e, "Exception thrown.");
                         exitCode = 1;
                     }
                 })
@@ -150,6 +150,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
             var textWriter = new StringWriter();
 
             var client = new WebSocket(string.Format("ws://localhost:{0}", port));
+            client.WaitTime = TimeSpan.FromMinutes(1);
 
             client.OnError += (s, e) =>
             {
