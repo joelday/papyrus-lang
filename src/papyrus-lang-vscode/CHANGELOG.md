@@ -1,3 +1,10 @@
+## [2.8.4](https://github.com/joelday/papyrus-lang/compare/v2.8.3...v2.8.4) (2019-06-07)
+
+
+### Bug Fixes
+
+* Debugger connectivity and breakpoint improvements. Loaded Scripts panel now updates. ([34e22ba](https://github.com/joelday/papyrus-lang/commit/34e22ba))
+
 ## [2.8.3](https://github.com/joelday/papyrus-lang/compare/v2.8.2...v2.8.3) (2019-06-06)
 
 
