@@ -1,3 +1,10 @@
+## [2.8.6](https://github.com/joelday/papyrus-lang/compare/v2.8.5...v2.8.6) (2019-06-07)
+
+
+### Bug Fixes
+
+* Fixing invalid timeout issue. ([b343b1f](https://github.com/joelday/papyrus-lang/commit/b343b1f))
+
 ## [2.8.5](https://github.com/joelday/papyrus-lang/compare/v2.8.4...v2.8.5) (2019-06-07)
 
 
