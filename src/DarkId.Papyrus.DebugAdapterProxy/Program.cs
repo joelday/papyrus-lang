@@ -150,7 +150,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
             var textWriter = new StringWriter();
 
             var client = new WebSocket(string.Format("ws://localhost:{0}", port));
-            client.WaitTime = TimeSpan.MaxValue;
+            client.WaitTime = TimeSpan.FromHours(1);
 
             client.OnError += (s, e) =>
             {
