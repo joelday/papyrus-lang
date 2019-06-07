@@ -1,3 +1,10 @@
+## [2.8.5](https://github.com/joelday/papyrus-lang/compare/v2.8.4...v2.8.5) (2019-06-07)
+
+
+### Bug Fixes
+
+* Fixed Update button for debugger plugin. ([6b74b7d](https://github.com/joelday/papyrus-lang/commit/6b74b7d))
+
 ## [2.8.4](https://github.com/joelday/papyrus-lang/compare/v2.8.3...v2.8.4) (2019-06-07)
 
 
