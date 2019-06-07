@@ -25,11 +25,7 @@ import { toCommandLineArgs, getGameIsRunning, getDebugToolPath } from '../Utilit
 import { IExtensionContext } from '../common/vscode/IocDecorators';
 import { IDebugSupportInstallService, DebugSupportInstallState } from './DebugSupportInstallService';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
-import {
-    DebugSupportInstallKind,
-    showGameDisabledMessage,
-    showGameMissingMessage,
-} from '../features/commands/InstallDebugSupportCommand';
+import { showGameDisabledMessage, showGameMissingMessage } from '../features/commands/InstallDebugSupportCommand';
 
 const noopExecutable = new DebugAdapterExecutable('node', ['-e', '""']);
 
@@ -83,7 +79,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
                 );
 
                 if (selectedUpdateOption === 'Update') {
-                    commands.executeCommand(`papyrus.${game}.installDebuggerSupport`, DebugSupportInstallKind.update);
+                    commands.executeCommand(`papyrus.${game}.installDebuggerSupport`);
                     return false;
                 }
 
@@ -111,7 +107,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
 
                 switch (selectedInstallOption) {
                     case installOption:
-                        commands.executeCommand(`papyrus.fallout4.installDebuggerSupport`);
+                        commands.executeCommand(`papyrus.${game}.installDebuggerSupport`);
                         break;
                     case getExtenderOption:
                         env.openExternal(Uri.parse(getScriptExtenderUrl(game)));

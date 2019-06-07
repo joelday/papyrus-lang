@@ -4,11 +4,6 @@ import { PapyrusGame, getDisplayNameForGame } from '../../PapyrusGame';
 import { GameCommandBase } from './GameCommandBase';
 import { getGameIsRunning, waitWhile } from '../../Utilities';
 
-export enum DebugSupportInstallKind {
-    install,
-    update,
-}
-
 export function showGameDisabledMessage(game: PapyrusGame) {
     window.showErrorMessage(
         `${getDisplayNameForGame(game)} language support must be enabled before installing Papyrus debugger support.`
@@ -23,7 +18,7 @@ export function showGameMissingMessage(game: PapyrusGame) {
     );
 }
 
-export class InstallDebugSupportCommand extends GameCommandBase<[DebugSupportInstallKind]> {
+export class InstallDebugSupportCommand extends GameCommandBase {
     private readonly _installer: IDebugSupportInstallService;
 
     constructor(@IDebugSupportInstallService installer: IDebugSupportInstallService) {
@@ -32,7 +27,7 @@ export class InstallDebugSupportCommand extends GameCommandBase<[DebugSupportIns
         this._installer = installer;
     }
 
-    protected async onExecute(game: PapyrusGame, installKind = DebugSupportInstallKind.install) {
+    protected async onExecute(game: PapyrusGame) {
         const installed = await window.withProgress(
             {
                 cancellable: true,
@@ -64,9 +59,7 @@ export class InstallDebugSupportCommand extends GameCommandBase<[DebugSupportIns
                     return await this._installer.installPlugin(game, token);
                 } catch (error) {
                     window.showErrorMessage(
-                        `Failed to ${
-                            installKind === DebugSupportInstallKind.install ? 'install' : 'update'
-                        } Papyrus debugger support for ${getDisplayNameForGame(game)}: ${error}`
+                        `Failed to install Papyrus debugger support for ${getDisplayNameForGame(game)}: ${error}`
                     );
                 }
 
@@ -75,11 +68,7 @@ export class InstallDebugSupportCommand extends GameCommandBase<[DebugSupportIns
         );
 
         if (installed) {
-            window.showInformationMessage(
-                `Papyrus debugger support for ${getDisplayNameForGame(game)} ${
-                    installKind === DebugSupportInstallKind.install ? 'installed' : 'updated'
-                }!`
-            );
+            window.showInformationMessage(`Papyrus debugger support for ${getDisplayNameForGame(game)} installed!`);
         }
     }
 }
