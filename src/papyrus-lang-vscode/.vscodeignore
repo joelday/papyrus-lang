@@ -5,5 +5,8 @@ out/**/*.map
 src/**
 .gitignore
 tsconfig.json
-vsc-extension-quickstart.md
 tslint.json
+node_modules
+package-json.lock
+webpack.config.js
+!node_modules/ps-list

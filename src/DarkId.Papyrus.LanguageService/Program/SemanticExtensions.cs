@@ -77,7 +77,6 @@ namespace DarkId.Papyrus.LanguageService.Program
             bool declaredOnly = false,
             bool includeDeclaredPrivates = false,
             bool globalOnly = false,
-            bool declaredGlobalsOnly = false,
             SymbolKinds additionalNonGlobalKinds = SymbolKinds.None)
         {
             var symbols = (IEnumerable<PapyrusSymbol>)symbol.Definition.ScopedSymbols.Values;

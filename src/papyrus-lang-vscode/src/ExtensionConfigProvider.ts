@@ -7,6 +7,7 @@ export interface IGameConfig {
     readonly enabled: boolean;
     readonly creationKitIniFiles: string[];
     readonly installPath: string;
+    readonly ignoreDebuggerVersion: boolean;
 }
 
 export interface IExtensionConfig {

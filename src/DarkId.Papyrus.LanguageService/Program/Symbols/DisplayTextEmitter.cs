@@ -27,6 +27,23 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
 
     public class DisplayTextEmitter
     {
+        public string GetEventHandlerSignatureText(PapyrusSymbol symbol)
+        {
+            if (symbol is EventSymbol eventSymbol)
+            {
+                var displayText = GetDisplayTextForEvent(eventSymbol);
+                return $"{eventSymbol.Name}({symbol.Parent.Name} akSender, {displayText.Parameters.Select(t => t.Text).Join(", ")})";
+            }
+
+#if FALLOUT4
+            if (symbol is CustomEventSymbol customEventSymbol)
+            {
+                return $"{customEventSymbol.Name}({symbol.Parent.Name} akSender, Var[] akArgs)";
+            }
+#endif
+            return null;
+        }
+
         public DisplayText GetDisplayText(PapyrusSymbol symbol)
         {
             if (symbol is AliasedSymbol asAliased)

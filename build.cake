@@ -8,6 +8,8 @@ var pluginFileDirectory = Directory("src/papyrus-lang-vscode/debug-plugin/");
 var pluginFileName = File("DarkId.Papyrus.DebugServer.dll");
 var pluginFilePath = pluginFileDirectory + pluginFileName;
 
+var isCIBuild = EnvironmentVariable("APPVEYOR") == "true";
+
 public void DownloadAndUnzip(string address, DirectoryPath outputPath, DirectoryPath existsPath)
 {
     if (DirectoryExists(existsPath))
@@ -74,7 +76,7 @@ Task("npm-build")
     .Does(() => {
         NpmRunScript(new NpmRunScriptSettings()
         {
-            ScriptName = "compile",
+            ScriptName = isCIBuild ? "compile:release" : "compile",
             WorkingDirectory = "src/papyrus-lang-vscode"
         });
     });

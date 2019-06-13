@@ -71,6 +71,13 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
 
         switch (installState) {
             case DebugSupportInstallState.incorrectVersion:
+                const ignoreVersion = (await this._configProvider.config.pipe(take(1)).toPromise())[game]
+                    .ignoreDebuggerVersion;
+
+                if (ignoreVersion) {
+                    break;
+                }
+
                 const selectedUpdateOption = await window.showWarningMessage(
                     `The Papyrus debugging support ${getScriptExtenderName(game)} plugin needs to be updated.`,
                     'Update',
