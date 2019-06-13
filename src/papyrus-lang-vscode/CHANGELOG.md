@@ -1,3 +1,10 @@
+# [2.9.0](https://github.com/joelday/papyrus-lang/compare/v2.8.7...v2.9.0) (2019-06-13)
+
+
+### Features
+
+* Event signature autocomplete ([0160612](https://github.com/joelday/papyrus-lang/commit/0160612))
+
 ## [2.8.7](https://github.com/joelday/papyrus-lang/compare/v2.8.6...v2.8.7) (2019-06-10)
 
 
