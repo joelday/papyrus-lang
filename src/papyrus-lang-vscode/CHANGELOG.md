@@ -1,3 +1,10 @@
+## [2.8.7](https://github.com/joelday/papyrus-lang/compare/v2.8.6...v2.8.7) (2019-06-10)
+
+
+### Bug Fixes
+
+* force release ([0b56561](https://github.com/joelday/papyrus-lang/commit/0b56561))
+
 ## [2.8.6](https://github.com/joelday/papyrus-lang/compare/v2.8.5...v2.8.6) (2019-06-07)
 
 
