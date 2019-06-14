@@ -1,3 +1,10 @@
+## [2.9.1](https://github.com/joelday/papyrus-lang/compare/v2.9.0...v2.9.1) (2019-06-14)
+
+
+### Bug Fixes
+
+* Debugger variable display fixes and stability improvements. ([8dcf7b9](https://github.com/joelday/papyrus-lang/commit/8dcf7b9))
+
 # [2.9.0](https://github.com/joelday/papyrus-lang/compare/v2.8.7...v2.9.0) (2019-06-13)
 
 
