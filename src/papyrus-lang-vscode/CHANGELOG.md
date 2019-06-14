@@ -1,3 +1,10 @@
+## [2.9.2](https://github.com/joelday/papyrus-lang/compare/v2.9.1...v2.9.2) (2019-06-14)
+
+
+### Bug Fixes
+
+* Include missing dll update. ([c95e9c3](https://github.com/joelday/papyrus-lang/commit/c95e9c3))
+
 ## [2.9.1](https://github.com/joelday/papyrus-lang/compare/v2.9.0...v2.9.1) (2019-06-14)
 
 
