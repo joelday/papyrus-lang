@@ -1,4 +1,4 @@
-import { Disposable, ExtensionContext } from 'vscode';
+import { Disposable, ExtensionContext, workspace, window, TreeDataProvider, TreeItem } from 'vscode';
 import { ServiceCollection, IInstantiationService, InstantiationService, Descriptor } from 'decoration-ioc';
 import { IExtensionContext } from './common/vscode/IocDecorators';
 import { IExtensionConfigProvider, ExtensionConfigProvider } from './ExtensionConfigProvider';
@@ -16,6 +16,8 @@ import { IDebugSupportInstallService, DebugSupportInstallService } from './debug
 import { InstallDebugSupportCommand } from './features/commands/InstallDebugSupportCommand';
 import { PapyrusDebugAdapterTrackerFactory } from './debugger/PapyrusDebugAdapterTracker';
 import { AttachDebuggerCommand } from './features/commands/AttachDebuggerCommand';
+import { ProjectsView } from './features/projects/ProjectsView';
+import { ProjectsTreeDataProvider } from './features/projects/ProjectsTreeDataProvider';
 
 class PapyrusExtension implements Disposable {
     private readonly _serviceCollection: ServiceCollection;
@@ -32,6 +34,8 @@ class PapyrusExtension implements Disposable {
     private readonly _installDebugSupportCommand: InstallDebugSupportCommand;
     private readonly _debugAdapterTrackerFactory: PapyrusDebugAdapterTrackerFactory;
     private readonly _attachCommand: AttachDebuggerCommand;
+    private readonly _projectsTreeDataProvider: ProjectsTreeDataProvider;
+    private readonly _projectsView: ProjectsView;
 
     constructor(context: ExtensionContext) {
         this._languageConfigurations = new LanguageConfigurations();
@@ -64,9 +68,15 @@ class PapyrusExtension implements Disposable {
         this._debugAdapterTrackerFactory = new PapyrusDebugAdapterTrackerFactory();
 
         this._attachCommand = new AttachDebuggerCommand();
+
+        this._projectsTreeDataProvider = this._instantiationService.createInstance(ProjectsTreeDataProvider);
+        this._projectsView = new ProjectsView(this._projectsTreeDataProvider);
     }
 
     dispose() {
+        this._projectsView.dispose();
+        this._projectsTreeDataProvider.dispose();
+
         this._attachCommand.dispose();
 
         this._debugAdapterTrackerFactory.dispose();

@@ -1,10 +1,12 @@
-import { LanguageClient as BaseClient, TextDocumentIdentifier } from 'vscode-languageclient';
+import { LanguageClient as BaseClient, TextDocumentIdentifier, NotificationType, State } from 'vscode-languageclient';
 import { workspace, FileSystemWatcher, OutputChannel, TextDocument } from 'vscode';
 
 import { DocumentScriptInfo, documentScriptInfoRequestType } from './messages/DocumentScriptInfo';
 import { DocumentSyntaxTree, documentSyntaxTreeRequestType } from './messages/DocumentSyntaxTree';
 import { PapyrusGame } from '../PapyrusGame';
 import { toCommandLineArgs } from '../Utilities';
+import { ProjectInfos, projectInfosRequestType } from './messages/ProjectInfos';
+import { Observable, BehaviorSubject } from 'rxjs';
 
 export interface ILanguageClientOptions {
     game: PapyrusGame;
@@ -24,15 +26,28 @@ export interface IToolArguments {
 }
 
 export interface ILanguageClient {
+    readonly projectsUpdated: Observable<void>;
+
+    requestProjectInfos(): Thenable<ProjectInfos>;
     requestScriptInfo(uri: string): Thenable<DocumentScriptInfo>;
     requestSyntaxTree(uri: string): Thenable<DocumentSyntaxTree>;
 }
+
+const projectsUpdatedNotificationType = {
+    type: new NotificationType<void, void>('papyrus/projectsUpdated'),
+};
 
 export class LanguageClient implements ILanguageClient {
     private readonly _client: BaseClient;
     private readonly _fsWatcher: FileSystemWatcher;
     private readonly _outputChannel: OutputChannel;
     private _isDisposed: boolean;
+
+    private readonly _projectsUpdated = new BehaviorSubject<void>(null);
+
+    get projectsUpdated(): Observable<void> {
+        return this._projectsUpdated;
+    }
 
     constructor(options: ILanguageClientOptions) {
         this._fsWatcher = workspace.createFileSystemWatcher('**/*.{flg,ppj,psc}');
@@ -65,6 +80,10 @@ export class LanguageClient implements ILanguageClient {
             this._client.start();
             await this._client.onReady();
 
+            this._client.onNotification(projectsUpdatedNotificationType.type, () => {
+                this._projectsUpdated.next(null);
+            });
+
             this._outputChannel.appendLine('Language service started.');
 
             if (this._isDisposed) {
@@ -80,6 +99,16 @@ export class LanguageClient implements ILanguageClient {
             await this._client.stop();
 
             this._outputChannel.appendLine('Language service stopped.');
+        }
+    }
+
+    requestProjectInfos(): Thenable<ProjectInfos> {
+        try {
+            return this._client.sendRequest(projectInfosRequestType.type, {});
+        } catch (_) {
+            return Promise.resolve({
+                projects: [],
+            });
         }
     }
 
@@ -99,6 +128,8 @@ export class LanguageClient implements ILanguageClient {
         if (this._isDisposed) {
             return;
         }
+
+        this._projectsUpdated.complete();
 
         this._outputChannel.appendLine('Disposing language client.');
 

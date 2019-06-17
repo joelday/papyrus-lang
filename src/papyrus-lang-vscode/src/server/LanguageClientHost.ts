@@ -6,8 +6,9 @@ import { IGameConfig } from '../ExtensionConfigProvider';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { ICreationKitInfo } from '../CreationKitInfoProvider';
 import { DocumentScriptInfo } from './messages/DocumentScriptInfo';
-import { shareReplay, take } from 'rxjs/operators';
+import { shareReplay, take, map, switchMap } from 'rxjs/operators';
 import { getDefaultFlagsFileNameForGame, getLanguageToolPath } from '../Utilities';
+import { ProjectInfos } from './messages/ProjectInfos';
 
 export enum ClientHostStatus {
     none,
@@ -25,6 +26,7 @@ export interface ILanguageClientHost {
     readonly client: ILanguageClient;
     readonly error: Observable<string>;
     readonly outputChannel: OutputChannel;
+    readonly projectInfos: Observable<ProjectInfos>;
     getDocumentScriptStatus(document: TextDocument): Promise<IScriptDocumentStatus>;
 }
 
@@ -43,6 +45,8 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
     private _outputChannel: OutputChannel;
     private _client: LanguageClient;
 
+    private _projectInfos: Observable<ProjectInfos>;
+
     private readonly _status = new BehaviorSubject(ClientHostStatus.none);
     private readonly _error = new BehaviorSubject(null);
 
@@ -51,6 +55,17 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
         this._config = config;
         this._creationKitInfo = creationKitInfo;
         this._context = context;
+
+        this._projectInfos = this._status.pipe(
+            switchMap((status) => {
+                if (status !== ClientHostStatus.running) {
+                    return Promise.resolve(null);
+                }
+
+                return this._client.projectsUpdated;
+            }),
+            switchMap(() => (this._client ? this._client.requestProjectInfos() : Promise.resolve(null)))
+        );
     }
 
     get game() {
@@ -71,6 +86,10 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
 
     get outputChannel() {
         return this._outputChannel;
+    }
+
+    get projectInfos() {
+        return this._projectInfos;
     }
 
     async start() {
@@ -156,6 +175,9 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
     }
 
     dispose() {
+        this._status.complete();
+        this._error.complete();
+
         if (this._outputChannel) {
             this._outputChannel.dispose();
         }
