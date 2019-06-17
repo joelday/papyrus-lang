@@ -1,3 +1,10 @@
+# [2.10.0](https://github.com/joelday/papyrus-lang/compare/v2.9.3...v2.10.0) (2019-06-17)
+
+
+### Features
+
+* First pass on the new Papyrus projects panel. ([#54](https://github.com/joelday/papyrus-lang/issues/54)) ([35398d4](https://github.com/joelday/papyrus-lang/commit/35398d4))
+
 ## [2.9.3](https://github.com/joelday/papyrus-lang/compare/v2.9.2...v2.9.3) (2019-06-16)
 
 
