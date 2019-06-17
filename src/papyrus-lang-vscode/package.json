@@ -6,7 +6,8 @@
         "workspaceContains:**/*.ppj",
         "onDebug",
         "onDebugInitialConfigurations",
-        "onDebugResolve:papyrus"
+        "onDebugResolve:papyrus",
+        "onView:papyrus-projects"
     ],
     "author": {
         "email": "joelday@gmail.com",
@@ -186,6 +187,23 @@
                     "command": "papyrus.searchCreationKitWiki",
                     "group": "a_papyrus",
                     "when": "editorLangId == papyrus"
+                }
+            ]
+        },
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "papyrus-views",
+                    "title": "Papyrus",
+                    "icon": "resources/activitybar-scroll.svg"
+                }
+            ]
+        },
+        "views": {
+            "papyrus-views": [
+                {
+                    "id": "papyrus-projects",
+                    "name": "Projects"
                 }
             ]
         }

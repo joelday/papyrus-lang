@@ -30,14 +30,14 @@ namespace DarkId.Papyrus.LanguageService.Program
                         return null;
                     }
 
-                    return await fileSystem.FindFiles(include.Path, options.FlagsFileName, include.Recursive);
+                    return await fileSystem.FindFiles(include.Path, options.FlagsFileName, true);
                 })
                 .ToArray());
 
             return flagsFiles.Where(t => t != null).SelectMany(t => t).LastOrDefault();
         }
 
-        public static async Task<Dictionary<ObjectIdentifier, string>> ResolveSourceFiles(this IFileSystem fileSystem, ProgramSources sources)
+        public static async Task<Dictionary<SourceInclude, Dictionary<ObjectIdentifier, string>>> ResolveSourceFileIncludes(this IFileSystem fileSystem, ProgramSources sources)
         {
             var includedFiles = await Task.WhenAll(sources.Includes
                 .AsParallel()
@@ -49,35 +49,46 @@ namespace DarkId.Papyrus.LanguageService.Program
                         return new Tuple<SourceInclude, IEnumerable<string>>(include, new string[] { });
                     }
 
-                    var files = include.Scripts.Count > 0 ? include.Scripts.ToList() : await fileSystem.FindFiles(include.Path, "*.psc", include.Recursive);
+                    var files = include.Scripts.Count > 0 ? include.Scripts.ToList() : await fileSystem.FindFiles(include.Path, "*.psc",
+#if SKYRIM
+                        false
+#else
+                        include.Recursive
+#endif
+                    );
                     return new Tuple<SourceInclude, IEnumerable<string>>(include, files);
                 })
                 .ToArray());
 
-            var results = new Dictionary<ObjectIdentifier, string>();
-            var filePaths = new Dictionary<string, ObjectIdentifier>(StringComparer.OrdinalIgnoreCase);
+            var results = new Dictionary<SourceInclude, Dictionary<ObjectIdentifier, string>>();
 
             foreach (var include in includedFiles)
             {
+                var filePaths = new Dictionary<ObjectIdentifier, string>();
+
                 foreach (var fullPath in include.Item2)
                 {
-                    if (filePaths.ContainsKey(fullPath))
-                    {
-                        results.Remove(filePaths[fullPath]);
-                        filePaths.Remove(fullPath);
-                    }
-
                     var relativePath = fullPath.Substring(include.Item1.Path.Length + 1);
                     var identifier = ObjectIdentifier.FromScriptFilePath(relativePath);
 
-                    filePaths.Add(fullPath, identifier);
+                    filePaths.Add(identifier, fullPath);
+                }
 
-                    if (results.ContainsKey(identifier))
-                    {
-                        results.Remove(identifier);
-                    }
+                results.Add(include.Item1, filePaths);
+            }
 
-                    results.Add(identifier, fullPath);
+            return results;
+        }
+
+        public static async Task<Dictionary<ObjectIdentifier, string>> ResolveSourceFiles(this IFileSystem fileSystem, ProgramSources sources)
+        {
+            var results = new Dictionary<ObjectIdentifier, string>();
+
+            foreach (var include in await fileSystem.ResolveSourceFileIncludes(sources))
+            {
+                foreach (var identifierFile in include.Value)
+                {
+                    results[identifierFile.Key] = identifierFile.Value;
                 }
             }
 

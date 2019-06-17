@@ -61,6 +61,8 @@ namespace DarkId.Papyrus.Server
         private Task UpdateProjects(UpdateProjectsOptions options = UpdateProjectsOptions.None)
         {
             _projectManager.UpdateProjects(options);
+            _languageServer.SendNotification("papyrus/projectsUpdated");
+
             return Task.FromResult<object>(null);
         }
 
