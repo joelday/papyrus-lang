@@ -1,3 +1,10 @@
+## [2.11.1](https://github.com/joelday/papyrus-lang/compare/v2.11.0...v2.11.1) (2019-06-18)
+
+
+### Bug Fixes
+
+* Debugger performance and stability. [#53](https://github.com/joelday/papyrus-lang/issues/53) ([b182d0d](https://github.com/joelday/papyrus-lang/commit/b182d0d))
+
 # [2.11.0](https://github.com/joelday/papyrus-lang/compare/v2.10.0...v2.11.0) (2019-06-18)
 
 
