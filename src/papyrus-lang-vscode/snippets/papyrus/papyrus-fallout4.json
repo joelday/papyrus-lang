@@ -12,9 +12,9 @@
         ]
     },
     "Structure": {
-        "prefix": "struct",
+        "prefix": "structure",
         "body": [
-            "Struct ${1:structure}",
+            "Struct ${1:structurename}",
             "\t${2:type} ${3:Value}${0}",
             "EndStruct"
         ],
