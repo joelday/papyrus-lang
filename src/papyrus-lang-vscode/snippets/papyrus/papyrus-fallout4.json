@@ -1,49 +1,66 @@
 {
-    "Struct": {
+    "Script Namespace": {
+        "prefix": "script namespace",
+        "body": [
+            "Scriptname ${1:namespace:}${2:$TM_FILENAME_BASE} extends ${3:ScriptObject}",
+            "{${4:The documentation string.}}\n",
+            "${0:; code}"
+        ],
+        "description": [
+            "Inserts a script header with namespace.",
+            "Only supported by Fallout 4."
+        ]
+    },
+    "Structure": {
         "prefix": "struct",
         "body": [
-            "Struct ${1:StructureName}",
-            "\t${2:type} ${3:Value}",
+            "Struct ${1:structure}",
+            "\t${2:type} ${3:Value}${0}",
             "EndStruct"
         ],
         "description": [
-            "Structure Snippet"
+            "Inserts a structure.",
+            "Only supported by Fallout 4."
         ]
     },
-    "Property": {
-        "prefix": "prop",
+    "Property Constant Mandatory": {
+        "prefix": "property auto const mandatory",
         "body": [
-            "${1:type} Property ${2:PropertyName}${0} Auto ${3:Const} ${4:Mandatory}"
+            "${1:type} Property ${2:propertyname}${0} Auto ${3:Const} ${4:Mandatory}"
         ],
         "description": [
-            "Auto Property Snippet"
-        ]
-    },
-    "Property Full": {
-        "prefix": "propFull",
-        "body": [
-            "${1:type} ${2:PropertyName}_var${0}\r\n${1:type} Property ${2:PropertyName} ${3:Hidden}\r\n\t${1:type} Function Get()\r\n\t\treturn ${2:PropertyName}_var\r\n\tEndFunction\r\n\tFunction Set(${1:type} value)\r\n\t\t${2:PropertyName}_var = aValue\r\n\tEndFunction\r\nEndProperty"
-        ],
-        "description": [
-            "Property Full Snippet"
+            "Inserts an auto constant mandatory property.",
+            "Only supported by Fallout 4."
         ]
     },
     "Property Group": {
-        "prefix": "group",
+        "prefix": "property group",
         "body": [
-            "Group ${1:GroupName}\r\n\t${0}\r\nEndGroup"
+            "Group ${1:groupname}${2: Collapsed}\r",
+            "\t${0}\r",
+            "EndGroup"
         ],
         "description": [
-            "Group Snippet"
+            "Inserts a property group.",
+            "Only supported by Fallout 4."
         ]
     },
-    "{Property Group Collapsed": {
-        "prefix": "groupCollapsed",
+    "State (Fallout 4)": {
+        "prefix": "state (Fallout 4)",
         "body": [
-            "Group ${1:GroupName} Collapsed\r\n\t${0}\r\nEndGroup"
+            "${1:Auto }State ${2:statename}${0}\r",
+            "\t\t; Note: Parameterized state events are only supported in Fallout 4.\r",
+            "\tEvent OnBeginState(string oldState)",
+            "\t\t${3:; code}\r",
+            "\tEndEvent",
+            "\tEvent OnEndState(string newState)",
+            "\t\t${4:; code}\r",
+            "\tEndEvent",
+            "EndState"
         ],
         "description": [
-            "Collapsed Group Snippet"
+            "Inserts a state.",
+            "Only supported by Fallout 4."
         ]
     }
 }

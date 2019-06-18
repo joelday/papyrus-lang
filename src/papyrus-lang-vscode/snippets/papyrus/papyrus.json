@@ -2,83 +2,230 @@
     "Script": {
         "prefix": "script",
         "body": [
-            "Scriptname ${1:Namespace:}${2:$TM_FILENAME_BASE} extends ${3:ScriptObject}",
-            "{${4:The documentation string.}}\n"
+            "Scriptname ${2:$TM_FILENAME_BASE} extends ${3:ScriptObject}",
+            "{${4:The documentation string.}}\n",
+            "${0}"
         ],
-        "description": ["Script Header Snippet"]
+        "description": [
+            "Inserts a script header."
+        ]
     },
     "Import": {
         "prefix": "import",
-        "body": ["import ${1:scriptname}", "${0}"],
-        "description": ["Script Import Snippet"]
+        "body": [
+            "import ${1:scriptname}",
+            "${0}"
+        ],
+        "description": [
+            "Inserts an import."
+        ]
     },
-    "Comment Region Class Snippet": {
+    "Comment": {
+        "prefix": "comment",
+        "body": [
+            "; ${0:comment}"
+        ],
+        "description": [
+            "Inserts a single line comment."
+        ]
+    },
+    "Comment Inline": {
+        "prefix": "comment inline",
+        "body": [
+            ";/ ${0:comment} /;"
+        ],
+        "description": [
+            "Inserts an inline comment."
+        ]
+    },
+    "Comment Block": {
+        "prefix": "comment block",
+        "body": [
+            ";/",
+            "\t${0:comment}",
+            "/;"
+        ],
+        "description": [
+            "Inserts a block comment."
+        ]
+    },
+    "Comment Region": {
         "prefix": "comment region",
-        "body": ["; ${1:Region}", ";---------------------------------------------", "\n${0}"],
-        "description": ["Comment Region Snippet"]
+        "body": [
+            "; ${1:Region}",
+            ";---------------------------------------------",
+            "\n${0}"
+        ],
+        "description": [
+            "Inserts a region comment.",
+            "The divider is 45 characters long plus one."
+        ]
+    },
+    "Property": {
+        "prefix": "property auto",
+        "body": [
+            "${1:type} Property ${2:propertyname}${0} Auto"
+        ],
+        "description": [
+            "Inserts an auto property.",
+        ]
+    },
+    "Property AutoReadOnly": {
+        "prefix": "property auto readonly",
+        "body": [
+            "${1:type} Property ${2:propertyname}${0} AutoReadOnly${4: Hidden}"
+        ],
+        "description": [
+            "Inserts a mandatory auto property.",
+        ]
+    },
+    "Property Full": {
+        "prefix": "property full",
+        "body": [
+            "${1:type} ${2:propertyname}Field${0}\r",
+            "${1:type} Property ${2:propertyname}${3: Hidden}\r",
+            "\t${1:type} Function Get()\r",
+            "\t\treturn ${2:propertyname}Field\r",
+            "\tEndFunction\r",
+            "\tFunction Set(${1:type} value)\r",
+            "\t\t${2:propertyname}Field = value\r",
+            "\tEndFunction\r",
+            "EndProperty"
+        ],
+        "description": [
+            "Inserts a full property."
+        ]
     },
     "If": {
         "prefix": "if",
-        "body": ["\r\nIf (${1:$SELECTION})\r\n\t${0}\r\nEndIf"],
-        "description": ["If Condition Snippet"]
+        "body": [
+            "If (${1:true})\r",
+            "\t${0:; code}\r",
+            "EndIf"
+        ],
+        "description": [
+            "Inserts an if statement."
+        ]
+    },
+    "Else If": {
+        "prefix": "elseif",
+        "body": [
+            "ElseIf (${1:true})\r",
+            "\t${0:; code}"
+        ],
+        "description": [
+            "Inserts an else if statement."
+        ]
+    },
+    "Else": {
+        "prefix": "else",
+        "body": [
+            "Else\r",
+            "\t${0:; code}"
+        ],
+        "description": [
+            "Inserts an else statement."
+        ]
     },
     "While": {
         "prefix": "while",
-        "body": ["While (${1:$SELECTION})\r\n\t${0}\r\nEndWhile"],
-        "description": ["While Loop Snippet"]
+        "body": [
+            "While (${1:true})\r",
+            "\t${0:; code}\r",
+            "EndWhile"
+        ],
+        "description": [
+            "Inserts a while loop."
+        ]
     },
     "For": {
-        "prefix": "for",
+        "prefix": "while for",
         "body": [
-            "int ${1:index} = 0\r\nWhile (${1:index} < ${2:size})\r\n\t${3:; code}\t${0}\r\n\t${1:index} += 1\r\nEndWhile"
+            "int ${1:index} = 0\r",
+            "While (${1:index} < ${2:size})\r",
+            "\t${3:; code}\t${0}\r",
+            "\t${1:index} += 1\r",
+            "EndWhile"
         ],
-        "description": ["Pseudo For Loop Snippet"]
+        "description": [
+            "Inserts a for loop."
+        ]
     },
     "For Each": {
-        "prefix": "for each",
+        "prefix": "while for each",
         "body": [
-            "int ${1:index} = 0\r\nWhile (${1:index} < ${2:array}.Length)\r\n\t${3:type} item = ${2:array}[${1:index}]\r\n\t${3:; code}\r\n\t${0}\r\n\t${1:index} += 1\r\nEndWhile"
+            "int ${1:index} = 0\r",
+            "While (${1:index} < ${2:array}.Length)\r",
+            "\t${3:type} item = ${2:array}[${1:index}]\r",
+            "\t${4:; code}${0}\r",
+            "\t${1:index} += 1\r",
+            "EndWhile"
         ],
-        "description": ["Pseudo For-Each Loop Snippet"]
+        "description": [
+            "Inserts a for each loop."
+        ]
     },
     "Function": {
-        "prefix": "func",
-        "body": ["Function ${1:Foo}()\r\n\t${0:; code}\r\nEndFunction"],
-        "description": ["Function Snippet"]
+        "prefix": "function",
+        "body": [
+            "Function ${1:Foo}()\r",
+            "\t${0:; code}\r",
+            "EndFunction"
+        ],
+        "description": [
+            "Inserts a function."
+        ]
     },
     "Function Full": {
-        "prefix": "funcFull",
+        "prefix": "function full",
         "body": [
             "${1:var} Function ${2:Foobar}(${3:var} ${4:argument})",
             "\t${0:; code}",
             "\treturn ${5:none}",
             "EndFunction"
         ],
-        "description": ["Function Full Snippet"]
+        "description": [
+            "Inserts a full function."
+        ]
     },
     "Function Getter": {
-        "prefix": "funcGet",
+        "prefix": "function getter",
         "body": [
-            "${1:var} Function ${2:GetFoo}()\r\n\t${1:var} ${3:value} = ${4:\"type\"}\n\t${0:; code}\r\n\treturn ${3:value}\nEndFunction",
-            "",
-            "",
-            ""
+            "${1:var} Function ${2:GetFoo}()\r",
+            "\t${1:var} ${3:value} = ${4:\"type\"}",
+            "\t${0:; code}\r",
+            "\treturn ${3:value}",
+            "EndFunction"
         ],
-        "description": ["Function Getter Snippet"]
+        "description": [
+            "Inserts a getter function."
+        ]
     },
     "Function Setter": {
-        "prefix": "funcSet",
-        "body": ["Function ${1:SetFoo}(${2:var} ${3:argument})\r\n\t${0:; code}\r\nEndFunction"],
-        "description": ["Function Setter Snippet"]
+        "prefix": "function setter",
+        "body": [
+            "Function ${1:SetFoo}(${2:var} ${3:argument})\r\n\t${0:; code}\r\nEndFunction"
+        ],
+        "description": [
+            "Inserts a setter function."
+        ]
     },
-    "State": {
-        "prefix": "state",
-        "body": ["State ${1:state}\r\n\t${0}\r\nEndState"],
-        "description": ["State Snippet"]
-    },
-    "State Auto": {
-        "prefix": "stateAuto",
-        "body": ["Auto State ${1:state}\r\n\t${0}\r\nEndState"],
-        "description": ["Auto State Snippet"]
+    "State (Skyrim)": {
+        "prefix": "state (Skyrim)",
+        "body": [
+            "${1:Auto }State ${2:statename}${0}\r",
+            "\t\t; Note: Parameterless state events are only supported in Skyrim.\r",
+            "\tEvent OnBeginState()",
+            "\t\t${3:; code}\r",
+            "\tEndEvent",
+            "\tEvent OnEndState()",
+            "\t\t${4:; code}\r",
+            "\tEndEvent",
+            "EndState"
+        ],
+        "description": [
+            "Inserts a state.",
+            "Only supported by Skyrim."
+        ]
     }
 }
