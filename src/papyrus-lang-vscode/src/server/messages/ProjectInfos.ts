@@ -10,6 +10,7 @@ export interface ProjectInfoScript {
 export interface ProjectInfoSourceInclude {
     name: string;
     fullPath: string;
+    isImport: boolean;
     scripts: ProjectInfoScript[];
 }
 

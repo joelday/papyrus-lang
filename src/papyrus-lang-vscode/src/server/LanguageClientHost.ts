@@ -122,7 +122,7 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
                 creationKitInstallPath: this._creationKitInfo.resolvedInstallPath,
                 relativeIniPaths: this._config.creationKitIniFiles,
                 flagsFileName: getDefaultFlagsFileNameForGame(this._game),
-                ambientProjectName: `${getShortDisplayNameForGame(this._game)} Creation Kit`,
+                ambientProjectName: 'Creation Kit',
                 defaultScriptSourceFolder: this._creationKitInfo.config.Papyrus.sScriptSourceFolder,
                 defaultAdditionalImports: this._creationKitInfo.config.Papyrus.sAdditionalImports,
             };

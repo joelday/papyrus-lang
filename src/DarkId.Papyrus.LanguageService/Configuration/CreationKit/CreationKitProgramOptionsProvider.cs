@@ -56,25 +56,31 @@ namespace DarkId.Papyrus.LanguageService.Configuration.CreationKit
                 PathUtilities.GetCombinedOrRooted(installPath, scriptSourceFolder.Replace("\"", ""));
 
             var importPathsElementsWithSubstitutedSource = string.IsNullOrEmpty(additionalImports) ?
-                new List<string>() :
+                new List<SourceInclude>() :
                 additionalImports.Replace("\"", "").Split(';')
                 .Select(importPath => importPath.CaseInsensitiveEquals("$(source)") ? sourceDirectoryPath : importPath)
+                .Select(path => PathUtilities.GetCombinedOrRooted(installPath, path))
+                .Select(path => new SourceInclude()
+                 {
+                     Path = path,
+                     IsImport = true
+                 })
                 .ToList();
 
-            if (!string.IsNullOrEmpty(sourceDirectoryPath) && !importPathsElementsWithSubstitutedSource.Contains(sourceDirectoryPath))
+            if (!string.IsNullOrEmpty(sourceDirectoryPath))
             {
-                importPathsElementsWithSubstitutedSource.Add(sourceDirectoryPath);
+                importPathsElementsWithSubstitutedSource.Add(new SourceInclude()
+                {
+                    Path = PathUtilities.GetCombinedOrRooted(installPath, sourceDirectoryPath)
+                });
             }
+
+            importPathsElementsWithSubstitutedSource.Reverse();
 
             var programOptions = new ProgramOptionsBuilder()
                 .WithName(_ambientProgramName)
                 .WithFlagsFileName(_flagsFileName)
-                .WithSourceIncludes(importPathsElementsWithSubstitutedSource
-                .Select(path => PathUtilities.GetCombinedOrRooted(installPath, path))
-                .Select(path => new SourceInclude()
-                {
-                    Path = path
-                }).Reverse())
+                .WithSourceIncludes(importPathsElementsWithSubstitutedSource)
                 .Build();
 
             return programOptions;

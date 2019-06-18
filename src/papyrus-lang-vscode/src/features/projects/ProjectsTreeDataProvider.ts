@@ -1,6 +1,6 @@
 import { TreeDataProviderBase } from '../../common/vscode/view/TreeDataProviderBase';
 import { TreeDataNode } from '../../common/vscode/view/TreeDataNode';
-import { TreeItem, TreeItemCollapsibleState, Uri } from 'vscode';
+import { TreeItem, TreeItemCollapsibleState, Uri, ThemeIcon, ExtensionContext } from 'vscode';
 import { ILanguageClientManager } from '../../server/LanguageClientManager';
 import { Observable, combineLatest, Subscription } from 'rxjs';
 import { mergeMap, take } from 'rxjs/operators';
@@ -11,12 +11,16 @@ import {
     ProjectInfoScript,
 } from '../../server/messages/ProjectInfos';
 import { PapyrusGame, getShortDisplayNameForGame } from '../../PapyrusGame';
+import { flatten } from '../../Utilities';
+import { IExtensionContext } from '../../common/vscode/IocDecorators';
 
 export class GameTreeDataNode implements TreeDataNode {
+    private readonly _context: ExtensionContext;
     private readonly _game: PapyrusGame;
     private readonly _projects: ProjectInfo[];
 
-    constructor(game: PapyrusGame, projects: ProjectInfo[]) {
+    constructor(context: ExtensionContext, game: PapyrusGame, projects: ProjectInfo[]) {
+        this._context = context;
         this._game = game;
         this._projects = projects;
     }
@@ -26,19 +30,27 @@ export class GameTreeDataNode implements TreeDataNode {
     }
 
     getTreeItem(): TreeItem {
-        return new TreeItem(getShortDisplayNameForGame(this._game), TreeItemCollapsibleState.Expanded);
+        const treeItem = new TreeItem(getShortDisplayNameForGame(this._game), TreeItemCollapsibleState.Expanded);
+
+        treeItem.iconPath = this._context.asAbsolutePath(
+            `resources/${this._game === PapyrusGame.fallout4 ? 'fallout4' : 'skyrim'}.png`
+        );
+
+        return treeItem;
     }
 
     async getChildren(): Promise<TreeDataNode[]> {
-        return this._projects.map((p) => new ProjectTreeDataNode(p, this));
+        return this._projects.map((p) => new ProjectTreeDataNode(this._context, p, this));
     }
 }
 
 export class ProjectTreeDataNode implements TreeDataNode {
+    private readonly _context: ExtensionContext;
     private readonly _parent: GameTreeDataNode;
     private readonly _project: ProjectInfo;
 
-    constructor(project: ProjectInfo, parent: GameTreeDataNode) {
+    constructor(context: ExtensionContext, project: ProjectInfo, parent: GameTreeDataNode) {
+        this._context = context;
         this._parent = parent;
         this._project = project;
     }
@@ -48,21 +60,38 @@ export class ProjectTreeDataNode implements TreeDataNode {
     }
 
     getTreeItem() {
-        return new TreeItem(this._project.name, TreeItemCollapsibleState.Expanded);
+        const treeItem = new TreeItem(this._project.name, TreeItemCollapsibleState.Collapsed);
+        treeItem.iconPath = this._context.asAbsolutePath('resources/ScriptManager_16x.svg');
+        return treeItem;
     }
 
     async getChildren(): Promise<TreeDataNode[]> {
-        return this._project.sourceIncludes.map((s) => new ProjectSourceIncludeTreeDataNode(s, this)).reverse();
+        const imports = this._project.sourceIncludes.filter((include) => include.isImport);
+        const scripts = Array.from(
+            flatten(this._project.sourceIncludes.filter((include) => !include.isImport).map((i) => i.scripts))
+        );
+
+        const children: (ProjectImportsTreeDataNode | ProjectScriptTreeDataNode)[] = [];
+
+        if (imports.length > 0) {
+            children.push(new ProjectImportsTreeDataNode(this._context, imports, this));
+        }
+
+        children.push(...scripts.map((s) => new ProjectScriptTreeDataNode(this._context, s, this)));
+
+        return children;
     }
 }
 
-export class ProjectSourceIncludeTreeDataNode implements TreeDataNode {
+export class ProjectImportsTreeDataNode implements TreeDataNode {
+    private readonly _context: ExtensionContext;
     private readonly _parent: ProjectTreeDataNode;
-    private readonly _sourceInclude: ProjectInfoSourceInclude;
+    private readonly _imports: ProjectInfoSourceInclude[];
 
-    constructor(sourceInclude: ProjectInfoSourceInclude, parent: ProjectTreeDataNode) {
+    constructor(context: ExtensionContext, imports: ProjectInfoSourceInclude[], parent: ProjectTreeDataNode) {
+        this._context = context;
         this._parent = parent;
-        this._sourceInclude = sourceInclude;
+        this._imports = imports;
     }
 
     getParent() {
@@ -70,24 +99,51 @@ export class ProjectSourceIncludeTreeDataNode implements TreeDataNode {
     }
 
     getTreeItem() {
-        const treeItem = new TreeItem(
-            this._sourceInclude.fullPath ? Uri.file(this._sourceInclude.fullPath) : ('Scripts' as any),
-            TreeItemCollapsibleState.Expanded
-        );
-
+        const treeItem = new TreeItem('Imports', TreeItemCollapsibleState.Collapsed);
+        treeItem.iconPath = this._context.asAbsolutePath('resources/ScriptGroup_16x.svg');
         return treeItem;
     }
 
     async getChildren(): Promise<TreeDataNode[]> {
-        return this._sourceInclude.scripts.map((s) => new ProjectScriptTreeDataNode(s, this));
+        return this._imports.map((i) => new ProjectImportTreeDataNode(this._context, i, this));
+    }
+}
+
+export class ProjectImportTreeDataNode implements TreeDataNode {
+    private readonly _context: ExtensionContext;
+    private readonly _parent: ProjectImportsTreeDataNode;
+    private readonly _scriptImport: ProjectInfoSourceInclude;
+
+    constructor(context: ExtensionContext, scriptImport: ProjectInfoSourceInclude, parent: ProjectImportsTreeDataNode) {
+        this._context = context;
+        this._parent = parent;
+        this._scriptImport = scriptImport;
+    }
+
+    getParent() {
+        return this._parent;
+    }
+
+    getTreeItem() {
+        return new TreeItem(Uri.file(this._scriptImport.fullPath), TreeItemCollapsibleState.Collapsed);
+    }
+
+    async getChildren(): Promise<TreeDataNode[]> {
+        return this._scriptImport.scripts.map((s) => new ProjectScriptTreeDataNode(this._context, s, this));
     }
 }
 
 export class ProjectScriptTreeDataNode implements TreeDataNode {
-    private readonly _parent: ProjectSourceIncludeTreeDataNode;
+    private readonly _context: ExtensionContext;
+    private readonly _parent: ProjectTreeDataNode | ProjectImportTreeDataNode;
     private readonly _script: ProjectInfoScript;
 
-    constructor(script: ProjectInfoScript, parent: ProjectSourceIncludeTreeDataNode) {
+    constructor(
+        context: ExtensionContext,
+        script: ProjectInfoScript,
+        parent: ProjectTreeDataNode | ProjectImportTreeDataNode
+    ) {
+        this._context = context;
         this._parent = parent;
         this._script = script;
     }
@@ -116,13 +172,18 @@ export class ProjectScriptTreeDataNode implements TreeDataNode {
 
 export class ProjectsTreeDataProvider extends TreeDataProviderBase {
     private readonly _languageClientManager: ILanguageClientManager;
+    private readonly _context: ExtensionContext;
     private readonly _projectInfosSubscription: Subscription;
     private readonly _projectInfosObservables: [PapyrusGame, Observable<ProjectInfos>][];
 
-    constructor(@ILanguageClientManager languageClientManager: ILanguageClientManager) {
+    constructor(
+        @ILanguageClientManager languageClientManager: ILanguageClientManager,
+        @IExtensionContext context: ExtensionContext
+    ) {
         super();
 
         this._languageClientManager = languageClientManager;
+        this._context = context;
 
         this._projectInfosObservables = Array.from(this._languageClientManager.clients.entries()).map((pair) => {
             return [pair[0], pair[1].pipe(mergeMap((p) => p.projectInfos))] as [PapyrusGame, Observable<ProjectInfos>];
@@ -142,7 +203,7 @@ export class ProjectsTreeDataProvider extends TreeDataProviderBase {
 
         const withProjects = infos.filter((p) => p[1] && p[1].projects.length > 0);
 
-        return withProjects.map((p) => new GameTreeDataNode(p[0], p[1].projects));
+        return withProjects.map((p) => new GameTreeDataNode(this._context, p[0], p[1].projects));
     }
 
     dispose() {

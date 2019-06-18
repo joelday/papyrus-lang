@@ -28,6 +28,7 @@ namespace DarkId.Papyrus.Server.Protocol
     {
         public string Name { get; set; }
         public string FullPath { get; set; }
+        public bool IsImport { get; set; }
         public Container<ProjectInfoScript> Scripts { get; set; }
     }
 

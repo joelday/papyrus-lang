@@ -8,6 +8,14 @@ import procList from 'ps-list';
 import { ExtensionContext, CancellationTokenSource } from 'vscode';
 const exists = promisify(fs.exists);
 
+export function* flatten<T>(arrs: T[][]): IterableIterator<T> {
+    for (const arr of arrs) {
+        for (const el of arr) {
+            yield el;
+        }
+    }
+}
+
 function getRegistryKeyForGame(game: PapyrusGame) {
     switch (game) {
         case PapyrusGame.fallout4:

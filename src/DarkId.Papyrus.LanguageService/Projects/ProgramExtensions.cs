@@ -18,6 +18,7 @@ namespace DarkId.Papyrus.LanguageService.Projects
                 .WithFlagsFileName(projectInfo.Project.Flags)
                 .WithSourceIncludes(projectInfo.Project.Imports.Reverse().Select(import => new SourceInclude()
                 {
+                    IsImport = true,
                     Path = Path.GetFullPath(Path.Combine(projectFileDirectory, PathUtilities.Normalize(import)))
                 }));
 

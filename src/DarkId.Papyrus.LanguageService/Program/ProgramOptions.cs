@@ -22,6 +22,7 @@ namespace DarkId.Papyrus.LanguageService.Program
                     {
                         Path = include.Path,
                         Recursive = include.Recursive,
+                        IsImport = include.IsImport,
                         Scripts = include.Scripts
                     }).ToList()
                 }
@@ -43,6 +44,8 @@ namespace DarkId.Papyrus.LanguageService.Program
     {
         public string Path { get; set; }
         public bool Recursive { get; set; } = true;
+        public bool IsImport { get; set; }
+
         public List<string> Scripts { get; set; } = new List<string>();
     }
 }
