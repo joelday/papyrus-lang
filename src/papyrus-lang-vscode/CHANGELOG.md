@@ -1,3 +1,12 @@
+# [2.11.0](https://github.com/joelday/papyrus-lang/compare/v2.10.0...v2.11.0) (2019-06-18)
+
+
+### Features
+
+* First pass on the new Papyrus projects panel. ([f6e0ce0](https://github.com/joelday/papyrus-lang/commit/f6e0ce0))
+* Improved snippets. ([#58](https://github.com/joelday/papyrus-lang/issues/58)) ([ce4e88c](https://github.com/joelday/papyrus-lang/commit/ce4e88c))
+* UX improvements to the project browser. ([c30905d](https://github.com/joelday/papyrus-lang/commit/c30905d))
+
 # [2.10.0](https://github.com/joelday/papyrus-lang/compare/v2.9.3...v2.10.0) (2019-06-17)
 
 
