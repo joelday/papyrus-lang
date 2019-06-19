@@ -85,7 +85,7 @@ namespace DarkId.Papyrus.LanguageService.Program
         public async Task<Dictionary<SourceInclude, Dictionary<ObjectIdentifier, string>>> ResolveSources()
         {
             var includes = await _fileSystem.ResolveSourceFileIncludes(_options.Sources);
-            var newFiles = includes.ResolveSourceFiles();
+            var newFiles = includes.FlattenIncludes();
 
             lock (_lock)
             {

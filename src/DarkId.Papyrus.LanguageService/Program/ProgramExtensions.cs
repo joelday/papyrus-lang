@@ -72,6 +72,11 @@ namespace DarkId.Papyrus.LanguageService.Program
                     var relativePath = fullPath.Substring(includePath.Length + 1);
                     var identifier = ObjectIdentifier.FromScriptFilePath(relativePath);
 
+                    if (filePaths.ContainsKey(identifier))
+                    {
+                        filePaths.Remove(identifier);
+                    }
+
                     filePaths.Add(identifier, fullPath);
                 }
 
@@ -81,23 +86,20 @@ namespace DarkId.Papyrus.LanguageService.Program
             return results;
         }
 
-        public static Dictionary<ObjectIdentifier, string> ResolveSourceFiles(this Dictionary<SourceInclude, Dictionary<ObjectIdentifier, string>> includes)
+        public static Dictionary<ObjectIdentifier, string> FlattenIncludes(this Dictionary<SourceInclude, Dictionary<ObjectIdentifier, string>> includes)
         {
             var results = new Dictionary<ObjectIdentifier, string>();
-            var fileIdentifiers = new Dictionary<string, ObjectIdentifier>();
 
             foreach (var include in includes)
             {
                 foreach (var identifierFile in include.Value)
                 {
-                    if (fileIdentifiers.ContainsKey(identifierFile.Value))
+                    if (results.ContainsKey(identifierFile.Key))
                     {
                         results.Remove(identifierFile.Key);
-                        fileIdentifiers.Remove(identifierFile.Value);
                     }
 
-                    results[identifierFile.Key] = identifierFile.Value;
-                    fileIdentifiers[identifierFile.Value] = identifierFile.Key;
+                    results.Add(identifierFile.Key, identifierFile.Value);
                 }
             }
 
