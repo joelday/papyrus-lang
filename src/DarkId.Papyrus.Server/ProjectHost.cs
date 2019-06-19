@@ -55,6 +55,7 @@ namespace DarkId.Papyrus.Server
         }
 
         public string Name => _name;
+        public Dictionary<SourceInclude, Dictionary<ObjectIdentifier, string>> Sources { get; private set; }
 
         public PapyrusProgram Program
         {
@@ -72,7 +73,7 @@ namespace DarkId.Papyrus.Server
             lock (_lock)
             {
                 _logger.LogInformation("Resolving script files for {0}...", Name);
-                _program.ResolveSources().Wait();
+                Sources = _program.ResolveSources().WaitForResult();
 
                 _logger.LogInformation("Done");
             }

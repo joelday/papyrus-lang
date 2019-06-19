@@ -105,7 +105,8 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                 var project = await projectLoader.LoadProject(options.ProjectPath);
 
                 var programOptions = new ProgramOptionsBuilder().WithProject(project).Build();
-                return await fileSystem.ResolveSourceFiles(programOptions.Sources);
+                var includes = await fileSystem.ResolveSourceFileIncludes(programOptions.Sources);
+                return includes.ResolveSourceFiles();
             }
             else if (!string.IsNullOrEmpty(options.DefaultScriptSourceFolder) && !string.IsNullOrEmpty(options.DefaultAdditionalImports))
             {
@@ -137,7 +138,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                     loggerFactory.CreateLogger<CreationKitProgramOptionsProvider>());
 
                 var programOptions = programOptionsProvider.GetAmbientProgramOptions();
-                return await fileSystem.ResolveSourceFiles(programOptions.Sources);
+                return (await fileSystem.ResolveSourceFileIncludes(programOptions.Sources)).ResolveSourceFiles();
             }
 
             return new Dictionary<ObjectIdentifier, string>();

@@ -21,13 +21,11 @@ namespace DarkId.Papyrus.Server.Features
     public class ProjectInfosHandler : IProjectInfosHandler
     {
         private readonly ProjectManager _projectManager;
-        private readonly IFileSystem _fileSystem;
         private readonly ILogger _logger;
 
-        public ProjectInfosHandler(ProjectManager projectManager, IFileSystem fileSystem, ILogger<ProjectInfosHandler> logger)
+        public ProjectInfosHandler(ProjectManager projectManager, ILogger<ProjectInfosHandler> logger)
         {
             _projectManager = projectManager;
-            _fileSystem = fileSystem;
             _logger = logger;
         }
 
@@ -35,12 +33,17 @@ namespace DarkId.Papyrus.Server.Features
         {
             return Task.FromResult(new ProjectInfos()
             {
-                Projects = new Container<ProjectInfo>(_projectManager.Projects.Select(p =>
+                Projects = new Container<ProjectInfo>(_projectManager.Projects.AsParallel().AsOrdered().Select(p =>
                 {
+                    if (p.Sources == null)
+                    {
+                        p.ResolveSources();
+                    }
+
                     return new ProjectInfo()
                     {
                         Name = p.Name,
-                        SourceIncludes = new Container<ProjectInfoSourceInclude>(_fileSystem.ResolveSourceFileIncludes(p.Program.Options.Sources).WaitForResult().Select(include =>
+                        SourceIncludes = new Container<ProjectInfoSourceInclude>(p.Sources != null ? p.Sources.Select(include =>
                         {
                             var name = !string.IsNullOrEmpty(include.Key.Path) ? Path.GetFileName(include.Key.Path) : "Scripts";
 
@@ -55,7 +58,7 @@ namespace DarkId.Papyrus.Server.Features
                                     FilePath = script.Value
                                 }))
                             };
-                        }))
+                        }) : Enumerable.Empty<ProjectInfoSourceInclude>())
                     };
                 }))
             }); 

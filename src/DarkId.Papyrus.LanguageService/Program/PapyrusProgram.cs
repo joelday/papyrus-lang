@@ -82,9 +82,10 @@ namespace DarkId.Papyrus.LanguageService.Program
             return _fileSystem.ResolveFlagsFile(_options);
         }
 
-        public async Task ResolveSources()
+        public async Task<Dictionary<SourceInclude, Dictionary<ObjectIdentifier, string>>> ResolveSources()
         {
-            var newFiles = await _fileSystem.ResolveSourceFiles(_options.Sources);
+            var includes = await _fileSystem.ResolveSourceFileIncludes(_options.Sources);
+            var newFiles = includes.ResolveSourceFiles();
 
             lock (_lock)
             {
@@ -111,6 +112,8 @@ namespace DarkId.Papyrus.LanguageService.Program
 
                 Task.WaitAll(fileSyncTask, filePathSyncTask);
             }
+
+            return includes;
         }
 
         public void Dispose()

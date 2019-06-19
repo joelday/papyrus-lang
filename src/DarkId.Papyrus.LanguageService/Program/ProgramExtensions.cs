@@ -65,10 +65,11 @@ namespace DarkId.Papyrus.LanguageService.Program
             foreach (var include in includedFiles)
             {
                 var filePaths = new Dictionary<ObjectIdentifier, string>();
+                var includePath = Path.GetFullPath(include.Item1.Path);
 
                 foreach (var fullPath in include.Item2)
                 {
-                    var relativePath = fullPath.Substring(include.Item1.Path.Length + 1);
+                    var relativePath = fullPath.Substring(includePath.Length + 1);
                     var identifier = ObjectIdentifier.FromScriptFilePath(relativePath);
 
                     filePaths.Add(identifier, fullPath);
@@ -80,15 +81,23 @@ namespace DarkId.Papyrus.LanguageService.Program
             return results;
         }
 
-        public static async Task<Dictionary<ObjectIdentifier, string>> ResolveSourceFiles(this IFileSystem fileSystem, ProgramSources sources)
+        public static Dictionary<ObjectIdentifier, string> ResolveSourceFiles(this Dictionary<SourceInclude, Dictionary<ObjectIdentifier, string>> includes)
         {
             var results = new Dictionary<ObjectIdentifier, string>();
+            var fileIdentifiers = new Dictionary<string, ObjectIdentifier>();
 
-            foreach (var include in await fileSystem.ResolveSourceFileIncludes(sources))
+            foreach (var include in includes)
             {
                 foreach (var identifierFile in include.Value)
                 {
+                    if (fileIdentifiers.ContainsKey(identifierFile.Value))
+                    {
+                        results.Remove(identifierFile.Key);
+                        fileIdentifiers.Remove(identifierFile.Value);
+                    }
+
                     results[identifierFile.Key] = identifierFile.Value;
+                    fileIdentifiers[identifierFile.Value] = identifierFile.Key;
                 }
             }
 

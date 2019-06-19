@@ -203,7 +203,7 @@
             "papyrus-views": [
                 {
                     "id": "papyrus-projects",
-                    "name": "Project Browser"
+                    "name": "Project Explorer"
                 }
             ]
         }
