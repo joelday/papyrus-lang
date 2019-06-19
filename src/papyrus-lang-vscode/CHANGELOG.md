@@ -1,3 +1,10 @@
+## [2.11.3](https://github.com/joelday/papyrus-lang/compare/v2.11.2...v2.11.3) (2019-06-19)
+
+
+### Bug Fixes
+
+* Project file resolution exception being thrown for duplicate matches. ([5115f18](https://github.com/joelday/papyrus-lang/commit/5115f18))
+
 ## [2.11.2](https://github.com/joelday/papyrus-lang/compare/v2.11.1...v2.11.2) (2019-06-19)
 
 
