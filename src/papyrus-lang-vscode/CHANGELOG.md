@@ -1,3 +1,10 @@
+## [2.11.2](https://github.com/joelday/papyrus-lang/compare/v2.11.1...v2.11.2) (2019-06-19)
+
+
+### Bug Fixes
+
+* Fixing file resolution and improving project browser performance. ([20d939f](https://github.com/joelday/papyrus-lang/commit/20d939f))
+
 ## [2.11.1](https://github.com/joelday/papyrus-lang/compare/v2.11.0...v2.11.1) (2019-06-18)
 
 
