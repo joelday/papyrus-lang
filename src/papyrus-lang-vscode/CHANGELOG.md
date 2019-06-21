@@ -1,3 +1,10 @@
+## [2.11.4](https://github.com/joelday/papyrus-lang/compare/v2.11.3...v2.11.4) (2019-06-21)
+
+
+### Bug Fixes
+
+* Validation errors when editing Papyrus debuggers in launch.json ([3d885b5](https://github.com/joelday/papyrus-lang/commit/3d885b5))
+
 ## [2.11.3](https://github.com/joelday/papyrus-lang/compare/v2.11.2...v2.11.3) (2019-06-19)
 
 
