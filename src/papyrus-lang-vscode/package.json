@@ -33,7 +33,7 @@
                 "languages": [
                     "papyrus"
                 ],
-                "contributionAttributes": {
+                "configurationAttributes": {
                     "attach": {
                         "properties": {
                             "game": {
