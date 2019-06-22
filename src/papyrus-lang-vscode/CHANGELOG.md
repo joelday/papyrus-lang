@@ -1,3 +1,10 @@
+## [2.11.5](https://github.com/joelday/papyrus-lang/compare/v2.11.4...v2.11.5) (2019-06-22)
+
+
+### Bug Fixes
+
+* language features now work when there is no opened folder ([#18](https://github.com/joelday/papyrus-lang/issues/18)) ([1aae8aa](https://github.com/joelday/papyrus-lang/commit/1aae8aa))
+
 ## [2.11.4](https://github.com/joelday/papyrus-lang/compare/v2.11.3...v2.11.4) (2019-06-21)
 
 
