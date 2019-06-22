@@ -1,3 +1,11 @@
+## [2.12.1](https://github.com/joelday/papyrus-lang/compare/v2.12.0...v2.12.1) (2019-06-22)
+
+
+### Bug Fixes
+
+* Search Creation Kit Wiki command now works again ([#59](https://github.com/joelday/papyrus-lang/issues/59)) ([a4fe7fc](https://github.com/joelday/papyrus-lang/commit/a4fe7fc))
+* Search Creation Kit Wiki command now works again. ([040a2fd](https://github.com/joelday/papyrus-lang/commit/040a2fd))
+
 # [2.12.0](https://github.com/joelday/papyrus-lang/compare/v2.11.5...v2.12.0) (2019-06-22)
 
 
