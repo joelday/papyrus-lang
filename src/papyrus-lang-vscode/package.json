@@ -50,7 +50,28 @@
                             "game"
                         ]
                     }
-                }
+                },
+                "configurationSnippets": [
+                    {
+                        "label": "Papyrus: Fallout 4 (Creation Kit)",
+                        "body": {
+                            "name": "Fallout 4",
+                            "type": "papyrus",
+                            "request": "attach",
+                            "game": "fallout4"
+                        }
+                    },
+                    {
+                        "label": "Papyrus: Fallout 4 (.ppj)",
+                        "body": {
+                            "name": "Fallout 4 Project",
+                            "type": "papyrus",
+                            "request": "attach",
+                            "game": "fallout4",
+                            "projectPath": "^\"\\${workspaceFolder}/${1:Project.ppj}\""
+                        }
+                    }
+                ]
             }
         ],
         "configuration": {
