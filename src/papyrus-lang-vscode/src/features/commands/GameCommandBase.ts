@@ -9,8 +9,8 @@ export abstract class GameCommandBase<TArgs extends any[] = void[], TResult = vo
         this._name = name;
 
         this._registrations = supportedGames.map((game) =>
-            commands.registerCommand(`papyrus.${game}.${this._name}`, (args) => {
-                return this.onExecute(game, ...(args || []));
+            commands.registerCommand(`papyrus.${game}.${this._name}`, (...args) => {
+                return this.onExecute(game, ...((args || []) as TArgs));
             })
         );
     }

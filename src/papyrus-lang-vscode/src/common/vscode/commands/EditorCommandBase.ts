@@ -6,8 +6,8 @@ export abstract class EditorCommandBase<TArgs extends any[] = void[], TResult = 
 
     constructor(name: string) {
         this._name = name;
-        this._registration = commands.registerTextEditorCommand(this._name, (editor, edit, args) => {
-            return this.onExecute(editor, edit, ...(args || []));
+        this._registration = commands.registerTextEditorCommand(this._name, (editor, edit, ...args) => {
+            return this.onExecute(editor, edit, ...((args || []) as TArgs));
         });
     }
 

@@ -6,8 +6,8 @@ export abstract class CommandBase<TArgs extends any[] = void[], TResult = void> 
 
     constructor(name: string) {
         this._name = name;
-        this._registration = commands.registerCommand(this._name, (args) => {
-            return this.onExecute(...(args || []));
+        this._registration = commands.registerCommand(this._name, (...args) => {
+            return this.onExecute(...((args || []) as TArgs));
         });
     }
 
