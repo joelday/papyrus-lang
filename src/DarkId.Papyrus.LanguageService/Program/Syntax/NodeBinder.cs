@@ -696,7 +696,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
                 switch (node.CompilerNode.GetAstType())
                 {
                     case AstType.Integer:
-                        node.Value = CreateNode<IntLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = int.Parse(valueText));
+                        node.Value = CreateNode<IntLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = int.Parse(valueText), true);
                         break;
                     case AstType.Bool:
                         node.Value = CreateNode<BoolLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = bool.Parse(valueText));
@@ -705,7 +705,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
                         node.Value = CreateNode<FloatLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = float.Parse(valueText));
                         break;
                     case AstType.HexDigit:
-                        node.Value = CreateNode<HexLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = Convert.ToInt32(valueText, 16));
+                        node.Value = CreateNode<HexLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = Convert.ToInt32(valueText, 16), true);
                         break;
                     case AstType.String:
                         node.Value = CreateNode<StringLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = valueText);
@@ -868,7 +868,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
         #endregion
 
-        private T CreateNode<T>(SyntaxNode parent, Scanner<CommonTree> parentChildren, Action<T, Scanner<CommonTree>> bindAction = null)
+        private T CreateNode<T>(SyntaxNode parent, Scanner<CommonTree> parentChildren, Action<T, Scanner<CommonTree>> bindAction = null, bool ignoreExceptions = false)
             where T : SyntaxNode
         {
             var compilerNode = parentChildren.Current;
@@ -899,8 +899,11 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
             }
             catch (Exception e)
             {
-                _diagnostics.Add(new Diagnostic(
-                    DiagnosticLevel.Error, e.Message, Range.IsEmpty(node.Range) ? parent.Range : node.Range, e));
+                if (!ignoreExceptions)
+                {
+                    _diagnostics.Add(new Diagnostic(
+                        DiagnosticLevel.Error, e.Message, Range.IsEmpty(node.Range) ? parent.Range : node.Range, e));
+                }
             }
 
             if (ShouldContractNodeEnd(node))
