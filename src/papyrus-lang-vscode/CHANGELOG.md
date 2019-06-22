@@ -1,3 +1,15 @@
+# [2.12.0](https://github.com/joelday/papyrus-lang/compare/v2.11.5...v2.12.0) (2019-06-22)
+
+
+### Bug Fixes
+
+* no longer showing an unclear message for out of bounds integer literals ([#40](https://github.com/joelday/papyrus-lang/issues/40)) ([bc994fa](https://github.com/joelday/papyrus-lang/commit/bc994fa))
+
+
+### Features
+
+* Adding debug config snippets. ([c2ad14a](https://github.com/joelday/papyrus-lang/commit/c2ad14a))
+
 ## [2.11.5](https://github.com/joelday/papyrus-lang/compare/v2.11.4...v2.11.5) (2019-06-22)
 
 
