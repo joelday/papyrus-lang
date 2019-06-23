@@ -1,3 +1,10 @@
+# [2.13.0](https://github.com/joelday/papyrus-lang/compare/v2.12.1...v2.13.0) (2019-06-23)
+
+
+### Features
+
+* Debug logs are now shown in the debug console ([#69](https://github.com/joelday/papyrus-lang/issues/69)) ([dcbd05c](https://github.com/joelday/papyrus-lang/commit/dcbd05c))
+
 ## [2.12.1](https://github.com/joelday/papyrus-lang/compare/v2.12.0...v2.12.1) (2019-06-22)
 
 
