@@ -1,9 +1,17 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Antlr.Runtime.Tree;
+
+#if SKYRIM
+using Antlr.StringTemplate;
+#else
+using Antlr3.ST;
+#endif
+
 using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.External;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
@@ -281,6 +289,33 @@ namespace DarkId.Papyrus.LanguageService.Program
                 }
 
                 RaiseScriptFileChanged();
+            }
+        }
+
+        public string GetScriptAssembly()
+        {
+            if (CompilerType == null)
+            {
+                return null;
+            }
+
+            var papyrusGen = new PapyrusGen(new CommonTreeNodeStream(CompilerType.GetAst())
+            {
+                TokenStream = CompilerType.GetTokenStream()
+            });
+
+            using (var manifestResourceStream = papyrusGen.GetType().Assembly.GetManifestResourceStream("PCompiler.PapyrusAssembly.stg"))
+            {
+                var templateGroup = new StringTemplateGroup(new StreamReader(manifestResourceStream));
+#if SKYRIM
+                papyrusGen.TemplateLib = templateGroup;
+#else
+                papyrusGen.TemplateGroup = templateGroup;
+#endif
+
+                papyrusGen.AsDynamic().KnownUserFlags = _program.FlagsFile.NativeFlagsDict;
+                var template = papyrusGen.script(_filePath, CompilerType).Template;
+                return template.ToString();
             }
         }
 

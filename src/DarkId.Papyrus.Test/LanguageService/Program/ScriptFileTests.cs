@@ -24,6 +24,15 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
 
             Assert.AreEqual(0, allDiagnostics.Count);
         }
+
+        [TestMethod]
+        public void ScriptFile_GetAssembly_ShouldReturnAssembly()
+        {
+            var allAsm = Program.ScriptFiles.Values.AsParallel().AsOrdered().
+                Where(s => s.Text.Text.IndexOf(";/test:ignore-diagnostics/;") == -1).Select(s => s.GetScriptAssembly()).ToList();
+
+            Console.WriteLine(allAsm.Join(",\r\n\r\n"));
+        }
     }
 }
 

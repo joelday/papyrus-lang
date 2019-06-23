@@ -86,7 +86,7 @@ class StatusBarItemController implements Disposable {
                             activeDocumentScriptInfo && activeDocumentScriptInfo.identifiers.length > 0
                                 ? '$(verified)'
                                 : '$(check)'
-                            }`;
+                        }`;
                         this._statusBarItem.tooltip = `${fullName} language service running.`;
                         break;
                     case ClientHostStatus.missing:

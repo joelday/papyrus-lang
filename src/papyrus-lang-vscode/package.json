@@ -148,6 +148,11 @@
                 "scopeName": "source.papyrus"
             },
             {
+                "language": "papyrus-assembly",
+                "path": "./syntaxes/papyrus-assembly/papyrus-assembly.tmLanguage",
+                "scopeName": "source.papyrus assembly"
+            },
+            {
                 "language": "papyrus-project",
                 "path": "./syntaxes/papyrus-project/papyrus-project.json",
                 "scopeName": "text.xml.papyrus-project"
@@ -176,6 +181,15 @@
             },
             {
                 "aliases": [
+                    "Papyrus Assembly"
+                ],
+                "extensions": [
+                    ".disassemble.pas"
+                ],
+                "id": "papyrus-assembly"
+            },
+            {
+                "aliases": [
                     "Papyrus Project"
                 ],
                 "configuration": "./syntaxes/papyrus-project/papyrus-project-language-configuration.json",
@@ -200,6 +214,11 @@
                 "category": "Debug",
                 "command": "papyrus.fallout4.attachDebugger",
                 "title": "Attach to Fallout 4"
+            },
+            {
+                "category": "Papyrus",
+                "command": "papyrus.viewAssembly",
+                "title": "View Papyrus Assembly"
             }
         ],
         "menus": {
@@ -208,6 +227,18 @@
                     "command": "papyrus.searchCreationKitWiki",
                     "group": "a_papyrus",
                     "when": "editorLangId == papyrus"
+                },
+                {
+                    "command": "papyrus.viewAssembly",
+                    "group": "a_papyrus",
+                    "when": "editorLangId == papyrus"
+                }
+            ],
+            "explorer/context": [
+                {
+                    "command": "papyrus.viewAssembly",
+                    "group": "a_papyrus",
+                    "when": "resourceLangId == papyrus"
                 }
             ]
         },

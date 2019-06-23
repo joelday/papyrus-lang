@@ -7,6 +7,7 @@ import { PapyrusGame } from '../PapyrusGame';
 import { toCommandLineArgs } from '../Utilities';
 import { ProjectInfos, projectInfosRequestType } from './messages/ProjectInfos';
 import { Observable, BehaviorSubject } from 'rxjs';
+import { DocumentAssembly, documentAssemblyRequestType } from './messages/DocumentAssembly';
 
 export interface ILanguageClientOptions {
     game: PapyrusGame;
@@ -31,6 +32,7 @@ export interface ILanguageClient {
     requestProjectInfos(): Thenable<ProjectInfos>;
     requestScriptInfo(uri: string): Thenable<DocumentScriptInfo>;
     requestSyntaxTree(uri: string): Thenable<DocumentSyntaxTree>;
+    requestAssembly(uri: string): Thenable<DocumentAssembly>;
 }
 
 const projectsUpdatedNotificationType = {
@@ -110,6 +112,12 @@ export class LanguageClient implements ILanguageClient {
                 projects: [],
             });
         }
+    }
+
+    requestAssembly(uri: string): Thenable<DocumentAssembly> {
+        return this._client.sendRequest(documentAssemblyRequestType.type, {
+            textDocument: TextDocumentIdentifier.create(uri),
+        });
     }
 
     requestScriptInfo(uri: string): Thenable<DocumentScriptInfo> {
