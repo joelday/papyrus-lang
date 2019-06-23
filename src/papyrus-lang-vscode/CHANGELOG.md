@@ -1,3 +1,10 @@
+# [2.14.0](https://github.com/joelday/papyrus-lang/compare/v2.13.0...v2.14.0) (2019-06-23)
+
+
+### Features
+
+* New 'View Papyrus Assembly' command. ([7bb6133](https://github.com/joelday/papyrus-lang/commit/7bb6133))
+
 # [2.13.0](https://github.com/joelday/papyrus-lang/compare/v2.12.1...v2.13.0) (2019-06-23)
 
 
