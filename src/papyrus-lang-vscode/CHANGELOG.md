@@ -1,3 +1,10 @@
+## [2.15.1](https://github.com/joelday/papyrus-lang/compare/v2.15.0...v2.15.1) (2019-06-30)
+
+
+### Bug Fixes
+
+* Provide type completion for incomplete variable declarations. [#76](https://github.com/joelday/papyrus-lang/issues/76) (eyooo) ([d7b5d5a](https://github.com/joelday/papyrus-lang/commit/d7b5d5a))
+
 # [2.15.0](https://github.com/joelday/papyrus-lang/compare/v2.14.0...v2.15.0) (2019-06-30)
 
 
