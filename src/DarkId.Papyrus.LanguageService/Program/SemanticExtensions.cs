@@ -369,8 +369,13 @@ namespace DarkId.Papyrus.LanguageService.Program
             return node is ScriptNode
                 || node is ScriptHeaderNode
                 || node is TypeIdentifierNode
-                || node is FunctionDefinitionNode
-                || node is EventDefinitionNode;
+                || node is IDefinitionBlock
+                || node is IStatementBlock
+                // These conditions allow incomplete variable declarations to suggest types:
+                || (node is IdentifierNode &&
+                    node.Parent is IdentifierExpressionNode &&
+                    node.Parent?.Parent is ExpressionStatementNode &&
+                    node.Parent?.Parent?.Parent is IStatementBlock);
         }
 
         public static bool ScopeCanReferenceScripts(this SyntaxNode node)
