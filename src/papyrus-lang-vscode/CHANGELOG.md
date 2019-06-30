@@ -1,3 +1,10 @@
+# [2.15.0](https://github.com/joelday/papyrus-lang/compare/v2.14.0...v2.15.0) (2019-06-30)
+
+
+### Features
+
+* Typing function or event names in definition blocks provides override autocompletion. [#77](https://github.com/joelday/papyrus-lang/issues/77) ([24af097](https://github.com/joelday/papyrus-lang/commit/24af097))
+
 # [2.14.0](https://github.com/joelday/papyrus-lang/compare/v2.13.0...v2.14.0) (2019-06-23)
 
 
