@@ -83,10 +83,10 @@ namespace DarkId.Papyrus.LanguageService.Program
 
             if (!globalOnly)
             {
-                var kindFilter = SymbolKinds.Property | SymbolKinds.Function | SymbolKinds.Struct | SymbolKinds.Group;
+                var kindFilter = SymbolKinds.Property | SymbolKinds.Function | SymbolKinds.Event | SymbolKinds.Struct | SymbolKinds.Group;
                 if (includeDeclaredPrivates)
                 {
-                    kindFilter |= SymbolKinds.Variable | SymbolKinds.Event;
+                    kindFilter |= SymbolKinds.Variable;
                 }
 
                 kindFilter |= additionalNonGlobalKinds;
@@ -112,7 +112,7 @@ namespace DarkId.Papyrus.LanguageService.Program
                 }
             }
 
-            return symbols.DistinctBy(s => s.Name + "_" + s.Kind);
+            return symbols.DistinctBy(s => s.Name + "_" + s.Kind, StringComparer.OrdinalIgnoreCase);
         }
 
         public static IEnumerable<ScriptSymbol> GetExtendedScriptChain(this ScriptSymbol symbol, bool includeSelf = false)
@@ -262,12 +262,12 @@ namespace DarkId.Papyrus.LanguageService.Program
                     {
                         if (baseExpression.IsSelfIdentifierExpression())
                         {
-                            return memberSymbols.Where(s => (s.Kind & SymbolKinds.Function) != 0 || (s.Kind & SymbolKinds.Property) != 0);
+                            return memberSymbols.Where(s => (s.Kind & SymbolKinds.Function) != 0 || (s.Kind & SymbolKinds.Event) != 0 || (s.Kind & SymbolKinds.Property) != 0);
                         }
 
                         if (baseExpression.IsParentIdentifierExpression())
                         {
-                            return memberSymbols.Where(s => (s.Kind & SymbolKinds.Function) != 0);
+                            return memberSymbols.Where(s => (s.Kind & SymbolKinds.Function) != 0 || (s.Kind & SymbolKinds.Event) != 0);
                         }
                     }
 
@@ -377,6 +377,11 @@ namespace DarkId.Papyrus.LanguageService.Program
         {
             return ScopeCanReferenceScriptsInternal(node)
                 || ScopeCanReferenceScriptsInternal((SyntaxNode)node.Scope);
+        }
+
+        public static bool ScopeCanDeclareFunctions(this SyntaxNode node)
+        {
+            return node is ScriptNode || node is StateDefinitionNode;
         }
 
         public static FunctionDefinitionNode GetDefinition(this FunctionCallExpressionNode callExpression)

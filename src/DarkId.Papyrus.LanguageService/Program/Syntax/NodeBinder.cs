@@ -165,6 +165,8 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         {
             return CreateNode<FunctionHeaderNode>(parent, parentChildren, (node, children) =>
             {
+                node.IsEvent = forEvent;
+
                 children.Next();
                 node.TypeIdentifier = BindTypeIdentifier(node, children);
 
@@ -213,7 +215,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
                     var accessExpression = CreateNode<IdentifierExpressionNode>(node.RemoteEventExpression, children);
                     accessExpression.Text = expressionElementTexts[1];
-                    
+
                     accessExpression.Identifier = CreateNode<IdentifierNode>(accessExpression, children);
                     accessExpression.Identifier.Text = expressionElementTexts[1];
 
@@ -246,6 +248,11 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
                 children.Next();
                 node.Identifier = BindIdentifier(node, children);
+
+                if (children.Next())
+                {
+                    node.DefaultValue = BindLiteralNode(children.Current.GetAstType(), node, children, children.Current.Text);
+                }
             });
         }
 
@@ -689,32 +696,32 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
         private LiteralExpressionNode BindLiteralExpression(SyntaxNode parent, Scanner<CommonTree> parentChildren)
         {
-            return CreateNode<LiteralExpressionNode>(parent, parentChildren, (node, children) =>
+            return CreateNode(parent, parentChildren, (Action<LiteralExpressionNode, Scanner<CommonTree>>)((node, children) =>
             {
                 var valueText = node.CompilerNode.Text;
+                node.Value = BindLiteralNode(node.CompilerNode.GetAstType(), node, parentChildren, valueText);
+            }));
+        }
 
-                switch (node.CompilerNode.GetAstType())
-                {
-                    case AstType.Integer:
-                        node.Value = CreateNode<IntLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = int.Parse(valueText), true);
-                        break;
-                    case AstType.Bool:
-                        node.Value = CreateNode<BoolLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = bool.Parse(valueText));
-                        break;
-                    case AstType.Float:
-                        node.Value = CreateNode<FloatLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = float.Parse(valueText));
-                        break;
-                    case AstType.HexDigit:
-                        node.Value = CreateNode<HexLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = Convert.ToInt32(valueText, 16), true);
-                        break;
-                    case AstType.String:
-                        node.Value = CreateNode<StringLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = valueText);
-                        break;
-                    case AstType.None:
-                        node.Value = CreateNode<NoneLiteralNode>(node, parentChildren);
-                        break;
-                }
-            });
+        private ILiteralNode BindLiteralNode(AstType type, SyntaxNode node, Scanner<CommonTree> parentChildren, string valueText)
+        {
+            switch (type)
+            {
+                case AstType.Integer:
+                    return CreateNode<IntLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = int.Parse(valueText), true);
+                case AstType.Bool:
+                    return CreateNode<BoolLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = bool.Parse(valueText));
+                case AstType.Float:
+                    return CreateNode<FloatLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = float.Parse(valueText));
+                case AstType.HexDigit:
+                    return CreateNode<HexLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = Convert.ToInt32(valueText, 16), true);
+                case AstType.String:
+                    return CreateNode<StringLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = valueText);
+                case AstType.None:
+                    return CreateNode<NoneLiteralNode>(node, parentChildren);
+                default:
+                    return null;
+            }
         }
 
         private CastExpressionNode BindCastExpression(SyntaxNode parent, Scanner<CommonTree> parentChildren)

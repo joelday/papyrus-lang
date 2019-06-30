@@ -84,36 +84,7 @@ namespace DarkId.Papyrus.Server.Features
 
                 if (scriptFile.Node == null)
                 {
-                    var lineText = scriptFile.Text.GetTextInRange(new Common.Range()
-                    {
-                        Start = new Common.Position()
-                        {
-                            Line = request.Position.Line,
-                            Character = 0
-                        },
-                        End = request.Position.ToPosition()
-                    });
-
-                    var match = Regex.Match(lineText, @"^\s*event\s+((.*)\..*)?.*$", RegexOptions.IgnoreCase);
-                    if (!match.Success)
-                    {
-                        return Task.FromResult<CompletionList>(null);
-                    }
-
-                    if (match.Groups.Count == 3)
-                    {
-                        var className = match.Groups[2];
-                        scriptFile.Program.ScriptFiles.TryGetValue(className.Value, out var matchingFile);
-
-                        if (matchingFile != null && matchingFile.Symbol != null)
-                        {
-                            return Task.FromResult(new CompletionList(
-                                GetEventCompletionItems(matchingFile.Symbol.Children
-                                .Where(s => s.Kind == SymbolKinds.Event || s.Kind == SymbolKinds.CustomEvent))));
-                        }
-                    }
-
-                    return Task.FromResult(new CompletionList(GetScriptCompletionItems(scriptFile)));
+                    return HandleEmptyNodeCompletion(request, scriptFile);
                 }
 
                 if (request.Context.TriggerCharacter == " " && request.Context.TriggerKind != CompletionTriggerKind.Invoked)
@@ -133,16 +104,21 @@ namespace DarkId.Papyrus.Server.Features
                     return Task.FromResult(new CompletionList(knownParamValuesCompletionItems));
                 }
 
-                var symbols = node.GetReferencableSymbols();
+                var referencableSymbols = node.GetReferencableSymbols();
 
-                var symbolCompletionItems = GetSymbolCompletionItems(symbols.Where(s => s.Kind != SymbolKinds.Event && s.Kind != SymbolKinds.CustomEvent));
-                var eventCompletionItems = GetEventCompletionItems(symbols.Where(s => s.Kind == SymbolKinds.Event || s.Kind == SymbolKinds.CustomEvent));
+                var symbolCompletionItems = GetSymbolCompletionItems(referencableSymbols.Where(s => s.Kind != SymbolKinds.CustomEvent));
+
+                var eventCompletionItems = node.GetAncestors().Any(ancestor => ancestor is FunctionHeaderNode asFunctionHeader && asFunctionHeader.IsEvent) ?
+                    GetEventCompletionItems(referencableSymbols.Where(s => s.Kind == SymbolKinds.Event || s.Kind == SymbolKinds.CustomEvent)) : Enumerable.Empty<CompletionItem>();
+
+                var overrideCompletionItems = node.ScopeCanDeclareFunctions() ? GetOverrideCompletionItems(node) : Enumerable.Empty<CompletionItem>();
 
                 var scriptCompletionItems = node.ScopeCanReferenceScripts() ? GetScriptCompletionItems(scriptFile) : Enumerable.Empty<CompletionItem>();
 
                 var allCompletions = knownParamValuesCompletionItems
                     .Concat(eventCompletionItems)
                     .Concat(symbolCompletionItems)
+                    .Concat(overrideCompletionItems)
                     .Concat(scriptCompletionItems);
 
                 return Task.FromResult(new CompletionList(allCompletions));
@@ -153,6 +129,70 @@ namespace DarkId.Papyrus.Server.Features
             }
 
             return Task.FromResult<CompletionList>(null);
+        }
+
+        private IEnumerable<CompletionItem> GetOverrideCompletionItems(SyntaxNode node)
+        {
+            var scriptSymbol = node.GetScriptFile().Symbol;
+            var stateSymbol = node is StateDefinitionNode asStateDefinition ? asStateDefinition.Symbol : scriptSymbol;
+
+            var functionImplementations = stateSymbol.Children.Where(t => t.Kind == SymbolKinds.Function || t.Kind == SymbolKinds.Event);
+            var overridableFunctions = scriptSymbol.GetExtendedScriptChain(true)
+                .SelectMany((extendedScript) => extendedScript.GetScriptMemberSymbols(declaredOnly: true, includeDeclaredPrivates: true))
+                .Where(s => (s.Kind == SymbolKinds.Function || s.Kind == SymbolKinds.Event) &&
+                    !functionImplementations.Any((implementation) => implementation.Name.CaseInsensitiveEquals(s.Name)))
+                .DistinctBy(s => s.Name + "_" + s.Kind, StringComparer.OrdinalIgnoreCase);
+
+            return overridableFunctions.Select(symbol =>
+            {
+                var displayText = _displayTextEmitter.GetDisplayText(symbol);
+                var fullHeaderText = _displayTextEmitter.GetFullFunctionOrEventHeaderText(symbol);
+
+                return new CompletionItem()
+                {
+                    Kind = GetCompletionItemKind(symbol),
+                    Label = symbol.Name + " (override)",
+                    Detail = displayText.Text,
+                    SortText = symbol.Name,
+                    Documentation = displayText.Documentation,
+                    InsertTextFormat = InsertTextFormat.Snippet,
+                    InsertText = $"{fullHeaderText}\r\n\t${{0}}\r\nEnd{(symbol.Kind == SymbolKinds.Event ? "Event" : "Function")}"
+                };
+            }).ToArray();
+        }
+
+        private Task<CompletionList> HandleEmptyNodeCompletion(CompletionParams request, ScriptFile scriptFile)
+        {
+            var lineText = scriptFile.Text.GetTextInRange(new Common.Range()
+            {
+                Start = new Common.Position()
+                {
+                    Line = request.Position.Line,
+                    Character = 0
+                },
+                End = request.Position.ToPosition()
+            });
+
+            var match = Regex.Match(lineText, @"^\s*event\s+((.*)\..*)?.*$", RegexOptions.IgnoreCase);
+            if (!match.Success)
+            {
+                return Task.FromResult<CompletionList>(null);
+            }
+
+            if (match.Groups.Count == 3)
+            {
+                var className = match.Groups[2];
+                scriptFile.Program.ScriptFiles.TryGetValue(className.Value, out var matchingFile);
+
+                if (matchingFile != null && matchingFile.Symbol != null)
+                {
+                    return Task.FromResult(new CompletionList(
+                        GetEventCompletionItems(matchingFile.Symbol.Children
+                        .Where(s => s.Kind == SymbolKinds.Event || s.Kind == SymbolKinds.CustomEvent))));
+                }
+            }
+
+            return Task.FromResult(new CompletionList(GetScriptCompletionItems(scriptFile)));
         }
 
         public void SetCapability(CompletionCapability capability)

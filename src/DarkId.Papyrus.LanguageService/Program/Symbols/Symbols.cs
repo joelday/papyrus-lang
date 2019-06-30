@@ -240,6 +240,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
     {
         public VariableSymbol(ITypedIdentifiable node, PapyrusSymbol parent) : base((SyntaxNode)node, node.Identifier, parent)
         {
+            DefaultValue = node is FunctionParameterNode asFunctionParameter ? asFunctionParameter.DefaultValue : null;
         }
 
         public new ITypedIdentifiable Definition => (ITypedIdentifiable)base.Definition;
@@ -248,6 +249,8 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
 
         public override SymbolKinds Kind => SymbolKinds.Variable;
         public override LanguageFlags Flags => (Definition is IFlaggable asFlaggable) ? asFlaggable.Flags : LanguageFlags.None;
+
+        public ILiteralNode DefaultValue { get; private set; }
 
         public override IEnumerable<string> Documentation
         {

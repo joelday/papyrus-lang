@@ -106,14 +106,14 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
         public void GetReferencableSymbols_ParentFunctionCall()
         {
             var symbols = GetReferencableSymbolsAtMarker("parent-function-call");
-            symbols.AssertAreOfKinds(SymbolKinds.Function);
+            symbols.AssertAreOfKinds(SymbolKinds.Function | SymbolKinds.Event);
         }
 
         [TestMethod]
         public void GetReferencableSymbols_SelfFunctionCall()
         {
             var symbols = GetReferencableSymbolsAtMarker("self-function-call");
-            symbols.AssertAreOfKinds(SymbolKinds.Function | SymbolKinds.Property);
+            symbols.AssertAreOfKinds(SymbolKinds.Function | SymbolKinds.Event | SymbolKinds.Property);
         }
 
         [TestMethod]
@@ -157,7 +157,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
         [TestMethod]
         public void GetReferencableSymbols_IncompleteRemoteEvent()
         {
-            var script = GetScript();
+            GetScript();
             GetReferencableSymbolsAtMarker("incomplete-remote-event");
             GetReferencableSymbolsAtMarker("incomplete-remote-event", true);
         }

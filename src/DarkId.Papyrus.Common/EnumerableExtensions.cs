@@ -48,9 +48,9 @@ namespace DarkId.Papyrus.Common
             return string.Join(separator, source);
         }
 
-        public static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
+        public static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector, IEqualityComparer<TKey> keyComparer = null)
         {
-            var keys = new HashSet<TKey>();
+            var keys = new HashSet<TKey>(keyComparer);
 
             foreach (var element in source)
             {

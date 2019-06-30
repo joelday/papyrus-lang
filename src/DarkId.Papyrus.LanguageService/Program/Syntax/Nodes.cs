@@ -405,6 +405,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         public List<FunctionParameterNode> Parameters { get; } = new List<FunctionParameterNode>();
         public LanguageFlags Flags { get; set; }
         public DocCommentNode DocComment { get; set; }
+        public bool IsEvent { get; set; }
 
         internal ScriptFunctionType CompilerType { get; set; }
     }

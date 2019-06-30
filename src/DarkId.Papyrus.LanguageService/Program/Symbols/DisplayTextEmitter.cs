@@ -44,6 +44,32 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
             return null;
         }
 
+        public string GetFullFunctionOrEventHeaderText(PapyrusSymbol symbol)
+        {
+            if (symbol is FunctionSymbol functionSymbol)
+            {
+                var displayText = GetDisplayTextForFunction(functionSymbol);
+                var typePrefix = string.Empty;
+
+                var typeIdentifier = functionSymbol.Definition.Header.TypeIdentifier;
+                if (typeIdentifier != null)
+                {
+                    var returnType = symbol.GetPapyrusType();
+                    typePrefix = (returnType?.Name.FullyQualifiedDisplayName ?? typeIdentifier.Text + (typeIdentifier.IsArray ? "[]" : string.Empty)) + " ";
+                }
+                
+                return $"{typePrefix}Function {functionSymbol.Name}({displayText.Parameters.Select(t => t.Text).Join(", ")})";
+            }
+
+            if (symbol is EventSymbol eventSymbol)
+            {
+                var displayText = GetDisplayTextForEvent(eventSymbol);
+                return $"Event {eventSymbol.Name}({displayText.Parameters.Select(t => t.Text).Join(", ")})";
+            }
+
+            return null;
+        }
+
         public DisplayText GetDisplayText(PapyrusSymbol symbol)
         {
             if (symbol is AliasedSymbol asAliased)
@@ -168,7 +194,11 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
 
             sb.Append(symbol.Name);
 
-            // TODO: Default value
+            if (symbol.DefaultValue != null)
+            {
+                sb.Append(" = ");
+                sb.Append(((SyntaxNode)symbol.DefaultValue).Text);
+            }
 
             return new DisplayText()
             {
