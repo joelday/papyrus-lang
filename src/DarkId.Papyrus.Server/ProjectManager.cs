@@ -86,7 +86,7 @@ namespace DarkId.Papyrus.Server
 
         // RefreshSources is for when files are added or removed.
         // ReloadProjects is for when a project or flags file has changed.
-        public void UpdateProjects(UpdateProjectsOptions options)
+        public void UpdateProjects(UpdateProjectsOptions options = UpdateProjectsOptions.None)
         {
             lock (_lock)
             {

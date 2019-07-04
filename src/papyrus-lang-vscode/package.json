@@ -49,24 +49,40 @@
                         "required": [
                             "game"
                         ]
+                    },
+                    "launch": {
+                        "properties": {
+                            "game": {
+                                "type": "string",
+                                "enum": [
+                                    "fallout4"
+                                ]
+                            },
+                            "projectPath": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "game"
+                        ]
                     }
                 },
                 "configurationSnippets": [
                     {
-                        "label": "Papyrus: Fallout 4 (Creation Kit)",
+                        "label": "Papyrus: Fallout 4",
                         "body": {
                             "name": "Fallout 4",
                             "type": "papyrus",
-                            "request": "attach",
+                            "request": "launch",
                             "game": "fallout4"
                         }
                     },
                     {
-                        "label": "Papyrus: Fallout 4 (.ppj)",
+                        "label": "Papyrus: Fallout 4 (with .ppj)",
                         "body": {
                             "name": "Fallout 4 Project",
                             "type": "papyrus",
-                            "request": "attach",
+                            "request": "launch",
                             "game": "fallout4",
                             "projectPath": "^\"\\${workspaceFolder}/${1:Project.ppj}\""
                         }
@@ -213,7 +229,7 @@
             {
                 "category": "Debug",
                 "command": "papyrus.fallout4.attachDebugger",
-                "title": "Attach to Fallout 4"
+                "title": "Debug Fallout 4"
             },
             {
                 "category": "Papyrus",

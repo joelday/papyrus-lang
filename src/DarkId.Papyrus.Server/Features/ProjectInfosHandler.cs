@@ -31,6 +31,11 @@ namespace DarkId.Papyrus.Server.Features
 
         public Task<ProjectInfos> Handle(ProjectInfosParams request, CancellationToken cancellationToken)
         {
+            if (!_projectManager.Projects.Any())
+            {
+                _projectManager.UpdateProjects();
+            }
+
             return Task.FromResult(new ProjectInfos()
             {
                 Projects = new Container<ProjectInfo>(_projectManager.Projects.AsParallel().AsOrdered().Select(p =>
@@ -61,7 +66,7 @@ namespace DarkId.Papyrus.Server.Features
                         }) : Enumerable.Empty<ProjectInfoSourceInclude>())
                     };
                 }))
-            }); 
+            });
         }
 
         public void SetCapability(ProjectInfosCapability capability)
