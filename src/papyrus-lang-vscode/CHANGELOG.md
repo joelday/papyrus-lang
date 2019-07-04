@@ -1,3 +1,10 @@
+## [2.15.4](https://github.com/joelday/papyrus-lang/compare/v2.15.3...v2.15.4) (2019-07-04)
+
+
+### Bug Fixes
+
+* Ensure projects are loaded when opening Project Explorer ([92173a8](https://github.com/joelday/papyrus-lang/commit/92173a8))
+
 ## [2.15.3](https://github.com/joelday/papyrus-lang/compare/v2.15.2...v2.15.3) (2019-07-04)
 
 
