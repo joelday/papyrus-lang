@@ -49,7 +49,7 @@ namespace DarkId.Papyrus.Server.Features
 
                 var possibleImportPaths = searchPaths.Where(path => filePath.StartsWith(path, StringComparison.OrdinalIgnoreCase)).ToArray();
                 var possibleIdentifiers = possibleImportPaths.Select(path =>
-                    ObjectIdentifier.FromScriptFilePath(filePath.Substring(path.Length + 1)).ToString()).ToArray();
+                    ObjectIdentifier.FromScriptFilePath(PathUtilities.PathNetCore.GetRelativePath(path, filePath)).ToString()).ToArray();
 
                 var scriptFiles = possibleIdentifiers.SelectMany(identifier =>
                     _projectManager.Projects.Select(p => p.Program.ScriptFiles.GetValueOrDefault(identifier))).WhereNotNull().ToArray();

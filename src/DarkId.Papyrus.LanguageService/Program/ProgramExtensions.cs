@@ -69,7 +69,7 @@ namespace DarkId.Papyrus.LanguageService.Program
 
                 foreach (var fullPath in include.Item2)
                 {
-                    var relativePath = fullPath.Substring(includePath.Length + 1);
+                    var relativePath = PathUtilities.PathNetCore.GetRelativePath(includePath, fullPath);
                     var identifier = ObjectIdentifier.FromScriptFilePath(relativePath);
 
                     if (filePaths.ContainsKey(identifier))
