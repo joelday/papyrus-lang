@@ -1,3 +1,10 @@
+## [2.15.2](https://github.com/joelday/papyrus-lang/compare/v2.15.1...v2.15.2) (2019-07-04)
+
+
+### Bug Fixes
+
+* Proper relative path determination ([#78](https://github.com/joelday/papyrus-lang/issues/78)) ([48cd2cd](https://github.com/joelday/papyrus-lang/commit/48cd2cd))
+
 ## [2.15.1](https://github.com/joelday/papyrus-lang/compare/v2.15.0...v2.15.1) (2019-06-30)
 
 
