@@ -21,6 +21,8 @@ class StatusBarItemController implements Disposable {
 
         const activeEditor = eventToValueObservable(window.onDidChangeActiveTextEditor, () => window.activeTextEditor);
 
+        const visibleEditors = eventToValueObservable(window.onDidChangeVisibleTextEditors, () => window.visibleTextEditors);
+
         const hostStatus = languageClientHost.pipe(
             mergeMap((host) => host.status),
             shareReplay(1)
@@ -55,12 +57,13 @@ class StatusBarItemController implements Disposable {
             hostStatus,
             hostError,
             activeEditor,
+            visibleEditors,
             showOutputChannelCommand,
             activeDocumentScriptInfo
         ).subscribe({
-            next: ([host, status, _error, activeEditor, showOutputChannelCommand, activeDocumentScriptInfo]) => {
+            next: ([host, status, _error, activeEditor, visibleEditors, showOutputChannelCommand, activeDocumentScriptInfo]) => {
                 if (
-                    !activeEditor ||
+                    !activeEditor || !visibleEditors || (visibleEditors.length === 0) ||
                     (activeEditor.document.languageId !== 'papyrus' &&
                         activeEditor.document.languageId !== 'papyrus-project')
                 ) {
@@ -86,7 +89,7 @@ class StatusBarItemController implements Disposable {
                             activeDocumentScriptInfo && activeDocumentScriptInfo.identifiers.length > 0
                                 ? '$(verified)'
                                 : '$(check)'
-                        }`;
+                            }`;
                         this._statusBarItem.tooltip = `${fullName} language service running.`;
                         break;
                     case ClientHostStatus.missing:
