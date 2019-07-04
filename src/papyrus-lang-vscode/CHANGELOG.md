@@ -1,3 +1,10 @@
+## [2.15.3](https://github.com/joelday/papyrus-lang/compare/v2.15.2...v2.15.3) (2019-07-04)
+
+
+### Bug Fixes
+
+* Status Bar now hides with no active files ([7270488](https://github.com/joelday/papyrus-lang/commit/7270488))
+
 ## [2.15.2](https://github.com/joelday/papyrus-lang/compare/v2.15.1...v2.15.2) (2019-07-04)
 
 
