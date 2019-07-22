@@ -89,6 +89,11 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
             return DebugSupportInstallState.gameMissing;
         }
 
+        // If the debugger plugin isn't bundled, we'll assume this is in-development.
+        if (!(await exists(this.getBundledPluginPath(game)))) {
+            return DebugSupportInstallState.installed;
+        }
+
         const installedPluginPath = await this.getPluginInstallPath(game);
 
         if (!(await exists(installedPluginPath))) {
