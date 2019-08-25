@@ -16,6 +16,7 @@ import md5File from 'md5-file/promise';
 
 const exists = promisify(fs.exists);
 const copyFile = promisify(fs.copyFile);
+const removeFile = promisify(fs.unlink);
 
 const bundledPluginPath = 'debug-plugin';
 
@@ -23,10 +24,10 @@ function getExtenderPluginPath(game: PapyrusGame) {
     return `Data/${getScriptExtenderName(game)}/Plugins`;
 }
 
-function getPluginDllName(game: PapyrusGame) {
+function getPluginDllName(game: PapyrusGame, legacy = false) {
     switch (game) {
         case PapyrusGame.fallout4:
-            return 'DarkId.Papyrus.DebugServer.dll';
+            return legacy ? 'DarkId.Papyrus.DebugServer.dll' : 'DarkId.Papyrus.DebugServer.Fallout4.dll';
         case PapyrusGame.skyrimSpecialEdition:
             return 'DarkId.Papyrus.DebugServer.Skyrim.dll';
         default:
@@ -62,7 +63,7 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
         this._context = context;
     }
 
-    private async getPluginInstallPath(game: PapyrusGame) {
+    private async getPluginInstallPath(game: PapyrusGame, legacy = false) {
         const config = (await this._configProvider.config.pipe(take(1)).toPromise())[game];
         const resolvedInstallPath = await resolveInstallPath(PapyrusGame.fallout4, config.installPath, this._context);
 
@@ -70,7 +71,7 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
             return null;
         }
 
-        return path.join(resolvedInstallPath, getExtenderPluginPath(game), getPluginDllName(game));
+        return path.join(resolvedInstallPath, getExtenderPluginPath(game), getPluginDllName(game, legacy));
     }
 
     private getBundledPluginPath(game: PapyrusGame) {
@@ -94,8 +95,14 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
             return DebugSupportInstallState.installed;
         }
 
-        const installedPluginPath = await this.getPluginInstallPath(game);
+        // For clarity and consistency, the plugin is being renamed to end with Fallout4.dll
+        // This handles the case where the old version is installed.
+        const legacyInstalledPluginPath = await this.getPluginInstallPath(game, true);
+        if (game === PapyrusGame.fallout4 && legacyInstalledPluginPath) {
+            return DebugSupportInstallState.incorrectVersion;
+        }
 
+        const installedPluginPath = await this.getPluginInstallPath(game, false);
         if (!(await exists(installedPluginPath))) {
             return DebugSupportInstallState.notInstalled;
         }
@@ -111,7 +118,13 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
     }
 
     async installPlugin(game: PapyrusGame, cancellationToken = new CancellationTokenSource().token): Promise<boolean> {
-        const pluginInstallPath = await this.getPluginInstallPath(game);
+        // Remove the legacy dll if it exists.
+        const legacyInstalledPluginPath = await this.getPluginInstallPath(game, true);
+        if (game === PapyrusGame.fallout4 && legacyInstalledPluginPath) {
+            await removeFile(legacyInstalledPluginPath);
+        }
+
+        const pluginInstallPath = await this.getPluginInstallPath(game, false);
         const bundledPluginPath = await this.getBundledPluginPath(game);
 
         if (cancellationToken.isCancellationRequested) {
