@@ -75,7 +75,7 @@
                         "body": {
                             "name": "Fallout 4",
                             "type": "papyrus",
-                            "request": "launch",
+                            "request": "attach",
                             "game": "fallout4"
                         }
                     },
@@ -84,7 +84,7 @@
                         "body": {
                             "name": "Fallout 4 Project",
                             "type": "papyrus",
-                            "request": "launch",
+                            "request": "attach",
                             "game": "fallout4",
                             "projectPath": "^\"\\${workspaceFolder}/${1:Project.ppj}\""
                         }
@@ -94,7 +94,7 @@
                         "body": {
                             "name": "Skyrim",
                             "type": "papyrus",
-                            "request": "launch",
+                            "request": "attach",
                             "game": "skyrimSpecialEdition"
                         }
                     },
@@ -103,7 +103,7 @@
                         "body": {
                             "name": "Skyrim Special Edition Project",
                             "type": "papyrus",
-                            "request": "launch",
+                            "request": "attach",
                             "game": "skyrimSpecialEdition",
                             "projectPath": "^\"\\${workspaceFolder}/${1:Project.ppj}\""
                         }
@@ -250,7 +250,7 @@
             {
                 "category": "Debug",
                 "command": "papyrus.fallout4.attachDebugger",
-                "title": "Debug Fallout 4"
+                "title": "Attach to Fallout 4"
             },
             {
                 "category": "Papyrus",
@@ -260,7 +260,7 @@
             {
                 "category": "Debug",
                 "command": "papyrus.skyrimSpecialEdition.attachDebugger",
-                "title": "Debug Skyrim Special Edition"
+                "title": "Attach to Skyrim Special Edition"
             },
             {
                 "category": "Papyrus",
