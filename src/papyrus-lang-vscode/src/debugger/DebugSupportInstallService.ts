@@ -98,7 +98,7 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
         // For clarity and consistency, the plugin is being renamed to end with Fallout4.dll
         // This handles the case where the old version is installed.
         const legacyInstalledPluginPath = await this.getPluginInstallPath(game, true);
-        if (game === PapyrusGame.fallout4 && legacyInstalledPluginPath) {
+        if (game === PapyrusGame.fallout4 && (await exists(legacyInstalledPluginPath))) {
             return DebugSupportInstallState.incorrectVersion;
         }
 
@@ -120,7 +120,7 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
     async installPlugin(game: PapyrusGame, cancellationToken = new CancellationTokenSource().token): Promise<boolean> {
         // Remove the legacy dll if it exists.
         const legacyInstalledPluginPath = await this.getPluginInstallPath(game, true);
-        if (game === PapyrusGame.fallout4 && legacyInstalledPluginPath) {
+        if (game === PapyrusGame.fallout4 && (await exists(legacyInstalledPluginPath))) {
             await removeFile(legacyInstalledPluginPath);
         }
 
