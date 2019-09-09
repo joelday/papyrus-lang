@@ -5,9 +5,6 @@ var target = Argument("target", "default");
 var solution = File("./DarkId.Papyrus.sln");
 
 var pluginFileDirectory = Directory("src/papyrus-lang-vscode/debug-plugin/");
-var pluginFileName = File("DarkId.Papyrus.DebugServer.dll");
-var pluginFilePath = pluginFileDirectory + pluginFileName;
-
 var isCIBuild = EnvironmentVariable("APPVEYOR") == "true";
 
 public void DownloadAndUnzip(string address, DirectoryPath outputPath, DirectoryPath existsPath)
@@ -23,18 +20,17 @@ public void DownloadAndUnzip(string address, DirectoryPath outputPath, Directory
 
 public void UpdateDebugPlugin()
 {
-    if (!DirectoryExists(pluginFileDirectory))
+    if (DirectoryExists(pluginFileDirectory))
     {
-        CreateDirectory(pluginFileDirectory);
+        DeleteDirectory(pluginFileDirectory, new DeleteDirectorySettings()
+        {
+            Recursive = true,
+            Force = true
+        });
     }
 
-    if (FileExists(pluginFilePath))
-    {
-        DeleteFile(pluginFilePath);
-    }
-
-    var pluginDll = DownloadFile("https://github.com/joelday/papyrus-debug-server/releases/latest/download/DarkId.Papyrus.DebugServer.dll");
-    MoveFile(pluginDll, pluginFilePath);
+    var pluginDllZip = DownloadFile("https://github.com/joelday/papyrus-debug-server/releases/latest/download/papyrus-debug-server.zip");
+    Unzip(pluginDllZip, pluginFileDirectory);
 }
 
 Task("npm-install")

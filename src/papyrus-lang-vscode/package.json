@@ -39,7 +39,8 @@
                             "game": {
                                 "type": "string",
                                 "enum": [
-                                    "fallout4"
+                                    "fallout4",
+                                    "skyrimSpecialEdition"
                                 ]
                             },
                             "projectPath": {
@@ -55,7 +56,8 @@
                             "game": {
                                 "type": "string",
                                 "enum": [
-                                    "fallout4"
+                                    "fallout4",
+                                    "skyrimSpecialEdition"
                                 ]
                             },
                             "projectPath": {
@@ -73,7 +75,7 @@
                         "body": {
                             "name": "Fallout 4",
                             "type": "papyrus",
-                            "request": "launch",
+                            "request": "attach",
                             "game": "fallout4"
                         }
                     },
@@ -82,8 +84,27 @@
                         "body": {
                             "name": "Fallout 4 Project",
                             "type": "papyrus",
-                            "request": "launch",
+                            "request": "attach",
                             "game": "fallout4",
+                            "projectPath": "^\"\\${workspaceFolder}/${1:Project.ppj}\""
+                        }
+                    },
+                    {
+                        "label": "Papyrus: Skyrim Special Edition",
+                        "body": {
+                            "name": "Skyrim",
+                            "type": "papyrus",
+                            "request": "attach",
+                            "game": "skyrimSpecialEdition"
+                        }
+                    },
+                    {
+                        "label": "Papyrus: Skyrim Special Edition (with .ppj)",
+                        "body": {
+                            "name": "Skyrim Special Edition Project",
+                            "type": "papyrus",
+                            "request": "attach",
+                            "game": "skyrimSpecialEdition",
                             "projectPath": "^\"\\${workspaceFolder}/${1:Project.ppj}\""
                         }
                     }
@@ -229,7 +250,17 @@
             {
                 "category": "Debug",
                 "command": "papyrus.fallout4.attachDebugger",
-                "title": "Debug Fallout 4"
+                "title": "Attach to Fallout 4"
+            },
+            {
+                "category": "Papyrus",
+                "command": "papyrus.skyrimSpecialEdition.installDebuggerSupport",
+                "title": "Install Papyrus debugging support for Skyrim Special Edition"
+            },
+            {
+                "category": "Debug",
+                "command": "papyrus.skyrimSpecialEdition.attachDebugger",
+                "title": "Attach to Skyrim Special Edition"
             },
             {
                 "category": "Papyrus",

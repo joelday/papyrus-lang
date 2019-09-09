@@ -108,7 +108,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                 var includes = await fileSystem.ResolveSourceFileIncludes(programOptions.Sources);
                 return includes.FlattenIncludes();
             }
-            else if (!string.IsNullOrEmpty(options.DefaultScriptSourceFolder) && !string.IsNullOrEmpty(options.DefaultAdditionalImports))
+            else if (!string.IsNullOrEmpty(options.DefaultScriptSourceFolder))
             {
                 var creationKitConfig = new CreationKitConfig()
                 {
