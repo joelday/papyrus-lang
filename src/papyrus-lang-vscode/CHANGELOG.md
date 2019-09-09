@@ -1,3 +1,10 @@
+# [2.16.0](https://github.com/joelday/papyrus-lang/compare/v2.15.4...v2.16.0) (2019-09-09)
+
+
+### Features
+
+* Skyrim debugging support ([7916096](https://github.com/joelday/papyrus-lang/commit/7916096))
+
 ## [2.15.4](https://github.com/joelday/papyrus-lang/compare/v2.15.3...v2.15.4) (2019-07-04)
 
 
