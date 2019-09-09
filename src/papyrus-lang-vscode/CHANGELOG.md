@@ -1,3 +1,10 @@
+## [2.16.1](https://github.com/joelday/papyrus-lang/compare/v2.16.0...v2.16.1) (2019-09-09)
+
+
+### Bug Fixes
+
+* Fix Fallout 4 debugger plugin install. ([61a41b9](https://github.com/joelday/papyrus-lang/commit/61a41b9))
+
 # [2.16.0](https://github.com/joelday/papyrus-lang/compare/v2.15.4...v2.16.0) (2019-09-09)
 
 
