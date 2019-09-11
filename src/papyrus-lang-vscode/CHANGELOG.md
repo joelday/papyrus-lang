@@ -1,3 +1,10 @@
+## [2.16.2](https://github.com/joelday/papyrus-lang/compare/v2.16.1...v2.16.2) (2019-09-11)
+
+
+### Bug Fixes
+
+* Debug stepping and stack stability improvements. Now showing object handles in variables panel. ([a67fbec](https://github.com/joelday/papyrus-lang/commit/a67fbec))
+
 ## [2.16.1](https://github.com/joelday/papyrus-lang/compare/v2.16.0...v2.16.1) (2019-09-09)
 
 
