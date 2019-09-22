@@ -18,6 +18,7 @@ using DarkId.Papyrus.LanguageService.Configuration.CreationKit;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Debug;
 using Newtonsoft.Json.Linq;
+using System.Runtime.InteropServices;
 
 namespace DarkId.Papyrus.DebugAdapterProxy
 {
@@ -45,10 +46,16 @@ namespace DarkId.Papyrus.DebugAdapterProxy
 
         [Option("relativeIniPaths")]
         public IEnumerable<string> RelativeIniPaths { get; set; } = new List<string>();
+
+        [Option("clientProcessId")]
+        public int ClientProcessId { get; set; }
     }
 
     class Program
     {
+        [DllImport("user32.dll")]
+        static extern bool SetForegroundWindow(IntPtr hWnd);
+
         static ILoggerFactory loggerFactory;
         static ILogger<Program> logger;
 
@@ -76,7 +83,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                 {
                     try
                     {
-                        exitCode = RunWithSources(ResolveSources(options).WaitForResult(), options.Port);
+                        exitCode = RunWithSources(ResolveSources(options).WaitForResult(), options.Port, options.ClientProcessId);
                     }
                     catch (Exception e)
                     {
@@ -144,7 +151,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
             return new Dictionary<ObjectIdentifier, string>();
         }
 
-        static int RunWithSources(Dictionary<ObjectIdentifier, string> sources, int port)
+        static int RunWithSources(Dictionary<ObjectIdentifier, string> sources, int port, int clientProcessId)
         {
             var outputStream = Console.OpenStandardOutput();
 
@@ -169,6 +176,17 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                     try
                     {
                         var root = JObject.Parse(message);
+
+                        if (root.Property("event") != null && root["event"].ToString() == "stopped")
+                        {
+                            var processId = clientProcessId;
+                            var process = System.Diagnostics.Process.GetProcessById(clientProcessId);
+
+                            if (process != null)
+                            {
+                                SetForegroundWindow(process.MainWindowHandle);
+                            }
+                        }
 
                         WalkNode(root, (obj) =>
                         {
@@ -216,7 +234,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                 {
                     try
                     {
-                        RunReadLoop(client, sources);
+                        RunReadLoop(client, sources, clientProcessId);
                     }
                     catch (Exception e)
                     {
@@ -238,7 +256,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
             return 0;
         }
 
-        static void RunReadLoop(WebSocket client, Dictionary<ObjectIdentifier, string> sources)
+        static void RunReadLoop(WebSocket client, Dictionary<ObjectIdentifier, string> sources, int clientProcessId)
         {
             // TODO: Refactor to read from stream.
             while (client.IsAlive)

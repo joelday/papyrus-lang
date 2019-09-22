@@ -36,6 +36,7 @@ export interface IDebugToolArguments {
     defaultAdditionalImports?: string;
     creationKitInstallPath: string;
     relativeIniPaths: string[];
+    clientProcessId: number;
 }
 
 function getDefaultPortForGame(game: PapyrusGame) {
@@ -174,6 +175,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
             relativeIniPaths: config.creationKitIniFiles,
             defaultScriptSourceFolder: creationKitInfo.config.Papyrus.sScriptSourceFolder,
             defaultAdditionalImports: creationKitInfo.config.Papyrus.sAdditionalImports,
+            clientProcessId: Number.parseInt(process.env.VSCODE_PID),
         };
 
         const toolPath = this._context.asAbsolutePath(getDebugToolPath(game));
