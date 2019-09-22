@@ -1,3 +1,10 @@
+# [2.17.0](https://github.com/joelday/papyrus-lang/compare/v2.16.2...v2.17.0) (2019-09-22)
+
+
+### Features
+
+* Initial support for inspection of form data while debugging. ([f0f280d](https://github.com/joelday/papyrus-lang/commit/f0f280d))
+
 ## [2.16.2](https://github.com/joelday/papyrus-lang/compare/v2.16.1...v2.16.2) (2019-09-11)
 
 
