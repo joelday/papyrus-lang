@@ -22,7 +22,17 @@ const shortDisplayNames = new Map([
     [PapyrusGame.skyrimSpecialEdition, 'Skyrim SE'],
 ]);
 
-const scriptExtenderNames = new Map([[PapyrusGame.fallout4, 'F4SE'], [PapyrusGame.skyrimSpecialEdition, 'SKSE']]);
+const scriptExtenderNames = new Map([
+    [PapyrusGame.fallout4, 'F4SE'],
+    [PapyrusGame.skyrimSpecialEdition, 'SKSE'],
+    [PapyrusGame.skyrim, 'SKSE'],
+]);
+
+export function getDebuggerLogFilePath(game: PapyrusGame) {
+    return `My Games/${getDisplayNameForGame(game)}/${getScriptExtenderName(
+        game
+    )}/DarkId.Papyrus.DebugAdapterProxy.log`;
+}
 
 export function getScriptExtenderName(game: PapyrusGame) {
     return scriptExtenderNames.get(game);

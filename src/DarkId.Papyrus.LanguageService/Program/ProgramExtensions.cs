@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
+using Range = DarkId.Papyrus.Common.Range;
 
 namespace DarkId.Papyrus.LanguageService.Program
 {

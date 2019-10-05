@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace DarkId.Papyrus.Server.Protocol
 {

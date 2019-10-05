@@ -16,6 +16,7 @@ import {
     getScriptExtenderName,
     getScriptExtenderUrl,
     getShortDisplayNameForGame,
+    getDebuggerLogFilePath,
 } from '../PapyrusGame';
 import { ICreationKitInfoProvider } from '../CreationKitInfoProvider';
 import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
@@ -36,6 +37,7 @@ export interface IDebugToolArguments {
     defaultAdditionalImports?: string;
     creationKitInstallPath: string;
     relativeIniPaths: string[];
+    logFilePath: string;
     clientProcessId: number;
 }
 
@@ -175,6 +177,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
             relativeIniPaths: config.creationKitIniFiles,
             defaultScriptSourceFolder: creationKitInfo.config.Papyrus.sScriptSourceFolder,
             defaultAdditionalImports: creationKitInfo.config.Papyrus.sAdditionalImports,
+            logFilePath: getDebuggerLogFilePath(session.configuration.game),
             clientProcessId: Number.parseInt(process.env.VSCODE_PID),
         };
 

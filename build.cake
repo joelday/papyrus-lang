@@ -93,16 +93,13 @@ Task("npm-semantic-release")
 
 Task("restore")
     .Does(() => {
-        NuGetRestore(solution);
+        DotNetCoreRestore(solution);
     });
 
 Task("build")
     .Does(() =>
     {
-        MSBuild(solution, new MSBuildSettings()
-        {
-            Verbosity = Verbosity.Minimal
-        });
+        DotNetCoreBuild(solution);
     });
 
 Task("test")

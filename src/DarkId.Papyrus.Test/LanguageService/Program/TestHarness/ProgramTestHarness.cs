@@ -20,7 +20,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Program.TestHarness
             {
                 return new CreationKitIniLocations()
                 {
-                    CreationKitInstallPath = "../../../../scripts",
+                    CreationKitInstallPath = "../../../scripts",
                     RelativeIniPaths = new List<string>() {
 //#if FALLOUT4
                         "Fallout4.ini"
@@ -45,12 +45,12 @@ namespace DarkId.Papyrus.Test.LanguageService.Program.TestHarness
                 .AddSingleton((provider) =>
                     provider.CreateInstance<CreationKitProgramOptionsProvider>(
                         "Creation Kit",
-//// TODO: Configured
-//#if FALLOUT4
+                        //// TODO: Configured
+                        //#if FALLOUT4
                         "Institute_Papyrus_Flags.flg",
-//#elif SKYRIM
-//                        "TESV_Papyrus_Flags.flg",
-//#endif
+                        //#elif SKYRIM
+                        //                        "TESV_Papyrus_Flags.flg",
+                        //#endif
                         new CreationKitConfig()));
 
             _serviceProvider = serviceCollection.BuildServiceProvider();

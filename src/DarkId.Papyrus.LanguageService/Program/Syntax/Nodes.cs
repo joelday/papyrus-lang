@@ -6,6 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Range = DarkId.Papyrus.Common.Range;
+
 namespace DarkId.Papyrus.LanguageService.Program.Syntax
 {
     public interface ISymbolScope

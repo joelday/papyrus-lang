@@ -15,6 +15,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Test", "src\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Server.Host", "src\DarkId.Papyrus.Server.Host\DarkId.Papyrus.Server.Host.csproj", "{375DEEF7-41C3-498A-B094-E8E21313E3E0}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Protocol Hosts", "Protocol Hosts", "{0246BCA9-FE77-41A9-B228-CFE96ACBE8D3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{16DCC7B6-3388-4208-8513-6BF4DFB85626}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -48,6 +52,11 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{514FB66D-436F-4F0A-AC14-99B12238163A} = {0246BCA9-FE77-41A9-B228-CFE96ACBE8D3}
+		{76570941-F325-43FC-A849-3CC65782E795} = {16DCC7B6-3388-4208-8513-6BF4DFB85626}
+		{375DEEF7-41C3-498A-B094-E8E21313E3E0} = {0246BCA9-FE77-41A9-B228-CFE96ACBE8D3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F463939D-09F7-4C69-9379-87B29449255B}

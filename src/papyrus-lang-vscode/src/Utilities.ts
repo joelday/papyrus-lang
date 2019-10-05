@@ -113,5 +113,5 @@ export function toCommandLineArgs(obj: Object): string[] {
     );
 }
 
-export const languageToolPath = './bin/Debug/net461/DarkId.Papyrus.Server.Host/DarkId.Papyrus.Server.Host.exe';
-export const debugToolPath = './debug-bin/Debug/net461/DarkId.Papyrus.DebugAdapterProxy.exe';
+export const languageToolPath = './bin/Debug/netcoreapp3.0/win-x64/DarkId.Papyrus.Server.Host.exe';
+export const debugToolPath = './debug-bin/Debug/netcoreapp3.0/win-x64/DarkId.Papyrus.DebugAdapterProxy.exe';

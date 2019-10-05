@@ -4,6 +4,7 @@ using System.Text;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using PapCommon = DarkId.Papyrus.Common;
 using PapProgram = DarkId.Papyrus.LanguageService.Program;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace DarkId.Papyrus.Server
 {

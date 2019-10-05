@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
+using Range = DarkId.Papyrus.Common.Range;
+
 namespace DarkId.Papyrus.LanguageService.Program
 {
     public class Diagnostic

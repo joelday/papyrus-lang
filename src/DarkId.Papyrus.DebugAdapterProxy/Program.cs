@@ -42,6 +42,9 @@ namespace DarkId.Papyrus.DebugAdapterProxy
         [Option("relativeIniPaths")]
         public IEnumerable<string> RelativeIniPaths { get; set; } = new List<string>();
 
+        [Option("logFilePath")]
+        public string LogFilePath { get; set; }
+
         [Option("clientProcessId")]
         public int ClientProcessId { get; set; }
     }
@@ -54,27 +57,20 @@ namespace DarkId.Papyrus.DebugAdapterProxy
         static ILoggerFactory loggerFactory;
         static ILogger<Program> logger;
 
-        // TODO: Log location
-        static readonly string _logFilePath =
-#if FALLOUT4
-        "My Games\\Fallout4\\F4SE\\DarkId.Papyrus.DebugAdapterProxy.log";
-#else
-        "My Games\\Skyrim Special Edition\\SKSE\\DarkId.Papyrus.DebugAdapterProxy.log";
-#endif
-
         static int Main(string[] args)
         {
-            loggerFactory = LoggerFactory.Create((builder) => builder.AddDebug().AddFile(
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), _logFilePath),
-                Microsoft.Extensions.Logging.LogLevel.Trace, retainedFileCountLimit: 1));
-
-            logger = loggerFactory.CreateLogger<Program>();
 
             int exitCode = 0;
 
             Parser.Default.ParseArguments<Options>(args)
                 .WithParsed(options =>
                 {
+                    loggerFactory = LoggerFactory.Create((builder) => builder.AddDebug().AddFile(
+                        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), options.LogFilePath),
+                        Microsoft.Extensions.Logging.LogLevel.Trace, retainedFileCountLimit: 1));
+
+                    logger = loggerFactory.CreateLogger<Program>();
+
                     try
                     {
                         exitCode = RunWithSources(ResolveSources(options).WaitForResult(), options.Port, options.ClientProcessId);
@@ -84,13 +80,13 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                         logger.LogError(e, "Exception thrown.");
                         exitCode = 1;
                     }
+
+                    loggerFactory.Dispose();
                 })
                 .WithNotParsed((error) =>
                 {
                     exitCode = 1;
                 });
-
-            loggerFactory.Dispose();
 
             return exitCode;
         }

@@ -20,16 +20,14 @@ export class PapyrusDebugConfigurationProvider implements DebugConfigurationProv
                 request: 'attach',
                 game: PapyrusGame.fallout4,
             },
+            {
+                type: 'papyrus',
+                name: 'Skyrim Special Edition',
+                request: 'attach',
+                game: PapyrusGame.skyrimSpecialEdition,
+            },
         ];
     }
-
-    // async resolveDebugConfiguration(
-    //     folder: WorkspaceFolder | undefined,
-    //     debugConfiguration: DebugConfiguration,
-    //     token?: CancellationToken
-    // ): Promise<DebugConfiguration> {
-    //     return null;
-    // }
 
     dispose() {
         this._registration.dispose();
