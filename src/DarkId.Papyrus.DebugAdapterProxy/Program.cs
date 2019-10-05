@@ -59,20 +59,18 @@ namespace DarkId.Papyrus.DebugAdapterProxy
         static ILoggerFactory loggerFactory;
         static ILogger<Program> logger;
 
+        static readonly string _logFilePath =
+#if FALLOUT4
+        "My Games\\Fallout4\\F4SE\\DarkId.Papyrus.DebugAdapterProxy.log";
+#else
+        "My Games\\Skyrim Special Edition\\SKSE\\DarkId.Papyrus.DebugAdapterProxy.log";
+#endif
+
         static int Main(string[] args)
         {
-            loggerFactory = new LoggerFactory()
-                .AddDebug(Microsoft.Extensions.Logging.LogLevel.Trace)
-                .AddFile(
-                    Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-#if FALLOUT4
-                        "My Games\\Fallout4\\F4SE\\DarkId.Papyrus.DebugAdapterProxy.log"
-#else
-                        "My Games\\Skyrim Special Edition\\SKSE\\DarkId.Papyrus.DebugAdapterProxy.log"
-#endif
-                        ),
-                    Microsoft.Extensions.Logging.LogLevel.Trace);
+            loggerFactory = LoggerFactory.Create((builder) => builder.AddDebug().AddFile(
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), _logFilePath),
+                Microsoft.Extensions.Logging.LogLevel.Trace, retainedFileCountLimit: 1));
 
             logger = loggerFactory.CreateLogger<Program>();
 

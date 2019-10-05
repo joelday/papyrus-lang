@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.Embedded.MediatR;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -50,9 +51,9 @@ namespace DarkId.Papyrus.Server.Features
             }
         }
 
-        private static void ToDocumentSymbol(Uri fileUri, IReadOnlyScriptText text, PapyrusSymbol symbol, List<DocumentSymbolInformation> symbolInformationContainer, string containerName = null)
+        private static void ToDocumentSymbol(Uri fileUri, IReadOnlyScriptText text, PapyrusSymbol symbol, List<SymbolInformationOrDocumentSymbol> symbolInformationContainer, string containerName = null)
         {
-            var symbolInformation = new DocumentSymbolInformation()
+            var symbolInformation = new SymbolInformation()
             {
                 Name = symbol.Name,
                 Kind = GetSymbolKind(symbol),
@@ -86,7 +87,7 @@ namespace DarkId.Papyrus.Server.Features
             };
         }
 
-        public Task<DocumentSymbolInformationContainer> Handle(DocumentSymbolParams request, CancellationToken cancellationToken)
+        Task<SymbolInformationOrDocumentSymbolContainer> IRequestHandler<DocumentSymbolParams, SymbolInformationOrDocumentSymbolContainer>.Handle(DocumentSymbolParams request, CancellationToken cancellationToken)
         {
             try
             {
@@ -94,20 +95,20 @@ namespace DarkId.Papyrus.Server.Features
                 var scriptSymbol = scriptFile?.Symbol;
                 if (scriptSymbol == null)
                 {
-                    return Task.FromResult<DocumentSymbolInformationContainer>(null);
+                    return Task.FromResult<SymbolInformationOrDocumentSymbolContainer>(null);
                 }
 
-                var symbolInformationContainer = new List<DocumentSymbolInformation>();
+                var symbolInformationContainer = new List<SymbolInformationOrDocumentSymbol>();
                 ToDocumentSymbol(request.TextDocument.Uri, scriptFile.Text, scriptSymbol, symbolInformationContainer);
 
-                return Task.FromResult(new DocumentSymbolInformationContainer(symbolInformationContainer));
+                return Task.FromResult(new SymbolInformationOrDocumentSymbolContainer(symbolInformationContainer));
             }
             catch (Exception e)
             {
                 _logger.LogWarning(e, "Error while handling request.");
             }
 
-            return Task.FromResult<DocumentSymbolInformationContainer>(null);
+            return Task.FromResult<SymbolInformationOrDocumentSymbolContainer>(null);
         }
 
         public void SetCapability(DocumentSymbolCapability capability)

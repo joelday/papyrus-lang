@@ -117,9 +117,7 @@ namespace DarkId.Papyrus.Server.Host
                 serverOptions
                     .WithInput(Console.OpenStandardInput())
                     .WithOutput(Console.OpenStandardOutput())
-#pragma warning disable CS0618 // Type or member is obsolete
-                    .WithLoggerFactory(new LoggerFactory().AddDebug())
-#pragma warning restore CS0618 // Type or member is obsolete
+                    .WithLoggerFactory(LoggerFactory.Create((builder) => builder.AddDebug()))
                     .AddDefaultLoggingProvider()
                     .WithMinimumLogLevel(LogLevel.Trace);
             });

@@ -27,35 +27,35 @@ namespace DarkId.Papyrus.Server.Features
             _logger = logger;
         }
 
-        public Task<LocationOrLocations> Handle(DefinitionParams request, CancellationToken cancellationToken)
+        public Task<LocationOrLocationLinks> Handle(DefinitionParams request, CancellationToken cancellationToken)
         {
             try
             {
                 var scriptFile = _projectManager.GetScriptForFilePath(request.TextDocument.Uri.ToFilePath());
                 if (scriptFile == null)
                 {
-                    return Task.FromResult<LocationOrLocations>(null);
+                    return Task.FromResult<LocationOrLocationLinks>(null);
                 }
 
                 var identifier = scriptFile.Node.GetDescendantNodeOfTypeAtPosition<IdentifierNode>(request.Position.ToPosition());
                 if (identifier == null)
                 {
-                    return Task.FromResult<LocationOrLocations>(null);
+                    return Task.FromResult<LocationOrLocationLinks>(null);
                 }
 
                 var symbol = identifier.GetDeclaredOrReferencedSymbol();
                 if (symbol == null)
                 {
-                    return Task.FromResult<LocationOrLocations>(null);
+                    return Task.FromResult<LocationOrLocationLinks>(null);
                 }
 
                 var definitionFile = symbol.Script.Definition.GetScriptFile();
                 if (definitionFile == null)
                 {
-                    return Task.FromResult<LocationOrLocations>(null);
+                    return Task.FromResult<LocationOrLocationLinks>(null);
                 }
 
-                return Task.FromResult(new LocationOrLocations(new Location()
+                return Task.FromResult(new LocationOrLocationLinks(new Location()
                 {
                     Uri = PathUtilities.ToFileUri(symbol.Script.Definition.GetScriptFile().FilePath),
                     Range = symbol.Identifier.Range.ToRange()
@@ -66,7 +66,7 @@ namespace DarkId.Papyrus.Server.Features
                 _logger.LogWarning(e, "Error while handling request.");
             }
 
-            return Task.FromResult<LocationOrLocations>(null);
+            return Task.FromResult<LocationOrLocationLinks>(null);
         }
 
         public TextDocumentRegistrationOptions GetRegistrationOptions()
