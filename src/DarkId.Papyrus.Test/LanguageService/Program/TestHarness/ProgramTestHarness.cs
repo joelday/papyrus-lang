@@ -22,11 +22,11 @@ namespace DarkId.Papyrus.Test.LanguageService.Program.TestHarness
                 {
                     CreationKitInstallPath = "../../../../scripts",
                     RelativeIniPaths = new List<string>() {
-#if FALLOUT4
+//#if FALLOUT4
                         "Fallout4.ini"
-#elif SKYRIM
-                        "Skyrim.ini"
-#endif
+//#elif SKYRIM
+//                        "Skyrim.ini"
+//#endif
                     }
                 };
             }

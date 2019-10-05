@@ -28,20 +28,21 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
             var node = testScript.GetNodeAtMarker(marker, beforeMarker);
             var symbols = node.GetReferencableSymbols();
 
-            Debug.WriteLine($"Referencable symbols: {symbols.Select(s => $"{s.Name} ({s.Kind})").Join(",\r\n")}");
+            var referencableSymbols = symbols.ToList();
+            Debug.WriteLine($"Referencable symbols: {referencableSymbols.Select(s => $"{s.Name} ({s.Kind})").Join(",\r\n")}");
 
             if (shouldHaveResults)
             {
-                Assert.IsTrue(symbols.Count() > 0, "One or more symbols should be referencable in this case.");
+                Assert.IsTrue(referencableSymbols.Any(), "One or more symbols should be referencable in this case.");
             }
             else
             {
-                Assert.IsFalse(symbols.Count() > 0, "No symbols should be referencable in this case.");
+                Assert.IsFalse(referencableSymbols.Any(), "No symbols should be referencable in this case.");
             }
 
             if (canReturnDeclaredGlobals)
             {
-                var globalSymbols = symbols.Where(s => (s.Flags & LanguageFlags.Global) != 0);
+                var globalSymbols = referencableSymbols.Where(s => (s.Flags & LanguageFlags.Global) != 0).ToList();
                 if (globalSymbols.Any())
                 {
                     Assert.IsTrue(globalSymbols.All(s => s.Script.Id == testScript.Id),
@@ -50,18 +51,18 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
             }
             else if (shouldReturnGlobals)
             {
-                Assert.IsTrue(symbols.All(s => (s.Flags & LanguageFlags.Global) != 0), "Only globals should be referencable in this case.");
+                Assert.IsTrue(referencableSymbols.All(s => (s.Flags & LanguageFlags.Global) != 0), "Only globals should be referencable in this case.");
             }
             else
             {
-                Assert.IsTrue(symbols.All(s => (s.Flags & LanguageFlags.Global) == 0), "Only non-globals should be referencable in this case.");
+                Assert.IsTrue(referencableSymbols.All(s => (s.Flags & LanguageFlags.Global) == 0), "Only non-globals should be referencable in this case.");
             }
 
-            var symbolsWithKindNames = symbols.Select(n => n.Name + n.Kind.ToString());
+            var symbolsWithKindNames = referencableSymbols.Select(n => n.Name + n.Kind).ToList();
             CollectionAssert.AreEqual(symbolsWithKindNames.ToList(), symbolsWithKindNames.Distinct().ToList(),
                 "Only a single symbol of a given name and kind should be referencable.");
 
-            return symbols;
+            return referencableSymbols;
         }
 
 #if FALLOUT4
