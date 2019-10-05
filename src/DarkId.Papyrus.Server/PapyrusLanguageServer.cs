@@ -1,6 +1,5 @@
 ﻿using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService;
-using DarkId.Papyrus.LanguageService.External;
 using DarkId.Papyrus.LanguageService.Configuration.CreationKit;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Projects;
@@ -35,8 +34,6 @@ namespace DarkId.Papyrus.Server
                         var textProvider = provider.CreateInstance<TextDocumentScriptTextProvider>(
                             provider.CreateInstance<FileSystemScriptTextProvider>());
 
-                        AntlrPatch.SetTextProvider(textProvider);
-
                         return textProvider;
                     })
                     .AddSingleton<ICreationKitInisLocator>(new CreationKitInisLocator(papyrusOptions.IniLocations))
@@ -61,8 +58,6 @@ namespace DarkId.Papyrus.Server
                 .WithHandler<DocumentScriptInfoHandler>()
                 .WithHandler<DocumentAssemblyHandler>()
                 .WithHandler<ProjectInfosHandler>();
-
-                HarmonyPatches.Apply();
             });
         }
     }

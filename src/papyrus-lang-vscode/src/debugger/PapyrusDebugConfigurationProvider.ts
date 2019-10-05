@@ -2,13 +2,6 @@ import { DebugConfigurationProvider, CancellationToken, WorkspaceFolder, debug, 
 import { PapyrusGame } from '../PapyrusGame';
 import { IPapyrusDebugConfiguration } from './PapyrusDebugSession';
 
-// TODO: Auto install F4SE plugin
-// TODO: Warn if port is not open/if Fallout4.exe is not running
-
-// Possibly based on custom language server requests:
-// TODO: Resolve project from whichever that includes the active editor file.
-// TODO: Provide configurations based on .ppj files in current directory.
-
 export class PapyrusDebugConfigurationProvider implements DebugConfigurationProvider, Disposable {
     private readonly _registration: Disposable;
 

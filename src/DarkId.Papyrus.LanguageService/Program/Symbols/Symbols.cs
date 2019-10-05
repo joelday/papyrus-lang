@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Antlr.Runtime.Tree;
+
 using DarkId.Papyrus.LanguageService.Program.Syntax;
 using DarkId.Papyrus.LanguageService.Program.Types;
-using PCompiler;
+
 
 namespace DarkId.Papyrus.LanguageService.Program.Symbols
 {
@@ -24,7 +24,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
         public SyntaxNode Definition => _node;
         public IdentifierNode Identifier => _identifier;
 
-        internal ScriptScope CompilerScope => _node.CompilerScope;
+        // internal ScriptScope CompilerScope => _node.CompilerScope;
 
         public virtual ScriptSymbol Script => this as ScriptSymbol ?? _parent.Script;
 
@@ -222,7 +222,6 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
         public override LanguageFlags Flags => Definition.IsAuto ? LanguageFlags.Auto : LanguageFlags.None;
     }
 
-#if FALLOUT4
     public class StructSymbol : TypeSymbol
     {
         public StructSymbol(StructDefinitionNode node, PapyrusSymbol parent) :
@@ -234,7 +233,6 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
 
         public override SymbolKinds Kind => SymbolKinds.Struct;
     }
-#endif
 
     public class VariableSymbol : PapyrusSymbol
     {

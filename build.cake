@@ -91,11 +91,6 @@ Task("npm-semantic-release")
         });
     });
 
-Task("download-compilers")
-    .Does(() => {
-        DownloadAndUnzip("https://www.dropbox.com/s/vkoffvsdhru7p1c/papyrus-compilers.zip?dl=1", "./dependencies", "./dependencies/compilers");
-    });
-
 Task("restore")
     .Does(() => {
         NuGetRestore(solution);
@@ -113,15 +108,7 @@ Task("build")
 Task("test")
     .Does(() =>
     {
-        VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Fallout4/DarkId.Papyrus.Test.Fallout4.dll", new VSTestSettings()
-        {
-            ToolPath = Context.Tools.Resolve("vstest.console.exe")
-        });
-
-        VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Skyrim/DarkId.Papyrus.Test.Skyrim.dll", new VSTestSettings()
-        {
-            ToolPath = Context.Tools.Resolve("vstest.console.exe")
-        });
+        DotNetCoreVSTest("./src/DarkId.Papyrus.Test/bin/Debug/netcoreapp3.0/DarkId.Papyrus.Test.dll");
     });
 
 Task("clean")
@@ -131,7 +118,6 @@ Task("clean")
 
 Task("default")
     .IsDependentOn("clean")
-    .IsDependentOn("download-compilers")
     .IsDependentOn("restore")
     .IsDependentOn("build")
     .IsDependentOn("test")

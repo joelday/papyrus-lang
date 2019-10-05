@@ -4,8 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Antlr.Runtime;
-using Antlr.Runtime.Tree;
 using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
 using DarkId.Papyrus.LanguageService.Program.Syntax;
@@ -55,19 +53,17 @@ namespace DarkId.Papyrus.LanguageService.Program
                 }
 
                 return s.ScopedSymbols.Values;
-            });
+            }).ToList();
 
             var symbolsInScope = symbols.
                 Concat(symbols.OfType<GroupSymbol>().SelectMany(g => g.Children)).Where(s => !(s is GroupSymbol)).
                 Concat(node.Script.Symbol.GetImportedScripts().SelectMany(s => s.GetScriptMemberSymbols(globalOnly: true))).
                 Concat(node.Script.Symbol.GetScriptMemberSymbols(globalOnly: true, declaredOnly: true));
 
-#if FALLOUT4
             if (!node.GetContainingScopes().Any(s => s is FunctionDefinitionNode || s is EventDefinitionNode))
             {
                 symbolsInScope = symbolsInScope.Where(s => s.Kind == SymbolKinds.Struct);
             }
-#endif
 
             return symbolsInScope;
         }
@@ -132,17 +128,19 @@ namespace DarkId.Papyrus.LanguageService.Program
 
         public static IEnumerable<ScriptSymbol> GetImportedScripts(this ScriptSymbol symbol)
         {
-#if FALLOUT4
-            var importedScriptIdentifiers = symbol?.File.CompilerType.pImportedTypes.Keys;
-#elif SKYRIM
-            var importedScriptIdentifiers = symbol?.Definition.Definitions.OfType<ImportNode>().Select(n => ObjectIdentifier.Parse(n.Identifier.Text));
-#endif
+//#if FALLOUT4
+//            var importedScriptIdentifiers = symbol?.File.CompilerType.pImportedTypes.Keys;
+//#elif SKYRIM
+//            var importedScriptIdentifiers = symbol?.Definition.Definitions.OfType<ImportNode>().Select(n => ObjectIdentifier.Parse(n.Identifier.Text));
+//#endif
 
-            return importedScriptIdentifiers?.
-                Select(name => ObjectIdentifier.Parse(name)).
-                Where(name => name != symbol.Id).
-                Except(symbol.GetExtendedScriptChain().Select(extended => extended.Id)).
-                Select(name => symbol.File.Program.ScriptFiles[name].Symbol);
+//            return importedScriptIdentifiers?.
+//                Select(name => ObjectIdentifier.Parse(name)).
+//                Where(name => name != symbol.Id).
+//                Except(symbol.GetExtendedScriptChain().Select(extended => extended.Id)).
+//                Select(name => symbol.File.Program.ScriptFiles[name].Symbol);
+
+            return Enumerable.Empty<ScriptSymbol>();
         }
 
         public static PapyrusType GetPapyrusType(this PapyrusSymbol symbol)
@@ -157,12 +155,10 @@ namespace DarkId.Papyrus.LanguageService.Program
                 return (ComplexType)asScript.File?.Type ?? asScript.SyntheticArrayType;
             }
 
-#if FALLOUT4
             if (symbol is StructSymbol asStruct)
             {
                 return asStruct.Definition.Header.Identifier.GetReferencedType();
             }
-#endif
 
             if (symbol is FunctionSymbol asFunction)
             {
@@ -185,11 +181,8 @@ namespace DarkId.Papyrus.LanguageService.Program
         public static PapyrusType GetReferencedType(this IdentifierNode node)
         {
             // Disambiguation is only necessary for structs and namespaces.
-#if FALLOUT4
             var referencedTypeName = node.GetScriptFile()?.ResolveRelativeTypeName(node.Text) ?? node.Text;
-#elif SKYRIM
-            var referencedTypeName = node.Text;
-#endif
+
             var isArray = (node is TypeIdentifierNode asTypeIdentifier) ? asTypeIdentifier.IsArray : false;
             return node.GetTypeChecker().GetTypeForObjectId(referencedTypeName, isArray);
         }
@@ -320,10 +313,11 @@ namespace DarkId.Papyrus.LanguageService.Program
                 return Enumerable.Empty<PapyrusSymbol>();
             }
 
-            if (node.CompilerNode is CommonErrorNode)
-            {
-                return Enumerable.Empty<PapyrusSymbol>();
-            }
+            // TODO: Error representation
+            //if (node.CompilerNode is CommonErrorNode)
+            //{
+            //    return Enumerable.Empty<PapyrusSymbol>();
+            //}
 
             var symbolsInScope = GetSymbolsInScope(node, node is ScriptHeaderNode || node is ScriptNode);
 
@@ -509,36 +503,38 @@ namespace DarkId.Papyrus.LanguageService.Program
 
         public static Task<IEnumerable<SyntaxNode>> FindReferences(this PapyrusSymbol symbol, CancellationToken cancellationToken)
         {
-            return Task.Run(() =>
-            {
-                try
-                {
-                    var symbolScriptId = symbol.Script.Id;
+            //return Task.Run(() =>
+            //{
+            //    try
+            //    {
+            //        var symbolScriptId = symbol.Script.Id;
 
-                    Dictionary<ObjectIdentifier, ScriptFile> scriptFiles;
-                    lock (symbol.File.Program.ScriptFiles)
-                    {
-                        scriptFiles = symbol.File.Program.ScriptFiles.ToDictionary();
-                    }
+            //        Dictionary<ObjectIdentifier, ScriptFile> scriptFiles;
+            //        lock (symbol.File.Program.ScriptFiles)
+            //        {
+            //            scriptFiles = symbol.File.Program.ScriptFiles.ToDictionary();
+            //        }
 
-                    return scriptFiles.Values.AsParallel().WithCancellation(cancellationToken).
-                        Where(file =>
-                        {
-                            lock (file.Text)
-                            {
-                                return file.Text.Text.Contains(symbol.Name);
-                            }
-                        }).
-                        Where(file => file.CompilerNode != null && file.CompilerNode.GetDescendants().AsParallel().WithCancellation(cancellationToken).
-                            Any(node => node.Text.CaseInsensitiveEquals(symbol.Name))).
-                        SelectMany(file => file.Node.GetDescendants().OfType<IdentifierNode>().Where(n => n.GetDeclaredOrReferencedSymbol() == symbol)).
-                        ToArray();
-                }
-                catch (OperationCanceledException)
-                {
-                    return Enumerable.Empty<SyntaxNode>();
-                }
-            });
+            //        return scriptFiles.Values.AsParallel().WithCancellation(cancellationToken).
+            //            Where(file =>
+            //            {
+            //                lock (file.Text)
+            //                {
+            //                    return file.Text.Text.Contains(symbol.Name);
+            //                }
+            //            }).
+            //            Where(file => file.CompilerNode != null && file.CompilerNode.GetDescendants().AsParallel().WithCancellation(cancellationToken).
+            //                Any(node => node.Text.CaseInsensitiveEquals(symbol.Name))).
+            //            SelectMany(file => file.Node.GetDescendants().OfType<IdentifierNode>().Where(n => n.GetDeclaredOrReferencedSymbol() == symbol)).
+            //            ToArray();
+            //    }
+            //    catch (OperationCanceledException)
+            //    {
+            //        return Enumerable.Empty<SyntaxNode>();
+            //    }
+            //});
+
+            throw new NotImplementedException();
         }
 
         // TODO: Move this elsewhere?

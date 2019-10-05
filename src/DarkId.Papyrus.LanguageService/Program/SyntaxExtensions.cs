@@ -1,9 +1,5 @@
-﻿using Antlr.Runtime;
-using Antlr.Runtime.Tree;
-using DarkId.Papyrus.Common;
-using DarkId.Papyrus.LanguageService.External;
+﻿using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program.Syntax;
-using PCompiler;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -188,75 +184,6 @@ namespace DarkId.Papyrus.LanguageService.Program
             var trimmedCommentLines = leadingCommentLines.Select(t => t.Substring(t.StartsWith("; ") ? 2 : 1)).ToArray();
 
             return trimmedCommentLines.Join("\n");
-        }
-
-        internal static UnaryOperatorType ToUnaryOperatorType(this AstType type)
-        {
-            switch (type)
-            {
-                case AstType.Not:
-                    return UnaryOperatorType.Not;
-                case AstType.UnaryMinus:
-                    return UnaryOperatorType.Negate;
-                default:
-                    return UnaryOperatorType.None;
-            }
-        }
-
-        internal static BinaryOperatorType ToBinaryOperatorType(this AstType type)
-        {
-            switch (type)
-            {
-                case AstType.Plus:
-                    return BinaryOperatorType.Add;
-                case AstType.BooleanAnd:
-                    return BinaryOperatorType.BooleanAnd;
-                case AstType.BooleanOr:
-                    return BinaryOperatorType.BooleanOr;
-                case AstType.CompareEqual:
-                    return BinaryOperatorType.CompareEqual;
-                case AstType.CompareNotEqual:
-                    return BinaryOperatorType.CompareNotEqual;
-                case AstType.CompareGreaterThan:
-                    return BinaryOperatorType.CompareGreaterThan;
-                case AstType.CompareLessThan:
-                    return BinaryOperatorType.CompareLessThan;
-                case AstType.CompareLessThanOrEqual:
-                    return BinaryOperatorType.CompareLessThanOrEqual;
-                case AstType.CompareGreaterThanOrEqual:
-                    return BinaryOperatorType.CompareGreaterThanOrEqual;
-                case AstType.Divide:
-                    return BinaryOperatorType.Divide;
-                case AstType.Mod:
-                    return BinaryOperatorType.Modulus;
-                case AstType.Multiply:
-                    return BinaryOperatorType.Multiply;
-                case AstType.Minus:
-                    return BinaryOperatorType.Subtract;
-                default:
-                    return BinaryOperatorType.None;
-            }
-        }
-
-        internal static AssignmentOperatorType ToAssignmentOperatorType(this AstType type)
-        {
-            switch (type)
-            {
-                case AstType.Equals:
-                    return AssignmentOperatorType.Assign;
-                case AstType.PlusEquals:
-                    return AssignmentOperatorType.Add;
-                case AstType.MinusEquals:
-                    return AssignmentOperatorType.Subtract;
-                case AstType.ModEquals:
-                    return AssignmentOperatorType.Modulus;
-                case AstType.DivideEquals:
-                    return AssignmentOperatorType.Divide;
-                case AstType.MultiplyEquals:
-                    return AssignmentOperatorType.Multiply;
-                default:
-                    return AssignmentOperatorType.None;
-            }
         }
     }
 }

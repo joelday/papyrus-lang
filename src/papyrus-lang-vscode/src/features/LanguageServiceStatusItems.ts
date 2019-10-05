@@ -21,7 +21,10 @@ class StatusBarItemController implements Disposable {
 
         const activeEditor = eventToValueObservable(window.onDidChangeActiveTextEditor, () => window.activeTextEditor);
 
-        const visibleEditors = eventToValueObservable(window.onDidChangeVisibleTextEditors, () => window.visibleTextEditors);
+        const visibleEditors = eventToValueObservable(
+            window.onDidChangeVisibleTextEditors,
+            () => window.visibleTextEditors
+        );
 
         const hostStatus = languageClientHost.pipe(
             mergeMap((host) => host.status),
@@ -61,9 +64,19 @@ class StatusBarItemController implements Disposable {
             showOutputChannelCommand,
             activeDocumentScriptInfo
         ).subscribe({
-            next: ([host, status, _error, activeEditor, visibleEditors, showOutputChannelCommand, activeDocumentScriptInfo]) => {
+            next: ([
+                host,
+                status,
+                _error,
+                activeEditor,
+                visibleEditors,
+                showOutputChannelCommand,
+                activeDocumentScriptInfo,
+            ]) => {
                 if (
-                    !activeEditor || !visibleEditors || (visibleEditors.length === 0) ||
+                    !activeEditor ||
+                    !visibleEditors ||
+                    visibleEditors.length === 0 ||
                     (activeEditor.document.languageId !== 'papyrus' &&
                         activeEditor.document.languageId !== 'papyrus-project')
                 ) {
@@ -89,17 +102,12 @@ class StatusBarItemController implements Disposable {
                             activeDocumentScriptInfo && activeDocumentScriptInfo.identifiers.length > 0
                                 ? '$(verified)'
                                 : '$(check)'
-                            }`;
+                        }`;
                         this._statusBarItem.tooltip = `${fullName} language service running.`;
                         break;
                     case ClientHostStatus.missing:
                         this._statusBarItem.text = `${displayName} $(alert)`;
                         this._statusBarItem.tooltip = `Unable to locate ${fullName}. Click for more options...`;
-                        this._statusBarItem.command = this._locateOrDisableCommand.name;
-                        break;
-                    case ClientHostStatus.compilerMissing:
-                        this._statusBarItem.text = `${displayName} $(alert)`;
-                        this._statusBarItem.tooltip = `Unable to locate the Papyrus compiler. Make sure that the game install path is correct, Creation Kit has been installed and that, if specified in an ini file, sCompilerFolder is also correct.`;
                         this._statusBarItem.command = this._locateOrDisableCommand.name;
                         break;
                     case ClientHostStatus.error:

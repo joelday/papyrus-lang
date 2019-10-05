@@ -1,6 +1,5 @@
 import * as path from 'path';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
-import { ClientHostStatus } from '../server/LanguageClientHost';
 import {
     CodeLens,
     Range,

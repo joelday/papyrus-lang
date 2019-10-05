@@ -6,8 +6,8 @@ import { IGameConfig } from '../ExtensionConfigProvider';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { ICreationKitInfo } from '../CreationKitInfoProvider';
 import { DocumentScriptInfo } from './messages/DocumentScriptInfo';
-import { shareReplay, take, map, switchMap } from 'rxjs/operators';
-import { getDefaultFlagsFileNameForGame, getLanguageToolPath } from '../Utilities';
+import { shareReplay, take, switchMap } from 'rxjs/operators';
+import { getDefaultFlagsFileNameForGame, languageToolPath } from '../Utilities';
 import { ProjectInfos } from './messages/ProjectInfos';
 
 export enum ClientHostStatus {
@@ -17,7 +17,6 @@ export enum ClientHostStatus {
     running,
     error,
     missing,
-    compilerMissing,
 }
 
 export interface ILanguageClientHost {
@@ -112,13 +111,7 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
                 return;
             }
 
-            if (!this._creationKitInfo.resolvedCompilerPath) {
-                this._status.next(ClientHostStatus.compilerMissing);
-                return;
-            }
-
             const toolArguments: IToolArguments = {
-                compilerAssemblyPath: this._creationKitInfo.resolvedCompilerPath,
                 creationKitInstallPath: this._creationKitInfo.resolvedInstallPath,
                 relativeIniPaths: this._config.creationKitIniFiles,
                 flagsFileName: getDefaultFlagsFileNameForGame(this._game),
@@ -133,7 +126,7 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
 
             this._client = new LanguageClient({
                 game: this._game,
-                toolPath: this._context.asAbsolutePath(getLanguageToolPath(this._game)),
+                toolPath: this._context.asAbsolutePath(languageToolPath),
                 outputChannel: this._outputChannel,
                 toolArguments,
             });

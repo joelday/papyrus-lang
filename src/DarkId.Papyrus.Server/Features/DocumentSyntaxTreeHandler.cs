@@ -1,7 +1,4 @@
-﻿using Antlr.Runtime;
-using Antlr.Runtime.Tree;
-using DarkId.Papyrus.Common;
-using DarkId.Papyrus.LanguageService.External;
+﻿using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Program.Syntax;
 using DarkId.Papyrus.Server.Protocol;

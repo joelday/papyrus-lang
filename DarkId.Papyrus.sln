@@ -3,81 +3,51 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28803.156
 MinimumVisualStudioVersion = 15.0.26124.0
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Fallout4", "Fallout4", "{59C1930E-6E4E-41CD-BA96-38A74DAD66DA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Common", "src\DarkId.Papyrus.Common\DarkId.Papyrus.Common.csproj", "{D4134C88-73D6-4846-97D9-55E30B2DD939}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Common", "src\DarkId.Papyrus.Common\DarkId.Papyrus.Common.csproj", "{C7C45665-D4E9-416F-B542-1AAA60936EA3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.DebugAdapterProxy", "src\DarkId.Papyrus.DebugAdapterProxy\DarkId.Papyrus.DebugAdapterProxy.csproj", "{514FB66D-436F-4F0A-AC14-99B12238163A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Host.Fallout4", "src\DarkId.Papyrus.Host\DarkId.Papyrus.Host.Fallout4.csproj", "{8AD91ECE-05B4-4F73-AE2D-A84BFE77ADEB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.LanguageService", "src\DarkId.Papyrus.LanguageService\DarkId.Papyrus.LanguageService.csproj", "{43C61540-C485-4035-AB05-D960D5490523}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.LanguageService.Fallout4", "src\DarkId.Papyrus.LanguageService\DarkId.Papyrus.LanguageService.Fallout4.csproj", "{EC670B3C-AE8D-4AB1-AE03-5F5ECD733F35}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Server", "src\DarkId.Papyrus.Server\DarkId.Papyrus.Server.csproj", "{86768C07-1286-4DCC-8D53-00BE64DDBA9C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Server.Fallout4", "src\DarkId.Papyrus.Server\DarkId.Papyrus.Server.Fallout4.csproj", "{6E8FFFA2-7C60-4A3D-AA73-1CE13129D4A4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Test", "src\DarkId.Papyrus.Test\DarkId.Papyrus.Test.csproj", "{76570941-F325-43FC-A849-3CC65782E795}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Test.Fallout4", "src\DarkId.Papyrus.Test\DarkId.Papyrus.Test.Fallout4.csproj", "{FD46EBB8-6934-4D5F-A60C-5E5FFD9BEF8E}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Skyrim", "Skyrim", "{8D95165B-14A6-4315-92D7-4B49D712259E}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Host.Skyrim", "src\DarkId.Papyrus.Host\DarkId.Papyrus.Host.Skyrim.csproj", "{001BA5EF-0997-4F0C-8194-BBE72E8ED3A8}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.LanguageService.Skyrim", "src\DarkId.Papyrus.LanguageService\DarkId.Papyrus.LanguageService.Skyrim.csproj", "{D8EB43E1-73DF-4A72-B4BA-D17781C2006D}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Server.Skyrim", "src\DarkId.Papyrus.Server\DarkId.Papyrus.Server.Skyrim.csproj", "{3061E13A-7189-4F14-BBDA-34E4EBF84224}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Test.Skyrim", "src\DarkId.Papyrus.Test\DarkId.Papyrus.Test.Skyrim.csproj", "{B638D66E-BFC9-4C3D-8915-F1A3B7A083A8}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{61D95681-63EA-4064-BE21-93A1A8D9BF28}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Languages", "Languages", "{2933A950-7B3F-43C3-9898-F22276472C5C}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.DebugAdapterProxy.Fallout4", "src\DarkId.Papyrus.DebugAdapterProxy\DarkId.Papyrus.DebugAdapterProxy.Fallout4.csproj", "{65A1E272-F2C1-47AC-BAEA-B0723409A103}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.DebugAdapterProxy.Skyrim", "src\DarkId.Papyrus.DebugAdapterProxy\DarkId.Papyrus.DebugAdapterProxy.Skyrim.csproj", "{75A6BAA6-EC18-4203-9925-ECE93578AAFD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Server.Host", "src\DarkId.Papyrus.Server.Host\DarkId.Papyrus.Server.Host.csproj", "{375DEEF7-41C3-498A-B094-E8E21313E3E0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{C7C45665-D4E9-416F-B542-1AAA60936EA3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C7C45665-D4E9-416F-B542-1AAA60936EA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8AD91ECE-05B4-4F73-AE2D-A84BFE77ADEB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8AD91ECE-05B4-4F73-AE2D-A84BFE77ADEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EC670B3C-AE8D-4AB1-AE03-5F5ECD733F35}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EC670B3C-AE8D-4AB1-AE03-5F5ECD733F35}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6E8FFFA2-7C60-4A3D-AA73-1CE13129D4A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6E8FFFA2-7C60-4A3D-AA73-1CE13129D4A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FD46EBB8-6934-4D5F-A60C-5E5FFD9BEF8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FD46EBB8-6934-4D5F-A60C-5E5FFD9BEF8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{001BA5EF-0997-4F0C-8194-BBE72E8ED3A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{001BA5EF-0997-4F0C-8194-BBE72E8ED3A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D8EB43E1-73DF-4A72-B4BA-D17781C2006D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D8EB43E1-73DF-4A72-B4BA-D17781C2006D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3061E13A-7189-4F14-BBDA-34E4EBF84224}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3061E13A-7189-4F14-BBDA-34E4EBF84224}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B638D66E-BFC9-4C3D-8915-F1A3B7A083A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B638D66E-BFC9-4C3D-8915-F1A3B7A083A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{65A1E272-F2C1-47AC-BAEA-B0723409A103}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{65A1E272-F2C1-47AC-BAEA-B0723409A103}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{75A6BAA6-EC18-4203-9925-ECE93578AAFD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{75A6BAA6-EC18-4203-9925-ECE93578AAFD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4134C88-73D6-4846-97D9-55E30B2DD939}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4134C88-73D6-4846-97D9-55E30B2DD939}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4134C88-73D6-4846-97D9-55E30B2DD939}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4134C88-73D6-4846-97D9-55E30B2DD939}.Release|Any CPU.Build.0 = Release|Any CPU
+		{514FB66D-436F-4F0A-AC14-99B12238163A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{514FB66D-436F-4F0A-AC14-99B12238163A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{514FB66D-436F-4F0A-AC14-99B12238163A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{514FB66D-436F-4F0A-AC14-99B12238163A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{43C61540-C485-4035-AB05-D960D5490523}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43C61540-C485-4035-AB05-D960D5490523}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43C61540-C485-4035-AB05-D960D5490523}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43C61540-C485-4035-AB05-D960D5490523}.Release|Any CPU.Build.0 = Release|Any CPU
+		{86768C07-1286-4DCC-8D53-00BE64DDBA9C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{86768C07-1286-4DCC-8D53-00BE64DDBA9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{86768C07-1286-4DCC-8D53-00BE64DDBA9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{86768C07-1286-4DCC-8D53-00BE64DDBA9C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76570941-F325-43FC-A849-3CC65782E795}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76570941-F325-43FC-A849-3CC65782E795}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76570941-F325-43FC-A849-3CC65782E795}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76570941-F325-43FC-A849-3CC65782E795}.Release|Any CPU.Build.0 = Release|Any CPU
+		{375DEEF7-41C3-498A-B094-E8E21313E3E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{375DEEF7-41C3-498A-B094-E8E21313E3E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{375DEEF7-41C3-498A-B094-E8E21313E3E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{375DEEF7-41C3-498A-B094-E8E21313E3E0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{59C1930E-6E4E-41CD-BA96-38A74DAD66DA} = {2933A950-7B3F-43C3-9898-F22276472C5C}
-		{C7C45665-D4E9-416F-B542-1AAA60936EA3} = {61D95681-63EA-4064-BE21-93A1A8D9BF28}
-		{8AD91ECE-05B4-4F73-AE2D-A84BFE77ADEB} = {59C1930E-6E4E-41CD-BA96-38A74DAD66DA}
-		{EC670B3C-AE8D-4AB1-AE03-5F5ECD733F35} = {59C1930E-6E4E-41CD-BA96-38A74DAD66DA}
-		{6E8FFFA2-7C60-4A3D-AA73-1CE13129D4A4} = {59C1930E-6E4E-41CD-BA96-38A74DAD66DA}
-		{FD46EBB8-6934-4D5F-A60C-5E5FFD9BEF8E} = {59C1930E-6E4E-41CD-BA96-38A74DAD66DA}
-		{8D95165B-14A6-4315-92D7-4B49D712259E} = {2933A950-7B3F-43C3-9898-F22276472C5C}
-		{001BA5EF-0997-4F0C-8194-BBE72E8ED3A8} = {8D95165B-14A6-4315-92D7-4B49D712259E}
-		{D8EB43E1-73DF-4A72-B4BA-D17781C2006D} = {8D95165B-14A6-4315-92D7-4B49D712259E}
-		{3061E13A-7189-4F14-BBDA-34E4EBF84224} = {8D95165B-14A6-4315-92D7-4B49D712259E}
-		{B638D66E-BFC9-4C3D-8915-F1A3B7A083A8} = {8D95165B-14A6-4315-92D7-4B49D712259E}
-		{65A1E272-F2C1-47AC-BAEA-B0723409A103} = {59C1930E-6E4E-41CD-BA96-38A74DAD66DA}
-		{75A6BAA6-EC18-4203-9925-ECE93578AAFD} = {8D95165B-14A6-4315-92D7-4B49D712259E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F463939D-09F7-4C69-9379-87B29449255B}

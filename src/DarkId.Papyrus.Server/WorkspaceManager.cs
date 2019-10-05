@@ -13,7 +13,6 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using Microsoft.Extensions.DependencyInjection;
 using DarkId.Papyrus.LanguageService.Program;
-using DarkId.Papyrus.LanguageService.External;
 
 namespace DarkId.Papyrus.Server
 {

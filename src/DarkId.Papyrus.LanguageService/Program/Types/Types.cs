@@ -4,42 +4,29 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
-using PCompiler;
-
-#if SKYRIM
-using ScriptComplexType = PCompiler.ScriptObjectType;
-#endif
 
 namespace DarkId.Papyrus.LanguageService.Program.Types
 {
     public abstract class PapyrusType
     {
-        private readonly PapyrusProgram _program;
-        protected PapyrusProgram Program => _program;
-
-        private readonly ObjectIdentifier _name;
-        public virtual ObjectIdentifier Name => _name;
+        protected PapyrusProgram Program { get; }
+        public virtual ObjectIdentifier Name { get; }
 
         internal PapyrusType(PapyrusProgram program, ObjectIdentifier name)
         {
-            _program = program;
-            _name = name;
+            Program = program;
+            Name = name;
         }
     }
 
     public abstract class ComplexType : PapyrusType
     {
-        private readonly TypeSymbol _symbol;
-        public TypeSymbol Symbol => _symbol;
+        public TypeSymbol Symbol { get; }
 
-        private readonly ScriptComplexType _compilerType;
-        protected ScriptComplexType CompilerType => _compilerType;
-
-        internal ComplexType(PapyrusProgram program, TypeSymbol symbol, ScriptComplexType compilerType) :
+        internal ComplexType(PapyrusProgram program, TypeSymbol symbol) :
             base(program, symbol.Id)
         {
-            _symbol = symbol;
-            _compilerType = compilerType;
+            Symbol = symbol;
         }
     }
 
@@ -50,63 +37,55 @@ namespace DarkId.Papyrus.LanguageService.Program.Types
         }
     }
 
-    public abstract class ComplexType<TSymbol, TCompilerType> : ComplexType
+    public abstract class ComplexType<TSymbol> : ComplexType
         where TSymbol : TypeSymbol
-        where TCompilerType : ScriptComplexType
     {
         public new TSymbol Symbol => base.Symbol as TSymbol;
-        protected new TCompilerType CompilerType => base.CompilerType as TCompilerType;
 
-        internal ComplexType(PapyrusProgram program, TSymbol symbol, TCompilerType compilerType) :
-            base(program, symbol, compilerType)
+        internal ComplexType(PapyrusProgram program, TSymbol symbol) :
+            base(program, symbol)
         {
         }
     }
 
-    public sealed class ScriptType : ComplexType<ScriptSymbol, ScriptObjectType>
+    public sealed class ScriptType : ComplexType<ScriptSymbol>
     {
-#if FALLOUT4
         private readonly Dictionary<ObjectIdentifier, StructType> _structTypes;
         public IReadOnlyDictionary<ObjectIdentifier, StructType> StructTypes => _structTypes;
-#endif
 
-        public ScriptType(PapyrusProgram program, ScriptSymbol symbol, ScriptObjectType compilerType)
-            : base(program, symbol, compilerType)
+        public ScriptType(PapyrusProgram program, ScriptSymbol symbol)
+            : base(program, symbol)
         {
-#if FALLOUT4
-            _structTypes = symbol.Children.OfType<StructSymbol>().Select(s =>
-            {
-                CompilerType.TryGetStruct(s.Name, out var structType);
+            //_structTypes = symbol.Children.OfType<StructSymbol>().Select(s =>
+            //{
+            //    CompilerType.TryGetStruct(s.Name, out var structType);
 
-                return new StructType(program, s, structType);
-            }).ToDictionary(s => s.Name);
-#endif
+            //    return new StructType(program, s, structType);
+            //}).ToDictionary(s => s.Name);
         }
     }
 
-    public sealed class ArrayType : ComplexType<ScriptSymbol, ScriptObjectType>
+    public sealed class ArrayType : ComplexType<ScriptSymbol>
     {
         private readonly ObjectIdentifier _elementType;
         public ObjectIdentifier ElementType => _elementType;
 
         public override ObjectIdentifier Name => ObjectIdentifier.Parse(_elementType.FullyQualifiedDisplayName + "[]");
 
-        public ArrayType(PapyrusProgram program, ScriptSymbol symbol, ScriptObjectType compilerType, ObjectIdentifier elementType)
-            : base(program, symbol, compilerType)
+        public ArrayType(PapyrusProgram program, ScriptSymbol symbol, ObjectIdentifier elementType)
+            : base(program, symbol)
         {
             Symbol.SyntheticArrayType = this;
             _elementType = elementType;
         }
     }
 
-#if FALLOUT4
-    public sealed class StructType : ComplexType<StructSymbol, ScriptStructType>
+    public sealed class StructType : ComplexType<StructSymbol>
     {
-        public StructType(PapyrusProgram program, StructSymbol symbol, ScriptStructType compilerType)
-            : base(program, symbol, compilerType)
+        public StructType(PapyrusProgram program, StructSymbol symbol)
+            : base(program, symbol)
         {
         }
     }
-#endif
 
 }

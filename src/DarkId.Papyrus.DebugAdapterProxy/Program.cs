@@ -25,12 +25,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
     public class Options
     {
         [Option("port")]
-        public int Port { get; set; } =
-#if FALLOUT4
-            2077;
-#else
-            43201;
-#endif
+        public int Port { get; set; }
 
         [Option("projectPath")]
         public string ProjectPath { get; set; }
@@ -59,6 +54,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
         static ILoggerFactory loggerFactory;
         static ILogger<Program> logger;
 
+        // TODO: Log location
         static readonly string _logFilePath =
 #if FALLOUT4
         "My Games\\Fallout4\\F4SE\\DarkId.Papyrus.DebugAdapterProxy.log";

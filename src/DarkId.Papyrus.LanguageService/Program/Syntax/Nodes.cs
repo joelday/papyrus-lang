@@ -1,7 +1,5 @@
-﻿using Antlr.Runtime.Tree;
-using DarkId.Papyrus.Common;
+﻿using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
-using PCompiler;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +10,6 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 {
     public interface ISymbolScope
     {
-        string LocalScopeName { get; }
         Dictionary<string, PapyrusSymbol> ScopedSymbols { get; }
     }
 
@@ -63,13 +60,13 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
         public Range Range { get; set; }
 
-        internal CommonTree CompilerNode { get; set; }
+        // internal CommonTree CompilerNode { get; set; }
 
         public PapyrusSymbol Symbol { get; set; }
 
         public ISymbolScope Scope { get; set; }
 
-        internal ScriptScope CompilerScope { get; set; }
+        // internal ScriptScope CompilerScope { get; set; }
     }
 
     public class ScriptNode : SyntaxNode, IDefinitionBlock
@@ -86,7 +83,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         public List<ImportNode> Imports { get; } = new List<ImportNode>();
         public List<SyntaxNode> Definitions { get; } = new List<SyntaxNode>();
 
-        internal ScriptObjectType CompilerType { get; set; }
+        // internal ScriptObjectType CompilerType { get; set; }
 
         public new ScriptSymbol Symbol => (ScriptSymbol)base.Symbol;
 
@@ -125,7 +122,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         public TypeIdentifierNode TypeIdentifier { get; set; }
         public ExpressionNode InitialValue { get; set; }
 
-        internal ScriptVariableType CompilerType { get; set; }
+        // internal ScriptVariableType CompilerType { get; set; }
     }
 
     public class ExpressionStatementNode : SyntaxNode
@@ -142,8 +139,6 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         public ExpressionNode Expression { get; set; }
         public List<SyntaxNode> Statements { get; } = new List<SyntaxNode>();
         public Dictionary<string, PapyrusSymbol> ScopedSymbols { get; } = new Dictionary<string, PapyrusSymbol>(StringComparer.OrdinalIgnoreCase);
-
-        public string LocalScopeName => "while";
     }
 
     public class ArrayIndexExpressionNode : ExpressionNode
@@ -331,10 +326,9 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         public TypeIdentifierNode TypeIdentifier { get; set; }
         public DocCommentNode DocComment { get; set; }
 
-        internal ScriptVariableType CompilerType { get; set; }
+        // internal ScriptVariableType CompilerType { get; set; }
     }
 
-#if FALLOUT4
     public class StructDefinitionNode : SyntaxNode, IDefinitionBlock
     {
         public override NodeKind Kind => NodeKind.StructDefinition;
@@ -350,11 +344,10 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
     {
         public override NodeKind Kind => NodeKind.StructHeader;
 
-        internal ScriptStructType CompilerType { get; set; }
+        // internal ScriptStructType CompilerType { get; set; }
 
         public IdentifierNode Identifier { get; set; }
     }
-#endif
 
     public class StateDefinitionNode : SyntaxNode, IIdentifiable, IDefinitionBlock
     {
@@ -377,8 +370,6 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         public FunctionHeaderNode Header { get; set; }
         public List<SyntaxNode> Statements { get; } = new List<SyntaxNode>();
         public Dictionary<string, PapyrusSymbol> ScopedSymbols { get; } = new Dictionary<string, PapyrusSymbol>(StringComparer.OrdinalIgnoreCase);
-
-        public string LocalScopeName => Header.Identifier.Text;
     }
 
     public class FunctionDefinitionNode : SyntaxNode,
@@ -389,8 +380,6 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         public FunctionHeaderNode Header { get; set; }
         public List<SyntaxNode> Statements { get; } = new List<SyntaxNode>();
         public Dictionary<string, PapyrusSymbol> ScopedSymbols { get; } = new Dictionary<string, PapyrusSymbol>(StringComparer.OrdinalIgnoreCase);
-
-        public string LocalScopeName => Header.Identifier.Text;
     }
 
     public class FunctionHeaderNode : SyntaxNode, ITypedIdentifiable, IFlaggable, IDocumentable
@@ -407,7 +396,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         public DocCommentNode DocComment { get; set; }
         public bool IsEvent { get; set; }
 
-        internal ScriptFunctionType CompilerType { get; set; }
+        // internal ScriptFunctionType CompilerType { get; set; }
     }
 
     public class FunctionParameterNode : SyntaxNode,
@@ -429,8 +418,6 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         public PropertyHeaderNode Header { get; set; }
         public List<SyntaxNode> Definitions { get; } = new List<SyntaxNode>();
         public Dictionary<string, PapyrusSymbol> ScopedSymbols { get; } = new Dictionary<string, PapyrusSymbol>(StringComparer.OrdinalIgnoreCase);
-
-        public string LocalScopeName => Header.Identifier.Text;
     }
 
     public class PropertyHeaderNode : SyntaxNode, ITypedIdentifiable, IFlaggable, IDocumentable
@@ -442,7 +429,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         public LanguageFlags Flags { get; set; }
         public DocCommentNode DocComment { get; set; }
 
-        internal ScriptPropertyType CompilerType { get; set; }
+        // internal ScriptPropertyType CompilerType { get; set; }
     }
 
     public class GroupDefinitionNode : SyntaxNode, IDefinitionBlock
@@ -452,8 +439,6 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         public GroupHeaderNode Header { get; set; }
         public List<SyntaxNode> Definitions { get; } = new List<SyntaxNode>();
         public Dictionary<string, PapyrusSymbol> ScopedSymbols { get; } = new Dictionary<string, PapyrusSymbol>(StringComparer.OrdinalIgnoreCase);
-
-        public string LocalScopeName => Header.Identifier.Text;
     }
 
     public class GroupHeaderNode : SyntaxNode, IIdentifiable
@@ -474,7 +459,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
     {
     }
 
-    public interface ILiteralNode<T> : ILiteralNode
+    public interface ILiteralNode<out T> : ILiteralNode
     {
         T Value { get; }
     }

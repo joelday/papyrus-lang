@@ -48,7 +48,7 @@ namespace DarkId.Papyrus.LanguageService.Program
                     {
                         return new Tuple<SourceInclude, IEnumerable<string>>(include, new string[] { });
                     }
-
+// TODO: Configured rule
                     var files = include.Scripts.Count > 0 ? include.Scripts.ToList() : await fileSystem.FindFiles(include.Path, "*.psc",
 #if SKYRIM
                         false

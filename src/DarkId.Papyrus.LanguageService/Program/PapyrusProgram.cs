@@ -2,12 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Antlr.Runtime;
 using DarkId.Papyrus.Common;
-using DarkId.Papyrus.LanguageService.External;
 using DarkId.Papyrus.LanguageService.Program.Types;
 using Microsoft.Extensions.Logging;
-using PCompiler;
 
 namespace DarkId.Papyrus.LanguageService.Program
 {

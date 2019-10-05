@@ -21,7 +21,7 @@ import { ICreationKitInfoProvider } from '../CreationKitInfoProvider';
 import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
 import { take } from 'rxjs/operators';
 import { IPapyrusDebugSession } from './PapyrusDebugSession';
-import { toCommandLineArgs, getGameIsRunning, getDebugToolPath } from '../Utilities';
+import { toCommandLineArgs, getGameIsRunning, debugToolPath } from '../Utilities';
 import { IExtensionContext } from '../common/vscode/IocDecorators';
 import { IDebugSupportInstallService, DebugSupportInstallState } from './DebugSupportInstallService';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
@@ -178,7 +178,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
             clientProcessId: Number.parseInt(process.env.VSCODE_PID),
         };
 
-        const toolPath = this._context.asAbsolutePath(getDebugToolPath(game));
+        const toolPath = this._context.asAbsolutePath(debugToolPath);
         const commandLineArgs = toCommandLineArgs(toolArguments);
 
         const outputChannel = (await this._languageClientManager.getLanguageClientHost(session.configuration.game))

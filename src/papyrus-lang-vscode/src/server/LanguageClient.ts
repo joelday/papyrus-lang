@@ -17,7 +17,6 @@ export interface ILanguageClientOptions {
 }
 
 export interface IToolArguments {
-    compilerAssemblyPath: string;
     flagsFileName: string;
     ambientProjectName: string;
     defaultScriptSourceFolder?: string;

@@ -3,13 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Antlr.Runtime;
+
 using DarkId.Papyrus.Common;
-using DarkId.Papyrus.LanguageService.External;
+
 using DarkId.Papyrus.LanguageService.Program.Symbols;
 using DarkId.Papyrus.LanguageService.Program.Syntax;
-using PCompiler;
-using ReflectionMagic;
 
 namespace DarkId.Papyrus.LanguageService.Program.Types
 {
@@ -19,6 +17,8 @@ namespace DarkId.Papyrus.LanguageService.Program.Types
         {
             var elementTypeName = objectIdentifier.ShortName;
             var namespacePrefix = objectIdentifier.NamespaceParts.Length > 0 ? objectIdentifier.NamespaceParts.Join(":") + ":" : string.Empty;
+
+            throw new NotImplementedException();
 #if FALLOUT4
             return $@"Scriptname {namespacePrefix}Array___{elementTypeName.Replace(":", "_")} native
 
@@ -70,58 +70,58 @@ int Property Length_ auto
         }
 
         private readonly PapyrusProgram _program;
-        private readonly CompilerTypeTable _compilerTypeTable;
+        // private readonly CompilerTypeTable _compilerTypeTable;
         private readonly TypeEvaluationVisitor _typeEvaluationVisitor;
         private readonly Dictionary<ObjectIdentifier, ArrayType> _arrayTypes =
             new Dictionary<ObjectIdentifier, ArrayType>();
 
-        internal CompilerTypeTable CompilerTypeTable => _compilerTypeTable;
         internal TypeEvaluationVisitor TypeEvaluationVisitor => _typeEvaluationVisitor;
-
 
         public TypeChecker(PapyrusProgram program)
         {
             _program = program;
-            _compilerTypeTable = new CompilerTypeTable();
+            // _compilerTypeTable = new CompilerTypeTable();
             _typeEvaluationVisitor = new TypeEvaluationVisitor(this);
         }
 
         private ArrayType GetArrayType(PapyrusType elementType)
         {
-            var objectIdentifier = elementType.Name;
+            //var objectIdentifier = elementType.Name;
 
-            lock (_arrayTypes)
-            {
-                if (!_arrayTypes.ContainsKey(objectIdentifier))
-                {
-                    var source = CreateArrayTypeSource(objectIdentifier);
-                    var stream = new CaseInsensitiveStringStream(source);
-                    var lexer = new PapyrusLexer(stream);
-                    var parser = new PapyrusParser(new CommonTokenStream(lexer));
-                    parser.AsDynamic().KnownUserFlags = _program.FlagsFile.NativeFlagsDict;
-                    parser.script();
+            //lock (_arrayTypes)
+            //{
+            //    if (!_arrayTypes.ContainsKey(objectIdentifier))
+            //    {
+            //        var source = CreateArrayTypeSource(objectIdentifier);
+            //        var stream = new CaseInsensitiveStringStream(source);
+            //        var lexer = new PapyrusLexer(stream);
+            //        var parser = new PapyrusParser(new CommonTokenStream(lexer));
+            //        parser.AsDynamic().KnownUserFlags = _program.FlagsFile.NativeFlagsDict;
+            //        parser.script();
 
-                    var compilerType = parser.ParsedObject;
+            //        var compilerType = parser.ParsedObject;
 
-                    var nodeBinder = new NodeBinder();
+            //        var nodeBinder = new NodeBinder();
 
-                    var node = nodeBinder.Bind(null, _program,
-                        new ScriptText(null, source, "0"), compilerType.GetTokenStream(), compilerType.GetAst());
+            //        var node = nodeBinder.Bind(null, _program,
+            //            new ScriptText(null, source, "0"), compilerType.GetTokenStream(), compilerType.GetAst());
 
-                    var scopeBinder = new ScopeBinder();
-                    var scopeResult = scopeBinder.Bind(compilerType, node.Value);
+            //        var scopeBinder = new ScopeBinder();
+            //        var scopeResult = scopeBinder.Bind(compilerType, node.Value);
 
-                    node.Diagnostics.AddRange(scopeResult.Diagnostics);
+            //        node.Diagnostics.AddRange(scopeResult.Diagnostics);
                     
-                    var symbolBinder = new SymbolBinder();
-                    var symbolResult = symbolBinder.Bind(node.Value);
+            //        var symbolBinder = new SymbolBinder();
+            //        var symbolResult = symbolBinder.Bind(node.Value);
 
-                    var type = new ArrayType(_program, symbolResult.Value, compilerType, elementType.Name);
-                    _arrayTypes.Add(objectIdentifier, type);
-                }
+            //        var type = new ArrayType(_program, symbolResult.Value, compilerType, elementType.Name);
+            //        _arrayTypes.Add(objectIdentifier, type);
+            //    }
 
-                return _arrayTypes[objectIdentifier];
-            }
+            //    return _arrayTypes[objectIdentifier];
+            //}
+
+            throw new NotImplementedException();
         }
 
         public PapyrusType GetTypeForObjectId(ObjectIdentifier objectIdentifier, bool asArray)
@@ -146,13 +146,11 @@ int Property Length_ auto
                 return null;
             }
 
-#if FALLOUT4
             if (!string.IsNullOrEmpty(objectIdentifier.StructName))
             {
                 scriptType.StructTypes.TryGetValue(objectIdentifier, out var structType);
                 return structType;
             }
-#endif
 
             return scriptType;
         }

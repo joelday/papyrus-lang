@@ -16,12 +16,12 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
         public async Task Program_ShouldResolveSources()
         {
             await Program.ResolveSources();
-
-#if FALLOUT4
+            // TODO: Per language variant tests
+//#if FALLOUT4
             var sourcesPath = "../../../../scripts/Fallout 4";
-#elif SKYRIM
-            var sourcesPath = "../../../../scripts/Skyrim";
-#endif
+//#elif SKYRIM
+//            var sourcesPath = "../../../../scripts/Skyrim";
+//#endif
 
             Console.WriteLine(Program.FilePaths.Keys.Join(",\r\n"));
 
