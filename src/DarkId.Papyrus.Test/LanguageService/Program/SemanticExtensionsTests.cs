@@ -9,11 +9,11 @@ using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
 using DarkId.Papyrus.LanguageService.Program.Syntax;
 using DarkId.Papyrus.Test.LanguageService.Program.TestHarness;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 
 namespace DarkId.Papyrus.Test.LanguageService.Program
 {
-    [TestClass]
+    [TestFixture]
     public class SemanticExtensionsTests : ProgramTestBase
     {
         private ScriptFile GetScript(string script = "ScopeTests")
@@ -69,7 +69,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
         // GetReferencableSymbols in this context only returns structs.
         // The completion handler is responsible for attaching scripts to the completion list.
 
-        [TestMethod]
+        [Test]
         public void GetReferencableSymbols_ScriptBody()
         {
             var symbols = GetReferencableSymbolsAtMarker("script-body");
@@ -77,7 +77,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
         }
 #endif
 
-        [TestMethod]
+        [Test]
         public void GetReferencableSymbols_FunctionBody()
         {
             var symbols = GetReferencableSymbolsAtMarker("function-body", canReturnDeclaredGlobals: true);
@@ -89,42 +89,42 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
 #endif
         }
 
-        [TestMethod]
+        [Test]
         public void GetReferencableSymbols_NativeFunctionBody()
         {
             var symbols = GetReferencableSymbolsAtMarker("native-function-body", script: "ScriptObject", canReturnDeclaredGlobals: true);
             symbols.AssertAreOfKinds(SymbolKinds.Script | SymbolKinds.Struct | SymbolKinds.Function | SymbolKinds.Variable | SymbolKinds.Event | SymbolKinds.Property);
         }
 
-        [TestMethod]
+        [Test]
         public void GetReferencableSymbols_GlobalFunctionCall()
         {
             var symbols = GetReferencableSymbolsAtMarker("global-function-call", shouldReturnGlobals: true);
             symbols.AssertAreOfKinds(SymbolKinds.Function);
         }
 
-        [TestMethod]
+        [Test]
         public void GetReferencableSymbols_ParentFunctionCall()
         {
             var symbols = GetReferencableSymbolsAtMarker("parent-function-call");
             symbols.AssertAreOfKinds(SymbolKinds.Function | SymbolKinds.Event);
         }
 
-        [TestMethod]
+        [Test]
         public void GetReferencableSymbols_SelfFunctionCall()
         {
             var symbols = GetReferencableSymbolsAtMarker("self-function-call");
             symbols.AssertAreOfKinds(SymbolKinds.Function | SymbolKinds.Event | SymbolKinds.Property);
         }
 
-        [TestMethod]
+        [Test]
         public void GetReferencableSymbols_ArrayMemberAccess()
         {
             var symbols = GetReferencableSymbolsAtMarker("array-member-access");
             symbols.AssertAreOfKinds(SymbolKinds.Function | SymbolKinds.Property);
         }
 
-        [TestMethod]
+        [Test]
         public void GetReferencableSymbols_LocalVariableName()
         {
             GetReferencableSymbolsAtMarker("local-variable-name", shouldHaveResults: false);
@@ -132,7 +132,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
             GetReferencableSymbolsAtMarker("incomplete-declaration", true, shouldHaveResults: false);
         }
 
-        [TestMethod]
+        [Test]
         public void GetReferencableSymbols_FunctionParameterName()
         {
             GetReferencableSymbolsAtMarker("function-parameter-name", shouldHaveResults: false);
@@ -140,7 +140,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
         }
 
 #if FALLOUT4
-        [TestMethod]
+        [Test]
         public void GetKnownParameterValueSymbols_CustomEvents()
         {
             var script = GetScript();
@@ -155,7 +155,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
             Assert.IsTrue(symbols.All(s => s is CustomEventSymbol));
         }
 
-        [TestMethod]
+        [Test]
         public void GetReferencableSymbols_IncompleteRemoteEvent()
         {
             GetScript();

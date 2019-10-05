@@ -5,14 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 
 namespace DarkId.Papyrus.Test.LanguageService.Program
 {
-    [TestClass]
+    [TestFixture]
     public class ProgramTests : ProgramTestBase
     {
-        [TestMethod]
+        [Test]
         public async Task Program_ShouldResolveSources()
         {
             await Program.ResolveSources();

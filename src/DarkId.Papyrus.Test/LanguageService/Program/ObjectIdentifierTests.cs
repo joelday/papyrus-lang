@@ -2,21 +2,21 @@ using System;
 using System.IO;
 using System.Text.RegularExpressions;
 using DarkId.Papyrus.LanguageService.Program;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 
 namespace DarkId.Papyrus.Test.LanguageService.Program
 {
-    [TestClass]
+    [TestFixture]
     public class ObjectIdentifierTests
     {
-        [TestMethod]
+        [Test]
         public void ShouldParseANonNamespacedScriptName()
         {
             var identifier = ObjectIdentifier.Parse("ScriptName");
             Assert.AreEqual(identifier.ScriptName, "ScriptName");
         }
 
-        [TestMethod]
+        [Test]
         public void ShouldParseANamespacedScriptName()
         {
             var identifier = ObjectIdentifier.Parse("NamespaceA:NamespaceB:ScriptName");
@@ -26,14 +26,14 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
             Assert.AreEqual(identifier.ScriptName, "ScriptName");
         }
 
-        [TestMethod]
+        [Test]
         public void ShouldParseANamespacedScriptWithMemberName()
         {
             var identifier = ObjectIdentifier.Parse("NamespaceA:NamespaceB:ScriptName#StructName");
             Assert.AreEqual(identifier.StructName, "StructName");
         }
 
-        [TestMethod]
+        [Test]
         public void ShouldBeEquatableWithCaseInsensitivity()
         {
             var identifierA = ObjectIdentifier.Parse("NamespaceA:NamespaceB:ScriptName#StructName");
@@ -48,7 +48,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
             Assert.AreNotEqual(identifierB, identifierC);
         }
 
-        [TestMethod]
+        [Test]
         public void ShouldParseAndConvertToAFilePath()
         {
             var identifierA = ObjectIdentifier.Parse("NamespaceA:NamespaceB:ScriptName");

@@ -6,16 +6,16 @@
 // using DarkId.Papyrus.Common;
 // using DarkId.Papyrus.LanguageService.Program;
 // using DarkId.Papyrus.LanguageService.Projects;
-// using Microsoft.VisualStudio.TestTools.UnitTesting;
+// using NUnit.Framework;
 
 // namespace DarkId.Papyrus.Test.LanguageService.Program
 // {
-//     [TestClass]
+//     [TestFixture]
 //     public class ProgramUtilitiesTests
 //     {
 //         private readonly IFileSystem _fileSystem = new LocalFileSystem();
 
-//         [TestMethod]
+//         [Test]
 //         public async Task ResolveSourceFiles_ShouldResolveFiles()
 //         {
 //             var project = await new FileSystemXmlProjectLoader(_fileSystem, new XmlProjectDeserializer())

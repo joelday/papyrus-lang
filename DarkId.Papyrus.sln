@@ -11,13 +11,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.LanguageServ
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Server", "src\DarkId.Papyrus.Server\DarkId.Papyrus.Server.csproj", "{86768C07-1286-4DCC-8D53-00BE64DDBA9C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Test", "src\DarkId.Papyrus.Test\DarkId.Papyrus.Test.csproj", "{76570941-F325-43FC-A849-3CC65782E795}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Server.Host", "src\DarkId.Papyrus.Server.Host\DarkId.Papyrus.Server.Host.csproj", "{375DEEF7-41C3-498A-B094-E8E21313E3E0}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Protocol Hosts", "Protocol Hosts", "{0246BCA9-FE77-41A9-B228-CFE96ACBE8D3}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{16DCC7B6-3388-4208-8513-6BF4DFB85626}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DarkId.Papyrus.Test", "src\DarkId.Papyrus.Test\DarkId.Papyrus.Test.csproj", "{EE5047F5-E7E1-4C2D-B8C3-FE61B03B2835}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,22 +41,22 @@ Global
 		{86768C07-1286-4DCC-8D53-00BE64DDBA9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{86768C07-1286-4DCC-8D53-00BE64DDBA9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{86768C07-1286-4DCC-8D53-00BE64DDBA9C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{76570941-F325-43FC-A849-3CC65782E795}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{76570941-F325-43FC-A849-3CC65782E795}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{76570941-F325-43FC-A849-3CC65782E795}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{76570941-F325-43FC-A849-3CC65782E795}.Release|Any CPU.Build.0 = Release|Any CPU
 		{375DEEF7-41C3-498A-B094-E8E21313E3E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{375DEEF7-41C3-498A-B094-E8E21313E3E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{375DEEF7-41C3-498A-B094-E8E21313E3E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{375DEEF7-41C3-498A-B094-E8E21313E3E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE5047F5-E7E1-4C2D-B8C3-FE61B03B2835}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE5047F5-E7E1-4C2D-B8C3-FE61B03B2835}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE5047F5-E7E1-4C2D-B8C3-FE61B03B2835}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE5047F5-E7E1-4C2D-B8C3-FE61B03B2835}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{514FB66D-436F-4F0A-AC14-99B12238163A} = {0246BCA9-FE77-41A9-B228-CFE96ACBE8D3}
-		{76570941-F325-43FC-A849-3CC65782E795} = {16DCC7B6-3388-4208-8513-6BF4DFB85626}
 		{375DEEF7-41C3-498A-B094-E8E21313E3E0} = {0246BCA9-FE77-41A9-B228-CFE96ACBE8D3}
+		{EE5047F5-E7E1-4C2D-B8C3-FE61B03B2835} = {16DCC7B6-3388-4208-8513-6BF4DFB85626}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F463939D-09F7-4C69-9379-87B29449255B}

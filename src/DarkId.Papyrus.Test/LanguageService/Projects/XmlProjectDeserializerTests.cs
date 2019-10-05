@@ -1,18 +1,18 @@
 // using System;
 // using DarkId.Papyrus.LanguageService.Compiler;
-// using Microsoft.VisualStudio.TestTools.UnitTesting;
+// using NUnit.Framework;
 // using System.Collections.Generic;
 // using DarkId.Papyrus.LanguageService.Projects;
 // using System.IO;
 
 // namespace DarkId.Papyrus.Test.LanguageService.Projects
 // {
-//     [TestClass]
+//     [TestFixture]
 //     public class XmlProjectDeserializerTests
 //     {
 //         private readonly XmlProjectDeserializer _projectDeserializer = new XmlProjectDeserializer();
 
-//         [TestMethod]
+//         [Test]
 //         public void ShouldReturnADeserializedProject()
 //         {
 //             var project = _projectDeserializer.DeserializeProject(

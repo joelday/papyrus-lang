@@ -5,16 +5,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 
 namespace DarkId.Papyrus.Test.LanguageService.Program
 {
-    [TestClass]
+    [TestFixture]
     public class ScriptFileTests : ProgramTestBase
     {
         // TODO: Failure case tests.
 
-        [TestMethod]
+        [Test]
         public void ScriptFile_ShouldNotProduceDiagnostics()
         {
             var allDiagnostics = Program.ScriptFiles.Values.AsParallel().AsOrdered().
@@ -25,7 +25,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
             Assert.AreEqual(0, allDiagnostics.Count);
         }
 
-        [TestMethod]
+        [Test]
         public void ScriptFile_GetAssembly_ShouldReturnAssembly()
         {
             var allAsm = Program.ScriptFiles.Values.AsParallel().AsOrdered().

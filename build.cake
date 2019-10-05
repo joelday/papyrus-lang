@@ -105,7 +105,7 @@ Task("build")
 Task("test")
     .Does(() =>
     {
-        DotNetCoreVSTest("./src/DarkId.Papyrus.Test/bin/Debug/netcoreapp3.0/DarkId.Papyrus.Test.dll");
+        DotNetCoreTest(solution);
     });
 
 Task("clean")

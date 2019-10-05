@@ -1,6 +1,6 @@
 // using System;
 // using DarkId.Papyrus.LanguageService.Compiler;
-// using Microsoft.VisualStudio.TestTools.UnitTesting;
+// using NUnit.Framework;
 // using System.Collections.Generic;
 // using DarkId.Papyrus.LanguageService.Projects;
 // using System.IO;
@@ -8,12 +8,12 @@
 
 // namespace DarkId.Papyrus.Test.LanguageService.Configuration.CreationKit
 // {
-//     [TestClass]
+//     [TestFixture]
 //     public class CreationKitInisConfigLoaderTests
 //     {
 //         private readonly CreationKitInisConfigLoader _configLoader = new CreationKitInisConfigLoader();
 
-//         [TestMethod]
+//         [Test]
 //         public void ShouldLoadAConfigFromIniFiles()
 //         {
 //             var config = _configLoader.LoadConfig(new CreationKitIniLocations()
