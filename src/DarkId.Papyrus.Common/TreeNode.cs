@@ -17,32 +17,36 @@ namespace DarkId.Papyrus.Common
         where TNode : TreeNode<TNode>
     {
         private TNode _parent;
-        private List<TNode> _children = new List<TNode>();
+        private readonly List<TNode> _children = new List<TNode>();
 
         public virtual TNode Parent
         {
             get => _parent;
             set
             {
-                if (_parent != value)
+                if (_parent == value)
                 {
-                    if (_parent != null)
-                    {
-                        lock (_parent._children)
-                        {
-                            _parent._children.Remove((TNode)this);
-                        }
-                    }
+                    return;
+                }
 
-                    _parent = value;
-
-                    if (_parent != null)
+                if (_parent != null)
+                {
+                    lock (_parent._children)
                     {
-                        lock (_parent._children)
-                        {
-                            _parent._children.Add((TNode)this);
-                        }
+                        _parent._children.Remove((TNode)this);
                     }
+                }
+
+                _parent = value;
+
+                if (_parent == null)
+                {
+                    return;
+                }
+
+                lock (_parent._children)
+                {
+                    _parent._children.Add((TNode)this);
                 }
             }
         }

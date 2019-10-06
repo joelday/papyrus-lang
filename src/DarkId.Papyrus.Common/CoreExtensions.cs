@@ -20,7 +20,7 @@ namespace DarkId.Papyrus.Common
                 return false;
             }
 
-            return a.GetHashCode() == b.GetHashCode();
+            return a != null && a.GetHashCode() == b.GetHashCode();
         }
 
         public static string NullIfWhitespace(this string str)

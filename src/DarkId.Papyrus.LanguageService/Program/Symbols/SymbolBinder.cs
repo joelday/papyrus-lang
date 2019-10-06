@@ -3,19 +3,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using DarkId.Papyrus.LanguageService.Program.Syntax;
+using DarkId.Papyrus.LanguageService.Syntax;
 
 namespace DarkId.Papyrus.LanguageService.Program.Symbols
 {
     class SymbolBinder
     {
-        public DiagnosticResult<ScriptSymbol> Bind(ScriptNode node)
+        public ScriptSymbol Bind(ScriptNode node, DiagnosticsContext diagnostics)
         {
-            return DiagnosticResult<ScriptSymbol>.TryWithDiagnostics((diagnostics) =>
-            {
-                var visitor = new SymbolBindingVisitor(diagnostics);
-                return (ScriptSymbol)visitor.Visit(node, null);
-            });
+            throw new NotImplementedException();
+
+            //var visitor = new SymbolBindingVisitor(diagnostics);
+            //return (ScriptSymbol)visitor.Visit(node, null);
         }
     }
 }

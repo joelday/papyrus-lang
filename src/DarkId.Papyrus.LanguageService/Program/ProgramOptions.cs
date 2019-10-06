@@ -7,6 +7,7 @@ namespace DarkId.Papyrus.LanguageService.Program
     public class ProgramOptions : ICloneable
     {
         public string Name { get; set; }
+        public LanguageVersion LanguageVersion { get; set; }
         public string FlagsFileName { get; set; }
         public ProgramSources Sources { get; set; } = new ProgramSources();
 
@@ -16,6 +17,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             {
                 Name = Name,
                 FlagsFileName = FlagsFileName,
+                LanguageVersion = LanguageVersion,
                 Sources = new ProgramSources()
                 {
                     Includes = Sources.Includes.Select(include => new SourceInclude()

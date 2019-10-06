@@ -1,5 +1,5 @@
 ﻿//using DarkId.Papyrus.Common;
-//using DarkId.Papyrus.LanguageService.Program.Syntax;
+//using DarkId.Papyrus.LanguageService.Syntax;
 //using System;
 //using System.Collections.Generic;
 //using System.Linq;

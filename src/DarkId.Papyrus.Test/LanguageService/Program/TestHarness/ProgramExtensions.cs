@@ -6,20 +6,20 @@ using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
-using DarkId.Papyrus.LanguageService.Program.Syntax;
+using DarkId.Papyrus.LanguageService.Syntax;
 using NUnit.Framework;
 
 namespace DarkId.Papyrus.Test.LanguageService.Program.TestHarness
 {
     public static class ProgramExtensions
     {
-        public static Position GetTestMarker(this ScriptFile file, string marker, bool beforeMarker = false)
+        public static TextPosition GetTestMarker(this ScriptFile file, string marker, bool beforeMarker = false)
         {
             var markerComment = $";/marker:{marker}/;";
             var markerCommentIndex = file.Text.Text.IndexOf(markerComment);
             if (markerCommentIndex == -1)
             {
-                return new Position();
+                return new TextPosition();
             }
 
             return file.Text.PositionAt(markerCommentIndex + (beforeMarker ? 0 : markerComment.Length));

@@ -1,5 +1,6 @@
-﻿using DarkId.Papyrus.Common;
-using DarkId.Papyrus.LanguageService.Program.Syntax;
+﻿using System;
+using DarkId.Papyrus.Common;
+using DarkId.Papyrus.LanguageService.Syntax;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -34,7 +35,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             }
         }
 
-        private static SyntaxNode GetNodeAtPositionInternal(IEnumerable<SyntaxNode> nodes, Position position)
+        private static SyntaxNode GetNodeAtPositionInternal(IEnumerable<SyntaxNode> nodes, TextPosition position)
         {
             foreach (var node in nodes)
             {
@@ -71,12 +72,12 @@ namespace DarkId.Papyrus.LanguageService.Program
             return null;
         }
 
-        public static SyntaxNode GetDescendantNodeAtPosition(this SyntaxNode node, Position position)
+        public static SyntaxNode GetDescendantNodeAtPosition(this SyntaxNode node, TextPosition position)
         {
             return GetNodeAtPositionInternal(node.Children, position);
         }
 
-        public static SyntaxNode GetNodeAtPosition(this SyntaxNode node, Position position)
+        public static SyntaxNode GetNodeAtPosition(this SyntaxNode node, TextPosition position)
         {
             return GetDescendantNodeAtPosition(node, position) ?? node;
         }
@@ -101,7 +102,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             return node.GetAncestors().OfType<IStatementBlock>().FirstOrDefault();
         }
 
-        public static T GetDescendantNodeOfTypeAtPosition<T>(this SyntaxNode node, Position position)
+        public static T GetDescendantNodeOfTypeAtPosition<T>(this SyntaxNode node, TextPosition position)
             where T : SyntaxNode
         {
             var descendant = GetNodeAtPositionInternal(node.Children, position);
@@ -113,77 +114,81 @@ namespace DarkId.Papyrus.LanguageService.Program
             return descendant as T ?? (T)descendant.GetAncestors().FirstOrDefault(a => a is T);
         }
 
-        public static int GetFunctionParameterIndexAtPosition(this FunctionCallExpressionNode functionCallExpression, Position position)
+        public static int GetFunctionParameterIndexAtPosition(this FunctionCallExpressionNode functionCallExpression, TextPosition position)
         {
-            var intersectingParameterIndex = 0;
+            throw new NotImplementedException();
 
-            // Here, we're making the parameter node ranges contiguous
-            var parameterRanges = new List<Range>();
-            for (var i = 0; i < functionCallExpression.Parameters.Count; i++)
-            {
-                var range = functionCallExpression.Parameters[i].Range;
-                if (i > 0)
-                {
-                    var previousParameterEnd = functionCallExpression.Parameters[i - 1].Range.End;
+            //var intersectingParameterIndex = 0;
 
-                    range = new Range()
-                    {
-                        Start = new Position()
-                        {
-                            Line = previousParameterEnd.Line,
-                            Character = previousParameterEnd.Character + 1
-                        },
-                        End = new Position()
-                        {
-                            Line = range.End.Line,
-                            Character = range.End.Character + 1
-                        }
-                    };
-                }
+            //// Here, we're making the parameter node ranges contiguous
+            //var parameterRanges = new List<TextRange>();
+            //for (var i = 0; i < functionCallExpression.Parameters.Count; i++)
+            //{
+            //    var range = functionCallExpression.Parameters[i].Range;
+            //    if (i > 0)
+            //    {
+            //        var previousParameterEnd = functionCallExpression.Parameters[i - 1].Range.End;
 
-                parameterRanges.Add(range);
-            }
+            //        range = new TextRange()
+            //        {
+            //            Start = new TextPosition()
+            //            {
+            //                Line = previousParameterEnd.Line,
+            //                Character = previousParameterEnd.Character + 1
+            //            },
+            //            End = new TextPosition()
+            //            {
+            //                Line = range.End.Line,
+            //                Character = range.End.Character + 1
+            //            }
+            //        };
+            //    }
 
-            var intersectingRange = parameterRanges.LastOrDefault(r => position >= r.Start);
-            intersectingParameterIndex = parameterRanges.IndexOf(intersectingRange);
+            //    parameterRanges.Add(range);
+            //}
 
-            // If we're intersecting a named call parameter, we want to adjust the index to match the actual signature index.
-            var intersectingCallParameter = functionCallExpression.Parameters.ElementAtOrDefault(intersectingParameterIndex);
-            if (intersectingCallParameter != null)
-            {
-                if (intersectingCallParameter.Identifier != null)
-                {
-                    var parameterDefinition = intersectingCallParameter.GetParameterDefinition();
-                    return functionCallExpression.GetDefinition().Header.Parameters.IndexOf(parameterDefinition);
-                }
-            }
+            //var intersectingRange = parameterRanges.LastOrDefault(r => position >= r.Start);
+            //intersectingParameterIndex = parameterRanges.IndexOf(intersectingRange);
 
-            if (intersectingParameterIndex == -1)
-            {
-                intersectingParameterIndex = 0;
-            }
+            //// If we're intersecting a named call parameter, we want to adjust the index to match the actual signature index.
+            //var intersectingCallParameter = functionCallExpression.Parameters.ElementAtOrDefault(intersectingParameterIndex);
+            //if (intersectingCallParameter != null)
+            //{
+            //    if (intersectingCallParameter.Identifier != null)
+            //    {
+            //        var parameterDefinition = intersectingCallParameter.GetParameterDefinition();
+            //        return functionCallExpression.GetDefinition().Header.Parameters.IndexOf(parameterDefinition);
+            //    }
+            //}
 
-            return intersectingParameterIndex;
+            //if (intersectingParameterIndex == -1)
+            //{
+            //    intersectingParameterIndex = 0;
+            //}
+
+            //return intersectingParameterIndex;
         }
 
         public static string GetLeadingComments(this SyntaxNode node)
         {
-            if (string.IsNullOrWhiteSpace(node.LeadingText))
-            {
-                return string.Empty;
-            }
+            throw new NotImplementedException();
 
-            var text = node.LeadingText;
-            var leadingLines = text.Split('\n').Select(t => t.TrimEnd()).ToArray();
-            if (leadingLines.Length > 1 && string.IsNullOrWhiteSpace(leadingLines.Last()))
-            {
-                leadingLines = leadingLines.Take(leadingLines.Count() - 1).ToArray();
-            }
+            //if (string.IsNullOrWhiteSpace(node.LeadingText))
+            //{
+            //    return string.Empty;
+            //}
 
-            var leadingCommentLines = leadingLines.Reverse().TakeWhile(t => t.StartsWith(";")).Reverse();
-            var trimmedCommentLines = leadingCommentLines.Select(t => t.Substring(t.StartsWith("; ") ? 2 : 1)).ToArray();
+            //var text = node.LeadingText;
+            //var leadingLines = text.Split('\n').Select(t => t.TrimEnd()).ToArray();
+            //if (leadingLines.Length > 1 && string.IsNullOrWhiteSpace(leadingLines.Last()))
+            //{
+            //    leadingLines = leadingLines.Take(leadingLines.Count() - 1).ToArray();
+            //}
 
-            return trimmedCommentLines.Join("\n");
+            //var leadingCommentLines = leadingLines.Reverse().TakeWhile(t => t.StartsWith(";")).Reverse();
+            //var trimmedCommentLines = leadingCommentLines.Select(t => t.Substring(t.StartsWith("; ") ? 2 : 1)).ToArray();
+
+            //return trimmedCommentLines.Join("\n");
         }
     }
 }

@@ -11,11 +11,11 @@ namespace DarkId.Papyrus.LanguageService.Program
         public const char NamespaceSeparator = ':';
         public const char StructSeparator = '#';
 
-        private static readonly Regex identifierRegex = new Regex("((?'namespaces'[\\S\\\\/]+):)?(?'script'[^\\s#]+)((#)(?'struct'\\S+))?");
+        private static readonly Regex IdentifierRegex = new Regex("((?'namespaces'[\\S\\\\/]+):)?(?'script'[^\\s#]+)((#)(?'struct'\\S+))?");
 
         public static ObjectIdentifier Parse(string fullyQualifiedName)
         {
-            var matches = identifierRegex.Match(fullyQualifiedName);
+            var matches = IdentifierRegex.Match(fullyQualifiedName);
 
             var scriptName = matches.Groups["script"].Value;
             var structName = matches.Groups["struct"].Value.NullIfWhitespace();
@@ -26,7 +26,7 @@ namespace DarkId.Papyrus.LanguageService.Program
                 ScriptName = scriptName,
                 StructName = structName,
                 FullyQualifiedName = fullyQualifiedName,
-                FullyQualifiedDisplayName = fullyQualifiedName.Replace('#', ':'),
+                FullyQualifiedDisplayName = fullyQualifiedName.Replace(StructSeparator, NamespaceSeparator),
                 FullScriptName = (!string.IsNullOrWhiteSpace(matches.Groups["namespaces"].Value) ? matches.Groups["namespaces"].Value + ":" : string.Empty) + scriptName,
                 ShortName = scriptName + (!string.IsNullOrWhiteSpace(structName) ? ":" + structName : string.Empty)
             };
@@ -46,7 +46,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             }
             catch
             {
-                identifier = default(ObjectIdentifier);
+                identifier = default;
                 return false;
             }
         }
@@ -94,7 +94,7 @@ namespace DarkId.Papyrus.LanguageService.Program
         public string ToScriptFilePath()
         {
             return string.Join(Path.DirectorySeparatorChar.ToString(), NamespaceParts)
-                + Path.DirectorySeparatorChar.ToString() + ScriptName + ".psc";
+                + Path.DirectorySeparatorChar + ScriptName + ".psc";
         }
 
         public override string ToString()
@@ -104,12 +104,15 @@ namespace DarkId.Papyrus.LanguageService.Program
 
         public override int GetHashCode()
         {
+            // This is lazy, immutable and not a reference type.
+            // ReSharper disable NonReadonlyMemberInGetHashCode
             if (_hashCode == 0)
             {
                 _hashCode = ToString().ToLower().GetHashCode();
             }
 
             return _hashCode;
+            // ReSharper restore NonReadonlyMemberInGetHashCode
         }
 
         public bool Equals(ObjectIdentifier other)

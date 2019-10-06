@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DarkId.Papyrus.LanguageService.Program
+namespace DarkId.Papyrus.LanguageService
 {
     public enum DiagnosticLevel
     {

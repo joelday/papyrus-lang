@@ -4,13 +4,12 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
-using Range = DarkId.Papyrus.Common.Range;
 
 namespace DarkId.Papyrus.LanguageService.Program
 {
     public static class ProgramExtensions
     {
-        internal static Diagnostic ToDiagnostic(this Exception exception, Range range = default(Range))
+        internal static Diagnostic ToDiagnostic(this Exception exception, TextRange range = default)
         {
             return new Diagnostic(DiagnosticLevel.Error, $"Exception: {exception.Message}", range, exception);
         }

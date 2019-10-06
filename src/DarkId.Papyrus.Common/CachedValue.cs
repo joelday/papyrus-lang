@@ -44,17 +44,21 @@ namespace DarkId.Papyrus.Common
 
                 try
                 {
-                    if (_value == null || (_isInvalidatedFunc != null && _isInvalidatedFunc(_value)))
+                    if (_value != null && (_isInvalidatedFunc == null || !_isInvalidatedFunc(_value)))
                     {
-                        _currentUpdateThread = Thread.CurrentThread;
-
-                        var newValue = _valueFunc();
-                        if (_value != newValue)
-                        {
-                            (_value as IDisposable)?.Dispose();
-                            _value = newValue;
-                        }
+                        return;
                     }
+
+                    _currentUpdateThread = Thread.CurrentThread;
+
+                    var newValue = _valueFunc();
+                    if (_value == newValue)
+                    {
+                        return;
+                    }
+
+                    (_value as IDisposable)?.Dispose();
+                    _value = newValue;
                 }
                 finally
                 {

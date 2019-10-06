@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
-using DarkId.Papyrus.LanguageService.Program.Syntax;
+using DarkId.Papyrus.LanguageService.Syntax;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
@@ -163,15 +163,8 @@ namespace DarkId.Papyrus.Server.Features
 
         private Task<CompletionList> HandleEmptyNodeCompletion(CompletionParams request, ScriptFile scriptFile)
         {
-            var lineText = scriptFile.Text.GetTextInRange(new Common.Range()
-            {
-                Start = new Common.Position()
-                {
-                    Line = request.Position.Line,
-                    Character = 0
-                },
-                End = request.Position.ToPosition()
-            });
+            var lineText = scriptFile.Text.GetTextInRange(
+                new TextRange(new TextPosition(request.Position.Line, 0), request.Position.ToPosition()));
 
             var match = Regex.Match(lineText, @"^\s*event\s+((.*)\..*)?.*$", RegexOptions.IgnoreCase);
             if (!match.Success)

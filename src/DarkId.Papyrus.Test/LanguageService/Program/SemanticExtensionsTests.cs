@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
-using DarkId.Papyrus.LanguageService.Program.Syntax;
+using DarkId.Papyrus.LanguageService.Syntax;
 using DarkId.Papyrus.Test.LanguageService.Program.TestHarness;
 using NUnit.Framework;
 

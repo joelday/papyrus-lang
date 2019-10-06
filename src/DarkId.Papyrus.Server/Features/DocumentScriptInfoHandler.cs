@@ -1,6 +1,6 @@
 ﻿using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program;
-using DarkId.Papyrus.LanguageService.Program.Syntax;
+using DarkId.Papyrus.LanguageService.Syntax;
 using DarkId.Papyrus.Server.Protocol;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc;

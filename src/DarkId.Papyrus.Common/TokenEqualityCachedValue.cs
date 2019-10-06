@@ -7,32 +7,31 @@ namespace DarkId.Papyrus.Common
     public class TokenEqualityCachedValue<TValue, TToken>
         where TValue : class
     {
-        private CachedValue<TValue> _value;
-        private TToken _token;
+        private readonly CachedValue<TValue> _value;
 
-        public TokenEqualityCachedValue(Func<TValue> valueFunc, Func<TValue, TToken> tokenFunc, TToken initialTokenValue = default(TToken))
+        public TokenEqualityCachedValue(Func<TValue> valueFunc, Func<TValue, TToken> tokenFunc, TToken initialTokenValue = default)
         {
             _value = new CachedValue<TValue>(valueFunc, (value) =>
             {
-                var currentToken = _token;
+                var currentToken = CurrentToken;
                 var newToken = tokenFunc(value);
 
                 if (!newToken.HashCodeEquals(currentToken))
                 {
-                    _token = newToken;
+                    CurrentToken = newToken;
                     return true;
                 }
 
                 return false;
             });
 
-            _token = initialTokenValue;
+            CurrentToken = initialTokenValue;
         }
 
         public TValue Value => _value.Value;
         public TValue CurrentValue => _value.CurrentValue;
 
-        public TToken CurrentToken => _token;
+        public TToken CurrentToken { get; private set; }
 
         public void RefreshIfInvalidated()
         {

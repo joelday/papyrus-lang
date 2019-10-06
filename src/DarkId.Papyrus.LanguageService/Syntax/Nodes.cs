@@ -5,10 +5,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DarkId.Papyrus.LanguageService.Program;
 
-using Range = DarkId.Papyrus.Common.Range;
-
-namespace DarkId.Papyrus.LanguageService.Program.Syntax
+namespace DarkId.Papyrus.LanguageService.Syntax
 {
     public interface ISymbolScope
     {
@@ -52,40 +51,32 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public abstract class SyntaxNode : TreeNode<SyntaxNode>
     {
-        public abstract NodeKind Kind { get; }
-
-        public string LeadingText { get; set; }
+        public abstract SyntaxKind Kind { get; }
 
         public string Text { get; set; }
 
         public ScriptNode Script { get; set; }
 
-        public Range Range { get; set; }
+        public TextRange Range { get; set; }
 
-        // internal CommonTree CompilerNode { get; set; }
+        public TextRange FullRange { get; set; }
 
         public PapyrusSymbol Symbol { get; set; }
 
         public ISymbolScope Scope { get; set; }
-
-        // internal ScriptScope CompilerScope { get; set; }
     }
 
     public class ScriptNode : SyntaxNode, IDefinitionBlock
     {
-        public override NodeKind Kind => NodeKind.Script;
+        public override SyntaxKind Kind => SyntaxKind.Script;
 
         public ScriptFile File { get; set; }
         public PapyrusProgram Program { get; set; }
-
-        public string LocalScopeName => null;
 
         public ScriptHeaderNode Header { get; set; }
 
         public List<ImportNode> Imports { get; } = new List<ImportNode>();
         public List<SyntaxNode> Definitions { get; } = new List<SyntaxNode>();
-
-        // internal ScriptObjectType CompilerType { get; set; }
 
         public new ScriptSymbol Symbol => (ScriptSymbol)base.Symbol;
 
@@ -94,7 +85,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class ScriptHeaderNode : SyntaxNode, ITypedIdentifiable, IFlaggable, IDocumentable
     {
-        public override NodeKind Kind => NodeKind.ScriptHeader;
+        public override SyntaxKind Kind => SyntaxKind.ScriptHeader;
 
         public IdentifierNode Identifier { get; set; }
         public TypeIdentifierNode TypeIdentifier { get; set; }
@@ -109,7 +100,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class AssignmentStatementNode : SyntaxNode
     {
-        public override NodeKind Kind => NodeKind.AssignmentStatement;
+        public override SyntaxKind Kind => SyntaxKind.AssignmentStatement;
 
         public ExpressionNode LeftValue { get; set; }
         public AssignmentOperatorType Operation { get; set; }
@@ -118,25 +109,23 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class DeclareStatementNode : SyntaxNode, ITypedIdentifiable
     {
-        public override NodeKind Kind => NodeKind.DeclareStatement;
+        public override SyntaxKind Kind => SyntaxKind.DeclareStatement;
 
         public IdentifierNode Identifier { get; set; }
         public TypeIdentifierNode TypeIdentifier { get; set; }
         public ExpressionNode InitialValue { get; set; }
-
-        // internal ScriptVariableType CompilerType { get; set; }
     }
 
     public class ExpressionStatementNode : SyntaxNode
     {
-        public override NodeKind Kind => NodeKind.ExpressionStatement;
+        public override SyntaxKind Kind => SyntaxKind.ExpressionStatement;
 
         public ExpressionNode Expression { get; set; }
     }
 
     public class WhileStatementNode : SyntaxNode, IStatementBlock
     {
-        public override NodeKind Kind => NodeKind.WhileStatement;
+        public override SyntaxKind Kind => SyntaxKind.WhileStatement;
 
         public ExpressionNode Expression { get; set; }
         public List<SyntaxNode> Statements { get; } = new List<SyntaxNode>();
@@ -145,7 +134,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class ArrayIndexExpressionNode : ExpressionNode
     {
-        public override NodeKind Kind => NodeKind.ArrayIndexExpression;
+        public override SyntaxKind Kind => SyntaxKind.ArrayIndexExpression;
 
         public ExpressionNode ArrayExpression { get; set; }
         public ExpressionNode IndexExpression { get; set; }
@@ -153,7 +142,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class BinaryOperationExpressionNode : ExpressionNode
     {
-        public override NodeKind Kind => NodeKind.BinaryOperationExpression;
+        public override SyntaxKind Kind => SyntaxKind.BinaryOperationExpression;
 
         public ExpressionNode Left { get; set; }
         public BinaryOperatorType Operator { get; set; }
@@ -162,7 +151,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class CastExpressionNode : ExpressionNode, ITypeIdentifiable
     {
-        public override NodeKind Kind => NodeKind.CastExpression;
+        public override SyntaxKind Kind => SyntaxKind.CastExpression;
 
         public ExpressionNode InnerExpression { get; set; }
         public TypeIdentifierNode TypeIdentifier { get; set; }
@@ -170,7 +159,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class ReturnStatementNode : SyntaxNode
     {
-        public override NodeKind Kind => NodeKind.ReturnStatement;
+        public override SyntaxKind Kind => SyntaxKind.ReturnStatement;
 
         public ExpressionNode ReturnValue { get; set; }
     }
@@ -184,7 +173,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class IfStatementNode : SyntaxNode
     {
-        public override NodeKind Kind => NodeKind.IfStatement;
+        public override SyntaxKind Kind => SyntaxKind.IfStatement;
 
         public List<IfStatementBodyNode> Bodies { get; } = new List<IfStatementBodyNode>();
     }
@@ -192,20 +181,18 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
     public class IfStatementBodyNode : SyntaxNode,
         IStatementBlock
     {
-        public override NodeKind Kind => NodeKind.IfStatementBody;
+        public override SyntaxKind Kind => SyntaxKind.IfStatementBody;
 
         public IfStatementBodyKind BodyKind { get; set; }
         public ExpressionNode Condition { get; set; }
         public List<SyntaxNode> Statements { get; } = new List<SyntaxNode>();
 
         public Dictionary<string, PapyrusSymbol> ScopedSymbols { get; } = new Dictionary<string, PapyrusSymbol>(StringComparer.OrdinalIgnoreCase);
-
-        public string LocalScopeName => BodyKind.ToString().ToLower();
     }
 
     public class FunctionCallExpressionNode : ExpressionNode, IIdentifiable
     {
-        public override NodeKind Kind => NodeKind.FunctionCallExpression;
+        public override SyntaxKind Kind => SyntaxKind.FunctionCallExpression;
 
         public bool IsGlobalCall { get; set; }
         public IdentifierNode Identifier { get; set; }
@@ -214,7 +201,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class FunctionCallExpressionParameterNode : ExpressionNode, IIdentifiable
     {
-        public override NodeKind Kind => NodeKind.FunctionCallExpressionParameter;
+        public override SyntaxKind Kind => SyntaxKind.FunctionCallExpressionParameter;
 
         public IdentifierNode Identifier { get; set; }
         public ExpressionNode Value { get; set; }
@@ -222,14 +209,14 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class IdentifierExpressionNode : ExpressionNode, IIdentifiable
     {
-        public override NodeKind Kind => NodeKind.IdentifierExpression;
+        public override SyntaxKind Kind => SyntaxKind.IdentifierExpression;
 
         public IdentifierNode Identifier { get; set; }
     }
 
     public class IsExpressionNode : ExpressionNode, ITypeIdentifiable
     {
-        public override NodeKind Kind => NodeKind.IsExpression;
+        public override SyntaxKind Kind => SyntaxKind.IsExpression;
 
         public ExpressionNode InnerExpression { get; set; }
         public TypeIdentifierNode TypeIdentifier { get; set; }
@@ -237,14 +224,14 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class LiteralExpressionNode : ExpressionNode
     {
-        public override NodeKind Kind => NodeKind.LiteralExpression;
+        public override SyntaxKind Kind => SyntaxKind.LiteralExpression;
 
         public ILiteralNode Value { get; set; }
     }
 
     public class MemberAccessExpressionNode : ExpressionNode
     {
-        public override NodeKind Kind => NodeKind.MemberAccessExpression;
+        public override SyntaxKind Kind => SyntaxKind.MemberAccessExpression;
 
         public ExpressionNode BaseExpression { get; set; }
         public ExpressionNode AccessExpression { get; set; }
@@ -252,7 +239,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class NewArrayExpressionNode : ExpressionNode, ITypeIdentifiable
     {
-        public override NodeKind Kind => NodeKind.NewArrayExpression;
+        public override SyntaxKind Kind => SyntaxKind.NewArrayExpression;
 
         public ExpressionNode LengthExpression { get; set; }
         public TypeIdentifierNode TypeIdentifier { get; set; }
@@ -260,14 +247,14 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class NewStructExpressionNode : ExpressionNode, ITypeIdentifiable
     {
-        public override NodeKind Kind => NodeKind.NewStructExpression;
+        public override SyntaxKind Kind => SyntaxKind.NewStructExpression;
 
         public TypeIdentifierNode TypeIdentifier { get; set; }
     }
 
     public class UnaryOperationExpressionNode : ExpressionNode
     {
-        public override NodeKind Kind => NodeKind.UnaryOperationExpression;
+        public override SyntaxKind Kind => SyntaxKind.UnaryOperationExpression;
 
         public ExpressionNode InnerExpression { get; set; }
         public UnaryOperatorType Operator { get; set; }
@@ -275,24 +262,24 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class CustomEventDefinitionNode : SyntaxNode, IIdentifiable
     {
-        public override NodeKind Kind => NodeKind.CustomEventDefinition;
+        public override SyntaxKind Kind => SyntaxKind.CustomEventDefinition;
         public IdentifierNode Identifier { get; set; }
     }
 
     public class IdentifierNode : SyntaxNode
     {
-        public override NodeKind Kind => NodeKind.Identifier;
+        public override SyntaxKind Kind => SyntaxKind.Identifier;
     }
 
     public class TypeIdentifierNode : IdentifierNode
     {
-        public override NodeKind Kind => NodeKind.TypeIdentifier;
+        public override SyntaxKind Kind => SyntaxKind.TypeIdentifier;
         public bool IsArray { get; set; }
     }
 
     public class DocCommentNode : SyntaxNode
     {
-        public override NodeKind Kind => NodeKind.DocComment;
+        public override SyntaxKind Kind => SyntaxKind.DocComment;
 
         public string Comment
         {
@@ -311,7 +298,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
                 if (comment.LastOrDefault() == '}')
                 {
-                    comment = comment.Substring(0, comment.Length - 1);
+                    comment = comment[..^1];
                 }
 
                 return comment;
@@ -321,53 +308,45 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class VariableDefinitionNode : SyntaxNode, IFlaggable, ITypedIdentifiable, IDocumentable
     {
-        public override NodeKind Kind => NodeKind.VariableDefinition;
+        public override SyntaxKind Kind => SyntaxKind.VariableDefinition;
 
         public LanguageFlags Flags { get; set; }
         public IdentifierNode Identifier { get; set; }
         public TypeIdentifierNode TypeIdentifier { get; set; }
         public DocCommentNode DocComment { get; set; }
-
-        // internal ScriptVariableType CompilerType { get; set; }
     }
 
     public class StructDefinitionNode : SyntaxNode, IDefinitionBlock
     {
-        public override NodeKind Kind => NodeKind.StructDefinition;
+        public override SyntaxKind Kind => SyntaxKind.StructDefinition;
 
         public StructHeaderNode Header { get; set; }
         public List<SyntaxNode> Definitions { get; } = new List<SyntaxNode>();
         public Dictionary<string, PapyrusSymbol> ScopedSymbols { get; } = new Dictionary<string, PapyrusSymbol>(StringComparer.OrdinalIgnoreCase);
-
-        public string LocalScopeName => null;
     }
 
     public class StructHeaderNode : SyntaxNode, IIdentifiable
     {
-        public override NodeKind Kind => NodeKind.StructHeader;
-
-        // internal ScriptStructType CompilerType { get; set; }
+        public override SyntaxKind Kind => SyntaxKind.StructHeader;
 
         public IdentifierNode Identifier { get; set; }
     }
 
     public class StateDefinitionNode : SyntaxNode, IIdentifiable, IDefinitionBlock
     {
-        public override NodeKind Kind => NodeKind.StateDefinition;
+        public override SyntaxKind Kind => SyntaxKind.StateDefinition;
 
         public IdentifierNode Identifier { get; set; }
         public bool IsAuto { get; set; }
 
         public List<SyntaxNode> Definitions { get; } = new List<SyntaxNode>();
         public Dictionary<string, PapyrusSymbol> ScopedSymbols { get; } = new Dictionary<string, PapyrusSymbol>(StringComparer.OrdinalIgnoreCase);
-
-        public string LocalScopeName => Identifier.Text;
     }
 
     public class EventDefinitionNode : SyntaxNode,
         IStatementBlock
     {
-        public override NodeKind Kind => NodeKind.EventDefinition;
+        public override SyntaxKind Kind => SyntaxKind.EventDefinition;
 
         public FunctionHeaderNode Header { get; set; }
         public List<SyntaxNode> Statements { get; } = new List<SyntaxNode>();
@@ -377,7 +356,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
     public class FunctionDefinitionNode : SyntaxNode,
         IStatementBlock
     {
-        public override NodeKind Kind => NodeKind.FunctionDefinition;
+        public override SyntaxKind Kind => SyntaxKind.FunctionDefinition;
 
         public FunctionHeaderNode Header { get; set; }
         public List<SyntaxNode> Statements { get; } = new List<SyntaxNode>();
@@ -386,7 +365,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class FunctionHeaderNode : SyntaxNode, ITypedIdentifiable, IFlaggable, IDocumentable
     {
-        public override NodeKind Kind => NodeKind.FunctionHeader;
+        public override SyntaxKind Kind => SyntaxKind.FunctionHeader;
 
         public TypeIdentifierNode TypeIdentifier { get; set; }
         public IdentifierNode Identifier { get; set; }
@@ -397,14 +376,12 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
         public LanguageFlags Flags { get; set; }
         public DocCommentNode DocComment { get; set; }
         public bool IsEvent { get; set; }
-
-        // internal ScriptFunctionType CompilerType { get; set; }
     }
 
     public class FunctionParameterNode : SyntaxNode,
         ITypedIdentifiable
     {
-        public override NodeKind Kind => NodeKind.FunctionParameter;
+        public override SyntaxKind Kind => SyntaxKind.FunctionParameter;
 
         public TypeIdentifierNode TypeIdentifier { get; set; }
         public IdentifierNode Identifier { get; set; }
@@ -415,7 +392,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class PropertyDefinitionNode : SyntaxNode, IDefinitionBlock
     {
-        public override NodeKind Kind => NodeKind.PropertyDefinition;
+        public override SyntaxKind Kind => SyntaxKind.PropertyDefinition;
 
         public PropertyHeaderNode Header { get; set; }
         public List<SyntaxNode> Definitions { get; } = new List<SyntaxNode>();
@@ -424,19 +401,17 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class PropertyHeaderNode : SyntaxNode, ITypedIdentifiable, IFlaggable, IDocumentable
     {
-        public override NodeKind Kind => NodeKind.PropertyHeader;
+        public override SyntaxKind Kind => SyntaxKind.PropertyHeader;
 
         public TypeIdentifierNode TypeIdentifier { get; set; }
         public IdentifierNode Identifier { get; set; }
         public LanguageFlags Flags { get; set; }
         public DocCommentNode DocComment { get; set; }
-
-        // internal ScriptPropertyType CompilerType { get; set; }
     }
 
     public class GroupDefinitionNode : SyntaxNode, IDefinitionBlock
     {
-        public override NodeKind Kind => NodeKind.GroupDefinition;
+        public override SyntaxKind Kind => SyntaxKind.GroupDefinition;
 
         public GroupHeaderNode Header { get; set; }
         public List<SyntaxNode> Definitions { get; } = new List<SyntaxNode>();
@@ -445,14 +420,14 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class GroupHeaderNode : SyntaxNode, IIdentifiable
     {
-        public override NodeKind Kind => NodeKind.GroupHeader;
+        public override SyntaxKind Kind => SyntaxKind.GroupHeader;
         public IdentifierNode Identifier { get; set; }
     }
 
     public class ImportNode : SyntaxNode,
         IIdentifiable
     {
-        public override NodeKind Kind => NodeKind.Import;
+        public override SyntaxKind Kind => SyntaxKind.Import;
 
         public IdentifierNode Identifier { get; set; }
     }
@@ -474,32 +449,32 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
 
     public class FloatLiteralNode : LiteralNode<float>
     {
-        public override NodeKind Kind => NodeKind.FloatLiteral;
+        public override SyntaxKind Kind => SyntaxKind.FloatLiteral;
     }
 
     public class BoolLiteralNode : LiteralNode<bool>
     {
-        public override NodeKind Kind => NodeKind.BoolLiteral;
+        public override SyntaxKind Kind => SyntaxKind.BoolLiteral;
     }
 
     public class HexLiteralNode : LiteralNode<int>
     {
-        public override NodeKind Kind => NodeKind.HexLiteral;
+        public override SyntaxKind Kind => SyntaxKind.HexLiteral;
     }
 
     public class IntLiteralNode : LiteralNode<int>
     {
-        public override NodeKind Kind => NodeKind.IntLiteral;
+        public override SyntaxKind Kind => SyntaxKind.IntLiteral;
     }
 
     public class NoneLiteralNode : SyntaxNode,
         ILiteralNode
     {
-        public override NodeKind Kind => NodeKind.NoneLiteral;
+        public override SyntaxKind Kind => SyntaxKind.NoneLiteral;
     }
 
     public class StringLiteralNode : LiteralNode<string>
     {
-        public override NodeKind Kind => NodeKind.StringLiteral;
+        public override SyntaxKind Kind => SyntaxKind.StringLiteral;
     }
 }

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
 
 using DarkId.Papyrus.LanguageService.Program.Symbols;
-using DarkId.Papyrus.LanguageService.Program.Syntax;
+using DarkId.Papyrus.LanguageService.Syntax;
 
 namespace DarkId.Papyrus.LanguageService.Program.Types
 {

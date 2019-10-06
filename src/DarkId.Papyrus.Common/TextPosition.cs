@@ -7,20 +7,26 @@ using System.Threading.Tasks;
 
 namespace DarkId.Papyrus.Common
 {
-    [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public struct Position : IEquatable<Position>
+    [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
+    public struct TextPosition : IEquatable<TextPosition>
     {
-        public long Line { get; set; }
-        public long Character { get; set; }
+        public long Line { get; }
+        public long Character { get; }
 
-        public bool Equals(Position other)
+        public TextPosition(long line, long character)
+        {
+            Line = line;
+            Character = character;
+        }
+
+        public bool Equals(TextPosition other)
         {
             return Line == other.Line && Character == other.Character;
         }
 
         public override bool Equals(object obj)
         {
-            return obj is Position && (Position)obj == this;
+            return obj is TextPosition && (TextPosition)obj == this;
         }
 
         public override int GetHashCode()
@@ -31,32 +37,32 @@ namespace DarkId.Papyrus.Common
             return hashCode;
         }
 
-        public static bool operator ==(Position left, Position right)
+        public static bool operator ==(TextPosition left, TextPosition right)
         {
             return left.Equals(right);
         }
 
-        public static bool operator !=(Position left, Position right)
+        public static bool operator !=(TextPosition left, TextPosition right)
         {
             return !left.Equals(right);
         }
 
-        public static bool operator <(Position left, Position right)
+        public static bool operator <(TextPosition left, TextPosition right)
         {
             return left.Line < right.Line || (left.Line == right.Line && left.Character < right.Character);
         }
 
-        public static bool operator >(Position left, Position right)
+        public static bool operator >(TextPosition left, TextPosition right)
         {
             return left.Line > right.Line || (left.Line == right.Line && left.Character > right.Character);
         }
 
-        public static bool operator <=(Position left, Position right)
+        public static bool operator <=(TextPosition left, TextPosition right)
         {
             return left < right || left == right;
         }
 
-        public static bool operator >=(Position left, Position right)
+        public static bool operator >=(TextPosition left, TextPosition right)
         {
             return left > right || left == right;
         }

@@ -3,18 +3,16 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-using Range = DarkId.Papyrus.Common.Range;
-
-namespace DarkId.Papyrus.LanguageService.Program
+namespace DarkId.Papyrus.LanguageService
 {
     public class Diagnostic
     {
         public DiagnosticLevel Severity { get; }
         public string Message { get; }
-        public virtual Range Range { get; }
+        public TextRange Range { get; }
         public Exception Exception { get; }
 
-        public Diagnostic(DiagnosticLevel severity, string message, Range range, Exception exception = null)
+        public Diagnostic(DiagnosticLevel severity, string message, TextRange range = default, Exception exception = null)
         {
             Severity = severity;
             Message = message;

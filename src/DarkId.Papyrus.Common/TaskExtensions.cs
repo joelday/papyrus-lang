@@ -11,12 +11,7 @@ namespace DarkId.Papyrus.Common
         {
             task.Wait();
 
-            if (!task.IsFaulted)
-            {
-                return task.Result;
-            }
-
-            return default(T);
+            return !task.IsFaulted ? task.Result : default;
         }
         
         public static void AndIgnore(this Task _)

@@ -3,29 +3,25 @@ using System.Collections.Generic;
 using System.Text;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using PapCommon = DarkId.Papyrus.Common;
-using PapProgram = DarkId.Papyrus.LanguageService.Program;
+using LS = DarkId.Papyrus.LanguageService;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace DarkId.Papyrus.Server
 {
     public static class ModelExtensions
     {
-        private static readonly Dictionary<PapProgram.DiagnosticLevel, DiagnosticSeverity> _severityMap =
-            new Dictionary<PapProgram.DiagnosticLevel, DiagnosticSeverity>()
+        private static readonly Dictionary<LS.DiagnosticLevel, DiagnosticSeverity> SeverityMap =
+            new Dictionary<LS.DiagnosticLevel, DiagnosticSeverity>()
             {
-               { PapProgram.DiagnosticLevel.Error, DiagnosticSeverity.Error }
+               { LS.DiagnosticLevel.Error, DiagnosticSeverity.Error }
             };
 
-        public static PapCommon.Position ToPosition(this Position position)
+        public static PapCommon.TextPosition ToPosition(this Position position)
         {
-            return new PapCommon.Position()
-            {
-                Line = position.Line,
-                Character = position.Character
-            };
+            return new PapCommon.TextPosition(position.Line, position.Character);
         }
 
-        public static Position ToPosition(this PapCommon.Position position)
+        public static Position ToPosition(this PapCommon.TextPosition position)
         {
             return new Position()
             {
@@ -34,16 +30,12 @@ namespace DarkId.Papyrus.Server
             };
         }
 
-        public static PapCommon.Range ToRange(this Range range)
+        public static PapCommon.TextRange ToRange(this Range range)
         {
-            return new PapCommon.Range()
-            {
-                Start = range.Start.ToPosition(),
-                End = range.End.ToPosition()
-            };
+            return new PapCommon.TextRange(range.Start.ToPosition(), range.End.ToPosition());
         }
 
-        public static Range ToRange(this PapCommon.Range range)
+        public static Range ToRange(this PapCommon.TextRange range)
         {
             return new Range()
             {
@@ -62,7 +54,7 @@ namespace DarkId.Papyrus.Server
             };
         }
 
-        public static Diagnostic ToDiagnostic(this PapProgram.Diagnostic diagnostic, string prefix = null)
+        public static Diagnostic ToDiagnostic(this LS.Diagnostic diagnostic, string prefix = null)
         {
             var sb = new StringBuilder();
             if (!string.IsNullOrEmpty(prefix))
@@ -74,13 +66,13 @@ namespace DarkId.Papyrus.Server
 
             if (diagnostic.Exception != null)
             {
-                sb.Append($"\r\n({diagnostic.Exception.ToString()})");
+                sb.Append($"\r\n({diagnostic.Exception})");
             }
 
             return new Diagnostic()
             {
                 Message = sb.ToString(),
-                Severity = _severityMap[diagnostic.Severity],
+                Severity = SeverityMap[diagnostic.Severity],
                 Range = diagnostic.Range.ToRange(),
                 Code = new DiagnosticCode(null),
                 Source = "Papyrus"

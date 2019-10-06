@@ -12,17 +12,17 @@ namespace DarkId.Papyrus.Common
         string Text { get; }
         string Version { get; }
 
-        string GetTextInRange(Range range);
+        string GetTextInRange(TextRange range);
 
-        int OffsetAt(Position position);
-        Position PositionAt(int offset);
+        int OffsetAt(TextPosition position);
+        TextPosition PositionAt(int offset);
     }
 
     public class ScriptText : IReadOnlyScriptText, IEquatable<ScriptText>
     {
         private List<int> _lineOffsets;
 
-        public string FilePath { get; private set; }
+        public string FilePath { get; }
         public string Text { get; private set; }
         public string Version { get; private set; }
 
@@ -65,7 +65,7 @@ namespace DarkId.Papyrus.Common
             return _lineOffsets;
         }
 
-        public string GetTextInRange(Range range)
+        public string GetTextInRange(TextRange range)
         {
             var start = OffsetAt(range.Start);
             var end = OffsetAt(range.End);
@@ -96,7 +96,7 @@ namespace DarkId.Papyrus.Common
             }
         }
 
-        public int OffsetAt(Position position)
+        public int OffsetAt(TextPosition position)
         {
             var lineOffsets = GetLineOffsets();
 
@@ -115,7 +115,7 @@ namespace DarkId.Papyrus.Common
             return (int)Math.Max(Math.Min(lineOffset + position.Character, nextLineOffset), lineOffset);
         }
 
-        public Position PositionAt(int offset)
+        public TextPosition PositionAt(int offset)
         {
             offset = Math.Max(Math.Min(offset, Text.Length), 0);
 
@@ -125,11 +125,7 @@ namespace DarkId.Papyrus.Common
 
             if (high == 0)
             {
-                return new Position()
-                {
-                    Line = 0,
-                    Character = offset
-                };
+                return new TextPosition(0, offset);
             }
             while (low < high)
             {
@@ -147,16 +143,12 @@ namespace DarkId.Papyrus.Common
             // low is the least x for which the line offset is larger than the current offset
             // or array.length if no line offset is larger than the current offset
             var line = low - 1;
-            return new Position()
-            {
-                Line = line,
-                Character = offset - lineOffsets[line]
-            };
+            return new TextPosition(line, offset - lineOffsets[line]);
         }
 
         public bool Equals(ScriptText other)
         {
-            return FilePath == other.FilePath && Version == other.Version;
+            return other != null && (FilePath == other.FilePath && Version == other.Version);
         }
     }
 }
