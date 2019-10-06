@@ -2,6 +2,7 @@
 <PapyrusProject xmlns="PapyrusProject.xsd"
     Flags="TESV_Papyrus_Flags.flg">
     <Imports>
+        <Import>../Shared</Import>
     </Imports> 
 
     <Scripts>

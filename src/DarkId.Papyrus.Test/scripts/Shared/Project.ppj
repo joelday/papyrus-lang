@@ -2,7 +2,8 @@
 <PapyrusProject xmlns="PapyrusProject.xsd"
     Flags="Institute_Papyrus_Flags.flg">
     <Imports>
-        <Import>../Shared</Import>
+        <Import>C:\Program Files (x86)\Steam\steamapps\common\Fallout 4\Data\Scripts\Source\Base</Import>
+        <Import>..\..\FO4Scripts\Base</Import>
     </Imports>
 
     <Folders>

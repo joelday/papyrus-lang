@@ -7,7 +7,7 @@ using DarkId.Papyrus.Common;
 
 namespace DarkId.Papyrus.LanguageService.Syntax
 {
-    class ScriptLexer
+    public class ScriptLexer
     {
         private static readonly Dictionary<string, SyntaxKind> TokenStringMap =
             new Dictionary<string, SyntaxKind>(StringComparer.OrdinalIgnoreCase)
@@ -128,7 +128,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                 SyntaxKind.Unknown;
         }
 
-        public IEnumerable<ScriptToken> Tokenize(ScriptText sourceText, DiagnosticsContext diagnostics)
+        public IEnumerable<ScriptToken> Tokenize(ScriptText sourceText, LanguageVersion languageVersion, DiagnosticsContext diagnostics)
         {
             var scanner = new Scanner<string>(TokensRegex.Matches(sourceText.Text).Select(t => t.Value));
 
