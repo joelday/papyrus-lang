@@ -5,13 +5,18 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
+using DarkId.Papyrus.LanguageService;
+using DarkId.Papyrus.LanguageService.Program;
 using NUnit.Framework;
 
 namespace DarkId.Papyrus.Test.LanguageService.Program
 {
-    [TestFixture]
     public class ScriptFileTests : ProgramTestBase
     {
+        public ScriptFileTests(PapyrusProgram program) : base(program)
+        {
+        }
+
         // TODO: Failure case tests.
 
         [Test]

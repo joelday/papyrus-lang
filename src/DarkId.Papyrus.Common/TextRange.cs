@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 
 namespace DarkId.Papyrus.Common
 {
-    [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
     public struct TextRange : IEquatable<TextRange>
     {
         public static readonly TextRange Empty = default;
@@ -54,7 +53,9 @@ namespace DarkId.Papyrus.Common
             return !left.Equals(right);
         }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        internal string DebuggerDisplay => $"Start = {{ {Start.DebuggerDisplay} }} End = {{ {End.DebuggerDisplay} }}";
+        public override string ToString()
+        {
+            return $"{nameof(Start)}: {{ {Start} }}, {nameof(End)}: {{ {End} }}";
+        }
     }
 }

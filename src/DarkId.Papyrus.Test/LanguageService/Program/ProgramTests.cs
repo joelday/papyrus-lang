@@ -5,23 +5,25 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
+using DarkId.Papyrus.LanguageService;
+using DarkId.Papyrus.LanguageService.Program;
 using NUnit.Framework;
+using NUnit.Framework.Internal;
 
 namespace DarkId.Papyrus.Test.LanguageService.Program
 {
-    [TestFixture]
     public class ProgramTests : ProgramTestBase
     {
+        public ProgramTests(PapyrusProgram program) : base(program)
+        {
+        }
+
         [Test]
         public async Task Program_ShouldResolveSources()
         {
             await Program.ResolveSources();
-            // TODO: Per language variant tests
-            //#if FALLOUT4
-            var sourcesPath = "../../../scripts/Fallout 4";
-            //#elif SKYRIM
-            //            var sourcesPath = "../../../../scripts/Skyrim";
-            //#endif
+            var sourcesPath = Program.Options.LanguageVersion ==
+                              LanguageVersion.Fallout4 ? "../../../scripts/Fallout 4" : "../../../scripts/Skyrim";
 
             Console.WriteLine(Program.FilePaths.Keys.Join(",\r\n"));
 

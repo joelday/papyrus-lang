@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using DarkId.Papyrus.Common;
 
@@ -40,6 +41,11 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                 hashCode = (hashCode * 397) ^ LexerState.GetHashCode();
                 return hashCode;
             }
+        }
+
+        public override string ToString()
+        {
+            return $"{nameof(Kind)}: {Kind}, {nameof(Text)}: \"{Text.Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t")}\", {nameof(Range)}: {{ {Range} }}";
         }
     }
 }

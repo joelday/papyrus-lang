@@ -10,53 +10,56 @@ using DarkId.Papyrus.LanguageService.Program;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace DarkId.Papyrus.Test.LanguageService.Program.TestHarness
+namespace DarkId.Papyrus.Test.LanguageService
 {
-    class ProgramTestHarness
+    public class TestServiceInstance
     {
+        // ReSharper disable once ClassNeverInstantiated.Local
         private class CreationKitInisLocator : ICreationKitInisLocator
         {
+            private readonly LanguageVersion _languageVersion;
+
+            public CreationKitInisLocator(LanguageVersion languageVersion)
+            {
+                _languageVersion = languageVersion;
+            }
+
             public CreationKitIniLocations GetIniLocations()
             {
                 return new CreationKitIniLocations()
                 {
                     CreationKitInstallPath = "../../../scripts",
-                    RelativeIniPaths = new List<string>() {
-//#if FALLOUT4
-                        "Fallout4.ini"
-//#elif SKYRIM
-//                        "Skyrim.ini"
-//#endif
+                    RelativeIniPaths = new List<string>()
+                    {
+                        _languageVersion == LanguageVersion.Fallout4 ? "Fallout4.ini" :  "Skyrim.ini"
                     }
                 };
             }
         }
 
-        private static readonly IServiceProvider _serviceProvider;
+        private readonly IServiceProvider _serviceProvider;
 
-        static ProgramTestHarness()
+        public TestServiceInstance(LanguageVersion languageVersion)
         {
             var serviceCollection = new ServiceCollection()
                 .AddLogging()
                 .AddSingleton<IFileSystem, LocalFileSystem>()
                 .AddSingleton<IScriptTextProvider, FileSystemScriptTextProvider>()
-                .AddSingleton<ICreationKitInisLocator, CreationKitInisLocator>()
+                .AddSingleton<ICreationKitInisLocator, CreationKitInisLocator>((provider) =>
+                    provider.CreateInstance<CreationKitInisLocator>(languageVersion)
+                )
                 .AddSingleton<ICreationKitConfigLoader, CreationKitInisConfigLoader>()
                 .AddSingleton((provider) =>
                     provider.CreateInstance<CreationKitProgramOptionsProvider>(
+                        languageVersion,
                         "Creation Kit",
-                        //// TODO: Configured
-                        //#if FALLOUT4
-                        "Institute_Papyrus_Flags.flg",
-                        //#elif SKYRIM
-                        //                        "TESV_Papyrus_Flags.flg",
-                        //#endif
+                        languageVersion == LanguageVersion.Fallout4 ? "Institute_Papyrus_Flags.flg" : "TESV_Papyrus_Flags.flg",
                         new CreationKitConfig()));
 
             _serviceProvider = serviceCollection.BuildServiceProvider();
         }
 
-        public static PapyrusProgram CreateProgram()
+        public PapyrusProgram CreateProgram()
         {
             var programOptionsProvider = _serviceProvider.GetService<CreationKitProgramOptionsProvider>();
             var options = programOptionsProvider.GetAmbientProgramOptions();

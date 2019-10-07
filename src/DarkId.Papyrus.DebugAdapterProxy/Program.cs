@@ -19,6 +19,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Debug;
 using Newtonsoft.Json.Linq;
 using System.Runtime.InteropServices;
+using DarkId.Papyrus.LanguageService;
 
 namespace DarkId.Papyrus.DebugAdapterProxy
 {
@@ -59,7 +60,6 @@ namespace DarkId.Papyrus.DebugAdapterProxy
 
         static int Main(string[] args)
         {
-
             int exitCode = 0;
 
             Parser.Default.ParseArguments<Options>(args)
@@ -127,6 +127,8 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                 var inisLocator = new CreationKitInisLocator(inisLocations);
 
                 var programOptionsProvider = new CreationKitProgramOptionsProvider(
+                    // TODO: Fucked up temporary hack until args are changed.
+                    options.Port == 2077 ? LanguageVersion.Fallout4 : LanguageVersion.Skyrim,
                     string.Empty,
                     string.Empty,
                     creationKitConfig,

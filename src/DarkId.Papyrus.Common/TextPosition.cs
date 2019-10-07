@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 
 namespace DarkId.Papyrus.Common
 {
-    [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
     public struct TextPosition : IEquatable<TextPosition>
     {
         public long Line { get; }
@@ -67,7 +66,9 @@ namespace DarkId.Papyrus.Common
             return left > right || left == right;
         }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        internal string DebuggerDisplay => $"Line = {Line} Character = {Character}";
+        public override string ToString()
+        {
+            return $"{nameof(Line)}: {Line}, {nameof(Character)}: {Character}";
+        }
     }
 }

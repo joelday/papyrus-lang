@@ -40,6 +40,7 @@ namespace DarkId.Papyrus.Server
                     .AddSingleton<ICreationKitConfigLoader, CreationKitInisConfigLoader>()
                     .AddSingleton((provider) =>
                         provider.CreateInstance<CreationKitProgramOptionsProvider>(
+                            papyrusOptions.LanguageVersion,
                             papyrusOptions.AmbientProjectName,
                             papyrusOptions.FlagsFileName,
                             papyrusOptions.DefaultCreationKitConfig))

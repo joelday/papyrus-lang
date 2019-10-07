@@ -12,7 +12,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
         private static readonly Dictionary<string, SyntaxKind> TokenStringMap =
             new Dictionary<string, SyntaxKind>(StringComparer.OrdinalIgnoreCase)
             {
-                {"{ ", SyntaxKind.OpenBraceToken},
+                {"{", SyntaxKind.OpenBraceToken},
                 {"}", SyntaxKind.CloseBraceToken},
                 {"(", SyntaxKind.OpenParenToken},
                 {")", SyntaxKind.CloseParenToken},
@@ -112,7 +112,10 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                     string.Join('|',
                         new[] {NewLineRegex, WhitespaceRegex, IdentifierRegex, HexRegex, FloatRegex}
                             .Select(r => r.ToString())
-                            .Concat(TokenStringMap.Keys.OrderBy(k => k.Length).Reverse().Select(Regex.Escape)))}|*",
+                            .Concat(TokenStringMap.Keys.OrderBy(k => k.Length).Reverse()
+                                .Select(k => Regex.Escape(k).Replace("/", "\\/"))
+                            )
+                        )}",
                 RegexOptions.Compiled | RegexOptions.IgnoreCase
             );
         }
@@ -128,7 +131,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                 SyntaxKind.Unknown;
         }
 
-        public IEnumerable<ScriptToken> Tokenize(ScriptText sourceText, LanguageVersion languageVersion, DiagnosticsContext diagnostics)
+        public IEnumerable<ScriptToken> Tokenize(IReadOnlyScriptText sourceText, LanguageVersion languageVersion, DiagnosticsContext diagnostics)
         {
             var scanner = new Scanner<string>(TokensRegex.Matches(sourceText.Text).Select(t => t.Value));
 
@@ -219,6 +222,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                             state
                         );
 
+                        state.PreviousTokenKind = kind;
                         state.PreviousText = text;
                         state.Position = nextPosition;
 
@@ -239,25 +243,25 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                         when (state.Flags & ScriptLexerStateFlags.InSingleLineComment) == 0 &&
                              (state.Flags & ScriptLexerStateFlags.InMultilineComment) == 0 &&
                              (state.Flags & ScriptLexerStateFlags.InStringLiteral) == 0:
-                        state.Flags &= ScriptLexerStateFlags.InDocumentationComment;
+                        state.Flags |= ScriptLexerStateFlags.InDocumentationComment;
                         break;
                     case SyntaxKind.SemicolonSlashToken
                         when (state.Flags & ScriptLexerStateFlags.InSingleLineComment) == 0 &&
                              (state.Flags & ScriptLexerStateFlags.InStringLiteral) == 0:
-                        state.Flags &= ScriptLexerStateFlags.InMultilineComment;
+                        state.Flags |= ScriptLexerStateFlags.InMultilineComment;
                         break;
                     case SyntaxKind.SemicolonToken
                         when (state.Flags & ScriptLexerStateFlags.InDocumentationComment) == 0 &&
                              (state.Flags & ScriptLexerStateFlags.InMultilineComment) == 0 &&
                              (state.Flags & ScriptLexerStateFlags.InStringLiteral) == 0:
-                        state.Flags &= ScriptLexerStateFlags.InSingleLineComment;
+                        state.Flags |= ScriptLexerStateFlags.InSingleLineComment;
                         break;
                     case SyntaxKind.DoubleQuoteToken
                         when (state.Flags & ScriptLexerStateFlags.InDocumentationComment) == 0 &&
                              (state.Flags & ScriptLexerStateFlags.InMultilineComment) == 0 &&
                              (state.Flags & ScriptLexerStateFlags.InSingleLineComment) == 0 &&
                              (state.Flags & ScriptLexerStateFlags.InStringLiteral) == 0:
-                        state.Flags &= ScriptLexerStateFlags.InStringLiteral;
+                        state.Flags |= ScriptLexerStateFlags.InStringLiteral;
                         state.StringLiteralStartPosition = state.Position;
                         break;
                 }
@@ -269,6 +273,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                     state
                 );
 
+                state.PreviousTokenKind = kind;
                 state.PreviousText = text;
                 state.Position = nextPosition;
 

@@ -5,9 +5,9 @@ namespace DarkId.Papyrus.LanguageService.Syntax
     [Flags]
     public enum ScriptLexerStateFlags
     {
-        InDocumentationComment = 0x1,
-        InMultilineComment = 0x2,
-        InSingleLineComment = 0x3,
-        InStringLiteral = 0x4
+        InDocumentationComment = 1,
+        InMultilineComment = 2,
+        InSingleLineComment = 4,
+        InStringLiteral = 8
     }
 }

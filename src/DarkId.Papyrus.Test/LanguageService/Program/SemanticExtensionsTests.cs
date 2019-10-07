@@ -5,17 +5,20 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
+using DarkId.Papyrus.LanguageService;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
 using DarkId.Papyrus.LanguageService.Syntax;
-using DarkId.Papyrus.Test.LanguageService.Program.TestHarness;
 using NUnit.Framework;
 
 namespace DarkId.Papyrus.Test.LanguageService.Program
 {
-    [TestFixture]
     public class SemanticExtensionsTests : ProgramTestBase
     {
+        public SemanticExtensionsTests(PapyrusProgram program) : base(program)
+        {
+        }
+
         private ScriptFile GetScript(string script = "ScopeTests")
         {
             return Program.ScriptFiles[script];
@@ -65,17 +68,16 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
             return referencableSymbols;
         }
 
-#if FALLOUT4
         // GetReferencableSymbols in this context only returns structs.
         // The completion handler is responsible for attaching scripts to the completion list.
 
         [Test]
+        [LanguageVersions(LanguageVersion.Fallout4)]
         public void GetReferencableSymbols_ScriptBody()
         {
             var symbols = GetReferencableSymbolsAtMarker("script-body");
             symbols.AssertAreOfKinds(SymbolKinds.Struct);
         }
-#endif
 
         [Test]
         public void GetReferencableSymbols_FunctionBody()
@@ -83,10 +85,13 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
             var symbols = GetReferencableSymbolsAtMarker("function-body", canReturnDeclaredGlobals: true);
             symbols.AssertAreOfKinds(SymbolKinds.Script | SymbolKinds.Struct | SymbolKinds.Function | SymbolKinds.Variable | SymbolKinds.Property | SymbolKinds.Event);
 
+            
             Assert.IsNotNull(symbols.SingleOrDefault(s => s.Name == "LocalGlobalFunction"));
-#if FALLOUT4
-            Assert.IsNotNull(symbols.SingleOrDefault(s => s.Name == "GroupProperty"));
-#endif
+           
+            if (Program.Options.LanguageVersion == LanguageVersion.Fallout4)
+            {
+                Assert.IsNotNull(symbols.SingleOrDefault(s => s.Name == "GroupProperty"));
+            }
         }
 
         [Test]
@@ -139,8 +144,8 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
             GetReferencableSymbolsAtMarker("function-parameter-name", true, shouldHaveResults: false);
         }
 
-#if FALLOUT4
         [Test]
+        [LanguageVersions(LanguageVersion.Fallout4)]
         public void GetKnownParameterValueSymbols_CustomEvents()
         {
             var script = GetScript();
@@ -151,17 +156,17 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
 
             var symbols = callExpressionNode.GetKnownParameterValueSymbols(currentParameterIndex, out var areValidExclusively);
 
-            Assert.IsTrue(symbols.Count() > 0);
+            Assert.IsTrue(symbols.Any());
             Assert.IsTrue(symbols.All(s => s is CustomEventSymbol));
         }
 
         [Test]
+        [LanguageVersions(LanguageVersion.Fallout4)]
         public void GetReferencableSymbols_IncompleteRemoteEvent()
         {
             GetScript();
             GetReferencableSymbolsAtMarker("incomplete-remote-event");
             GetReferencableSymbolsAtMarker("incomplete-remote-event", true);
         }
-#endif
     }
 }

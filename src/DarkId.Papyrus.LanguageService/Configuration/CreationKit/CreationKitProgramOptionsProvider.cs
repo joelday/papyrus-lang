@@ -14,6 +14,7 @@ namespace DarkId.Papyrus.LanguageService.Configuration.CreationKit
 {
     public class CreationKitProgramOptionsProvider
     {
+        private readonly LanguageVersion _languageVersion;
         private readonly string _ambientProgramName;
         private readonly string _flagsFileName;
         private readonly CreationKitConfig _defaultConfig;
@@ -22,6 +23,7 @@ namespace DarkId.Papyrus.LanguageService.Configuration.CreationKit
         private readonly ILogger _logger;
 
         public CreationKitProgramOptionsProvider(
+            LanguageVersion languageVersion,
             string ambientProgramName,
             string flagsFileName,
             CreationKitConfig defaultConfig,
@@ -29,6 +31,7 @@ namespace DarkId.Papyrus.LanguageService.Configuration.CreationKit
             ICreationKitConfigLoader configLoader,
             ILogger<CreationKitProgramOptionsProvider> logger)
         {
+            _languageVersion = languageVersion;
             _ambientProgramName = ambientProgramName;
             _flagsFileName = flagsFileName;
             _defaultConfig = defaultConfig;
@@ -81,6 +84,7 @@ namespace DarkId.Papyrus.LanguageService.Configuration.CreationKit
                 .WithName(_ambientProgramName)
                 .WithFlagsFileName(_flagsFileName)
                 .WithSourceIncludes(importPathsElementsWithSubstitutedSource)
+                .WithLanguageVersion(_languageVersion)
                 .Build();
 
             return programOptions;

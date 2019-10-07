@@ -7,12 +7,16 @@ using CommandLine;
 using System.Linq;
 using System.IO;
 using System.Reflection;
+using DarkId.Papyrus.LanguageService;
 using DarkId.Papyrus.LanguageService.Configuration.CreationKit;
 
 namespace DarkId.Papyrus.Server.Host
 {
     public class Options
     {
+        [Option("languageVersion", Required = true)]
+        public LanguageVersion LanguageVersion { get; set; }
+
         [Option("flagsFileName", Required = true)]
         public string FlagsFileName { get; set; }
 
@@ -48,6 +52,7 @@ namespace DarkId.Papyrus.Server.Host
         {
             var server = await PapyrusLanguageServer.From((serverOptions, papyrusOptions) =>
             {
+                papyrusOptions.LanguageVersion = options.LanguageVersion;
                 papyrusOptions.AmbientProjectName = options.AmbientProjectName;
                 papyrusOptions.DefaultCreationKitConfig = new CreationKitConfig()
                 {

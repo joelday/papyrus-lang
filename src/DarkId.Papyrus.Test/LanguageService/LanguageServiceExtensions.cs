@@ -9,9 +9,9 @@ using DarkId.Papyrus.LanguageService.Program.Symbols;
 using DarkId.Papyrus.LanguageService.Syntax;
 using NUnit.Framework;
 
-namespace DarkId.Papyrus.Test.LanguageService.Program.TestHarness
+namespace DarkId.Papyrus.Test.LanguageService
 {
-    public static class ProgramExtensions
+    public static class LanguageServiceExtensions
     {
         public static TextPosition GetTestMarker(this ScriptFile file, string marker, bool beforeMarker = false)
         {

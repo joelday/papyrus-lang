@@ -50,8 +50,8 @@ namespace DarkId.Papyrus.LanguageService.Program.Types
 
     public sealed class ScriptType : ComplexType<ScriptSymbol>
     {
-        private readonly Dictionary<ObjectIdentifier, StructType> _structTypes;
-        public IReadOnlyDictionary<ObjectIdentifier, StructType> StructTypes => _structTypes;
+        // private readonly Dictionary<ObjectIdentifier, StructType> _structTypes;
+        public IReadOnlyDictionary<ObjectIdentifier, StructType> StructTypes => throw new NotImplementedException(); //_structTypes;
 
         public ScriptType(PapyrusProgram program, ScriptSymbol symbol)
             : base(program, symbol)

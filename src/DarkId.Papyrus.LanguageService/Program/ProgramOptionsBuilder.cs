@@ -32,6 +32,12 @@ namespace DarkId.Papyrus.LanguageService.Program
             return this;
         }
 
+        public ProgramOptionsBuilder WithLanguageVersion(LanguageVersion languageVersion)
+        {
+            _options.LanguageVersion = languageVersion;
+            return this;
+        }
+
         public ProgramOptions Build()
         {
             return _options;
