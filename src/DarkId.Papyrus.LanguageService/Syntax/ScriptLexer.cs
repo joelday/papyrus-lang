@@ -110,7 +110,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
             TokensRegex = new Regex(
                 $@"{
                     string.Join('|',
-                        new[] {NewLineRegex, WhitespaceRegex, IdentifierRegex, HexRegex, FloatRegex}
+                        new[] {NewLineRegex, WhitespaceRegex, IdentifierRegex, HexRegex, FloatRegex, IntRegex}
                             .Select(r => r.ToString())
                             .Concat(TokenStringMap.Keys.OrderBy(k => k.Length).Reverse()
                                 .Select(k => Regex.Escape(k).Replace("/", "\\/"))
@@ -127,76 +127,80 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                 TokenStringMap.ContainsKey(text) ? TokenStringMap[text] :
                 HexRegex.IsMatch(text) ? SyntaxKind.HexLiteralToken :
                 IdentifierRegex.IsMatch(text) ? SyntaxKind.IdentifierToken :
+                FloatRegex.IsMatch(text) ? SyntaxKind.FloatLiteralToken :
                 IntRegex.IsMatch(text) ? SyntaxKind.IntLiteralToken :
                 SyntaxKind.Unknown;
         }
 
-        public IEnumerable<ScriptToken> Tokenize(IReadOnlyScriptText sourceText, LanguageVersion languageVersion, DiagnosticsContext diagnostics)
+        public IEnumerable<ScriptToken> Tokenize(IReadOnlyScriptText sourceText, LanguageVersion languageVersion, DiagnosticsContext diagnostics, ScriptToken? resumeFrom = default)
         {
-            var scanner = new Scanner<string>(TokensRegex.Matches(sourceText.Text).Select(t => t.Value));
+            var scanner = new Scanner<Match>(TokensRegex.Matches(sourceText.Text, resumeFrom.HasValue ? sourceText.OffsetAt(resumeFrom.Value.Range.End) : 0));
 
             if (!scanner.Next())
             {
                 yield break;
             }
 
-            var state = new ScriptLexerState()
+            var state = resumeFrom?.LexerState ?? new ScriptLexerState()
             {
                 StringLiteralStartPosition = -1
             };
 
+            if (resumeFrom.HasValue)
+            {
+                state.Position = resumeFrom.Value.LexerState.Position + resumeFrom.Value.Text.Length;
+                state.PreviousTokenKind = resumeFrom.Value.Kind;
+            }
+
             while (!scanner.Done)
             {
-                var text = scanner.Current;
+                var text = scanner.Current.Value;
 
                 var nextPosition = state.Position + text.Length;
                 var kind = GetTextTokenSyntaxKind(text);
 
-                if ((state.Flags & ScriptLexerStateFlags.InDocumentationComment) != 0)
+                if (state.ContentState == ScriptLexerContentState.InDocumentationComment)
                 {
                     if (kind == SyntaxKind.CloseBraceToken)
                     {
-                        state.Flags &= ~ScriptLexerStateFlags.InDocumentationComment;
+                        state.ContentState = ScriptLexerContentState.InSource;
                     }
-                    else
-                    {
-                        kind = SyntaxKind.DocumentationCommentTrivia;
-                    }
+
+                    kind = SyntaxKind.DocumentationCommentTrivia;
                 }
-                else if ((state.Flags & ScriptLexerStateFlags.InMultilineComment) != 0)
+                else if (state.ContentState == ScriptLexerContentState.InMultilineComment)
                 {
                     if (kind == SyntaxKind.SlashSemicolonToken)
                     {
-                        state.Flags &= ~ScriptLexerStateFlags.InMultilineComment;
+                        state.ContentState = ScriptLexerContentState.InSource;
                     }
-                    else
-                    {
-                        kind = SyntaxKind.MultilineCommentTrivia;
-                    }
+
+                    kind = SyntaxKind.MultilineCommentTrivia;
                 }
-                else if ((state.Flags & ScriptLexerStateFlags.InSingleLineComment) != 0)
+                else if (state.ContentState == ScriptLexerContentState.InSingleLineComment)
                 {
                     if (kind == SyntaxKind.NewLineTrivia)
                     {
-                        state.Flags &= ~ScriptLexerStateFlags.InSingleLineComment;
+                        state.ContentState = ScriptLexerContentState.InSource;
                     }
                     else
                     {
                         kind = SyntaxKind.SingleLineCommentTrivia;
                     }
                 }
-                else if ((state.Flags & ScriptLexerStateFlags.InStringLiteral) != 0)
+                else if (state.ContentState == ScriptLexerContentState.InStringLiteral)
                 {
                     if (kind == SyntaxKind.NewLineTrivia)
                     {
-                        state.Flags &= ~ScriptLexerStateFlags.InStringLiteral;
+                        state.ContentState = ScriptLexerContentState.InSource;
+
                         diagnostics.Add(new Diagnostic(DiagnosticLevel.Error, "Unterminated string literal.", new TextRange(
                             sourceText.PositionAt(state.StringLiteralStartPosition),
                             sourceText.PositionAt(state.Position))));
                     }
                     else if (
                         kind == SyntaxKind.BackslashToken &&
-                        GetTextTokenSyntaxKind(state.PreviousText) != SyntaxKind.BackslashToken
+                        state.PreviousTokenKind != SyntaxKind.BackslashToken
                     )
                     {
                         // we know we are escaping something
@@ -207,13 +211,13 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                             break;
                         }
 
-                        var nextText = scanner.Current;
+                        var nextText = scanner.Current.Value;
                         text += nextText;
                         nextPosition += nextPosition + nextText.Length;
                     }
                     else if (kind == SyntaxKind.DoubleQuoteToken)
                     {
-                        state.Flags &= ~ScriptLexerStateFlags.InStringLiteral;
+                        state.ContentState = ScriptLexerContentState.InSource;
 
                         yield return new ScriptToken(
                             kind,
@@ -223,7 +227,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                         );
 
                         state.PreviousTokenKind = kind;
-                        state.PreviousText = text;
                         state.Position = nextPosition;
 
                         scanner.Next();
@@ -239,30 +242,30 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                 // ReSharper disable once SwitchStatementMissingSomeCases
                 switch (kind)
                 {
-                    case SyntaxKind.OpenBraceToken
-                        when (state.Flags & ScriptLexerStateFlags.InSingleLineComment) == 0 &&
-                             (state.Flags & ScriptLexerStateFlags.InMultilineComment) == 0 &&
-                             (state.Flags & ScriptLexerStateFlags.InStringLiteral) == 0:
-                        state.Flags |= ScriptLexerStateFlags.InDocumentationComment;
+                    case SyntaxKind.OpenBraceToken when (state.ContentState == ScriptLexerContentState.InSource):
+                        kind = SyntaxKind.DocumentationCommentTrivia;
+                        state.ContentState = ScriptLexerContentState.InDocumentationComment;
                         break;
-                    case SyntaxKind.SemicolonSlashToken
-                        when (state.Flags & ScriptLexerStateFlags.InSingleLineComment) == 0 &&
-                             (state.Flags & ScriptLexerStateFlags.InStringLiteral) == 0:
-                        state.Flags |= ScriptLexerStateFlags.InMultilineComment;
+                    case SyntaxKind.SemicolonSlashToken when (state.ContentState == ScriptLexerContentState.InSource):
+                        kind = SyntaxKind.MultilineCommentTrivia;
+                        state.ContentState = ScriptLexerContentState.InMultilineComment;
                         break;
-                    case SyntaxKind.SemicolonToken
-                        when (state.Flags & ScriptLexerStateFlags.InDocumentationComment) == 0 &&
-                             (state.Flags & ScriptLexerStateFlags.InMultilineComment) == 0 &&
-                             (state.Flags & ScriptLexerStateFlags.InStringLiteral) == 0:
-                        state.Flags |= ScriptLexerStateFlags.InSingleLineComment;
+                    case SyntaxKind.SemicolonToken when (state.ContentState == ScriptLexerContentState.InSource):
+                        kind = SyntaxKind.SingleLineCommentTrivia;
+                        state.ContentState = ScriptLexerContentState.InSingleLineComment;
                         break;
-                    case SyntaxKind.DoubleQuoteToken
-                        when (state.Flags & ScriptLexerStateFlags.InDocumentationComment) == 0 &&
-                             (state.Flags & ScriptLexerStateFlags.InMultilineComment) == 0 &&
-                             (state.Flags & ScriptLexerStateFlags.InSingleLineComment) == 0 &&
-                             (state.Flags & ScriptLexerStateFlags.InStringLiteral) == 0:
-                        state.Flags |= ScriptLexerStateFlags.InStringLiteral;
+                    case SyntaxKind.DoubleQuoteToken when (state.ContentState == ScriptLexerContentState.InSource):
+                        state.ContentState = ScriptLexerContentState.InStringLiteral;
                         state.StringLiteralStartPosition = state.Position;
+                        break;
+                    case SyntaxKind.BackslashToken when (state.ContentState == ScriptLexerContentState.InSource &&
+                                                         scanner.Peek() != null &&
+                                                         GetTextTokenSyntaxKind(scanner.Peek().Value) == SyntaxKind.NewLineTrivia):
+                        kind = SyntaxKind.LineContinuationTrivia;
+                        break;
+                    case SyntaxKind.NewLineTrivia when (state.ContentState == ScriptLexerContentState.InSource &&
+                                                        state.PreviousTokenKind == SyntaxKind.LineContinuationTrivia):
+                        kind = SyntaxKind.LineContinuationTrivia;
                         break;
                 }
 
@@ -274,11 +277,17 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                 );
 
                 state.PreviousTokenKind = kind;
-                state.PreviousText = text;
                 state.Position = nextPosition;
 
                 scanner.Next();
             }
+
+            yield return new ScriptToken(
+                SyntaxKind.EndOfFileToken,
+                string.Empty,
+                new TextRange(sourceText.PositionAt(state.Position), sourceText.PositionAt(state.Position)),
+                state
+            );
         }
     }
 }

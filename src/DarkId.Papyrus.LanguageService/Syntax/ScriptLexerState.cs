@@ -4,16 +4,14 @@ namespace DarkId.Papyrus.LanguageService.Syntax
 {
     public struct ScriptLexerState : IEquatable<ScriptLexerState>
     {
-        public ScriptLexerStateFlags Flags { get; set; }
-        public string PreviousText { get; set; }
+        public ScriptLexerContentState ContentState { get; set; }
         public int Position { get; set; }
         public int StringLiteralStartPosition { get; set; }
         public SyntaxKind PreviousTokenKind { get; set; }
 
         public bool Equals(ScriptLexerState other)
         {
-            return Flags == other.Flags &&
-                   PreviousText == other.PreviousText &&
+            return ContentState == other.ContentState &&
                    Position == other.Position &&
                    StringLiteralStartPosition == other.StringLiteralStartPosition &&
                    PreviousTokenKind == other.PreviousTokenKind;
@@ -31,8 +29,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                 // This is not a reference type.
                 // ReSharper disable NonReadonlyMemberInGetHashCode
 
-                var hashCode = (int) Flags;
-                hashCode = (hashCode * 397) ^ (PreviousText != null ? PreviousText.GetHashCode() : 0);
+                var hashCode = (int) ContentState;
                 hashCode = (hashCode * 397) ^ Position;
                 hashCode = (hashCode * 397) ^ StringLiteralStartPosition;
                 hashCode = (hashCode * 397) ^ (int) PreviousTokenKind;

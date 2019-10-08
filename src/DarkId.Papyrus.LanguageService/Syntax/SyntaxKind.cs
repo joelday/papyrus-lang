@@ -14,6 +14,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
         SingleLineCommentTrivia,
         DocumentationCommentTrivia,
         MultilineCommentTrivia,
+        LineContinuationTrivia,
         NewLineTrivia,
         WhitespaceTrivia,
 

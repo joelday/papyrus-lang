@@ -1,4 +1,6 @@
-﻿using DarkId.Papyrus.LanguageService;
+﻿using System.Collections.Generic;
+using System.Linq;
+using DarkId.Papyrus.LanguageService;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Syntax;
 using NUnit.Framework;
@@ -12,7 +14,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
         }
 
         [Test]
-        public void TokenizeTest()
+        public void Tokenize_ProducesTokensFromSourceText()
         {
             var lexer = new ScriptLexer();
             var diagnostics = new DiagnosticsContext();
@@ -33,6 +35,48 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
             }
 
             Assert.AreEqual(scriptText.Text, tokenText, "Concatenated token texts should match the source text.");
+        }
+
+        private void Tokenize_CanResumeTokenizationWithOffset(int offset, List<ScriptToken> baselineTokens)
+        {
+            var lexer = new ScriptLexer();
+            var diagnostics = new DiagnosticsContext();
+
+            var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("LineContinuations")].Text;
+
+            var firstBatch = lexer.Tokenize(
+                scriptText,
+                LanguageVersion,
+                diagnostics).Take(offset).ToList();
+
+            var lastBatch = lexer.Tokenize(
+                scriptText,
+                LanguageVersion,
+                diagnostics,
+                firstBatch.Last()).ToList();
+
+            var tokens = firstBatch.Concat(lastBatch).ToList();
+
+            var tokenText = tokens.Aggregate(string.Empty, (current, token) => current + token.Text);
+
+            Assert.AreEqual(scriptText.Text, tokenText, "Concatenated token texts should match the source text.");
+            CollectionAssert.AreEqual(baselineTokens, tokens);
+        }
+
+        [Test]
+        public void Tokenize_CanResumeTokenization()
+        {
+            var lexer = new ScriptLexer();
+            var diagnostics = new DiagnosticsContext();
+
+            var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("LineContinuations")].Text;
+
+            var tokens = lexer.Tokenize(
+                scriptText,
+                LanguageVersion,
+                diagnostics).ToList();
+
+            Enumerable.Range(1, tokens.Count - 2).AsParallel().ForAll((offset) => Tokenize_CanResumeTokenizationWithOffset(offset, tokens));
         }
     }
 }
