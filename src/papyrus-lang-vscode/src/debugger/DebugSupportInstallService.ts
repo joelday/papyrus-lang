@@ -7,6 +7,7 @@ import { resolveInstallPath } from '../Utilities';
 import { PapyrusGame, getScriptExtenderName } from '../PapyrusGame';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
 import { ClientHostStatus } from '../server/LanguageClientHost';
+import { mkdirIfNeeded } from '../Utilities';
 
 import * as path from 'path';
 import * as fs from 'fs';
@@ -24,6 +25,11 @@ function getExtenderPluginPath(game: PapyrusGame) {
     return `Data/${getScriptExtenderName(game)}/Plugins`;
 }
 
+// For mod managers. The whole directory for the mod is "Data" so omit that part.
+function getModMgrExtenderPluginPath(game: PapyrusGame) {
+    return `${getScriptExtenderName(game)}/Plugins`;
+}
+
 function getPluginDllName(game: PapyrusGame, legacy = false) {
     switch (game) {
         case PapyrusGame.fallout4:
@@ -38,6 +44,7 @@ function getPluginDllName(game: PapyrusGame, legacy = false) {
 export enum DebugSupportInstallState {
     notInstalled,
     installed,
+    installedAsMod,
     incorrectVersion,
     gameMissing,
     gameDisabled,
@@ -66,6 +73,11 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
     private async getPluginInstallPath(game: PapyrusGame, legacy = false) {
         const config = (await this._configProvider.config.pipe(take(1)).toPromise())[game];
         const resolvedInstallPath = await resolveInstallPath(game, config.installPath, this._context);
+        const modDirectoryPath = config.modDirectoryPath;
+
+        if (modDirectoryPath) {
+            return path.join(modDirectoryPath, "Papyrus Debug Extension", getModMgrExtenderPluginPath(game), getPluginDllName(game, legacy));
+        }
 
         if (!resolvedInstallPath) {
             return null;
@@ -79,6 +91,7 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
     }
 
     async getInstallState(game: PapyrusGame): Promise<DebugSupportInstallState> {
+        const config = (await this._configProvider.config.pipe(take(1)).toPromise())[game];
         const client = await this._languageClientManager.getLanguageClientHost(game);
         const status = await client.status.pipe(take(1)).toPromise();
 
@@ -114,6 +127,10 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
             return DebugSupportInstallState.incorrectVersion;
         }
 
+        if (config.modDirectoryPath) {
+            return DebugSupportInstallState.installedAsMod;
+        }
+
         return DebugSupportInstallState.installed;
     }
 
@@ -125,14 +142,14 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
         }
 
         const pluginInstallPath = await this.getPluginInstallPath(game, false);
-        const bundledPluginPath = await this.getBundledPluginPath(game);
+        const bundledPluginPath = this.getBundledPluginPath(game);
 
         if (cancellationToken.isCancellationRequested) {
             return false;
         }
 
-        await copyFile(bundledPluginPath, pluginInstallPath);
-
+        mkdirIfNeeded(path.dirname(pluginInstallPath));
+        await copyFile(bundledPluginPath, pluginInstallPath)
         return true;
     }
 }

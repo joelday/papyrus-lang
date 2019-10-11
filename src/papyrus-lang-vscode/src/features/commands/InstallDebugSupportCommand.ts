@@ -67,8 +67,16 @@ export class InstallDebugSupportCommand extends GameCommandBase {
             }
         );
 
+        const currentStatus = await this._installer.getInstallState(game);
+
         if (installed) {
-            window.showInformationMessage(`Papyrus debugger support for ${getDisplayNameForGame(game)} installed!`);
+            if (currentStatus === DebugSupportInstallState.installedAsMod) {
+                window.showInformationMessage(`Papyrus debugger support for ${getDisplayNameForGame(game)} installed` +
+                    " to Mod Manager Directory as mod \"Papyrus Debug Extension\"." +
+                    " Don't forget to enable it in the mod manager!");
+            } else {
+                window.showInformationMessage(`Papyrus debugger support for ${getDisplayNameForGame(game)} installed!`);
+            }
         }
     }
 }
