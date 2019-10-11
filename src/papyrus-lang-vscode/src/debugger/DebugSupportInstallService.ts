@@ -65,7 +65,7 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
 
     private async getPluginInstallPath(game: PapyrusGame, legacy = false) {
         const config = (await this._configProvider.config.pipe(take(1)).toPromise())[game];
-        const resolvedInstallPath = await resolveInstallPath(PapyrusGame.fallout4, config.installPath, this._context);
+        const resolvedInstallPath = await resolveInstallPath(game, config.installPath, this._context);
 
         if (!resolvedInstallPath) {
             return null;
