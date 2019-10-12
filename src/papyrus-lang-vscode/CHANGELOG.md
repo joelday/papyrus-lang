@@ -1,3 +1,10 @@
+# [2.18.0](https://github.com/joelday/papyrus-lang/compare/v2.17.0...v2.18.0) (2019-10-12)
+
+
+### Features
+
+* Debugger plugin mod manager support ([#92](https://github.com/joelday/papyrus-lang/issues/92)) ([c24c951](https://github.com/joelday/papyrus-lang/commit/c24c951))
+
 # [2.17.0](https://github.com/joelday/papyrus-lang/compare/v2.16.2...v2.17.0) (2019-09-22)
 
 
