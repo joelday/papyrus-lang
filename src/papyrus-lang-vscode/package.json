@@ -115,7 +115,8 @@
             "properties": {
                 "papyrus.fallout4.enabled": {
                     "default": true,
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "Enable support for Fallout 4."
                 },
                 "papyrus.fallout4.creationKitIniFiles": {
                     "default": [
@@ -125,19 +126,28 @@
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "description": "INI Files for Fallout 4 version of the Creation Kit."
                 },
                 "papyrus.fallout4.installPath": {
                     "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Fallout 4\\",
-                    "type": "string"
+                    "type": "string",
+                    "description": "Pathname of the directory where Fallout 4 is installed."
                 },
                 "papyrus.fallout4.ignoreDebuggerVersion": {
                     "default": false,
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "Allow using old version of the debugger script extender plugin with Fallout 4."
+                },
+                "papyrus.fallout4.modDirectoryPath": {
+                    "default": "",
+                    "type": "string",
+                    "description": "If you want to use a mod manager to manage the debugger plugin as a mod, set this to the path of the directory where installed mods for Fallout 4 are kept. Otherwise it will be installed in the game directory."
                 },
                 "papyrus.skyrim.enabled": {
                     "default": true,
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "Enable support for Skyrim LE (\"Oldrim\"). This is not for Skyrim Special Edition!"
                 },
                 "papyrus.skyrim.creationKitIniFiles": {
                     "default": [
@@ -146,15 +156,18 @@
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "description": "INI Files for the Oldrim version of the Creation Kit."
                 },
                 "papyrus.skyrim.installPath": {
                     "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim\\",
-                    "type": "string"
+                    "type": "string",
+                    "description": "Pathname of the directory where Oldrim Skyrim is installed."
                 },
                 "papyrus.skyrimSpecialEdition.enabled": {
                     "default": true,
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "Enable support for Skyrim Special Edition."
                 },
                 "papyrus.skyrimSpecialEdition.creationKitIniFiles": {
                     "default": [
@@ -164,15 +177,23 @@
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "description": "INI Files for the Skyrim Special Edition version of the Creation Kit."
                 },
                 "papyrus.skyrimSpecialEdition.installPath": {
                     "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition\\",
-                    "type": "string"
+                    "type": "string",
+                    "description": "Pathname of the directory where Skyrim Special Edition is installed."
                 },
                 "papyrus.skyrimSpecialEdition.ignoreDebuggerVersion": {
                     "default": false,
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "Allow using old version of the debugger script extender plugin with Skyrim Special Edition."
+                },
+                "papyrus.skyrimSpecialEdition.modDirectoryPath": {
+                    "default": "",
+                    "type": "string",
+                    "description": "If you want to use a mod manager to manage the debugger plugin as a mod, set this to the path of the directory where installed mods for Skyrim SE are kept. Otherwise it will be installed in the game directory."
                 }
             },
             "title": "Papyrus",

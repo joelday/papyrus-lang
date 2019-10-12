@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import { PapyrusGame } from './PapyrusGame';
 
 import winreg from 'winreg';
@@ -59,7 +60,7 @@ export async function resolveInstallPath(
         if (await exists(item.value)) {
             return item.value;
         }
-    } catch (_) {}
+    } catch (_) { }
 
     if (inDevelopmentEnvironment() && game !== PapyrusGame.skyrim) {
         return context.asAbsolutePath('../../dependencies/compilers');
@@ -139,4 +140,42 @@ export function getLanguageToolPath(game: PapyrusGame) {
 export function getDebugToolPath(game: PapyrusGame) {
     const toolGameName = getToolGameName(game);
     return `./debug-bin/Debug/net461/DarkId.Papyrus.DebugAdapterProxy.${toolGameName}/DarkId.Papyrus.DebugAdapterProxy.${toolGameName}.exe`;
+}
+
+export function mkdirIfNeeded(pathname: string) {
+    if (fs.existsSync(pathname)) {
+        return false;
+    }
+    mkDirByPathSync(pathname);
+}
+
+// Apparently recursive mkdir doesn't want to work on windows.
+// Copied this from https://stackoverflow.com/questions/31645738/how-to-create-full-path-with-nodes-fs-mkdirsync
+export function mkDirByPathSync(targetDir: string, { isRelativeToScript = false } = {}) {
+    const sep = path.sep;
+    const initDir = path.isAbsolute(targetDir) ? sep : '';
+    const baseDir = isRelativeToScript ? __dirname : '.';
+
+    return targetDir.split(sep).reduce((parentDir, childDir) => {
+        const curDir = path.resolve(baseDir, parentDir, childDir);
+        try {
+            fs.mkdirSync(curDir);
+        } catch (err) {
+            if (err.code === 'EEXIST') { // curDir already exists!
+                return curDir;
+            }
+
+            // To avoid `EISDIR` error on Mac and `EACCES`-->`ENOENT` and `EPERM` on Windows.
+            if (err.code === 'ENOENT') { // Throw the original parentDir error on curDir `ENOENT` failure.
+                throw new Error(`EACCES: permission denied, mkdir '${parentDir}'`);
+            }
+
+            const caughtErr = ['EACCES', 'EPERM', 'EISDIR'].indexOf(err.code) > -1;
+            if (!caughtErr || caughtErr && curDir === path.resolve(targetDir)) {
+                throw err; // Throw if it's just the last created dir.
+            }
+        }
+
+        return curDir;
+    }, initDir);
 }

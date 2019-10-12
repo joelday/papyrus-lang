@@ -8,6 +8,7 @@ export interface IGameConfig {
     readonly creationKitIniFiles: string[];
     readonly installPath: string;
     readonly ignoreDebuggerVersion: boolean;
+    readonly modDirectoryPath: string;
 }
 
 export interface IExtensionConfig {
@@ -35,7 +36,7 @@ export class ExtensionConfigProvider implements IExtensionConfigProvider {
         return this._config;
     }
 
-    dispose() {}
+    dispose() { }
 }
 
 export const IExtensionConfigProvider = createDecorator<IExtensionConfigProvider>('extensionConfigProvider');
