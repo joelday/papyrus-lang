@@ -10,11 +10,11 @@ You can now write mods for Fallout 4 and Skyrim with the aid of modern code edit
 
 ## ✒ Visual Studio Code Extension
 
+Updated frequently with new features and improvements.
 <img align="right" src="src/papyrus-lang-vscode/images/icon-small-trimmed.png" width="128" />
 
-Updated frequently with new features and improvements.
-
-🔗 [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=joelday.papyrus-lang-vscode)\
+🔗 [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=joelday.papyrus-lang-vscode)
+📖 [User Manual](https://github.com/joelday/papyrus-lang/wiki)
 ⚙️ [Source](src/papyrus-lang-vscode)
 
 <br />
