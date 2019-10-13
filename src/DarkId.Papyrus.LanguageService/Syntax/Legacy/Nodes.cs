@@ -1,13 +1,11 @@
-﻿using DarkId.Papyrus.Common;
-using DarkId.Papyrus.LanguageService.Program.Symbols;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program;
+using DarkId.Papyrus.LanguageService.Program.Symbols;
 
-namespace DarkId.Papyrus.LanguageService.Syntax
+namespace DarkId.Papyrus.LanguageService.Syntax.Legacy
 {
     public interface ISymbolScope
     {

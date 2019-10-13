@@ -20,13 +20,30 @@ namespace DarkId.Papyrus.Test.LanguageService
     }
 
     [TestFixture]
-    [TestFixtureSource(typeof(PerLanguageFixtureData))]
     public abstract class ProgramTestBase : IDisposable
+    {
+        protected PapyrusProgram Program { get; }
+
+        protected ProgramTestBase(PapyrusProgram program)
+        {
+            Program = program;
+            Program.ResolveSources().Wait();
+        }
+
+        public void Dispose()
+        {
+            Program.Dispose();
+        }
+    }
+
+    [TestFixture]
+    [TestFixtureSource(typeof(PerLanguageFixtureData))]
+    public abstract class PerLanguageProgramTestBase : IDisposable
     {
         protected PapyrusProgram Program { get; }
         protected LanguageVersion LanguageVersion => Program.Options.LanguageVersion;
 
-        protected ProgramTestBase(PapyrusProgram program)
+        protected PerLanguageProgramTestBase(PapyrusProgram program)
         {
             Program = program;
             Program.ResolveSources().Wait();

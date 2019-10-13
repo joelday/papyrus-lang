@@ -3,6 +3,7 @@ using System.Linq;
 using DarkId.Papyrus.LanguageService;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Syntax;
+using DarkId.Papyrus.LanguageService.Syntax.Lexer;
 using NUnit.Framework;
 
 namespace DarkId.Papyrus.Test.LanguageService.Syntax
@@ -17,14 +18,11 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
         public void Tokenize_ProducesTokensFromSourceText()
         {
             var lexer = new ScriptLexer();
-            var diagnostics = new DiagnosticsContext();
 
             var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("LineContinuations")].Text;
 
             var tokens = lexer.Tokenize(
-                scriptText,
-                LanguageVersion,
-                diagnostics);
+                scriptText);
 
             var tokenText = string.Empty;
 
@@ -40,19 +38,14 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
         private void Tokenize_CanResumeTokenizationWithOffset(int offset, List<ScriptToken> baselineTokens)
         {
             var lexer = new ScriptLexer();
-            var diagnostics = new DiagnosticsContext();
 
             var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("LineContinuations")].Text;
 
             var firstBatch = lexer.Tokenize(
-                scriptText,
-                LanguageVersion,
-                diagnostics).Take(offset).ToList();
+                scriptText).Take(offset).ToList();
 
             var lastBatch = lexer.Tokenize(
                 scriptText,
-                LanguageVersion,
-                diagnostics,
                 firstBatch.Last()).ToList();
 
             var tokens = firstBatch.Concat(lastBatch).ToList();
@@ -67,14 +60,11 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
         public void Tokenize_CanResumeTokenization()
         {
             var lexer = new ScriptLexer();
-            var diagnostics = new DiagnosticsContext();
 
             var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("LineContinuations")].Text;
 
             var tokens = lexer.Tokenize(
-                scriptText,
-                LanguageVersion,
-                diagnostics).ToList();
+                scriptText).ToList();
 
             Enumerable.Range(1, tokens.Count - 2).AsParallel().ForAll((offset) => Tokenize_CanResumeTokenizationWithOffset(offset, tokens));
         }

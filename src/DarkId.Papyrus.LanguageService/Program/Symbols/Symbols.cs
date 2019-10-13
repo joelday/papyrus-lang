@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 
 using DarkId.Papyrus.LanguageService.Syntax;
 using DarkId.Papyrus.LanguageService.Program.Types;
+using DarkId.Papyrus.LanguageService.Syntax.Legacy;
+using SyntaxNode = DarkId.Papyrus.LanguageService.Syntax.Legacy.SyntaxNode;
 
 
 namespace DarkId.Papyrus.LanguageService.Program.Symbols

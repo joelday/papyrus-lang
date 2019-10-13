@@ -9,6 +9,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DarkId.Papyrus.LanguageService.Syntax.Legacy;
+using SyntaxNode = DarkId.Papyrus.LanguageService.Syntax.Legacy.SyntaxNode;
 
 namespace DarkId.Papyrus.Server.Features
 {

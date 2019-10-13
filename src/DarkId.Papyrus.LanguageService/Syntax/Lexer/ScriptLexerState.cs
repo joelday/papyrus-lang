@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DarkId.Papyrus.LanguageService.Syntax
+namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
 {
     public struct ScriptLexerState : IEquatable<ScriptLexerState>
     {

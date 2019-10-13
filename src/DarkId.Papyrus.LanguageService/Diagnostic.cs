@@ -7,17 +7,17 @@ namespace DarkId.Papyrus.LanguageService
 {
     public class Diagnostic
     {
-        public DiagnosticLevel Severity { get; }
-        public string Message { get; }
-        public TextRange Range { get; }
-        public Exception Exception { get; }
+        private readonly DiagnosticInfo _diagnosticInfo;
 
-        public Diagnostic(DiagnosticLevel severity, string message, TextRange range = default, Exception exception = null)
+        public DiagnosticLevel Severity => _diagnosticInfo.Severity;
+        public string Message => _diagnosticInfo.Message;
+        public TextRange Range { get; }
+        public Exception Exception => _diagnosticInfo.Exception;
+
+        public Diagnostic(DiagnosticInfo info, TextRange range = default)
         {
-            Severity = severity;
-            Message = message;
+            _diagnosticInfo = info;
             Range = range;
-            Exception = exception;
         }
     }
 }

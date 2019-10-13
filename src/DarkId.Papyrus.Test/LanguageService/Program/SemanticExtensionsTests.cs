@@ -9,11 +9,12 @@ using DarkId.Papyrus.LanguageService;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
 using DarkId.Papyrus.LanguageService.Syntax;
+using DarkId.Papyrus.LanguageService.Syntax.Legacy;
 using NUnit.Framework;
 
 namespace DarkId.Papyrus.Test.LanguageService.Program
 {
-    public class SemanticExtensionsTests : ProgramTestBase
+    public class SemanticExtensionsTests : PerLanguageProgramTestBase
     {
         public SemanticExtensionsTests(PapyrusProgram program) : base(program)
         {

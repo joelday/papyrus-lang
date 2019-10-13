@@ -4,12 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DarkId.Papyrus.LanguageService.Syntax;
+using DarkId.Papyrus.LanguageService.Syntax.Legacy;
 
 namespace DarkId.Papyrus.LanguageService.Program.Symbols
 {
     class SymbolBinder
     {
-        public ScriptSymbol Bind(ScriptNode node, DiagnosticsContext diagnostics)
+        public ScriptSymbol Bind(ScriptNode node)
         {
             throw new NotImplementedException();
 

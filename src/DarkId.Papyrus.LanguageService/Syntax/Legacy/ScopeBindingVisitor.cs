@@ -159,3 +159,7 @@
 //        }
 //    }
 //}
+
+namespace DarkId.Papyrus.LanguageService.Syntax.Legacy
+{
+}

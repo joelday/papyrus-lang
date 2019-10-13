@@ -11,7 +11,7 @@ using NUnit.Framework;
 
 namespace DarkId.Papyrus.Test.LanguageService.Program
 {
-    public class ScriptFileTests : ProgramTestBase
+    public class ScriptFileTests : PerLanguageProgramTestBase
     {
         public ScriptFileTests(PapyrusProgram program) : base(program)
         {

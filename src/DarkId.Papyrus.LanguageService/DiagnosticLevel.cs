@@ -6,6 +6,8 @@ namespace DarkId.Papyrus.LanguageService
 {
     public enum DiagnosticLevel
     {
+        Info,
+        Warning,
         Error
     }
 }

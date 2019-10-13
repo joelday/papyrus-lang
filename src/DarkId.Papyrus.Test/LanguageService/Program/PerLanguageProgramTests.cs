@@ -12,9 +12,9 @@ using NUnit.Framework.Internal;
 
 namespace DarkId.Papyrus.Test.LanguageService.Program
 {
-    public class ProgramTests : ProgramTestBase
+    public class PerLanguageProgramTests : PerLanguageProgramTestBase
     {
-        public ProgramTests(PapyrusProgram program) : base(program)
+        public PerLanguageProgramTests(PapyrusProgram program) : base(program)
         {
         }
 

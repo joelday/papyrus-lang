@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
 using DarkId.Papyrus.Common;
 
-namespace DarkId.Papyrus.LanguageService.Syntax
+namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
 {
     public struct ScriptToken : IEquatable<ScriptToken>
     {

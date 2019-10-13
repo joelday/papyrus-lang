@@ -11,7 +11,8 @@ namespace DarkId.Papyrus.LanguageService.Program
     {
         internal static Diagnostic ToDiagnostic(this Exception exception, TextRange range = default)
         {
-            return new Diagnostic(DiagnosticLevel.Error, $"Exception: {exception.Message}", range, exception);
+            throw new NotImplementedException();
+            //return new Diagnostic(DiagnosticLevel.Error, $"Exception: {exception.Message}", range, exception);
         }
 
         public static async Task<string> ResolveFlagsFile(this IFileSystem fileSystem, ProgramOptions options)

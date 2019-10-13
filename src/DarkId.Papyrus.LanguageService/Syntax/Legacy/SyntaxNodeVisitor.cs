@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace DarkId.Papyrus.LanguageService.Syntax
+﻿namespace DarkId.Papyrus.LanguageService.Syntax.Legacy
 {
     public abstract class SyntaxNodeVisitor<T, T1>
     {

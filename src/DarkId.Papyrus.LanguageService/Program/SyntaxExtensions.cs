@@ -3,6 +3,8 @@ using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Syntax;
 using System.Collections.Generic;
 using System.Linq;
+using DarkId.Papyrus.LanguageService.Syntax.Legacy;
+using SyntaxNode = DarkId.Papyrus.LanguageService.Syntax.Legacy.SyntaxNode;
 
 namespace DarkId.Papyrus.LanguageService.Program
 {

@@ -9,22 +9,17 @@ namespace DarkId.Papyrus.LanguageService.Syntax
     public enum SyntaxKind
     {
         Unknown,
-        IdentifierToken,
+        List,
 
-        SingleLineCommentTrivia,
-        DocumentationCommentTrivia,
-        MultilineCommentTrivia,
         LineContinuationTrivia,
         NewLineTrivia,
         WhitespaceTrivia,
 
-        StringLiteralContent,
+        IdentifierToken,
         HexLiteralToken,
         IntLiteralToken,
         FloatLiteralToken,
-
         EndOfFileToken,
-
         OpenBraceToken,
         CloseBraceToken,
         OpenParenToken,
@@ -99,6 +94,11 @@ namespace DarkId.Papyrus.LanguageService.Syntax
         FalseKeyword,
         NoneKeyword,
 
+        StringLiteralContent,
+        SingleLineCommentContent,
+        DocumentationCommentContent,
+        MultilineCommentContent,
+
         ArrayIndexExpression,
         AssignmentStatement,
         BinaryOperationExpression,
@@ -142,6 +142,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax
         FunctionHeader,
         StructHeader,
         GroupHeader,
-        PropertyHeader,
+        PropertyHeader
     }
 }

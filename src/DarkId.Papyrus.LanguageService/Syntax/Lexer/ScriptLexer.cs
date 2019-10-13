@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using DarkId.Papyrus.Common;
 
-namespace DarkId.Papyrus.LanguageService.Syntax
+namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
 {
     public class ScriptLexer
     {
-        private static readonly Dictionary<string, SyntaxKind> TokenStringMap =
+        public static readonly IReadOnlyDictionary<string, SyntaxKind> TokenStringMap =
             new Dictionary<string, SyntaxKind>(StringComparer.OrdinalIgnoreCase)
             {
                 {"{", SyntaxKind.OpenBraceToken},
@@ -132,7 +131,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                 SyntaxKind.Unknown;
         }
 
-        public IEnumerable<ScriptToken> Tokenize(IReadOnlyScriptText sourceText, LanguageVersion languageVersion, DiagnosticsContext diagnostics, ScriptToken? resumeFrom = default)
+        public IEnumerable<ScriptToken> Tokenize(IReadOnlyScriptText sourceText, ScriptToken? resumeFrom = default)
         {
             var scanner = new Scanner<Match>(TokensRegex.Matches(sourceText.Text, resumeFrom.HasValue ? sourceText.OffsetAt(resumeFrom.Value.Range.End) : 0));
 
@@ -166,7 +165,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                         state.ContentState = ScriptLexerContentState.InSource;
                     }
 
-                    kind = SyntaxKind.DocumentationCommentTrivia;
+                    kind = SyntaxKind.DocumentationCommentContent;
                 }
                 else if (state.ContentState == ScriptLexerContentState.InMultilineComment)
                 {
@@ -175,7 +174,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                         state.ContentState = ScriptLexerContentState.InSource;
                     }
 
-                    kind = SyntaxKind.MultilineCommentTrivia;
+                    kind = SyntaxKind.MultilineCommentContent;
                 }
                 else if (state.ContentState == ScriptLexerContentState.InSingleLineComment)
                 {
@@ -185,7 +184,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                     }
                     else
                     {
-                        kind = SyntaxKind.SingleLineCommentTrivia;
+                        kind = SyntaxKind.SingleLineCommentContent;
                     }
                 }
                 else if (state.ContentState == ScriptLexerContentState.InStringLiteral)
@@ -194,9 +193,9 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                     {
                         state.ContentState = ScriptLexerContentState.InSource;
 
-                        diagnostics.Add(new Diagnostic(DiagnosticLevel.Error, "Unterminated string literal.", new TextRange(
-                            sourceText.PositionAt(state.StringLiteralStartPosition),
-                            sourceText.PositionAt(state.Position))));
+                        //diagnostics.Add(new Diagnostic(DiagnosticLevel.Error, "Unterminated string literal.", new TextRange(
+                        //    sourceText.PositionAt(state.StringLiteralStartPosition),
+                        //    sourceText.PositionAt(state.Position))));
                     }
                     else if (
                         kind == SyntaxKind.BackslashToken &&
@@ -243,15 +242,15 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                 switch (kind)
                 {
                     case SyntaxKind.OpenBraceToken when (state.ContentState == ScriptLexerContentState.InSource):
-                        kind = SyntaxKind.DocumentationCommentTrivia;
+                        kind = SyntaxKind.DocumentationCommentContent;
                         state.ContentState = ScriptLexerContentState.InDocumentationComment;
                         break;
                     case SyntaxKind.SemicolonSlashToken when (state.ContentState == ScriptLexerContentState.InSource):
-                        kind = SyntaxKind.MultilineCommentTrivia;
+                        kind = SyntaxKind.MultilineCommentContent;
                         state.ContentState = ScriptLexerContentState.InMultilineComment;
                         break;
                     case SyntaxKind.SemicolonToken when (state.ContentState == ScriptLexerContentState.InSource):
-                        kind = SyntaxKind.SingleLineCommentTrivia;
+                        kind = SyntaxKind.SingleLineCommentContent;
                         state.ContentState = ScriptLexerContentState.InSingleLineComment;
                         break;
                     case SyntaxKind.DoubleQuoteToken when (state.ContentState == ScriptLexerContentState.InSource):
