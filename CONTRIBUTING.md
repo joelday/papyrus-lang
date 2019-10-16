@@ -6,19 +6,17 @@
 
 # About the Project
 
-This is an Extension for [VSCode](https://code.visualstudio.com/) (Visual Studio Code), a cross-platform text editor, to support Bethesda's Papyrus scripting language. It is written primarily in TypeScript and C#.
-
-Write mods for Fallout 4 and Skyrim with the aid of modern code editing features such as code completion, jump to definition, hover, symbol search and live updated diagnostics.
-
-[![](https://vsmarketplacebadge.apphb.com/version-short/joelday.papyrus-lang-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=joelday.papyrus-lang-vscode)
+The VSCode extension is written in TypeScript with C# being used for the language server and debug proxy.
 
 Uses the **[Papyrus Debug Adapter](https://github.com/joelday/papyrus-debug-server) xSE plugin** for live debugging.
 
 # Questions and Help
 
 Do you have questions or need help? Please come visit the....
-[Papyrus Language Tools Discord
-![Discord](https://img.shields.io/discord/558746231665328139.svg?color=%23738ADB)](https://discord.gg/E4dWujQ)
+
+[![Discord](https://img.shields.io/discord/558746231665328139.svg?color=%23738ADB) Papyrus Language Tools Discord](https://discord.gg/E4dWujQ)
+
+Even if you don't plan to contribute code, it would be good to hear how you are using the extension and get your feedback.
 
 # Getting Started
 
@@ -28,9 +26,11 @@ First, you will need Windows with the following installed on your system:
 - VSCode [Download and install](https://code.visualstudio.com/)
 - Node.js [Download and install](https://nodejs.org/)
 - Git for Windows [Download and install](https://git-scm.com/download/win)
-- .NET Core 3.0 [Download and install](https://dotnet.microsoft.com/download/dotnet-core)
+- One of the following:
+    - Minimum: .NET Core 2.1 SDK [Download and install](https://dotnet.microsoft.com/download/dotnet-core)
+    - Recommended: Microsoft Visual Studio 2019 [Download and install](https://visualstudio.microsoft.com/vs/)
 
-Also, this will be much easier if you use a **Powershell** console because the main build script is written in PS.
+Also, building from the shell will be much easier if you use a **Powershell** console because the main build script is written in PS, but if you have Visual Studio installed you should be able to build from the solution file.
 
 ### 1
 First, clone the repository using git:
@@ -58,6 +58,7 @@ Hit **F5** to build and launch the extension with debugging. After a little whil
 
 # Useful Resources
 
+- See the [Project Wiki](https://github.com/joelday/papyrus-lang/wiki) 
 - [The Typescript Programming Language Documentation](https://www.typescriptlang.org/docs/home.html)
 - [VSCode Extension Anatomy](https://code.visualstudio.com/api/get-started/extension-anatomy)
 - [Learn RxJS](https://www.learnrxjs.io/) (Reactive eXtensions for Javascript)
