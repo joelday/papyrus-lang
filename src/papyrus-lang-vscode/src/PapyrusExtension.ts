@@ -20,6 +20,7 @@ import { ProjectsView } from './features/projects/ProjectsView';
 import { ProjectsTreeDataProvider } from './features/projects/ProjectsTreeDataProvider';
 import { AssemblyTextContentProvider } from './features/AssemblyTextContentProvider';
 import { ViewAssemblyCommand } from './features/commands/ViewAssemblyCommand';
+import { GenerateProjectCommand } from './features/commands/GenerateProjectCommand';
 
 class PapyrusExtension implements Disposable {
     private readonly _serviceCollection: ServiceCollection;
@@ -40,6 +41,7 @@ class PapyrusExtension implements Disposable {
     private readonly _projectsView: ProjectsView;
     private readonly _assemblyTextContentProvider: AssemblyTextContentProvider;
     private readonly _viewAssemblyCommand: ViewAssemblyCommand;
+    private readonly _generateProjectCommand: GenerateProjectCommand;
 
     constructor(context: ExtensionContext) {
         this._languageConfigurations = new LanguageConfigurations();
@@ -78,9 +80,15 @@ class PapyrusExtension implements Disposable {
 
         this._assemblyTextContentProvider = this._instantiationService.createInstance(AssemblyTextContentProvider);
         this._viewAssemblyCommand = this._instantiationService.createInstance(ViewAssemblyCommand);
+
+        this._generateProjectCommand = this._instantiationService.createInstance(GenerateProjectCommand);
+
     }
 
     dispose() {
+        this._generateProjectCommand.dispose();
+
+        this._viewAssemblyCommand.dispose();
         this._assemblyTextContentProvider.dispose();
 
         this._projectsView.dispose();

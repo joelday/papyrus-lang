@@ -194,6 +194,27 @@
                     "default": "",
                     "type": "string",
                     "description": "If you want to use a mod manager to manage the debugger plugin as a mod, set this to the path of the directory where installed mods for Skyrim SE are kept. Otherwise it will be installed in the game directory."
+                },
+                "papyrus.skyrimSpecialEdition.importDirs": {
+                    "default": [
+                        "${config:papyrus.skyrimSpecialEdition.installPath}\\Data\\Source\\Scripts",
+                        ".\\Source\\Scripts"
+                    ],
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "List of import (include) directories for scripts. This should include source directories."
+                },
+                "papyrus.skyrimSpecialEdition.sourceDirs": {
+                    "default": [
+                        ".\\Source\\Scripts"
+                    ],
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "List of source directories for scripts. These will be compiled by a Compile All."
                 }
             },
             "title": "Papyrus",
@@ -287,6 +308,16 @@
                 "category": "Papyrus",
                 "command": "papyrus.viewAssembly",
                 "title": "View Papyrus Assembly"
+            },
+            {
+                "category": "Papyrus",
+                "command": "papyrus.skyrimSpecialEdition.generateProject",
+                "title": "Generate Skyrim Special Edition Project Files"
+            },
+            {
+                "category": "Papyrus",
+                "command": "papyrus.fallout4.generateProject",
+                "title": "Generate Fallout 4 Project Files"
             }
         ],
         "menus": {
@@ -307,6 +338,16 @@
                     "command": "papyrus.viewAssembly",
                     "group": "a_papyrus",
                     "when": "resourceLangId == papyrus"
+                }
+            ],
+            "view/title": [
+                {
+                    "command": "papyrus.fallout4.generateProject",
+                    "when": "view == papyrus-projects"
+                },
+                {
+                    "command": "papyrus.skyrimSpecialEdition.generateProject",
+                    "when": "view == papyrus-projects"
                 }
             ]
         },
