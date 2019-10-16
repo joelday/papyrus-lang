@@ -338,6 +338,16 @@
                     "command": "papyrus.viewAssembly",
                     "group": "a_papyrus",
                     "when": "resourceLangId == papyrus"
+                },
+                {
+                    "command": "papyrus.skyrimSpecialEdition.generateProject",
+                    "group": "a_papyrus",
+                    "when": "config.papyrus.skyrimSpecialEdition.enabled && explorerResourceIsFolder"
+                },
+                {
+                    "command": "papyrus.fallout4.generateProject",
+                    "group": "a_papyrus",
+                    "when": "config.papyrus.fallout4.enabled && explorerResourceIsFolder"
                 }
             ],
             "view/title": [
