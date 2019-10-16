@@ -1,0 +1,28 @@
+{
+    // created by vscode papyrus-lang papyrus.skyrimSpecialEdition.generateProject
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Compile Papyrus (All)",
+            "type": "process",
+            "command": "${config:papyrus.skyrimSpecialEdition.installPath}\\Papyrus Compiler\\PapyrusCompiler.exe",
+            "args": [
+                "Source\\Scripts",
+                "-i=Source\\Scripts;${config:papyrus.skyrimSpecialEdition.installPath}\\Data\\Source\\Scripts",
+                "-o=Scripts",
+                "-f=TESV_Papyrus_Flags.flg",
+                "-all"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$PapyrusCompiler"
+        }
+    ]
+}

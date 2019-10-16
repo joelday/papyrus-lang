@@ -1,0 +1,8 @@
+<?xml version='1.0'?>
+<!-- Created by vscode papyrus-lang papyrus.fallout4.generateProject -->
+<PapyrusProject xmlns="PapyrusProject.xsd" Flags="Institute_Papyrus_Flags.flg" Output="Scripts" Optimize="false" Release="false" Final="false">
+    <Imports>
+    </Imports>
+    <Folders>
+    </Folders>
+</PapyrusProject>

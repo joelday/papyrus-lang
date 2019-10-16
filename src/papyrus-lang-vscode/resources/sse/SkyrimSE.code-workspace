@@ -1,0 +1,22 @@
+{
+    // created by vscode papyrus-lang papyrus.skyrimSpecialEdition.generateProject
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "papyrus.skyrimSpecialEdition.enabled": true,
+        "papyrus.fallout4.enabled": false,
+        "papyrus.skyrim.enabled": false,
+        // If you have more Import directories then add them here
+        "papyrus.skyrimSpecialEdition.importDirs": [
+            "${config:papyrus.skyrimSpecialEdition.installPath}\\Data\\Source\\Scripts",
+            ".\\Source\\Scripts"
+        ],
+        // If you have more Source directories then add them here
+        "papyrus.skyrimSpecialEdition.sourceDirs": [
+            ".\\Source\\Scripts"
+        ]
+    },
+}
