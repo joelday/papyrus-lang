@@ -111,6 +111,20 @@
                 ]
             }
         ],
+        "problemMatchers": [
+            {
+                "name": "PapyrusCompiler",
+                "owner": "external",
+                "fileLocation": "absolute",
+                "pattern": {
+                    "regexp": "^(.*)\\((\\d+),(\\d+)\\):(.*)",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "message": 4
+                }
+            }
+        ],
         "configuration": {
             "properties": {
                 "papyrus.fallout4.enabled": {
