@@ -218,7 +218,7 @@
                     "items": {
                         "type": "string"
                     },
-                    "description": "List of import (include) directories for scripts. This should include source directories."
+                    "description": "List of import (include) directories for scripts. This should include source directories. The language server will scan these."
                 },
                 "papyrus.skyrimSpecialEdition.sourceDirs": {
                     "default": [
@@ -228,7 +228,7 @@
                     "items": {
                         "type": "string"
                     },
-                    "description": "List of source directories for scripts. These will be compiled by a Compile All."
+                    "description": "List of source directories for scripts. Currently only the first one will be compiled by Compile All."
                 }
             },
             "title": "Papyrus",
@@ -342,9 +342,36 @@
                 "category": "Papyrus",
                 "command": "papyrus.projectSources",
                 "title": "Project sources (for substitutuion)"
+            },
+            {
+                "category": "Papyrus",
+                "command": "papyrus.projectSources0",
+                "title": "First project source dir (for substitutuion)"
             }
         ],
         "menus": {
+            "commandPalette": [
+                {
+                    "command": "papyrus.projectImports",
+                    "when": "false"
+                },
+                {
+                    "command": "papyrus.projectSources",
+                    "when": "false"
+                },
+                {
+                    "command": "papyrus.projectSources0",
+                    "when": "false"
+                },
+                {
+                    "command": "papyrus.viewAssembly",
+                    "when": "false"
+                },
+                {
+                    "command": "papyrus.searchCreationKitWiki",
+                    "when": "false"
+                }
+            ],
             "editor/context": [
                 {
                     "command": "papyrus.searchCreationKitWiki",
