@@ -22,6 +22,10 @@ export class SubstitutionCommands implements Disposable {
         this._sourcesCommand = commands.registerCommand("papyrus.projectSources", () => {
             return config.sourceDirs.join(' ').replace('${installPath}', config.installPath);
         });
+
+        this._sourcesCommand = commands.registerCommand("papyrus.projectSources0", () => {
+            return config.sourceDirs[0].replace('${installPath}', config.installPath);
+        });
     }
 
     dispose() {

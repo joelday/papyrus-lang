@@ -14,9 +14,10 @@
             "${installPath}\\Data\\Source\\Scripts",
             ".\\Source\\Scripts"
         ],
-        // Currently this does not work with more than one directory (papyruscompiler.exe only accepts one for SSE)
+        // Currently the build task does not work with more than one directory
+        // (papyruscompiler.exe only accepts one for SSE)
         "papyrus.skyrimSpecialEdition.sourceDirs": [
             ".\\Source\\Scripts"
         ]
-    },
+    }
 }
