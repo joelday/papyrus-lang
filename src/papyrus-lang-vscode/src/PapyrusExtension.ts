@@ -21,6 +21,7 @@ import { ProjectsTreeDataProvider } from './features/projects/ProjectsTreeDataPr
 import { AssemblyTextContentProvider } from './features/AssemblyTextContentProvider';
 import { ViewAssemblyCommand } from './features/commands/ViewAssemblyCommand';
 import { GenerateProjectCommand } from './features/commands/GenerateProjectCommand';
+import { SubstitutionCommands } from './features/commands/SubstitutionCommands';
 
 class PapyrusExtension implements Disposable {
     private readonly _serviceCollection: ServiceCollection;
@@ -42,6 +43,7 @@ class PapyrusExtension implements Disposable {
     private readonly _assemblyTextContentProvider: AssemblyTextContentProvider;
     private readonly _viewAssemblyCommand: ViewAssemblyCommand;
     private readonly _generateProjectCommand: GenerateProjectCommand;
+    private readonly _substitutionCommands: SubstitutionCommands;
 
     constructor(context: ExtensionContext) {
         this._languageConfigurations = new LanguageConfigurations();
@@ -82,10 +84,12 @@ class PapyrusExtension implements Disposable {
         this._viewAssemblyCommand = this._instantiationService.createInstance(ViewAssemblyCommand);
 
         this._generateProjectCommand = this._instantiationService.createInstance(GenerateProjectCommand);
+        this._substitutionCommands = this._instantiationService.createInstance(SubstitutionCommands);
 
     }
 
     dispose() {
+        this._substitutionCommands.dispose();
         this._generateProjectCommand.dispose();
 
         this._viewAssemblyCommand.dispose();
