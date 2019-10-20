@@ -15,7 +15,7 @@
                 "type": "papyrus",
                 "request": "attach",
                 "game": "fallout4",
-                "projectPath": "^\"\\${workspaceFolder}/${1:fallout4.ppj\""
+                "projectPath": "${workspaceRoot}\\Scripts\\Source\\User\\fallout4.ppj"
             }
         }
     ]

@@ -5,13 +5,9 @@
         {
             "label": "Compile Papyrus (All)",
             "type": "process",
-            "command": "${config:papyrus.skyrimSpecialEdition.installPath}\\Papyrus Compiler\\PapyrusCompiler.exe",
+            "command": "${config:papyrus.fallout4.installPath}\\Papyrus Compiler\\PapyrusCompiler.exe",
             "args": [
-                "Source\\Scripts",
-                "-i=Source\\Scripts;${config:papyrus.skyrimSpecialEdition.installPath}\\Data\\Source\\Scripts",
-                "-o=Scripts",
-                "-f=TESV_Papyrus_Flags.flg",
-                "-all"
+                "${workspaceRoot}\\Scripts\\Source\\User\\fallout.ppj"
             ],
             "presentation": {
                 "reveal": "always",

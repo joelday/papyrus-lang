@@ -130,7 +130,7 @@
                 "papyrus.fallout4.enabled": {
                     "default": true,
                     "type": "boolean",
-                    "description": "Enable support for Fallout 4."
+                    "markdownDescription": "Enable suppot for **Fallout 4**. Use the [Generate Project Files](command:papyrus.fallout4.generateProject) command to set up builds and the language server."
                 },
                 "papyrus.fallout4.creationKitIniFiles": {
                     "default": [
@@ -181,7 +181,7 @@
                 "papyrus.skyrimSpecialEdition.enabled": {
                     "default": true,
                     "type": "boolean",
-                    "description": "Enable support for Skyrim Special Edition."
+                    "markdownDescription": "Enable support for **Skyrim Special Edition**. Use the [Generate Project Files](command:papyrus.skyrimSpecialEdition.generateProject) command to set up the language server and builds."
                 },
                 "papyrus.skyrimSpecialEdition.creationKitIniFiles": {
                     "default": [

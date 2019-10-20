@@ -40,6 +40,11 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
             'skyrimSpecialEdition': "sse"
         };
 
+        // Ignore the context menu folder for Fallout 4 because we don't currenlty have a solution for anything other
+        // than the game directory.
+        if (game === PapyrusGame.fallout4) {
+            args[0] = undefined;
+        }
         let projectFolderUri: Uri = args[0] ? Uri.parse(args[0]) : Uri.file(path.join(config.installPath, defaultProjectSubdir[game]));
 
         console.log("Default projectFolderUri = " + projectFolderUri.fsPath);
@@ -83,7 +88,7 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
             [workspaceFilename, workspaceFilename],
         ];
         if (game === PapyrusGame.fallout4) {
-            filesToCopy.push(['fallout4.ppj', 'fallout4.ppj']);
+            filesToCopy.push(['fallout4.ppj', 'Scripts\\Source\\User\\fallout4.ppj']);
         }
 
         const projectFolder = projectFolderUri.fsPath;
