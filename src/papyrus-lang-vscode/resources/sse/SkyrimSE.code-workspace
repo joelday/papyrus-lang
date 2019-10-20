@@ -11,10 +11,10 @@
         "papyrus.skyrim.enabled": false,
         // If you have more Import directories then add them here
         "papyrus.skyrimSpecialEdition.importDirs": [
-            "${config:papyrus.skyrimSpecialEdition.installPath}\\Data\\Source\\Scripts",
+            "${installPath}\\Data\\Source\\Scripts",
             ".\\Source\\Scripts"
         ],
-        // If you have more Source directories then add them here
+        // Currently this does not work with more than one directory (papyruscompiler.exe only accepts one for SSE)
         "papyrus.skyrimSpecialEdition.sourceDirs": [
             ".\\Source\\Scripts"
         ]

@@ -7,10 +7,33 @@
             "type": "process",
             "command": "${config:papyrus.skyrimSpecialEdition.installPath}\\Papyrus Compiler\\PapyrusCompiler.exe",
             "args": [
-                "Source\\Scripts",
-                "-i=Source\\Scripts;${config:papyrus.skyrimSpecialEdition.installPath}\\Data\\Source\\Scripts",
+                "${command:papyrus.projectSources}",
+                "-i=${command:papyrus.projectImports}",
                 "-o=Scripts",
                 "-f=TESV_Papyrus_Flags.flg",
+                "-all"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$PapyrusCompiler"
+        },
+        {
+            "label": "Compile Papyrus (Optimize All)",
+            "type": "process",
+            "command": "${config:papyrus.skyrimSpecialEdition.installPath}\\Papyrus Compiler\\PapyrusCompiler.exe",
+            "args": [
+                "${command:papyrus.projectSources}",
+                "-i=${command:papyrus.projectImports}",
+                "-o=Scripts",
+                "-f=TESV_Papyrus_Flags.flg",
+                "-o",
                 "-all"
             ],
             "presentation": {
@@ -30,7 +53,7 @@
             "command": "${config:papyrus.skyrimSpecialEdition.installPath}\\Papyrus Compiler\\PapyrusCompiler.exe",
             "args": [
                 "${relativeFile}",
-                "-i=Source\\Scripts;${config:papyrus.skyrimSpecialEdition.installPath}\\Data\\Source\\Scripts",
+                "-i=${command:papyrus.projectImports}",
                 "-o=Scripts",
                 "-f=TESV_Papyrus_Flags.flg"
             ],
@@ -44,11 +67,6 @@
                 "isDefault": false
             },
             "problemMatcher": "$PapyrusCompiler"
-        },
-        {
-            "label": "echo (for testing)",
-            "type": "shell",
-            "command": "echo ${config:papyrus.skyrimSpecialEdition.importDirs}"
         }
     ]
 }

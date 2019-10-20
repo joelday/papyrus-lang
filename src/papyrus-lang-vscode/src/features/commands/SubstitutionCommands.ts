@@ -16,13 +16,11 @@ export class SubstitutionCommands implements Disposable {
         const config = (await this._configProvider.config.pipe(take(1)).toPromise())['skyrimSpecialEdition'];
 
         this._importsCommand = commands.registerCommand("papyrus.projectImports", () => {
-            const imports = config.importDirs;
-            return '"' + imports.join(';') + '"';
+            return config.importDirs.join(';').replace('${installPath}', config.installPath);
         });
 
         this._sourcesCommand = commands.registerCommand("papyrus.projectSources", () => {
-            const sources = config.sourceDirs;
-            return sources.map((e) => '"' + e + '"').join(' ');
+            return config.sourceDirs.join(' ').replace('${installPath}', config.installPath);
         });
     }
 

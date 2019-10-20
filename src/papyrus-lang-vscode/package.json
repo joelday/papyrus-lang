@@ -211,7 +211,7 @@
                 },
                 "papyrus.skyrimSpecialEdition.importDirs": {
                     "default": [
-                        "${config:papyrus.skyrimSpecialEdition.installPath}\\Data\\Source\\Scripts",
+                        "${installPath}\\Data\\Source\\Scripts",
                         ".\\Source\\Scripts"
                     ],
                     "type": "array",
@@ -332,6 +332,16 @@
                 "category": "Papyrus",
                 "command": "papyrus.fallout4.generateProject",
                 "title": "Generate Fallout 4 Project Files"
+            },
+            {
+                "category": "Papyrus",
+                "command": "papyrus.projectImports",
+                "title": "Project imports (For substitution)"
+            },
+            {
+                "category": "Papyrus",
+                "command": "papyrus.projectSources",
+                "title": "Project sources (for substitutuion)"
             }
         ],
         "menus": {
