@@ -2,6 +2,7 @@
 1. [About the Project](#about-the-project)
 1. [Questions and Help](#questions-and-help)
 1. [Getting Started](#getting-started)
+1. [Modules and Patterns](#modules-and-patterns)
 1. [Useful Resources](#useful-resources)
 
 # About the Project
@@ -55,6 +56,17 @@ code .
 Hit **Ctrl-Shift-D** to open the Debug panel. At the top select **Launch (Build Extension Only)**.
 
 Hit **F5** to build and launch the extension with debugging. After a little while you will see another VSCode window open. This is the Extension Development Host version of VSCode running the extension that was just built. Any changes you made to the code would be reflected in the debug/test install of the extension running in this window.
+
+# Modules and Patterns
+
+This is a brief set of links to more info on modules and patterns used in the code.
+
+- [decoration-ioc](https://github.com/joelday/decoration-ioc) is why `InstantiationService` is used to instantiate singletons for services and command handlers. It makes it easy to add references to services in the constructor of a class. For example just put `@IExtensionConfigProvider infoProvider: IExtensionConfigProvider` in the argument list of a constructor and it will magically get called with a reference to the singleton.
+- For a simple example of how to add a command, see `src\papyrus-lang-vscode\src\features\commands\ViewAssemblyCommand.ts`
+- [rxjs](https://www.npmjs.com/package/rxjs) is used in many places for the reactive Observer/Observable asynchronous pattern.
+- [async/await](https://javascript.info/async-await) is used frequently. If possible try to use async functions and `await` on them because this allows other things to happen while a function is executing.
+- [deepmerge](https://www.npmjs.com/package/deepmerge) is used in some places.
+- Otherwise most of the code is similar to other vscode extensions.
 
 # Useful Resources
 
