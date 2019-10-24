@@ -1,7 +1,7 @@
 # 📜 Papyrus Language Tools
 
 [![](https://vsmarketplacebadge.apphb.com/version-short/joelday.papyrus-lang-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=joelday.papyrus-lang-vscode)
-[![Build status](https://ci.appveyor.com/api/projects/status/ear84ovxacid2o1v?svg=true)](https://ci.appveyor.com/project/joelday/papyrus-lang)
+[![Build status](https://ci.appveyor.com/api/projects/status/ear84ovxacid2o1v/branch/master?svg=true)](https://ci.appveyor.com/project/joelday/papyrus-lang/branch/master)
 [![Discord](https://img.shields.io/discord/558746231665328139.svg?color=%23738ADB)](https://discord.gg/E4dWujQ)
 
 ## Advanced language tools for the Papyrus scripting language.
