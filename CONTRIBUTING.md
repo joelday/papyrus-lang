@@ -61,7 +61,7 @@ Hit **F5** to build and launch the extension with debugging. After a little whil
 
 This is a brief set of links to more info on modules and patterns used in the code.
 
-- [decoration-ioc](https://github.com/joelday/decoration-ioc) is why `InstantiationService` is used to instantiate singletons for services and command handlers. It makes it easy to add references to services in the constructor of a class. For example just put `@IExtensionConfigProvider infoProvider: IExtensionConfigProvider` in the argument list of a constructor and it will magically get called with a reference to the singleton.
+- [decoration-ioc](https://github.com/joelday/decoration-ioc) is why `InstantiationService` is used to instantiate services and command handlers. It makes it easy to add references to services in the constructor of a class. For example just put `@IExtensionConfigProvider infoProvider: IExtensionConfigProvider` in the argument list of a constructor and it will magically get called with a reference.
 - For a simple example of how to add a command, see `src\papyrus-lang-vscode\src\features\commands\ViewAssemblyCommand.ts`
 - [rxjs](https://www.npmjs.com/package/rxjs) is used in many places for the reactive Observer/Observable asynchronous pattern.
 - [async/await](https://javascript.info/async-await) is used frequently. If possible try to use async functions and `await` on them because this allows other things to happen while a function is executing.
