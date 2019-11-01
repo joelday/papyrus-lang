@@ -6,7 +6,8 @@ import { LanguageClientManager, ILanguageClientManager } from './server/Language
 import { LanguageServiceStatusItems } from './features/LanguageServiceStatusItems';
 import { LanguageConfigurations } from './features/LanguageConfigurations';
 import { getInstance } from './common/Ioc';
-// import { CompilerTaskProvider } from './features/CompilerTaskProvider';
+import { PyroTaskProvider } from './features/PyroTaskProvider';
+import { PapyrusCompilerTaskProvider } from './features/PapyrusCompilerTaskProvider';
 import { ICreationKitInfoProvider, CreationKitInfoProvider } from './CreationKitInfoProvider';
 import { ScriptStatusCodeLensProvider } from './features/ScriptStatusCodeLensProvider';
 import { SearchCreationKitWikiCommand } from './features/commands/SearchCreationKitWikiCommand';
@@ -30,7 +31,8 @@ class PapyrusExtension implements Disposable {
     private readonly _clientManager: ILanguageClientManager;
     private readonly _statusItems: LanguageServiceStatusItems;
     private readonly _languageConfigurations: LanguageConfigurations;
-    // private readonly _taskProvider: CompilerTaskProvider;
+    private readonly _pyroProvider: PyroTaskProvider;
+    private readonly _papyrusCompilerProvider: PapyrusCompilerTaskProvider;
     private readonly _scriptStatusCodeLensProvider: ScriptStatusCodeLensProvider;
     private readonly _searchWikiCommand: SearchCreationKitWikiCommand;
     private readonly _debugConfigurationProvider: PapyrusDebugConfigurationProvider;
@@ -62,7 +64,8 @@ class PapyrusExtension implements Disposable {
         this._clientManager = getInstance(this._serviceCollection, ILanguageClientManager);
         this._statusItems = this._instantiationService.createInstance(LanguageServiceStatusItems);
 
-        // this._taskProvider = this._instantiationService.createInstance(CompilerTaskProvider);
+        this._pyroProvider = this._instantiationService.createInstance(PyroTaskProvider);
+        this._papyrusCompilerProvider = this._instantiationService.createInstance(PapyrusCompilerTaskProvider);
 
         this._scriptStatusCodeLensProvider = this._instantiationService.createInstance(ScriptStatusCodeLensProvider);
         this._searchWikiCommand = this._instantiationService.createInstance(SearchCreationKitWikiCommand);
@@ -109,6 +112,9 @@ class PapyrusExtension implements Disposable {
 
         this._searchWikiCommand.dispose();
         this._scriptStatusCodeLensProvider.dispose();
+
+        this._papyrusCompilerProvider.dispose();
+        this._pyroProvider.dispose();
 
         // this._taskProvider.dispose();
 

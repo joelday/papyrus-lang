@@ -111,6 +111,50 @@
                 ]
             }
         ],
+        "taskDefinitions": [
+            {
+                "type": "pyro",
+                "required": [
+                    "game",
+                    "ppj"
+                ],
+                "properties": {
+                    "game": {
+                        "type": "string",
+                        "description": "The game that the build task is for"
+                    },
+                    "ppj": {
+                        "type": "string",
+                        "description": "The path to the PPJ file relative to workspace folder"
+                    }
+                }
+            },
+            {
+                "type": "PapyrusCompiler",
+                "required": [
+                    "game",
+                    "sources"
+                ],
+                "properties": {
+                    "game": {
+                        "type": "string",
+                        "description": "game type to compile: fallout4, skyrim, skyrimSpecialEdition"
+                    },
+                    "imports": {
+                        "type": "array",
+                        "description": "list of import directories"
+                    },
+                    "sources": {
+                        "type": "array",
+                        "description": "list of files or source directories"
+                    },
+                    "output": {
+                        "type": "string",
+                        "description": "output directory"
+                    }
+                }
+            }
+        ],
         "problemMatchers": [
             {
                 "name": "PapyrusCompiler",
