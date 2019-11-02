@@ -23,10 +23,10 @@ function taskOptionsToCommandLineArguments(opts: IPapyrusCompilerTaskOptions, cr
 }
 
 export class PapyrusCompilerTaskProvider implements TaskProvider, Disposable {
-    private readonly _taskProviderHandle: Disposable;
     private readonly _creationKitInfoProvider: ICreationKitInfoProvider;
     private readonly _extensionConfigProvider: IExtensionConfigProvider;
     private readonly _workspaceSetupService: IWorkspaceSetupService;
+    private _taskProviderHandle: Disposable;
 
     constructor(
         @ICreationKitInfoProvider creationKitInfoProvider: ICreationKitInfoProvider,
@@ -35,7 +35,6 @@ export class PapyrusCompilerTaskProvider implements TaskProvider, Disposable {
     ) {
         this._creationKitInfoProvider = creationKitInfoProvider;
         this._extensionConfigProvider = extensionConfigProvider;
-        this._taskProviderHandle = tasks.registerTaskProvider('PapyrusCompiler', this);
         this._workspaceSetupService = workspaceSetupService;
     }
 
@@ -45,55 +44,60 @@ export class PapyrusCompilerTaskProvider implements TaskProvider, Disposable {
             .pipe(take(1))
             .toPromise();
 
-        while (true) {
+        var register: Promise<boolean> = new Promise<boolean>((resolve) => {
+            var observable = this._workspaceSetupService.getObservable();
 
-            var setupState: WorkspaceSetupServiceState = await this._workspaceSetupService.getSetupState();
+            observable.subscribe({
+                next(setupState: WorkspaceSetupServiceState) {
+                    switch (setupState) {
 
-            switch (setupState) {
-                case WorkspaceSetupServiceState.notSetup:
-                    continue;
-                // If sure this is not a papyrus project and isn't supposed to be then we don't install the task 
-                case WorkspaceSetupServiceState.notPapyrus:
-                    return undefined;
-                    break;
+                        case WorkspaceSetupServiceState.notSetup:
+                            return;
 
-                case WorkspaceSetupServiceState.skyrimNotSetup:
-                    // return workspace.workspaceFolders.map((folder) => {
-                    //     const task = new Task(
-                    //         {
-                    //             type: 'PapyrusCompiler',
-                    //             pyro: {
-                    //                 game: PapyrusGame.fallout4,
-                    //                 sources: '${currentFile}'
-                    //             }
-                    //         },
-                    //         folder,
-                    //         'default',
-                    //         'pyro'
-                    //     );
-                    return undefined;
+                        // If sure this is not a papyrus project and isn't supposed to be then we don't install the task 
+                        case WorkspaceSetupServiceState.notPapyrus:
+                            resolve(false);
+                            return;
 
-                case WorkspaceSetupServiceState.skyrimSpecialEditionNotSetup:
-                    // Setup SSE task
-                    return undefined;
+                        case WorkspaceSetupServiceState.skyrimNotSetup:
+                            return; // actuallly return task
 
-                case WorkspaceSetupServiceState.fallout4NotSetup:
-                    // Setup FO4 task
-                    return undefined;
+                        case WorkspaceSetupServiceState.skyrimSpecialEditionNotSetup:
+                            // Setup SSE task
+                            return;
 
-                case WorkspaceSetupServiceState.skyrimSetup:
-                case WorkspaceSetupServiceState.skyrimSpecialEditionSetup:
-                case WorkspaceSetupServiceState.fallout4Setup:
-                    break;
+                        case WorkspaceSetupServiceState.fallout4NotSetup:
+                            // Setup FO4 task
+                            return;
 
-            }
-            return undefined;
+                        case WorkspaceSetupServiceState.skyrimSetup:
+                        case WorkspaceSetupServiceState.skyrimSpecialEditionSetup:
+                        case WorkspaceSetupServiceState.fallout4Setup:
+                            return;
+
+                        case WorkspaceSetupServiceState.isPapyrus:
+                            resolve(true);
+                            return;
+
+                        case WorkspaceSetupServiceState.done:
+                            observable.subscribe(); // unsubscribe
+                            return;
+                    }
+                },
+                error(err) {
+                    console.error('PapyrusCompilerTaskProvider subscription: ' + err);
+                },
+                complete() {
+                    console.log('PapyrusCompilerTaskProvider subscription: done');
+                }
+            });
+
+        });
+
+        if (await register.then(value => { return value; })) {
+            this._taskProviderHandle = tasks.registerTaskProvider('PapyrusCompiler', this);
         }
-
-        // think something like this needs to be done when state is setup
-        // task.execution = new ProcessExecution( xxx );
-        // return task;
-
+        return undefined;
     }
 
     async resolveTask(task: TaskOf<IPapyrusCompilerTaskDefinition>, token?: CancellationToken): Promise<Task> {
@@ -113,6 +117,8 @@ export class PapyrusCompilerTaskProvider implements TaskProvider, Disposable {
     }
 
     dispose() {
-        this._taskProviderHandle.dispose();
+        if (this._taskProviderHandle) {
+            this._taskProviderHandle.dispose();
+        }
     }
 }
