@@ -8,8 +8,11 @@ import { ICreationKitInfo, ICreationKitInfoProvider } from '../CreationKitInfoPr
 import { getDefaultFlagsFileNameForGame } from '../Utilities';
 import { take } from 'rxjs/operators';
 import * as path from 'path';
+import { IWorkspaceSetupService } from './WorkspaceSetupService';
 
-function taskOptionsToCommandLineArguments(options: TaskDefinition, creationKitInfo: ICreationKitInfo) {
+
+// IMPLEMENT THIS
+function taskOptionsToCommandLineArguments(options: IPyroTaskDefinition, creationKitInfo: ICreationKitInfo) {
     const args: string[] = [];
     const isFallout4 = options.game === PapyrusGame.fallout4;
 
@@ -26,8 +29,11 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
     private readonly _extensionConfigProvider: IExtensionConfigProvider;
 
 
-    constructor(@ICreationKitInfoProvider creationKitInfoProvider: ICreationKitInfoProvider,
-        @IExtensionConfigProvider extensionConfigProvider: IExtensionConfigProvider) {
+    constructor(
+        @ICreationKitInfoProvider creationKitInfoProvider: ICreationKitInfoProvider,
+        @IExtensionConfigProvider extensionConfigProvider: IExtensionConfigProvider,
+        @IWorkspaceSetupService workspaceSetupService: IWorkspaceSetupService
+    ) {
         this._creationKitInfoProvider = creationKitInfoProvider;
         this._extensionConfigProvider = extensionConfigProvider;
         this._taskProviderHandle = tasks.registerTaskProvider('pyro', this);

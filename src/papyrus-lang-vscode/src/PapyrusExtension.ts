@@ -14,6 +14,7 @@ import { SearchCreationKitWikiCommand } from './features/commands/SearchCreation
 import { PapyrusDebugConfigurationProvider } from './debugger/PapyrusDebugConfigurationProvider';
 import { PapyrusDebugAdapterDescriptorFactory } from './debugger/PapyrusDebugAdapterDescriptorFactory';
 import { IDebugSupportInstallService, DebugSupportInstallService } from './debugger/DebugSupportInstallService';
+import { IWorkspaceSetupService, WorkspaceSetupService } from './features/WorkspaceSetupService';
 import { InstallDebugSupportCommand } from './features/commands/InstallDebugSupportCommand';
 import { PapyrusDebugAdapterTrackerFactory } from './debugger/PapyrusDebugAdapterTracker';
 import { AttachDebuggerCommand } from './features/commands/AttachDebuggerCommand';
@@ -55,7 +56,8 @@ class PapyrusExtension implements Disposable {
             [IExtensionConfigProvider, new Descriptor(ExtensionConfigProvider)],
             [ICreationKitInfoProvider, new Descriptor(CreationKitInfoProvider)],
             [ILanguageClientManager, new Descriptor(LanguageClientManager)],
-            [IDebugSupportInstallService, new Descriptor(DebugSupportInstallService)]
+            [IDebugSupportInstallService, new Descriptor(DebugSupportInstallService)],
+            [IWorkspaceSetupService, new Descriptor(WorkspaceSetupService)]
         );
 
         this._instantiationService = new InstantiationService(this._serviceCollection);

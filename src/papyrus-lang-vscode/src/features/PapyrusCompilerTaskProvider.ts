@@ -8,18 +8,35 @@ import { ICreationKitInfo, ICreationKitInfoProvider } from '../CreationKitInfoPr
 import { getDefaultFlagsFileNameForGame } from '../Utilities';
 import { take } from 'rxjs/operators';
 import * as path from 'path';
+import { IWorkspaceSetupService, WorkspaceSetupServiceState } from './WorkspaceSetupService';
 
+
+// IMPLEMENT THIS
+function taskOptionsToCommandLineArguments(opts: IPapyrusCompilerTaskOptions, creationKitInfo: ICreationKitInfo) {
+    const args: string[] = [];
+    const isFallout4 = opts.game === PapyrusGame.fallout4;
+    if (opts.sources) {
+
+    }
+
+    return args;
+}
 
 export class PapyrusCompilerTaskProvider implements TaskProvider, Disposable {
     private readonly _taskProviderHandle: Disposable;
     private readonly _creationKitInfoProvider: ICreationKitInfoProvider;
     private readonly _extensionConfigProvider: IExtensionConfigProvider;
+    private readonly _workspaceSetupService: IWorkspaceSetupService;
 
-    constructor(@ICreationKitInfoProvider creationKitInfoProvider: ICreationKitInfoProvider,
-        @IExtensionConfigProvider extensionConfigProvider: IExtensionConfigProvider) {
+    constructor(
+        @ICreationKitInfoProvider creationKitInfoProvider: ICreationKitInfoProvider,
+        @IExtensionConfigProvider extensionConfigProvider: IExtensionConfigProvider,
+        @IWorkspaceSetupService workspaceSetupService: IWorkspaceSetupService
+    ) {
         this._creationKitInfoProvider = creationKitInfoProvider;
         this._extensionConfigProvider = extensionConfigProvider;
         this._taskProviderHandle = tasks.registerTaskProvider('PapyrusCompiler', this);
+        this._workspaceSetupService = workspaceSetupService;
     }
 
     async provideTasks(token?: CancellationToken): Promise<Task[]> {
@@ -28,24 +45,54 @@ export class PapyrusCompilerTaskProvider implements TaskProvider, Disposable {
             .pipe(take(1))
             .toPromise();
 
-        return workspace.workspaceFolders.map((folder) => {
-            const task = new Task(
-                {
-                    type: 'PapyrusCompiler',
-                    pyro: {
-                        game: PapyrusGame.fallout4,
-                        sources: '${currentFile}'
-                    }
-                },
-                folder,
-                'default',
-                'pyro'
-            );
+        while (true) {
 
-            // task.execution = new ProcessExecution( xxx );
+            var setupState: WorkspaceSetupServiceState = await this._workspaceSetupService.getSetupState();
 
-            return task;
-        });
+            switch (setupState) {
+                case WorkspaceSetupServiceState.notSetup:
+                    continue;
+                // If sure this is not a papyrus project and isn't supposed to be then we don't install the task 
+                case WorkspaceSetupServiceState.notPapyrus:
+                    return undefined;
+                    break;
+
+                case WorkspaceSetupServiceState.skyrimNotSetup:
+                    // return workspace.workspaceFolders.map((folder) => {
+                    //     const task = new Task(
+                    //         {
+                    //             type: 'PapyrusCompiler',
+                    //             pyro: {
+                    //                 game: PapyrusGame.fallout4,
+                    //                 sources: '${currentFile}'
+                    //             }
+                    //         },
+                    //         folder,
+                    //         'default',
+                    //         'pyro'
+                    //     );
+                    return undefined;
+
+                case WorkspaceSetupServiceState.skyrimSpecialEditionNotSetup:
+                    // Setup SSE task
+                    return undefined;
+
+                case WorkspaceSetupServiceState.fallout4NotSetup:
+                    // Setup FO4 task
+                    return undefined;
+
+                case WorkspaceSetupServiceState.skyrimSetup:
+                case WorkspaceSetupServiceState.skyrimSpecialEditionSetup:
+                case WorkspaceSetupServiceState.fallout4Setup:
+                    break;
+
+            }
+            return undefined;
+        }
+
+        // think something like this needs to be done when state is setup
+        // task.execution = new ProcessExecution( xxx );
+        // return task;
 
     }
 

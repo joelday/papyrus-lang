@@ -4,8 +4,8 @@ import { PapyrusGame } from '../PapyrusGame';
 export type TaskOf<T extends TaskDefinition> = { readonly definition: T } & Task;
 
 export interface IPapyrusCompilerTaskDefinition extends TaskDefinition {
-    readonly type: 'papyrus';
-    readonly papyrus: IPapyrusCompilerTaskOptions;
+    readonly type: 'papyrusCompiler';
+    readonly papyrusCompiler: IPapyrusCompilerTaskOptions;
 }
 
 export interface IPapyrusCompilerTaskOptions {
