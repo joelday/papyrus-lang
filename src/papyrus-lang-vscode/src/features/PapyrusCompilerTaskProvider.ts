@@ -26,7 +26,7 @@ export class PapyrusCompilerTaskProvider implements TaskProvider, Disposable {
     private readonly _creationKitInfoProvider: ICreationKitInfoProvider;
     private readonly _extensionConfigProvider: IExtensionConfigProvider;
     private readonly _workspaceSetupService: IWorkspaceSetupService;
-    private _taskProviderHandle: Disposable;
+    private readonly _taskProviderHandle: Disposable;
 
     constructor(
         @ICreationKitInfoProvider creationKitInfoProvider: ICreationKitInfoProvider,
@@ -36,67 +36,15 @@ export class PapyrusCompilerTaskProvider implements TaskProvider, Disposable {
         this._creationKitInfoProvider = creationKitInfoProvider;
         this._extensionConfigProvider = extensionConfigProvider;
         this._workspaceSetupService = workspaceSetupService;
+        this._taskProviderHandle = tasks.registerTaskProvider('PapyrusCompiler', this);
+
     }
 
+    // This is for providing tasks associated with makefiles, essentially that are not defined in tasks.json
     async provideTasks(token?: CancellationToken): Promise<Task[]> {
-        const creationKitInfo = await this._creationKitInfoProvider.infos
-            .get(PapyrusGame.fallout4)
-            .pipe(take(1))
-            .toPromise();
-
-        var register: Promise<boolean> = new Promise<boolean>((resolve) => {
-            var observable = this._workspaceSetupService.getObservable();
-
-            observable.subscribe({
-                next(setupState: WorkspaceSetupServiceState) {
-                    switch (setupState) {
-
-                        case WorkspaceSetupServiceState.notSetup:
-                            return;
-
-                        // If sure this is not a papyrus project and isn't supposed to be then we don't install the task 
-                        case WorkspaceSetupServiceState.notPapyrus:
-                            resolve(false);
-                            return;
-
-                        case WorkspaceSetupServiceState.skyrimNotSetup:
-                            return; // actuallly return task
-
-                        case WorkspaceSetupServiceState.skyrimSpecialEditionNotSetup:
-                            // Setup SSE task
-                            return;
-
-                        case WorkspaceSetupServiceState.fallout4NotSetup:
-                            // Setup FO4 task
-                            return;
-
-                        case WorkspaceSetupServiceState.skyrimSetup:
-                        case WorkspaceSetupServiceState.skyrimSpecialEditionSetup:
-                        case WorkspaceSetupServiceState.fallout4Setup:
-                            return;
-
-                        case WorkspaceSetupServiceState.isPapyrus:
-                            resolve(true);
-                            return;
-
-                        case WorkspaceSetupServiceState.done:
-                            observable.subscribe(); // unsubscribe
-                            return;
-                    }
-                },
-                error(err) {
-                    console.error('PapyrusCompilerTaskProvider subscription: ' + err);
-                },
-                complete() {
-                    console.log('PapyrusCompilerTaskProvider subscription: done');
-                }
-            });
-
-        });
-
-        if (await register.then(value => { return value; })) {
-            this._taskProviderHandle = tasks.registerTaskProvider('PapyrusCompiler', this);
-        }
+        console.log("Running WorkspaceSetupService from provideTasks");
+        this._workspaceSetupService.run();
+        // We don't actually want to do anything for this one. We could maybe provide a task per source folder?
         return undefined;
     }
 
@@ -110,6 +58,8 @@ export class PapyrusCompilerTaskProvider implements TaskProvider, Disposable {
             return null;
         }
 
+        // Compile individual file or folder of files when this task is invoked. Without any automatic task providing
+        // it will need to be defined in tasks.jason.
         // task.execution = new ProcessExecution(    );
 
         return task;
@@ -117,8 +67,6 @@ export class PapyrusCompilerTaskProvider implements TaskProvider, Disposable {
     }
 
     dispose() {
-        if (this._taskProviderHandle) {
-            this._taskProviderHandle.dispose();
-        }
+        this._taskProviderHandle.dispose();
     }
 }

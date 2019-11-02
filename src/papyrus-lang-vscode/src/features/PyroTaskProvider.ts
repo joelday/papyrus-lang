@@ -45,24 +45,14 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
             .pipe(take(1))
             .toPromise();
 
-        return workspace.workspaceFolders.map((folder) => {
-            const task = new Task(
-                {
-                    type: 'pyro',
-                    pyro: {
-                        game: PapyrusGame.fallout4,
-                        project: ''
-                    }
-                },
-                folder,
-                'default',
-                'pyro'
-            );
+        if (token.isCancellationRequested) {
+            return null;
+        }
 
-            // task.execution = new ProcessExecution( xxx );
+        // search for all .PPJ files in workspace
+        // provide a build task for each one found
 
-            return task;
-        });
+        return undefined;
     }
 
     async resolveTask(task: TaskOf<IPyroTaskDefinition>, token?: CancellationToken): Promise<Task> {
@@ -75,6 +65,7 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
             return null;
         }
 
+        // Execute Pyro on the task based on the tasks settings we get.
         // task.execution = new ProcessExecution(        );
 
         return task;
