@@ -27,6 +27,7 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
     private readonly _taskProviderHandle: Disposable;
     private readonly _creationKitInfoProvider: ICreationKitInfoProvider;
     private readonly _extensionConfigProvider: IExtensionConfigProvider;
+    private readonly _workspaceSetupService: IWorkspaceSetupService;
 
 
     constructor(
@@ -36,6 +37,8 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
     ) {
         this._creationKitInfoProvider = creationKitInfoProvider;
         this._extensionConfigProvider = extensionConfigProvider;
+        this._workspaceSetupService = workspaceSetupService;
+        // should this next line go in the constructor????
         this._taskProviderHandle = tasks.registerTaskProvider('pyro', this);
     }
 
@@ -48,6 +51,9 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
         if (token.isCancellationRequested) {
             return null;
         }
+
+        console.log("*** Attempting to run WorkspaceSetupService from PapyrusCompilerTaskProvider::provideTasks");
+        this._workspaceSetupService.run();
 
         // search for all .PPJ files in workspace
         // provide a build task for each one found

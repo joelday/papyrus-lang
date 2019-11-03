@@ -42,9 +42,9 @@ export class PapyrusCompilerTaskProvider implements TaskProvider, Disposable {
 
     // This is for providing tasks associated with makefiles, essentially that are not defined in tasks.json
     async provideTasks(token?: CancellationToken): Promise<Task[]> {
-        console.log("Running WorkspaceSetupService from provideTasks");
         this._workspaceSetupService.run();
-        // We don't actually want to do anything for this one. We could maybe provide a task per source folder?
+        console.log("*** Attempting to run WorkspaceSetupService from PapyrusCompilerTaskProvider::provideTasks");
+        // We don't actually want to do anything for this one. We could maybe provide a task per source folder maybe?
         return undefined;
     }
 

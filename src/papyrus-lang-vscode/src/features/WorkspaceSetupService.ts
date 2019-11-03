@@ -1,5 +1,6 @@
 import { Disposable } from 'vscode-jsonrpc';
-import { workspace } from 'vscode';
+import { TextDocument, extensions, WorkspaceFolder } from 'vscode';
+import { workspace, WorkspaceFoldersChangeEvent } from 'vscode';
 import { createDecorator } from 'decoration-ioc';
 import { IExtensionConfigProvider, ExtensionConfigProvider } from '../ExtensionConfigProvider';
 import { IExtensionContext } from '../common/vscode/IocDecorators';
@@ -11,8 +12,9 @@ import { resolveInstallPath } from '../Utilities';
 import * as path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
+// ??? import { TextDocument, TextDocumentItem } from 'vscode-languageclient';
 
-const exists = promisify(fs.exists);
+const exists: (string) => Promise<boolean> = promisify(fs.exists);
 const copyFile = promisify(fs.copyFile);
 const removeFile = promisify(fs.unlink);
 
@@ -42,6 +44,9 @@ export class WorkspaceSetupService implements IWorkspaceSetupService {
     private readonly _configProvider: IExtensionConfigProvider;
     private readonly _context: ExtensionContext;
     private _state: WorkspaceSetupServiceState = WorkspaceSetupServiceState.idle;
+    private _workspaceFoldersChangedEvent: WorkspaceFoldersChangeEvent;
+    private _eventTextDocument: TextDocument;
+    private _notSetupFolder: WorkspaceFolder | null;
 
     constructor(
         @IExtensionConfigProvider configProvider: IExtensionConfigProvider,
@@ -49,25 +54,29 @@ export class WorkspaceSetupService implements IWorkspaceSetupService {
     ) {
         this._configProvider = configProvider;
         this._context = context;
+        this._notSetupFolder = null;
 
         workspace.onDidChangeWorkspaceFolders(event => {
-            console.log(event);
+            console.log("*** WorkspaceSetupService run attempt by onDidChangeWorkspaceFolders");
+            this._workspaceFoldersChangedEvent = event;
             this.run();
         });
 
         workspace.onDidOpenTextDocument(event => {
-            console.log(event);
+            console.log("*** WorkspaceSetupService run attempt by onDidOpenTextDocument");
+            this._eventTextDocument = event;
             this.run();
         });
 
     }
 
-
     async run(): Promise<void> {
         if (this._state !== WorkspaceSetupServiceState.idle) {
+            console.log("XXX Workspace setup service run() invoked but already running. Ignored.");
             return;
         } else {
-            console.log("Workspace setup service started.");
+            console.log("### Workspace setup service started.");
+            this._state = WorkspaceSetupServiceState.start; // Must do this to avoid race condition with event loop
             setImmediate(() => { this._setState(WorkspaceSetupServiceState.start); });
             return;
         }
@@ -82,7 +91,7 @@ export class WorkspaceSetupService implements IWorkspaceSetupService {
         this._state = currentState;
         var newState: WorkspaceSetupServiceState = WorkspaceSetupServiceState.idle; // default go to idle
 
-        console.log(`WorkspaceSetupService state changed from ${WorkspaceSetupServiceState[oldState]} to ${WorkspaceSetupServiceState[currentState]}`);
+        console.log(`-> WorkspaceSetupService state changed from ${WorkspaceSetupServiceState[oldState]} to ${WorkspaceSetupServiceState[currentState]}`);
 
         switch (currentState) {
 
@@ -91,11 +100,25 @@ export class WorkspaceSetupService implements IWorkspaceSetupService {
                 return;
 
             case WorkspaceSetupServiceState.start:
-                // Does .vscode or *.code-workspace exist?
-                newState = WorkspaceSetupServiceState.notSetup;
+                // Does .vscode dir exist in workspace?
+                var notSetupFolder: string = "";
+                for (var folder of workspace.workspaceFolders) {
+                    if (await exists(path.join(folder.uri.fsPath, '.vscode'))) {
+                        this._notSetupFolder = folder; // only setup the first folder we find that isn't setup 
+                        break;
+                    }
+                }
+                if (notSetupFolder) {
+                    newState = WorkspaceSetupServiceState.notSetup;
+                } else {
+                    console.log("*  No folder to setup. Going idle.");
+                    newState = WorkspaceSetupServiceState.idle;
+                }
                 break;
 
             case WorkspaceSetupServiceState.notSetup:
+                console.log(`* folder ${this._notSetupFolder.uri.fsPath} not setup`);
+                // XXX this needs to be fast because this setup service might get invoked too often
                 // if not, IS this workspace is a candidate for setting up as a papyrus project of some sort?
                 // Identify directory based on: flags file name and location
                 // Get game directory from registry. Does this match game directory?
