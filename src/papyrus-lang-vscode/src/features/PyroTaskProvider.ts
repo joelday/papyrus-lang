@@ -5,7 +5,7 @@ import { IPyroTaskDefinition, TaskOf, IPyroTaskOptions } from './PyroTaskDefinit
 import { ILanguageClientManager } from '../server/LanguageClientManager';
 import { PapyrusGame } from '../PapyrusGame';
 import { ICreationKitInfo, ICreationKitInfoProvider } from '../CreationKitInfoProvider';
-import { getDefaultFlagsFileNameForGame } from '../Utilities';
+import { getDefaultFlagsFileNameForGame } from '../Paths';
 import { take } from 'rxjs/operators';
 import * as path from 'path';
 import { IWorkspaceSetupService } from './WorkspaceSetupService';
@@ -57,6 +57,7 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
 
         // search for all .PPJ files in workspace
         // provide a build task for each one found
+
 
         return undefined;
     }

@@ -3,7 +3,8 @@ import { PapyrusGame, getGames } from './PapyrusGame';
 import { IExtensionConfigProvider } from './ExtensionConfigProvider';
 import { Observable, combineLatest } from 'rxjs';
 import { map, mergeMap, shareReplay } from 'rxjs/operators';
-import { resolveInstallPath, inDevelopmentEnvironment, getDevelopmentCompilerFolderForGame } from './Utilities';
+import { resolveInstallPath, getDevelopmentCompilerFolderForGame } from './Paths';
+import { inDevelopmentEnvironment } from './Utilities';
 import * as path from 'path';
 import * as ini from 'ini';
 import { all as deepMergeAll } from 'deepmerge';
@@ -141,15 +142,15 @@ export class CreationKitInfoProvider {
                         compilerPath && (await exists(compilerPath))
                             ? compilerPath
                             : inDevelopmentEnvironment() && game !== PapyrusGame.skyrim
-                            ? path.resolve(resolvedInstallPath, getDevelopmentCompilerFolderForGame(game))
-                            : null;
+                                ? path.resolve(resolvedInstallPath, getDevelopmentCompilerFolderForGame(game))
+                                : null;
 
                     return {
                         resolvedInstallPath,
                         resolvedCompilerPath:
                             inDevelopmentEnvironment() &&
-                            game !== PapyrusGame.skyrim &&
-                            !(await exists(resolvedCompilerPath))
+                                game !== PapyrusGame.skyrim &&
+                                !(await exists(resolvedCompilerPath))
                                 ? null
                                 : resolvedCompilerPath,
                         config: mergedIni,

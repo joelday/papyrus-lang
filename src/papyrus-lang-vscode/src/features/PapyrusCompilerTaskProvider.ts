@@ -5,7 +5,7 @@ import { IPapyrusCompilerTaskDefinition, TaskOf, IPapyrusCompilerTaskOptions } f
 import { ILanguageClientManager } from '../server/LanguageClientManager';
 import { PapyrusGame } from '../PapyrusGame';
 import { ICreationKitInfo, ICreationKitInfoProvider } from '../CreationKitInfoProvider';
-import { getDefaultFlagsFileNameForGame } from '../Utilities';
+import { getDefaultFlagsFileNameForGame } from '../Paths';
 import { take } from 'rxjs/operators';
 import * as path from 'path';
 import { IWorkspaceSetupService, WorkspaceSetupServiceState } from './WorkspaceSetupService';
