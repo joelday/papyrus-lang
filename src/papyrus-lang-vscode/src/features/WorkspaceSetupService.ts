@@ -7,7 +7,7 @@ import { IExtensionContext } from '../common/vscode/IocDecorators';
 import { ExtensionContext, CancellationToken, Progress, CancellationTokenSource } from 'vscode';
 import { Observable, Subscriber } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { resolveInstallPath } from '../Utilities';
+import { resolveInstallPath } from '../Paths';
 
 import * as path from 'path';
 import * as fs from 'fs';
@@ -76,17 +76,20 @@ export class WorkspaceSetupService implements IWorkspaceSetupService {
             return;
         } else {
             console.log("### Workspace setup service started.");
-            this._state = WorkspaceSetupServiceState.start; // Must do this to avoid race condition with event loop
             setImmediate(() => { this._setState(WorkspaceSetupServiceState.start); });
             return;
         }
     }
 
     async getState(): Promise<WorkspaceSetupServiceState> {
-        return WorkspaceSetupServiceState.notPapyrus;
+        return this._state;
     }
 
     async _setState(currentState: WorkspaceSetupServiceState): Promise<void> {
+        if (this._state === currentState) {
+            console.log("X  Avoiding state loopback (double start etc.)");
+            return; // avoid double start. we should never loopback to a state anyway
+        }
         const oldState = this._state;
         this._state = currentState;
         var newState: WorkspaceSetupServiceState = WorkspaceSetupServiceState.idle; // default go to idle
