@@ -2,15 +2,18 @@ version: 2.0.0.{build}
 skip_tags: true
 image: Visual Studio 2017
 environment:
-  GH_TOKEN:
-    secure: EhiervZBkremCKMnk/LFCC3XTbLfgu6hfWrxBIDWr9Oxf84OO4BKcH6OyH19WrBf
+  APPVEYOR_CACHE_SKIP_RESTORE: 'false'
+  APPVEYOR_CACHE_SKIP_SAVE: 'false'
+cache:
+  node_modules
 build_script:
   - cmd: powershell ./build.ps1
 test: off
-on_success:
+after_build:
   - cmd: powershell ./build.ps1 --target="update-debug-plugin"
   - cmd: powershell ./build.ps1 --target="update-pyro-cli"
   - cmd: powershell ./build.ps1 --target="npm-semantic-release"
+on_success:
   - ps: Invoke-RestMethod https://raw.githubusercontent.com/DiscordHooks/appveyor-discord-webhook/master/send.ps1 -o send.ps1
   - ps: ./send.ps1 success $env:WEBHOOK_URL
 on_failure:
