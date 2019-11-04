@@ -3,8 +3,8 @@ skip_tags: true
 image: Visual Studio 2017
 init:
  - cmd: npm install vcse
- artifacts:
-  - path: '**\*.vsix'
+artifacts:
+ - path: '**\*.vsix'
 environment:
   APPVEYOR_CACHE_SKIP_RESTORE: 'false'
   APPVEYOR_CACHE_SKIP_SAVE: 'false'
