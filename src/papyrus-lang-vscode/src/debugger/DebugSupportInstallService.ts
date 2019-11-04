@@ -3,7 +3,7 @@ import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
 import { IExtensionContext } from '../common/vscode/IocDecorators';
 import { ExtensionContext, CancellationToken, Progress, CancellationTokenSource } from 'vscode';
 import { take } from 'rxjs/operators';
-import { resolveInstallPath } from '../Utilities';
+import { resolveInstallPath } from '../Paths';
 import { PapyrusGame, getScriptExtenderName } from '../PapyrusGame';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
 import { ClientHostStatus } from '../server/LanguageClientHost';
