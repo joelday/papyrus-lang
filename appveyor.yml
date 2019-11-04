@@ -1,8 +1,6 @@
 version: 2.0.0.{build}
 skip_tags: true
 image: Visual Studio 2017
-init:
- - cmd: npm install vsce
 artifacts:
  - path: '**\*.vsix'
 environment:
@@ -17,6 +15,7 @@ after_build:
   - cmd: powershell ./build.ps1 --target="update-debug-plugin"
   - cmd: powershell ./build.ps1 --target="update-pyro-cli"
   - cmd: powershell ./build.ps1 --target="npm-semantic-release"
+  - cmd: npm install vsce
   - cmd: cd src\papyrus-lang-vscode; vsce package
 on_success:
   - ps: Invoke-RestMethod https://raw.githubusercontent.com/DiscordHooks/appveyor-discord-webhook/master/send.ps1 -o send.ps1
