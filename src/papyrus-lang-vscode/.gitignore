@@ -1,6 +1,6 @@
 debug-bin
 debug-plugin
-pyro/
+pyro
 out
 node_modules
 .vscode-test/
