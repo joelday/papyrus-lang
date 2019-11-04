@@ -1,23 +1,24 @@
-version: test.{build}
+version: build.{build}
 skip_tags: true
 image: Visual Studio 2017
+
 artifacts:
  - path: '**\*.vsix'
+
 environment:
   APPVEYOR_CACHE_SKIP_RESTORE: 'false'
   APPVEYOR_CACHE_SKIP_SAVE: 'false'
-cache:
-  node_modules
+
 build_script:
   - cmd: powershell ./build.ps1
+
 test: off
 
 after_build:
   - cmd: powershell ./build.ps1 --target="update-debug-plugin"
   - cmd: powershell ./build.ps1 --target="update-pyro-cli"
   - cmd: powershell ./build.ps1 --target="npm-semantic-release"
-  - ps: Get-ChildItem env:* | sort-object name
-  - ps: get-location
+#  - ps: Get-ChildItem env:* | sort-object name
   - ps: cd src\papyrus-lang-vscode ; npm install vsce ; npx vsce package
 
 on_success:
@@ -27,12 +28,13 @@ on_failure:
   - ps: Invoke-RestMethod https://raw.githubusercontent.com/DiscordHooks/appveyor-discord-webhook/master/send.ps1 -o send.ps1
   - ps: ./send.ps1 failure $env:WEBHOOK_URL
 
-  # for my test build distribution
+# for my test build distribution
 deploy:
-  release: 'papyrus-lang test build $(APPVEYOR_BUILD_VERSION)'
+  release: 'papyrus-lang test $(APPVEYOR_BUILD_VERSION)'
   description: >
       Manually installable .vsix test build of extension $(APPVEYOR_BUILD_VERSION)
-      (Automated build via AppVeyor)
+      (Automated build via AppVeyor, build ID $(APPVEYOR_BUILD_ID))
+      $(APPVEYOR_REPO_COMMIT_MESSAGE) $(APPVEYOR_REPO_COMMIT_TIMESTAMP)
   provider: GitHub
   auth_token:
     secure: EhiervZBkremCKMnk/LFCC3XTbLfgu6hfWrxBIDWr9Oxf84OO4BKcH6OyH19WrBf
