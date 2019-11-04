@@ -16,10 +16,9 @@ after_build:
   - cmd: powershell ./build.ps1 --target="update-debug-plugin"
   - cmd: powershell ./build.ps1 --target="update-pyro-cli"
   - cmd: powershell ./build.ps1 --target="npm-semantic-release"
-  - cmd: npm install vsce
   - ps: Get-ChildItem env:* | sort-object name
   - ps: get-location
-  - ps: cd src\papyrus-lang-vscode ; npx vsce package
+  - ps: cd src\papyrus-lang-vscode ; npm install vsce ; npx vsce package
 
 on_success:
   - ps: Invoke-RestMethod https://raw.githubusercontent.com/DiscordHooks/appveyor-discord-webhook/master/send.ps1 -o send.ps1
