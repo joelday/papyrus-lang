@@ -130,7 +130,7 @@
                 }
             },
             {
-                "type": "papyrusCompiler",
+                "type": "papyrus",
                 "required": [
                     "game",
                     "sources"

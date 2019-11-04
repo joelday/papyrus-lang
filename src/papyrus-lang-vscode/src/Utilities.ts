@@ -98,14 +98,14 @@ export function mkDirByPathSync(targetDir: string, { isRelativeToScript = false 
     }, initDir);
 }
 
-export function getWorkspaceGame(): PapyrusGame | undefined {
+export async function getWorkspaceGame(): Promise<PapyrusGame | undefined> {
     let game = undefined;
     const workspaceRoot = workspace.workspaceFolders[0].uri.fsPath;
 
     // If Sources/Scripts exists then it's a Skyrim of some sort
-    if (exists(path.join(workspaceRoot, 'Sources', 'Scripts'))) {
+    if (await exists(path.join(workspaceRoot, 'Source', 'Scripts'))) {
         // If the executable in the directory above is Skyrim.exe then we assume it's classic.
-        if (exists(path.join(workspaceRoot, '..', getExecutableNameForGame(PapyrusGame.skyrim)))) {
+        if (await exists(path.join(workspaceRoot, '..', getExecutableNameForGame(PapyrusGame.skyrim)))) {
             game = PapyrusGame.skyrim;
         } else {
             // otherwise we assume it's Special Edition
@@ -113,7 +113,7 @@ export function getWorkspaceGame(): PapyrusGame | undefined {
         }
     } else {
         // If the Fallout 4 Scripts/Sources/User exists then we assme it's Fallout 4
-        if (exists(path.join(workspaceRoot, 'Scripts', 'Sources', 'User'))) {
+        if (await exists(path.join(workspaceRoot, 'Scripts', 'Source', 'User'))) {
             game = PapyrusGame.fallout4;
         }
         // Otherwise it's something we can't identify.
