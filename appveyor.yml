@@ -3,16 +3,13 @@ skip_tags: true
 image: Visual Studio 2017
 environment:
   GH_TOKEN:
-    secure: /XavQ5iNF9gdwnv5qItZszSzEgZqu6e9sOtupfpfaJS6vrxAzFDarhsPV8hEK1hl
-  VSCE_TOKEN:
-    secure: P6jI4JL2Mi4fNYS2/A2DTnSqHGWMu/Px2l4J3iq5HVioG4V8ZsFBkba5KciF+T7xKY+QXeT7g/otf0NH8rfFVA==
-  WEBHOOK_URL:
-    secure: Oyrlvti3D7Zf0SDrYnP5AprH1IDT0upe+oy39EGEZP6vYDg5/NjESFLiLRLO1EMamTVCqIfhxkqWWKq3o1RIlqPT7Kib+uvcI+DHD+OqTZHz3FIWAQhIZWcg0li0QOEnlK9YTjT5f2GWzIgtgJnV793iejlUMnDYBRKZxCewmSU=
+    secure: EhiervZBkremCKMnk/LFCC3XTbLfgu6hfWrxBIDWr9Oxf84OO4BKcH6OyH19WrBf
 build_script:
   - cmd: powershell ./build.ps1
 test: off
 on_success:
   - cmd: powershell ./build.ps1 --target="update-debug-plugin"
+  - cmd: powershell ./build.ps1 --target="update-pyro-cli"
   - cmd: powershell ./build.ps1 --target="npm-semantic-release"
   - ps: Invoke-RestMethod https://raw.githubusercontent.com/DiscordHooks/appveyor-discord-webhook/master/send.ps1 -o send.ps1
   - ps: ./send.ps1 success $env:WEBHOOK_URL
