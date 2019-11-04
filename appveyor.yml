@@ -18,18 +18,18 @@ on_failure:
   - ps: ./send.ps1 failure $env:WEBHOOK_URL
 
   # for my test build distribution
-  deploy:
-    tag: $(APPVEYOR_REPO_TAG_NAME)
-    release: 'papyrus-lang test build $(APPVEYOR_REPO_TAG_NAME)-test$(APPVEYOR_BUILD_NUMBER)'
-    description: >
-        Manually installable .vsix test build of extension $(APPVEYOR_REPO_TAG_NAME)-$(APPVEYOR_BUILD_NUMBER)
-        (Automated build via AppVeyor)
-    provider: GitHub
-    auth_token:
-      secure: EhiervZBkremCKMnk/LFCC3XTbLfgu6hfWrxBIDWr9Oxf84OO4BKcH6OyH19WrBf
-    artifact: /.*\.vsix/
-    draft: false
-    prerelease: true
-    on:
-      branch: test-build                 # release from master branch only
-      APPVEYOR_REPO_TAG: false
+deploy:
+  tag: $(APPVEYOR_REPO_TAG_NAME)
+  release: 'papyrus-lang test build $(APPVEYOR_REPO_TAG_NAME)-test$(APPVEYOR_BUILD_NUMBER)'
+  description: >
+      Manually installable .vsix test build of extension $(APPVEYOR_REPO_TAG_NAME)-$(APPVEYOR_BUILD_NUMBER)
+      (Automated build via AppVeyor)
+  provider: GitHub
+  auth_token:
+    secure: EhiervZBkremCKMnk/LFCC3XTbLfgu6hfWrxBIDWr9Oxf84OO4BKcH6OyH19WrBf
+  artifact: /.*\.vsix/
+  draft: false
+  prerelease: true
+  on:
+    branch: test-build                 # release from master branch only
+    APPVEYOR_REPO_TAG: false
