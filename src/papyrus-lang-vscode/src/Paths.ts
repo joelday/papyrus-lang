@@ -1,13 +1,14 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { ExtensionContext } from 'vscode';
+import { workspace, ExtensionContext, Uri } from 'vscode';
 
 import { PapyrusGame } from './PapyrusGame';
 import { inDevelopmentEnvironment } from './Utilities';
 
 import winreg from 'winreg';
 import { promisify } from 'util';
+import { CancellationToken } from 'vscode-jsonrpc';
 
 
 const exists = promisify(fs.exists);
@@ -107,6 +108,7 @@ export function getDefaultFlagsFileNameForGame(game: PapyrusGame) {
 }
 
 const executableNames = new Map([
+    [PapyrusGame.skyrim, 'Skyrim.exe'],
     [PapyrusGame.fallout4, 'Fallout4.exe'],
     [PapyrusGame.skyrimSpecialEdition, 'SkyrimSE.exe'],
 ]);
@@ -114,4 +116,3 @@ const executableNames = new Map([
 export function getExecutableNameForGame(game: PapyrusGame) {
     return executableNames.get(game);
 }
-
