@@ -111,12 +111,70 @@
                 ]
             }
         ],
+        "taskDefinitions": [
+            {
+                "type": "pyro",
+                "required": [
+                    "game",
+                    "ppj"
+                ],
+                "properties": {
+                    "game": {
+                        "type": "string",
+                        "description": "The game that the build task is for"
+                    },
+                    "ppj": {
+                        "type": "string",
+                        "description": "The path to the PPJ file relative to workspace folder"
+                    }
+                }
+            },
+            {
+                "type": "papyrus",
+                "required": [
+                    "game",
+                    "sources"
+                ],
+                "properties": {
+                    "game": {
+                        "type": "string",
+                        "description": "game type to compile: fallout4, skyrim, skyrimSpecialEdition"
+                    },
+                    "imports": {
+                        "type": "array",
+                        "description": "list of import directories"
+                    },
+                    "sources": {
+                        "type": "array",
+                        "description": "list of files or source directories"
+                    },
+                    "output": {
+                        "type": "string",
+                        "description": "output directory"
+                    }
+                }
+            }
+        ],
+        "problemMatchers": [
+            {
+                "name": "PapyrusCompiler",
+                "owner": "external",
+                "fileLocation": "absolute",
+                "pattern": {
+                    "regexp": "^(.*)\\((\\d+),(\\d+)\\):(.*)",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "message": 4
+                }
+            }
+        ],
         "configuration": {
             "properties": {
                 "papyrus.fallout4.enabled": {
                     "default": true,
                     "type": "boolean",
-                    "description": "Enable support for Fallout 4."
+                    "markdownDescription": "Enable suppot for **Fallout 4**. Use the [Generate Project Files](command:papyrus.fallout4.generateProject) command to set up builds and the language server."
                 },
                 "papyrus.fallout4.creationKitIniFiles": {
                     "default": [
@@ -167,7 +225,7 @@
                 "papyrus.skyrimSpecialEdition.enabled": {
                     "default": true,
                     "type": "boolean",
-                    "description": "Enable support for Skyrim Special Edition."
+                    "markdownDescription": "Enable support for **Skyrim Special Edition**. Use the [Generate Project Files](command:papyrus.skyrimSpecialEdition.generateProject) command to set up the language server and builds."
                 },
                 "papyrus.skyrimSpecialEdition.creationKitIniFiles": {
                     "default": [
@@ -194,6 +252,27 @@
                     "default": "",
                     "type": "string",
                     "description": "If you want to use a mod manager to manage the debugger plugin as a mod, set this to the path of the directory where installed mods for Skyrim SE are kept. Otherwise it will be installed in the game directory."
+                },
+                "papyrus.skyrimSpecialEdition.importDirs": {
+                    "default": [
+                        "${installPath}\\Data\\Source\\Scripts",
+                        ".\\Source\\Scripts"
+                    ],
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "List of import (include) directories for scripts. This should include source directories. The language server will scan these."
+                },
+                "papyrus.skyrimSpecialEdition.sourceDirs": {
+                    "default": [
+                        ".\\Source\\Scripts"
+                    ],
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "List of source directories for scripts. Currently only the first one will be compiled by Compile All."
                 }
             },
             "title": "Papyrus",
@@ -287,9 +366,56 @@
                 "category": "Papyrus",
                 "command": "papyrus.viewAssembly",
                 "title": "View Papyrus Assembly"
+            },
+            {
+                "category": "Papyrus",
+                "command": "papyrus.skyrimSpecialEdition.generateProject",
+                "title": "Generate Skyrim Special Edition Project Files"
+            },
+            {
+                "category": "Papyrus",
+                "command": "papyrus.fallout4.generateProject",
+                "title": "Generate Fallout 4 Project Files"
+            },
+            {
+                "category": "Papyrus",
+                "command": "papyrus.projectImports",
+                "title": "Project imports (For substitution)"
+            },
+            {
+                "category": "Papyrus",
+                "command": "papyrus.projectSources",
+                "title": "Project sources (for substitutuion)"
+            },
+            {
+                "category": "Papyrus",
+                "command": "papyrus.projectSources0",
+                "title": "First project source dir (for substitutuion)"
             }
         ],
         "menus": {
+            "commandPalette": [
+                {
+                    "command": "papyrus.projectImports",
+                    "when": "false"
+                },
+                {
+                    "command": "papyrus.projectSources",
+                    "when": "false"
+                },
+                {
+                    "command": "papyrus.projectSources0",
+                    "when": "false"
+                },
+                {
+                    "command": "papyrus.viewAssembly",
+                    "when": "false"
+                },
+                {
+                    "command": "papyrus.searchCreationKitWiki",
+                    "when": "false"
+                }
+            ],
             "editor/context": [
                 {
                     "command": "papyrus.searchCreationKitWiki",
@@ -307,6 +433,26 @@
                     "command": "papyrus.viewAssembly",
                     "group": "a_papyrus",
                     "when": "resourceLangId == papyrus"
+                },
+                {
+                    "command": "papyrus.skyrimSpecialEdition.generateProject",
+                    "group": "a_papyrus",
+                    "when": "config.papyrus.skyrimSpecialEdition.enabled && explorerResourceIsFolder"
+                },
+                {
+                    "command": "papyrus.fallout4.generateProject",
+                    "group": "a_papyrus",
+                    "when": "config.papyrus.fallout4.enabled && explorerResourceIsFolder"
+                }
+            ],
+            "view/title": [
+                {
+                    "command": "papyrus.fallout4.generateProject",
+                    "when": "view == papyrus-projects"
+                },
+                {
+                    "command": "papyrus.skyrimSpecialEdition.generateProject",
+                    "when": "view == papyrus-projects"
                 }
             ]
         },

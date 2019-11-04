@@ -7,7 +7,7 @@ import { Observable, BehaviorSubject } from 'rxjs';
 import { ICreationKitInfo } from '../CreationKitInfoProvider';
 import { DocumentScriptInfo } from './messages/DocumentScriptInfo';
 import { shareReplay, take, map, switchMap } from 'rxjs/operators';
-import { getDefaultFlagsFileNameForGame, getLanguageToolPath } from '../Utilities';
+import { getDefaultFlagsFileNameForGame, getLanguageToolPath } from '../Paths';
 import { ProjectInfos } from './messages/ProjectInfos';
 
 export enum ClientHostStatus {

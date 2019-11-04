@@ -5,6 +5,8 @@ var target = Argument("target", "default");
 var solution = File("./DarkId.Papyrus.sln");
 
 var pluginFileDirectory = Directory("src/papyrus-lang-vscode/debug-plugin/");
+var pyroCliDirectory = Directory("src/papyrus-lang-vscode/pyro/");
+
 var isCIBuild = EnvironmentVariable("APPVEYOR") == "true";
 
 public void DownloadAndUnzip(string address, DirectoryPath outputPath, DirectoryPath existsPath)
@@ -28,9 +30,22 @@ public void UpdateDebugPlugin()
             Force = true
         });
     }
-
     var pluginDllZip = DownloadFile("https://github.com/joelday/papyrus-debug-server/releases/latest/download/papyrus-debug-server.zip");
     Unzip(pluginDllZip, pluginFileDirectory);
+}
+
+public void UpdatePyroCli()
+{
+    if (DirectoryExists(pyroCliDirectory))
+    {
+        DeleteDirectory(pyroCliDirectory, new DeleteDirectorySettings()
+        {
+            Recursive = true,
+            Force = true
+        });
+    }
+    var pyroCliZip = DownloadFile("https://github.com/rjstone/pyro/releases/download/1.3.3vs6.73/pyro_cli_v1-3-3vs6-73.zip");
+    Unzip(pyroCliZip, pyroCliDirectory);
 }
 
 Task("npm-install")
@@ -80,6 +95,11 @@ Task("npm-build")
 Task("update-debug-plugin")
     .Does(() => {
         UpdateDebugPlugin();
+    });
+
+Task("update-pyro-cli")
+    .Does(() => {
+        UpdatePyroCli();
     });
 
 Task("npm-semantic-release")

@@ -1,0 +1,72 @@
+{
+    // created by vscode papyrus-lang papyrus.skyrimSpecialEdition.generateProject
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Compile Papyrus (All)",
+            "type": "process",
+            "command": "${config:papyrus.skyrimSpecialEdition.installPath}\\Papyrus Compiler\\PapyrusCompiler.exe",
+            "args": [
+                "${command:papyrus.projectSources0}",
+                "-i=${command:papyrus.projectImports}",
+                "-o=Scripts",
+                "-f=TESV_Papyrus_Flags.flg",
+                "-all"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$PapyrusCompiler"
+        },
+        {
+            "label": "Compile Papyrus (Optimize All)",
+            "type": "process",
+            "command": "${config:papyrus.skyrimSpecialEdition.installPath}\\Papyrus Compiler\\PapyrusCompiler.exe",
+            "args": [
+                "${command:papyrus.projectSources0}",
+                "-i=${command:papyrus.projectImports}",
+                "-o=Scripts",
+                "-f=TESV_Papyrus_Flags.flg",
+                "-o",
+                "-all"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$PapyrusCompiler"
+        },
+        {
+            "label": "Compile Papyrus (Current File)",
+            "type": "process",
+            "command": "${config:papyrus.skyrimSpecialEdition.installPath}\\Papyrus Compiler\\PapyrusCompiler.exe",
+            "args": [
+                "${relativeFile}",
+                "-i=${command:papyrus.projectImports}",
+                "-o=Scripts",
+                "-f=TESV_Papyrus_Flags.flg"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$PapyrusCompiler"
+        }
+    ]
+}
