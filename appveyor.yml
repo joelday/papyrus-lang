@@ -2,7 +2,7 @@ version: 2.0.0.{build}
 skip_tags: true
 image: Visual Studio 2017
 init:
- - cmd: npm install vcse
+ - cmd: npm install vsce
 artifacts:
  - path: '**\*.vsix'
 environment:
