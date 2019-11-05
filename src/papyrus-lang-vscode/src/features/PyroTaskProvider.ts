@@ -3,7 +3,7 @@ import { take } from 'rxjs/operators';
 
 import {
     TaskProvider, Task, tasks, ProcessExecution, ShellExecution, workspace, WorkspaceFolder, TaskScope,
-    RelativePattern, GlobPattern, FileSystemWatcher, Uri
+    RelativePattern, GlobPattern, FileSystemWatcher, Uri, ExtensionContext
 } from 'vscode';
 import { CancellationToken, Disposable } from 'vscode-jsonrpc';
 
@@ -12,27 +12,17 @@ import { IPyroTaskDefinition, TaskOf } from './PyroTaskDefinition';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
 import { PapyrusGame } from '../PapyrusGame';
 import { ICreationKitInfo, ICreationKitInfoProvider } from '../CreationKitInfoProvider';
-import { getDefaultFlagsFileNameForGame } from '../Paths';
+import { getDefaultFlagsFileNameForGame, getPyroCliPath } from '../Paths';
 import { getWorkspaceGame } from '../Utilities';
 import { IWorkspaceSetupService } from './WorkspaceSetupService';
 import { RSA_PKCS1_OAEP_PADDING } from 'constants';
+import { IExtensionContext } from '../common/vscode/IocDecorators';
 
-
-// IMPLEMENT THIS
-function taskOptionsToCommandLineArguments(options: IPyroTaskDefinition, creationKitInfo: ICreationKitInfo) {
-    const args: string[] = [];
-    const isFallout4 = options.game === PapyrusGame.fallout4;
-
-    if (options.ppj) {
-        args.push(options.ppj);
-    }
-
-    return args;
-}
 
 export class PyroTaskProvider implements TaskProvider, Disposable {
     private readonly _taskProviderHandle: Disposable;
     private readonly _creationKitInfoProvider: ICreationKitInfoProvider;
+    private readonly _context: ExtensionContext;
     private readonly _extensionConfigProvider: IExtensionConfigProvider;
     private readonly _workspaceSetupService: IWorkspaceSetupService;
     private _ppjPromise: Thenable<Task[]> | undefined = undefined;
@@ -43,12 +33,14 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
     constructor(
         @ICreationKitInfoProvider creationKitInfoProvider: ICreationKitInfoProvider,
         @IExtensionConfigProvider extensionConfigProvider: IExtensionConfigProvider,
-        @IWorkspaceSetupService workspaceSetupService: IWorkspaceSetupService
+        @IWorkspaceSetupService workspaceSetupService: IWorkspaceSetupService,
+        @IExtensionContext context: ExtensionContext
     ) {
         this._creationKitInfoProvider = creationKitInfoProvider;
         this._extensionConfigProvider = extensionConfigProvider;
         this._workspaceSetupService = workspaceSetupService;
-        // should this next line go in the constructor????
+        this._context = context;
+
         this._taskProviderHandle = tasks.registerTaskProvider('pyro', this);
 
         this._ppjPattern = new RelativePattern(workspace.workspaceFolders[0], "**/*.ppj");
@@ -70,6 +62,9 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
     }
 
     async getPyroTasks(token?: CancellationToken): Promise<Task[]> {
+        if (token.isCancellationRequested) {
+            return null;
+        }
         const creationKitInfo = await this._creationKitInfoProvider.infos
             .get(PapyrusGame.fallout4)
             .pipe(take(1))
@@ -90,20 +85,12 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
         // provide a build task for each one found
         for (let uri of ppjFiles) {
             let ppj = workspace.asRelativePath(uri);
-            let label = `Compile Project (${ppj} for ${pyroGame})`;
-            let taskDefinition: IPyroTaskDefinition = {
+            let taskDef: IPyroTaskDefinition = {
                 type: this._source,
                 game: pyroGame,
                 ppj: ppj
             };
-            tasks.push(new Task(
-                taskDefinition,
-                TaskScope.Workspace,
-                label,
-                taskDefinition.type,
-                new ShellExecution(`echo game ${pyroGame} project ${ppj}`),
-                ["$PapyrusCompiler"]
-            ));
+            tasks.push(await this.createTaskForDefinition(taskDef));
         }
 
         return tasks;
@@ -122,16 +109,39 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
         if (definition === undefined) {
             definition = {
                 type: this._source,
-                game: 'fo4',
                 ppj: "unknown.ppj"
             };
         }
+        return this.createTaskForDefinition(definition);
+    }
+
+    private async createTaskForDefinition(taskDef: IPyroTaskDefinition) {
+        let argv: string[] = [];
+        argv.push('-i');
+        argv.push(taskDef.ppj);
+        if (taskDef.game) {
+            argv.push('-g');
+            argv.push(taskDef.game);
+        }
+        if (taskDef.ini) {
+            argv.push('-c');
+            argv.push(taskDef.ini);
+        }
+        if (taskDef.disables) {
+            for (let dis of taskDef.disables) {
+                argv.push('--disable-' + dis);
+            }
+        }
+        const pyroAbsPath = this._context.asAbsolutePath(getPyroCliPath());
+        console.log("New task, process: " + pyroAbsPath + " " + argv);
+        const label = `Compile Project (${taskDef.ppj})`;
+        taskDef['label'] = label;
         return new Task(
-            definition,
+            taskDef,
             TaskScope.Workspace,
-            `Compile Pyro Project (${definition.ppj} for ${definition.game})`,
-            this._source,
-            new ShellExecution(`echo game ${definition.game} project ${definition.ppj}`),
+            label,
+            taskDef.type,
+            new ProcessExecution(pyroAbsPath, argv),
             ["$PapyrusCompiler"]
         );
     }
