@@ -115,17 +115,35 @@
             {
                 "type": "pyro",
                 "required": [
-                    "game",
                     "ppj"
                 ],
                 "properties": {
-                    "game": {
-                        "type": "string",
-                        "description": "The game that the build task is for"
-                    },
                     "ppj": {
                         "type": "string",
-                        "description": "The path to the PPJ file relative to workspace folder"
+                        "description": "The path to the PPJ file relative to workspace folder (required)"
+                    },
+                    "game": {
+                        "type": "string",
+                        "description": "The game that the build task is for (optional, please specify in PPJ)"
+                    },
+                    "ini": {
+                        "type": "string",
+                        "description": "The path to the pyro.ini file (optional)"
+                    },
+                    "disables": {
+                        "type": "array",
+                        "description": "list of features to disable: anonymizer, bsarch, indexer, parallel",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "anonymizer",
+                                "bsarch",
+                                "indexer",
+                                "parallel"
+                            ]
+                        },
+                        "uniqueItems": true,
+                        "minItems": 0
                     }
                 }
             },
@@ -492,37 +510,38 @@
     ],
     "dependencies": {
         "decoration-ioc": "^2.1.0",
-        "deepmerge": "^3.2.1",
+        "deepmerge": "^3.3.0",
         "fast-deep-equal": "^2.0.1",
         "ini": "^1.3.5",
         "md5-file": "^4.0.0",
         "ps-list": "^6.3.0",
-        "rxjs": "^6.5.2",
-        "vscode-debugprotocol": "^1.35.0",
+        "rxjs": "^6.5.3",
+        "vsce": "^1.69.0",
+        "vscode-debugprotocol": "^1.37.0",
         "vscode-languageclient": "^5.2.1",
         "winreg": "^1.2.4",
         "xml-writer": "^1.7.0"
     },
     "description": "Advanced language support for Bethesda Game Studio's Papyrus scripting language.",
     "devDependencies": {
-        "@semantic-release/changelog": "^3.0.4",
-        "@semantic-release/git": "^7.0.12",
+        "@semantic-release/changelog": "^3.0.5",
+        "@semantic-release/git": "^7.0.17",
         "@types/ini": "^1.3.30",
         "@types/mocha": "^5.2.7",
-        "@types/node": "^12.0.8",
+        "@types/node": "^12.12.5",
         "@types/winreg": "^1.2.30",
         "cpr": "^3.0.1",
-        "fork-ts-checker-webpack-plugin": "^1.3.7",
+        "fork-ts-checker-webpack-plugin": "^1.6.0",
         "prettier": "^1.18.2",
-        "rimraf": "^2.6.3",
-        "semantic-release": "^15.13.24",
+        "rimraf": "^2.7.1",
+        "semantic-release": "^15.13.30",
         "semantic-release-vsce": "^2.2.8",
-        "ts-loader": "^6.0.2",
-        "tslint": "^5.17.0",
-        "typescript": "^3.5.2",
-        "vscode": "^1.1.34",
-        "webpack": "^4.34.0",
-        "webpack-cli": "^3.3.4"
+        "ts-loader": "^6.2.1",
+        "tslint": "^5.20.0",
+        "typescript": "^3.6.4",
+        "vscode": "^1.1.36",
+        "webpack": "^4.41.2",
+        "webpack-cli": "^3.3.10"
     },
     "displayName": "Papyrus",
     "engines": {
