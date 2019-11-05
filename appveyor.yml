@@ -18,7 +18,7 @@ after_build:
   - cmd: powershell ./build.ps1 --target="update-debug-plugin"
   - cmd: powershell ./build.ps1 --target="update-pyro-cli"
   - cmd: powershell ./build.ps1 --target="npm-semantic-release"
-#  - ps: Get-ChildItem env:* | sort-object name
+  - ps: Get-ChildItem env:* | sort-object name
   - ps: cd src\papyrus-lang-vscode ; npm install vsce ; npx vsce package
 
 on_success:
