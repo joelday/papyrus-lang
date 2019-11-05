@@ -11,17 +11,6 @@ import * as path from 'path';
 import { IWorkspaceSetupService, WorkspaceSetupServiceState } from './WorkspaceSetupService';
 
 
-// IMPLEMENT THIS
-function taskOptionsToCommandLineArguments(opts: IPapyrusCompilerTaskOptions, creationKitInfo: ICreationKitInfo) {
-    const args: string[] = [];
-    const isFallout4 = opts.game === PapyrusGame.fallout4;
-    if (opts.sources) {
-
-    }
-
-    return args;
-}
-
 export class PapyrusCompilerTaskProvider implements TaskProvider, Disposable {
     private readonly _creationKitInfoProvider: ICreationKitInfoProvider;
     private readonly _extensionConfigProvider: IExtensionConfigProvider;
