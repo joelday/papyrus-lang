@@ -44,7 +44,7 @@ public void UpdatePyroCli()
             Force = true
         });
     }
-    var pyroCliZip = DownloadFile("https://github.com/rjstone/pyro/releases/download/1.3.3vs6.73/pyro_cli_v1-3-3vs6-73.zip");
+    var pyroCliZip = DownloadFile("https://github.com/rjstone/pyro/releases/download/1.3.3vsc.77/pyro_cli_v1-3-3vsc-77.zip");
     Unzip(pyroCliZip, pyroCliDirectory);
 }
 
