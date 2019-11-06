@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Syntax;
 using DarkId.Papyrus.LanguageService.Syntax.Legacy;
-using SyntaxNode = DarkId.Papyrus.LanguageService.Syntax.Legacy.SyntaxNode;
+using Syntax Syntax= DarkId.Papyrus.LanguageService.Syntax.Legacy.SyntaxNode;
 
 namespace DarkId.Papyrus.LanguageService.Program.Symbols
 {
@@ -204,7 +204,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
 
             return new DisplayText()
             {
-                Kind = ((SyntaxNode)symbol.Definition).Parent is FunctionHeaderNode ? "parameter" : "variable",
+                Kind = ((SyntaxNode)symbol.Definition).Parent is FunctionHeaderSyntax? "parameter" : "variable",
                 Text = sb.ToString(),
                 Documentation = symbol.GetDocumentationMarkdown()
             };

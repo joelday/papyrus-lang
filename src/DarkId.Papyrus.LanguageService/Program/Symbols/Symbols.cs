@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using DarkId.Papyrus.LanguageService.Syntax;
 using DarkId.Papyrus.LanguageService.Program.Types;
 using DarkId.Papyrus.LanguageService.Syntax.Legacy;
-using SyntaxNode = DarkId.Papyrus.LanguageService.Syntax.Legacy.SyntaxNode;
+using Syntax Syntax= DarkId.Papyrus.LanguageService.Syntax.Legacy.SyntaxNode;
 
 
 namespace DarkId.Papyrus.LanguageService.Program.Symbols
@@ -16,15 +16,15 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
     {
         private readonly PapyrusSymbol _parent;
         private readonly List<PapyrusSymbol> _children = new List<PapyrusSymbol>();
-        private readonly SyntaxNode _node;
-        private readonly IdentifierNode _identifier;
+        private readonly Syntax Syntax_node;
+        private readonly IdentifierSyntax_identifier;
         private readonly IEnumerable<string> _documentation;
 
         public abstract SymbolKinds Kind { get; }
         public virtual LanguageFlags Flags => LanguageFlags.None;
 
-        public SyntaxNode Definition => _node;
-        public IdentifierNode Identifier => _identifier;
+        public Syntax SyntaxDefinition => _node;
+        public IdentifierSyntax Identifier => _identifier;
 
         // internal ScriptScope CompilerScope => _node.CompilerScope;
 
@@ -40,7 +40,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
 
         public virtual IEnumerable<string> Documentation => _documentation;
 
-        public PapyrusSymbol(SyntaxNode node, IdentifierNode identifier, PapyrusSymbol parent)
+        public PapyrusSymbol(SyntaxNode node, IdentifierSyntax identifier, PapyrusSymbol parent)
         {
             _node = node;
             _documentation = new string[] { _node.GetLeadingComments() };
@@ -63,7 +63,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
         private readonly ObjectIdentifier _id;
         public virtual ObjectIdentifier Id => _id;
 
-        protected TypeSymbol(SyntaxNode node, IdentifierNode identifier, PapyrusSymbol parent, ObjectIdentifier id) : base(node, identifier, parent)
+        protected TypeSymbol(SyntaxNode node, IdentifierSyntax identifier, PapyrusSymbol parent, ObjectIdentifier id) : base(node, identifier, parent)
         {
             _id = id;
         }
@@ -80,7 +80,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
         public override ObjectIdentifier Id => SyntheticArrayType == null ? base.Id : SyntheticArrayType.Name;
         public override string Name => SyntheticArrayType == null ? base.Name : SyntheticArrayType.Name.FullyQualifiedDisplayName;
 
-        public new ScriptNode Definition => (ScriptNode)base.Definition;
+        public new ScriptSyntax Definition => (ScriptNode)base.Definition;
         public ScriptSymbol ExtendedScript => Definition.Header.TypeIdentifier?.GetReferencedTypeSymbol() as ScriptSymbol;
 
         public override SymbolKinds Kind => SymbolKinds.Script;
@@ -106,7 +106,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
         {
         }
 
-        public new CustomEventDefinitionNode Definition => (CustomEventDefinitionNode)base.Definition;
+        public new CustomEventDefinitionSyntax Definition => (CustomEventDefinitionNode)base.Definition;
 
         public override SymbolKinds Kind => SymbolKinds.CustomEvent;
     }
@@ -117,7 +117,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
         {
         }
 
-        public new EventDefinitionNode Definition => (EventDefinitionNode)base.Definition;
+        public new EventDefinitionSyntax Definition => (EventDefinitionNode)base.Definition;
 
         public override SymbolKinds Kind => SymbolKinds.Event;
         public override LanguageFlags Flags => Definition.Header.Flags;
@@ -129,7 +129,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
         {
         }
 
-        public new FunctionDefinitionNode Definition => (FunctionDefinitionNode)base.Definition;
+        public new FunctionDefinitionSyntax Definition => (FunctionDefinitionNode)base.Definition;
 
         public override SymbolKinds Kind => SymbolKinds.Function;
         public override LanguageFlags Flags => Definition.Header.Flags;
@@ -154,7 +154,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
         {
         }
 
-        public new GroupDefinitionNode Definition => (GroupDefinitionNode)base.Definition;
+        public new GroupDefinitionSyntax Definition => (GroupDefinitionNode)base.Definition;
 
         public override SymbolKinds Kind => SymbolKinds.Group;
     }
@@ -165,7 +165,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
         {
         }
 
-        public new ImportNode Definition => (ImportNode)base.Definition;
+        public new ImportSyntax Definition => (ImportNode)base.Definition;
 
         public override SymbolKinds Kind => SymbolKinds.Import;
     }
@@ -176,7 +176,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
         {
         }
 
-        public new PropertyDefinitionNode Definition => (PropertyDefinitionNode)base.Definition;
+        public new PropertyDefinitionSyntax Definition => (PropertyDefinitionNode)base.Definition;
 
         public override SymbolKinds Kind => SymbolKinds.Property;
         public override LanguageFlags Flags => Definition.Header.Flags;
@@ -216,7 +216,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
         {
         }
 
-        public new StateDefinitionNode Definition => (StateDefinitionNode)base.Definition;
+        public new StateDefinitionSyntax Definition => (StateDefinitionNode)base.Definition;
 
         public override SymbolKinds Kind => SymbolKinds.State;
         public override LanguageFlags Flags => Definition.IsAuto ? LanguageFlags.Auto : LanguageFlags.None;
@@ -229,7 +229,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
         {
         }
 
-        public new StructDefinitionNode Definition => (StructDefinitionNode)base.Definition;
+        public new StructDefinitionSyntax Definition => (StructDefinitionNode)base.Definition;
 
         public override SymbolKinds Kind => SymbolKinds.Struct;
     }
@@ -238,7 +238,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
     {
         public VariableSymbol(ITypedIdentifiable node, PapyrusSymbol parent) : base((SyntaxNode)node, node.Identifier, parent)
         {
-            DefaultValue = node is FunctionParameterNode asFunctionParameter ? asFunctionParameter.DefaultValue : null;
+            DefaultValue = node is FunctionParameterSyntax asFunctionParameter ? asFunctionParameter.DefaultValue : null;
         }
 
         public new ITypedIdentifiable Definition => (ITypedIdentifiable)base.Definition;
@@ -248,7 +248,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Symbols
         public override SymbolKinds Kind => SymbolKinds.Variable;
         public override LanguageFlags Flags => (Definition is IFlaggable asFlaggable) ? asFlaggable.Flags : LanguageFlags.None;
 
-        public ILiteralNode DefaultValue { get; private set; }
+        public ILiteralSyntax DefaultValue { get; private set; }
 
         public override IEnumerable<string> Documentation
         {

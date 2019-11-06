@@ -7,10 +7,10 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
     {
         public SyntaxKind Kind { get; }
         public string Text { get; }
-        public TextRange Range { get; }
+        public Range Range { get; }
         public ScriptLexerState LexerState { get; }
 
-        public ScriptToken(SyntaxKind kind, string text, TextRange range, ScriptLexerState lexerState)
+        public ScriptToken(SyntaxKind kind, string text, Range range, ScriptLexerState lexerState)
         {
             Kind = kind;
             Text = text;

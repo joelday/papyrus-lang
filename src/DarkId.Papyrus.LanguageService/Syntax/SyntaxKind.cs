@@ -9,7 +9,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax
     public enum SyntaxKind
     {
         Unknown,
-        List,
 
         LineContinuationTrivia,
         NewLineTrivia,
@@ -128,6 +127,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
         NewArrayExpression,
         NewStructExpression,
         NoneLiteral,
+        ParenExpression,
         PropertyDefinition,
         ReturnStatement,
         Script,
@@ -138,10 +138,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax
         UnaryOperationExpression,
         VariableDefinition,
         WhileStatement,
-        ScriptHeader,
-        FunctionHeader,
-        StructHeader,
-        GroupHeader,
-        PropertyHeader
+        ScriptHeader
     }
 }

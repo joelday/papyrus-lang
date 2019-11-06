@@ -1,51 +1,58 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
 using System.Text;
+using DarkId.Papyrus.LanguageService.Syntax.InternalSyntax;
 
 namespace DarkId.Papyrus.LanguageService.Syntax
 {
     public abstract class SyntaxNode
     {
-        internal Internal.SyntaxNode Node { get; }
-        protected int Position { get; }
+        internal GreenNode Green { get; }
 
-        public SyntaxKind Kind { get; }
+        private readonly Lazy<IReadOnlyList<SyntaxNode>> _children;
+
+        public virtual SyntaxKind Kind => Green.Kind;
         public SyntaxNode Parent { get; }
 
-        public string Text => Node.Text;
-        public string FullText => Node.FullText;
-        public string LeadingTrivia => Node.LeadingTrivia;
-        public string TrailingTrivia => Node.TrailingTrivia;
-        public int Width => Node.Width;
-        public int FullWidth => Node.FullWidth;
+        public string Text { get; }
+        public string FullText { get; }
+        public string LeadingTrivia { get; }
+        public string TrailingTrivia { get; }
 
-        public Range FullRange => new Range(Position, Position + FullWidth);
-        public Range Range => new Range(Position + LeadingTrivia.Length, Position + LeadingTrivia.Length + Width);
+        public Range FullRange { get; }
+        public Range Range { get; }
 
-        public bool IsMissing => Node.IsMissing;
-        public bool IsTrivia => Kind.IsTrivia();
-
-        internal SyntaxNode(Internal.SyntaxNode node, SyntaxNode parent, int position)
-            : this(node.Kind, node, parent, position)
+        internal SyntaxNode(SyntaxNode parent, GreenNode green, int position)
         {
-        }
-
-        internal SyntaxNode(SyntaxKind kind, Internal.SyntaxNode node, SyntaxNode parent, int position)
-        {
-            Kind = kind;
-            Node = node;
             Parent = parent;
-            Position = position;
+            Green = green;
+
+            LeadingTrivia = Green.LeadingTrivia;
+            TrailingTrivia = Green.TrailingTrivia;
+
+            FullRange =  new Range(position, position + Green.FullWidth);
+            Range = new Range(position + LeadingTrivia.Length, position + LeadingTrivia.Length + Green.Width);
+
+            FullText = Green.FullText;
+            Text = FullText.Substring(Range.Start.Value - position, Green.Width);
+
+            _children = new Lazy<IReadOnlyList<SyntaxNode>>(() =>
+            {
+                var list = new List<SyntaxNode>();
+                var childPosition = position;
+
+                foreach (var child in Green.Children)
+                {
+                    list.Add(child.CreateRed(this, childPosition));
+                    childPosition += child.FullWidth;
+                }
+
+                return list.ToImmutableArray();
+            });
         }
 
-        public IEnumerable<SyntaxNode> EnumerateChildren()
-        {
-            var position = Position;
-            foreach (var child in Node.Children)
-            {
-                yield return child.CreateRed(this, position);
-                position += child.FullWidth;
-            }
-        }
+        public IReadOnlyList<SyntaxNode> Children => _children.Value;
     }
 }

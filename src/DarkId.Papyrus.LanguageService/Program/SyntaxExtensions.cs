@@ -4,23 +4,23 @@ using DarkId.Papyrus.LanguageService.Syntax;
 using System.Collections.Generic;
 using System.Linq;
 using DarkId.Papyrus.LanguageService.Syntax.Legacy;
-using SyntaxNode = DarkId.Papyrus.LanguageService.Syntax.Legacy.SyntaxNode;
+using Syntax Syntax= DarkId.Papyrus.LanguageService.Syntax.Legacy.SyntaxNode;
 
 namespace DarkId.Papyrus.LanguageService.Program
 {
-    public static class SyntaxExtensions
+    public static class Syntax Extensions
     {
-        public static ScriptFile GetScriptFile(this SyntaxNode node)
+        public static ScriptFile GetScriptFile(this Syntax Syntaxnode)
         {
             return node?.Script.File;
         }
 
-        public static PapyrusProgram GetProgram(this SyntaxNode node)
+        public static PapyrusProgram GetProgram(this Syntax Syntaxnode)
         {
             return node?.Script.Program;
         }
 
-        public static IEnumerable<SyntaxNode> GetDescendants(this SyntaxNode node, bool includeSelf = false)
+        public static IEnumerable<SyntaxNode> GetDescendants(this Syntax Syntaxnode, bool includeSelf = false)
         {
             if (includeSelf)
             {
@@ -37,7 +37,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             }
         }
 
-        private static SyntaxNode GetNodeAtPositionInternal(IEnumerable<SyntaxNode> nodes, TextPosition position)
+        private static Syntax SyntaxGetNodeAtPositionInternal(IEnumerable<SyntaxNode> nodes, TextPosition position)
         {
             foreach (var node in nodes)
             {
@@ -50,12 +50,12 @@ namespace DarkId.Papyrus.LanguageService.Program
             return null;
         }
 
-        public static bool IsSelfOrDescendantOfNode(this SyntaxNode node, SyntaxNode selfOrAncestor)
+        public static bool IsSelfOrDescendantOfNode(this Syntax Syntaxnode, Syntax SyntaxselfOrAncestor)
         {
             return node == selfOrAncestor || node.GetAncestors().Contains(selfOrAncestor);
         }
 
-        public static MemberAccessExpressionNode GetMemberAccessExpression(this SyntaxNode node)
+        public static MemberAccessExpressionSyntax GetMemberAccessExpression(this Syntax Syntaxnode)
         {
             foreach (var ancestor in node.GetAncestors(true))
             {
@@ -64,7 +64,7 @@ namespace DarkId.Papyrus.LanguageService.Program
                     return null;
                 }
 
-                if (ancestor is MemberAccessExpressionNode asMemberAccess &&
+                if (ancestor is MemberAccessExpressionSyntax asMemberAccess &&
                     !node.IsSelfOrDescendantOfNode(asMemberAccess.BaseExpression))
                 {
                     return asMemberAccess;
@@ -74,17 +74,17 @@ namespace DarkId.Papyrus.LanguageService.Program
             return null;
         }
 
-        public static SyntaxNode GetDescendantNodeAtPosition(this SyntaxNode node, TextPosition position)
+        public static Syntax SyntaxGetDescendantNodeAtPosition(this Syntax Syntaxnode, TextPosition position)
         {
             return GetNodeAtPositionInternal(node.Children, position);
         }
 
-        public static SyntaxNode GetNodeAtPosition(this SyntaxNode node, TextPosition position)
+        public static Syntax SyntaxGetNodeAtPosition(this Syntax Syntaxnode, TextPosition position)
         {
             return GetDescendantNodeAtPosition(node, position) ?? node;
         }
 
-        public static IEnumerable<SyntaxNode> GetAncestors(this SyntaxNode node, bool includeSelf = false)
+        public static IEnumerable<SyntaxNode> GetAncestors(this Syntax Syntaxnode, bool includeSelf = false)
         {
             if (includeSelf)
             {
@@ -99,12 +99,12 @@ namespace DarkId.Papyrus.LanguageService.Program
             }
         }
 
-        public static IStatementBlock GetLocalStatementBlock(this SyntaxNode node)
+        public static IStatementBlock GetLocalStatementBlock(this Syntax Syntaxnode)
         {
             return node.GetAncestors().OfType<IStatementBlock>().FirstOrDefault();
         }
 
-        public static T GetDescendantNodeOfTypeAtPosition<T>(this SyntaxNode node, TextPosition position)
+        public static T GetDescendantNodeOfTypeAtPosition<T>(this Syntax Syntaxnode, TextPosition position)
             where T : SyntaxNode
         {
             var descendant = GetNodeAtPositionInternal(node.Children, position);
@@ -116,7 +116,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             return descendant as T ?? (T)descendant.GetAncestors().FirstOrDefault(a => a is T);
         }
 
-        public static int GetFunctionParameterIndexAtPosition(this FunctionCallExpressionNode functionCallExpression, TextPosition position)
+        public static int GetFunctionParameterIndexAtPosition(this FunctionCallExpressionSyntax functionCallExpression, TextPosition position)
         {
             throw new NotImplementedException();
 
@@ -171,7 +171,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             //return intersectingParameterIndex;
         }
 
-        public static string GetLeadingComments(this SyntaxNode node)
+        public static string GetLeadingComments(this Syntax Syntaxnode)
         {
             throw new NotImplementedException();
 

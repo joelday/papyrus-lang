@@ -46,7 +46,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                 {"\"", SyntaxKind.DoubleQuoteToken},
                 {";/", SyntaxKind.SemicolonSlashToken},
                 {"/;", SyntaxKind.SlashSemicolonToken},
-                {"{}", SyntaxKind.ArrayToken},
+                {"[]", SyntaxKind.ArrayToken},
                 {"as", SyntaxKind.AsKeyword},
                 {"auto", SyntaxKind.AutoKeyword},
                 {"autoreadonly", SyntaxKind.AutoReadOnlyKeyword},
@@ -131,9 +131,9 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                 SyntaxKind.Unknown;
         }
 
-        public IEnumerable<ScriptToken> Tokenize(IReadOnlyScriptText sourceText, ScriptToken? resumeFrom = default)
+        public IEnumerable<ScriptToken> Tokenize(string sourceText, ScriptToken? resumeFrom = default)
         {
-            var scanner = new Scanner<Match>(TokensRegex.Matches(sourceText.Text, resumeFrom.HasValue ? sourceText.OffsetAt(resumeFrom.Value.Range.End) : 0));
+            var scanner = new Scanner<Match>(TokensRegex.Matches(sourceText, resumeFrom?.Range.End.Value ?? 0));
 
             if (!scanner.Next())
             {
@@ -221,7 +221,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                         yield return new ScriptToken(
                             kind,
                             text,
-                            new TextRange(sourceText.PositionAt(state.Position), sourceText.PositionAt(nextPosition)),
+                            new Range(state.Position, nextPosition),
                             state
                         );
 
@@ -271,7 +271,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                 yield return new ScriptToken(
                     kind,
                     text,
-                    new TextRange(sourceText.PositionAt(state.Position), sourceText.PositionAt(nextPosition)),
+                    new Range(state.Position, nextPosition),
                     state
                 );
 
@@ -284,7 +284,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
             yield return new ScriptToken(
                 SyntaxKind.EndOfFileToken,
                 string.Empty,
-                new TextRange(sourceText.PositionAt(state.Position), sourceText.PositionAt(state.Position)),
+                new Range(state.Position, state.Position),
                 state
             );
         }
