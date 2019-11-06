@@ -47,7 +47,7 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
         // Something is not working here. Ideally we cache the results from getPyroTasks() and only invalidate the cache when
         // the fileWatcher detects a change, but something isn't working. Disable for now.
         //       if (!this._ppjPromise) {
-        //           this._ppjPromise = this.getPyroTasks(token);
+        this._ppjPromise = this.getPyroTasks(token);
         //       }
         return this._ppjPromise;
     }
