@@ -44,11 +44,9 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
         if (token.isCancellationRequested) {
             return null;
         }
-        // Something is not working here. Ideally we cache the results from getPyroTasks() and only invalidate the cache when
-        // the fileWatcher detects a change, but something isn't working. Disable for now.
-        //       if (!this._ppjPromise) {
-        this._taskCachePromise = this.getPyroTasks(token);
-        //       }
+        if (!this._taskCachePromise) {
+            this._taskCachePromise = this.getPyroTasks(token);
+        }
         return this._taskCachePromise;
     }
 
