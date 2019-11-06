@@ -127,11 +127,19 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
             argv.push('-c');
             argv.push(taskDef.ini);
         }
-        if (taskDef.disables) {
-            for (let dis of taskDef.disables) {
-                argv.push('--disable-' + dis);
-            }
+        if (taskDef.anonymize === false) {
+            argv.push('--disable-anonymizer');
         }
+        if (taskDef.index === false) {
+            argv.push('--disable-indexer');
+        }
+        if (taskDef.parallelize === false) {
+            argv.push('--disable-parallel');
+        }
+        if (taskDef.archive === false) {
+            argv.push('--disable-bsarch');
+        }
+
         const pyroAbsPath = this._context.asAbsolutePath(getPyroCliPath());
         console.log("New task, process: " + pyroAbsPath + " " + argv);
         const label = `Compile Project (${taskDef.ppj})`;
