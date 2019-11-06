@@ -3,9 +3,6 @@
     "folders": [
         {
             "path": "."
-        },
-        {
-            "path": "Scripts\\Source\\User"
         }
     ],
     "settings": {

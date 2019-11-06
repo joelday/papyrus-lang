@@ -4,12 +4,15 @@ import { IExtensionContext } from '../../common/vscode/IocDecorators';
 import { IExtensionConfigProvider } from '../../ExtensionConfigProvider';
 import { GameCommandBase } from './GameCommandBase';
 import { PapyrusGame } from '../../PapyrusGame';
+import { resolveInstallPath } from '../../Paths';
 
 // import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
 
+const readFile = promisify(fs.readFile);
+const writeFile = promisify(fs.writeFile);
 const exists = promisify(fs.exists);
 const mkdir = promisify(fs.mkdir);
 const copyFile = promisify(fs.copyFile);
@@ -46,6 +49,7 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
             args[0] = undefined;
         }
         let projectFolderUri: Uri = args[0] ? Uri.parse(args[0]) : Uri.file(path.join(config.installPath, defaultProjectSubdir[game]));
+        const projectFolder = projectFolderUri.fsPath;
 
         console.log("Default projectFolderUri = " + projectFolderUri.fsPath);
 
@@ -67,7 +71,6 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
             });
 
         if (resultUriArray === undefined) {
-            window.showWarningMessage("Create project cancelled.", "Ok");
             return;
         } else {
             projectFolderUri = resultUriArray[0];
@@ -89,9 +92,14 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
         ];
         if (game === PapyrusGame.fallout4) {
             filesToCopy.push(['fallout4.ppj', 'Scripts\\Source\\User\\fallout4.ppj']);
+        } else if (game === PapyrusGame.skyrimSpecialEdition) {
+            let ppjstr: string = (await readFile(path.join(resourcePath, 'skyrimse.ppj'))).toString();
+            let configGamePath = await resolveInstallPath(PapyrusGame.skyrimSpecialEdition, config.installPath, this._context);
+            const configSourcePath = path.join(configGamePath, "Data\\Source\\Scripts");
+            ppjstr = ppjstr.replace("${SKYRIMSE_PATH}", configSourcePath);
+            await writeFile(path.join(projectFolder, "skyrimse.ppj"), ppjstr);
         }
 
-        const projectFolder = projectFolderUri.fsPath;
 
         let nerrs = 0;
         let already_exists: string[] = [];

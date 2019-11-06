@@ -120,30 +120,31 @@
                 "properties": {
                     "ppj": {
                         "type": "string",
-                        "description": "The path to the PPJ file relative to workspace folder (required)"
+                        "description": "The path to the PPJ file relative to workspace folder (required)."
                     },
                     "game": {
                         "type": "string",
-                        "description": "The game that the build task is for (optional, please specify in PPJ)"
+                        "description": "The game that the build task is for (optional, please specify in PPJ)."
                     },
                     "ini": {
                         "type": "string",
-                        "description": "The path to the pyro.ini file (optional)"
+                        "description": "The path to the pyro.ini file (optional)."
                     },
-                    "disables": {
-                        "type": "array",
-                        "description": "list of features to disable: anonymizer, bsarch, indexer, parallel",
-                        "items": {
-                            "type": "string",
-                            "enum": [
-                                "anonymizer",
-                                "bsarch",
-                                "indexer",
-                                "parallel"
-                            ]
-                        },
-                        "uniqueItems": true,
-                        "minItems": 0
+                    "anonymize": {
+                        "type": "boolean",
+                        "description": "Run the anonymizer on files to remove personal info from output."
+                    },
+                    "index": {
+                        "type": "boolean",
+                        "description": "Run the 'indexer' for incremental builds."
+                    },
+                    "parallelize": {
+                        "type": "boolean",
+                        "description": "Use multiple CPUs to compile faster in parallel."
+                    },
+                    "archive": {
+                        "type": "boolean",
+                        "description": "Build BSA archives (not currently supported yet)"
                     }
                 }
             },

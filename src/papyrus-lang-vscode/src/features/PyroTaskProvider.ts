@@ -1,21 +1,16 @@
-import * as path from 'path';
 import { take } from 'rxjs/operators';
 
 import {
-    TaskProvider, Task, tasks, ProcessExecution, ShellExecution, workspace, WorkspaceFolder, TaskScope,
+    TaskProvider, Task, tasks, ProcessExecution, workspace, TaskScope,
     RelativePattern, GlobPattern, FileSystemWatcher, Uri, ExtensionContext
 } from 'vscode';
 import { CancellationToken, Disposable } from 'vscode-jsonrpc';
 
-import { IExtensionConfigProvider, ExtensionConfigProvider } from '../ExtensionConfigProvider';
 import { IPyroTaskDefinition, TaskOf } from './PyroTaskDefinition';
-import { ILanguageClientManager } from '../server/LanguageClientManager';
 import { PapyrusGame } from '../PapyrusGame';
-import { ICreationKitInfo, ICreationKitInfoProvider } from '../CreationKitInfoProvider';
-import { getDefaultFlagsFileNameForGame, getPyroCliPath } from '../Paths';
+import { ICreationKitInfoProvider } from '../CreationKitInfoProvider';
+import { getPyroCliPath } from '../Paths';
 import { getWorkspaceGame } from '../Utilities';
-import { IWorkspaceSetupService } from './WorkspaceSetupService';
-import { RSA_PKCS1_OAEP_PADDING } from 'constants';
 import { IExtensionContext } from '../common/vscode/IocDecorators';
 
 
@@ -23,8 +18,6 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
     private readonly _taskProviderHandle: Disposable;
     private readonly _creationKitInfoProvider: ICreationKitInfoProvider;
     private readonly _context: ExtensionContext;
-    private readonly _extensionConfigProvider: IExtensionConfigProvider;
-    private readonly _workspaceSetupService: IWorkspaceSetupService;
     private _ppjPromise: Thenable<Task[]> | undefined = undefined;
     private readonly _ppjPattern: GlobPattern;
     private readonly _fileWatcher: FileSystemWatcher;
@@ -32,13 +25,9 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
 
     constructor(
         @ICreationKitInfoProvider creationKitInfoProvider: ICreationKitInfoProvider,
-        @IExtensionConfigProvider extensionConfigProvider: IExtensionConfigProvider,
-        @IWorkspaceSetupService workspaceSetupService: IWorkspaceSetupService,
         @IExtensionContext context: ExtensionContext
     ) {
         this._creationKitInfoProvider = creationKitInfoProvider;
-        this._extensionConfigProvider = extensionConfigProvider;
-        this._workspaceSetupService = workspaceSetupService;
         this._context = context;
 
         this._taskProviderHandle = tasks.registerTaskProvider('pyro', this);
@@ -127,11 +116,19 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
             argv.push('-c');
             argv.push(taskDef.ini);
         }
-        if (taskDef.disables) {
-            for (let dis of taskDef.disables) {
-                argv.push('--disable-' + dis);
-            }
+        if (taskDef.anonymize === false) {
+            argv.push('--disable-anonymizer');
         }
+        if (taskDef.index === false) {
+            argv.push('--disable-indexer');
+        }
+        if (taskDef.parallelize === false) {
+            argv.push('--disable-parallel');
+        }
+        if (taskDef.archive === false) {
+            argv.push('--disable-bsarch');
+        }
+
         const pyroAbsPath = this._context.asAbsolutePath(getPyroCliPath());
         console.log("New task, process: " + pyroAbsPath + " " + argv);
         const label = `Compile Project (${taskDef.ppj})`;

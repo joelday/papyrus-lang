@@ -7,5 +7,8 @@ export interface IPyroTaskDefinition extends TaskDefinition {
     readonly ppj: string;
     readonly game?: string;
     readonly ini?: string;
-    readonly disables?: string[];
+    readonly anonymize?: boolean;
+    readonly index?: boolean;
+    readonly parallelize?: boolean;
+    readonly archive?: boolean;
 }
