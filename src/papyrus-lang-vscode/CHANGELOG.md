@@ -1,3 +1,10 @@
+# [2.19.0](https://github.com/joelday/papyrus-lang/compare/v2.18.0...v2.19.0) (2019-11-06)
+
+
+### Features
+
+* Project File Generation ([#96](https://github.com/joelday/papyrus-lang/issues/96)) and Pyro Compiler Integration ([dd445b5](https://github.com/joelday/papyrus-lang/commit/dd445b590792e98d164096c980b709a2dae43d88))
+
 # [2.18.0](https://github.com/joelday/papyrus-lang/compare/v2.17.0...v2.18.0) (2019-10-12)
 
 
