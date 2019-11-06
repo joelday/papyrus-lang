@@ -246,6 +246,27 @@
                     "default": "",
                     "type": "string",
                     "description": "If you want to use a mod manager to manage the debugger plugin as a mod, set this to the path of the directory where installed mods for Skyrim SE are kept. Otherwise it will be installed in the game directory."
+                },
+                "papyrus.skyrimSpecialEdition.importDirs": {
+                    "default": [
+                        "${installPath}\\Data\\Source\\Scripts",
+                        ".\\Source\\Scripts"
+                    ],
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "List of import (include) directories for scripts. This should include source directories. The language server will scan these."
+                },
+                "papyrus.skyrimSpecialEdition.sourceDirs": {
+                    "default": [
+                        ".\\Source\\Scripts"
+                    ],
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "List of source directories for scripts. Currently only the first one will be compiled by Compile All."
                 }
             },
             "title": "Papyrus",
