@@ -6,7 +6,7 @@ import { LanguageClientManager, ILanguageClientManager } from './server/Language
 import { LanguageServiceStatusItems } from './features/LanguageServiceStatusItems';
 import { LanguageConfigurations } from './features/LanguageConfigurations';
 import { getInstance } from './common/Ioc';
-// import { CompilerTaskProvider } from './features/CompilerTaskProvider';
+import { PyroTaskProvider } from './features/PyroTaskProvider';
 import { ICreationKitInfoProvider, CreationKitInfoProvider } from './CreationKitInfoProvider';
 import { ScriptStatusCodeLensProvider } from './features/ScriptStatusCodeLensProvider';
 import { SearchCreationKitWikiCommand } from './features/commands/SearchCreationKitWikiCommand';
@@ -20,6 +20,7 @@ import { ProjectsView } from './features/projects/ProjectsView';
 import { ProjectsTreeDataProvider } from './features/projects/ProjectsTreeDataProvider';
 import { AssemblyTextContentProvider } from './features/AssemblyTextContentProvider';
 import { ViewAssemblyCommand } from './features/commands/ViewAssemblyCommand';
+import { GenerateProjectCommand } from './features/commands/GenerateProjectCommand';
 
 class PapyrusExtension implements Disposable {
     private readonly _serviceCollection: ServiceCollection;
@@ -28,7 +29,7 @@ class PapyrusExtension implements Disposable {
     private readonly _clientManager: ILanguageClientManager;
     private readonly _statusItems: LanguageServiceStatusItems;
     private readonly _languageConfigurations: LanguageConfigurations;
-    // private readonly _taskProvider: CompilerTaskProvider;
+    private readonly _pyroProvider: PyroTaskProvider;
     private readonly _scriptStatusCodeLensProvider: ScriptStatusCodeLensProvider;
     private readonly _searchWikiCommand: SearchCreationKitWikiCommand;
     private readonly _debugConfigurationProvider: PapyrusDebugConfigurationProvider;
@@ -40,6 +41,7 @@ class PapyrusExtension implements Disposable {
     private readonly _projectsView: ProjectsView;
     private readonly _assemblyTextContentProvider: AssemblyTextContentProvider;
     private readonly _viewAssemblyCommand: ViewAssemblyCommand;
+    private readonly _generateProjectCommand: GenerateProjectCommand;
 
     constructor(context: ExtensionContext) {
         this._languageConfigurations = new LanguageConfigurations();
@@ -49,7 +51,7 @@ class PapyrusExtension implements Disposable {
             [IExtensionConfigProvider, new Descriptor(ExtensionConfigProvider)],
             [ICreationKitInfoProvider, new Descriptor(CreationKitInfoProvider)],
             [ILanguageClientManager, new Descriptor(LanguageClientManager)],
-            [IDebugSupportInstallService, new Descriptor(DebugSupportInstallService)]
+            [IDebugSupportInstallService, new Descriptor(DebugSupportInstallService)],
         );
 
         this._instantiationService = new InstantiationService(this._serviceCollection);
@@ -58,7 +60,7 @@ class PapyrusExtension implements Disposable {
         this._clientManager = getInstance(this._serviceCollection, ILanguageClientManager);
         this._statusItems = this._instantiationService.createInstance(LanguageServiceStatusItems);
 
-        // this._taskProvider = this._instantiationService.createInstance(CompilerTaskProvider);
+        this._pyroProvider = this._instantiationService.createInstance(PyroTaskProvider);
 
         this._scriptStatusCodeLensProvider = this._instantiationService.createInstance(ScriptStatusCodeLensProvider);
         this._searchWikiCommand = this._instantiationService.createInstance(SearchCreationKitWikiCommand);
@@ -78,9 +80,15 @@ class PapyrusExtension implements Disposable {
 
         this._assemblyTextContentProvider = this._instantiationService.createInstance(AssemblyTextContentProvider);
         this._viewAssemblyCommand = this._instantiationService.createInstance(ViewAssemblyCommand);
+
+        this._generateProjectCommand = this._instantiationService.createInstance(GenerateProjectCommand);
+
     }
 
     dispose() {
+        this._generateProjectCommand.dispose();
+
+        this._viewAssemblyCommand.dispose();
         this._assemblyTextContentProvider.dispose();
 
         this._projectsView.dispose();
@@ -97,6 +105,8 @@ class PapyrusExtension implements Disposable {
 
         this._searchWikiCommand.dispose();
         this._scriptStatusCodeLensProvider.dispose();
+
+        this._pyroProvider.dispose();
 
         // this._taskProvider.dispose();
 

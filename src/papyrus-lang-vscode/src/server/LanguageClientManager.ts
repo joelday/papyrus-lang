@@ -50,7 +50,7 @@ export class LanguageClientManager implements Disposable, ILanguageClientManager
 
         this._clientSubscriptions = Array.from(this._clients).map((client) =>
             client[1].subscribe((instance) => {
-                console.log('Client manager instance:', client[0], instance);
+                // console.log('Client manager instance:', client[0], instance);
             })
         );
     }

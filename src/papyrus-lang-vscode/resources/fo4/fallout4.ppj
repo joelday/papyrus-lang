@@ -1,0 +1,23 @@
+<?xml version='1.0'?>
+<!-- Created by vscode papyrus-lang papyrus.fallout4.generateProject -->
+<PapyrusProject xmlns="PapyrusProject.xsd" 
+    Flags="Institute_Papyrus_Flags.flg" 
+    Output="..\..\" 
+    Asm="Discard" 
+    Optimize="false" 
+    Release="false" 
+    Final="false">
+    <Imports>
+        <Import>.</Import>
+        <Import>..\DLC06</Import>
+        <Import>..\DLC05</Import>
+        <Import>..\DLC04</Import>
+        <Import>..\DLC03</Import>
+        <Import>..\DLC02</Import>
+        <Import>..\DLC01</Import>
+        <Import>..\Base</Import>
+    </Imports>
+    <Folders>
+        <Folder>.</Folder>
+    </Folders>
+</PapyrusProject>
