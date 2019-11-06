@@ -147,31 +147,6 @@
                         "description": "Build BSA archives (not currently supported yet)"
                     }
                 }
-            },
-            {
-                "type": "papyrus",
-                "required": [
-                    "game",
-                    "sources"
-                ],
-                "properties": {
-                    "game": {
-                        "type": "string",
-                        "description": "game type to compile: fallout4, skyrim, skyrimSpecialEdition"
-                    },
-                    "imports": {
-                        "type": "array",
-                        "description": "list of import directories"
-                    },
-                    "sources": {
-                        "type": "array",
-                        "description": "list of files or source directories"
-                    },
-                    "output": {
-                        "type": "string",
-                        "description": "output directory"
-                    }
-                }
             }
         ],
         "problemMatchers": [
@@ -271,27 +246,6 @@
                     "default": "",
                     "type": "string",
                     "description": "If you want to use a mod manager to manage the debugger plugin as a mod, set this to the path of the directory where installed mods for Skyrim SE are kept. Otherwise it will be installed in the game directory."
-                },
-                "papyrus.skyrimSpecialEdition.importDirs": {
-                    "default": [
-                        "${installPath}\\Data\\Source\\Scripts",
-                        ".\\Source\\Scripts"
-                    ],
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "List of import (include) directories for scripts. This should include source directories. The language server will scan these."
-                },
-                "papyrus.skyrimSpecialEdition.sourceDirs": {
-                    "default": [
-                        ".\\Source\\Scripts"
-                    ],
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "List of source directories for scripts. Currently only the first one will be compiled by Compile All."
                 }
             },
             "title": "Papyrus",
@@ -395,21 +349,6 @@
                 "category": "Papyrus",
                 "command": "papyrus.fallout4.generateProject",
                 "title": "Generate Fallout 4 Project Files"
-            },
-            {
-                "category": "Papyrus",
-                "command": "papyrus.projectImports",
-                "title": "Project imports (For substitution)"
-            },
-            {
-                "category": "Papyrus",
-                "command": "papyrus.projectSources",
-                "title": "Project sources (for substitutuion)"
-            },
-            {
-                "category": "Papyrus",
-                "command": "papyrus.projectSources0",
-                "title": "First project source dir (for substitutuion)"
             }
         ],
         "menus": {
@@ -507,6 +446,11 @@
         {
             "name": "shad0wshayd3",
             "url": "https://github.com/shad0wshayd3"
+        },
+        {
+            "email": "rjstone@radix.cc",
+            "name": "Robert Stone",
+            "url": "https://github.com/rjstone"
         }
     ],
     "dependencies": {
