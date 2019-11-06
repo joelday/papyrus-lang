@@ -18,7 +18,7 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
     private readonly _taskProviderHandle: Disposable;
     private readonly _creationKitInfoProvider: ICreationKitInfoProvider;
     private readonly _context: ExtensionContext;
-    private _taskCachePromise: Thenable<Task[]> | undefined = undefined;
+    private _taskCachePromise: Promise<Task[]> | undefined = undefined;
     private readonly _ppjPattern: GlobPattern;
     private readonly _fileWatcher: FileSystemWatcher;
     private readonly _source: string = "pyro";
@@ -40,7 +40,7 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
 
     }
 
-    async provideTasks(token?: CancellationToken): Promise<Task[]> {
+    public provideTasks(token?: CancellationToken): Promise<Task[]> {
         if (token.isCancellationRequested) {
             return null;
         }
