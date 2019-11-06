@@ -11,6 +11,8 @@ The VSCode extension is written in TypeScript with C# being used for the languag
 
 Uses the **[Papyrus Debug Adapter](https://github.com/joelday/papyrus-debug-server) xSE plugin** for live debugging.
 
+Also uses [this fork of **Pyro**](https://github.com/rjstone/pyro) for PPJ builds.
+
 # Questions and Help
 
 Do you have questions or need help? Please come visit the....
@@ -44,9 +46,10 @@ Run the build script with default targets:
 ```
 .\build.ps1
 ```
-In the same directory, run this to update the script extender debug plugins (which are provided by a separate repo):
+In the same directory, run this to update the bundled third-party packages (which are provided by separate repos):
 ```
 .\build.ps1 -Script build.cake -Target update-debug-plugin
+.\build.ps1 -Script build.case -Target update-pyro-cli
 ```
 ### 3
 Run VSCode to open the papyrus-lang as a folder. If this is still your current directory then just run:
