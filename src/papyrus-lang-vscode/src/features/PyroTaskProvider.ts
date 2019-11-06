@@ -18,7 +18,7 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
     private readonly _taskProviderHandle: Disposable;
     private readonly _creationKitInfoProvider: ICreationKitInfoProvider;
     private readonly _context: ExtensionContext;
-    private _ppjPromise: Thenable<Task[]> | undefined = undefined;
+    private _taskCachePromise: Thenable<Task[]> | undefined = undefined;
     private readonly _ppjPattern: GlobPattern;
     private readonly _fileWatcher: FileSystemWatcher;
     private readonly _source: string = "pyro";
@@ -34,9 +34,9 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
 
         this._ppjPattern = new RelativePattern(workspace.workspaceFolders[0], "**/*.ppj");
         const fsw = this._fileWatcher = workspace.createFileSystemWatcher(this._ppjPattern);
-        fsw.onDidChange(() => this._ppjPromise = undefined);
-        fsw.onDidCreate(() => this._ppjPromise = undefined);
-        fsw.onDidDelete(() => this._ppjPromise = undefined);
+        fsw.onDidChange(() => this._taskCachePromise = undefined);
+        fsw.onDidCreate(() => this._taskCachePromise = undefined);
+        fsw.onDidDelete(() => this._taskCachePromise = undefined);
 
     }
 
@@ -47,9 +47,9 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
         // Something is not working here. Ideally we cache the results from getPyroTasks() and only invalidate the cache when
         // the fileWatcher detects a change, but something isn't working. Disable for now.
         //       if (!this._ppjPromise) {
-        this._ppjPromise = this.getPyroTasks(token);
+        this._taskCachePromise = this.getPyroTasks(token);
         //       }
-        return this._ppjPromise;
+        return this._taskCachePromise;
     }
 
     async getPyroTasks(token?: CancellationToken): Promise<Task[]> {
