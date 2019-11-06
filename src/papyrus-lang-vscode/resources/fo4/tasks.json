@@ -1,24 +1,5 @@
 {
     // created by vscode papyrus-lang papyrus.skyrimSpecialEdition.generateProject
     "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "Compile Papyrus (All)",
-            "type": "process",
-            "command": "${config:papyrus.fallout4.installPath}\\Papyrus Compiler\\PapyrusCompiler.exe",
-            "args": [
-                "${workspaceRoot}\\Scripts\\Source\\User\\fallout.ppj"
-            ],
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated",
-                "clear": true
-            },
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "problemMatcher": "$PapyrusCompiler"
-        }
-    ]
+    "tasks": []
 }
