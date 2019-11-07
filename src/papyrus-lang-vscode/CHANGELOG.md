@@ -1,3 +1,10 @@
+## [2.19.1](https://github.com/joelday/papyrus-lang/compare/v2.19.0...v2.19.1) (2019-11-07)
+
+
+### Bug Fixes
+
+* Task detection issues. ([#99](https://github.com/joelday/papyrus-lang/issues/99)) ([2ccd79c](https://github.com/joelday/papyrus-lang/commit/2ccd79cba041583cda9a3c34e2355da3d1e7d9a6))
+
 # [2.19.0](https://github.com/joelday/papyrus-lang/compare/v2.18.0...v2.19.0) (2019-11-06)
 
 
