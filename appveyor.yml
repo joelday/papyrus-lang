@@ -1,47 +1,22 @@
-version: build.{build}
+version: 2.0.0.{build}
 skip_tags: true
 image: Visual Studio 2017
-
-artifacts:
- - path: '**\*.vsix'
-
 environment:
-  APPVEYOR_CACHE_SKIP_RESTORE: 'false'
-  APPVEYOR_CACHE_SKIP_SAVE: 'false'
-
+  GH_TOKEN:
+    secure: /XavQ5iNF9gdwnv5qItZszSzEgZqu6e9sOtupfpfaJS6vrxAzFDarhsPV8hEK1hl
+  VSCE_TOKEN:
+    secure: P6jI4JL2Mi4fNYS2/A2DTnSqHGWMu/Px2l4J3iq5HVioG4V8ZsFBkba5KciF+T7xKY+QXeT7g/otf0NH8rfFVA==
+  WEBHOOK_URL:
+    secure: Oyrlvti3D7Zf0SDrYnP5AprH1IDT0upe+oy39EGEZP6vYDg5/NjESFLiLRLO1EMamTVCqIfhxkqWWKq3o1RIlqPT7Kib+uvcI+DHD+OqTZHz3FIWAQhIZWcg0li0QOEnlK9YTjT5f2GWzIgtgJnV793iejlUMnDYBRKZxCewmSU=
 build_script:
   - cmd: powershell ./build.ps1
-
 test: off
-
-after_build:
+on_success:
   - cmd: powershell ./build.ps1 --target="update-debug-plugin"
   - cmd: powershell ./build.ps1 --target="update-pyro-cli"
   - cmd: powershell ./build.ps1 --target="npm-semantic-release"
-  - ps: Get-ChildItem env:* | sort-object name
-  - ps: cd src\papyrus-lang-vscode ; npm install vsce ; npx vsce package
-
-on_success:
   - ps: Invoke-RestMethod https://raw.githubusercontent.com/DiscordHooks/appveyor-discord-webhook/master/send.ps1 -o send.ps1
   - ps: ./send.ps1 success $env:WEBHOOK_URL
 on_failure:
   - ps: Invoke-RestMethod https://raw.githubusercontent.com/DiscordHooks/appveyor-discord-webhook/master/send.ps1 -o send.ps1
   - ps: ./send.ps1 failure $env:WEBHOOK_URL
-
-# for my test build distribution
-deploy:
-  tag: test-$(APPVEYOR_BUILD_VERSION)
-  release: 'papyrus-lang vscode extension test $(APPVEYOR_BUILD_VERSION)'
-  description: >
-      Manually installable .vsix test build of extension $(APPVEYOR_BUILD_VERSION)
-      (Automated build via AppVeyor, build ID $(APPVEYOR_BUILD_ID))
-      $(APPVEYOR_REPO_COMMIT_MESSAGE) $(APPVEYOR_REPO_COMMIT_TIMESTAMP)
-  provider: GitHub
-  auth_token:
-    secure: EhiervZBkremCKMnk/LFCC3XTbLfgu6hfWrxBIDWr9Oxf84OO4BKcH6OyH19WrBf
-  artifact: /.*\.vsix/
-  draft: false
-  prerelease: true
-  on:
-    branch: test-build                 # release from master branch only
-    APPVEYOR_REPO_TAG: false
