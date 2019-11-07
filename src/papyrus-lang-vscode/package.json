@@ -115,10 +115,10 @@
             {
                 "type": "pyro",
                 "required": [
-                    "ppj"
+                    "projectFile"
                 ],
                 "properties": {
-                    "ppj": {
+                    "projectFile": {
                         "type": "string",
                         "description": "The path to the PPJ file relative to workspace folder (required)."
                     },
