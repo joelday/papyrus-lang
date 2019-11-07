@@ -4,7 +4,7 @@ import { TaskDefinition, Task } from 'vscode';
 export type TaskOf<T extends TaskDefinition> = { readonly definition: T } & Task;
 
 export interface IPyroTaskDefinition extends TaskDefinition {
-    readonly ppj: string;
+    readonly projectFile: string;
     readonly game?: string;
     readonly ini?: string;
     readonly anonymize?: boolean;
