@@ -5,7 +5,7 @@
     <img src="https://github.com/joelday/papyrus-lang/raw/master/src/papyrus-lang-vscode/images/icon.png" width="50%" />
     <br/>
     <br/>
-    <h3 align="center">Fallout 4 and Skyrim language support with code completion, definitions, hover, symbol outlines and live updated diagnostics.</h3>
+    <h3 align="center">Fallout 4 and Skyrim language support with code completion, definitions, hover, symbol outlines, PPJ-based build tasks, and live updated diagnostics.</h3>
 </h1>
 <hr/>
 
@@ -24,3 +24,11 @@
 
 ### Symbol Outline
 ![](https://github.com/joelday/papyrus-lang/raw/master/src/papyrus-lang-vscode/images/demo-symbol-outlines-breadcrumbs.gif)
+
+## 🎖 Credits
+
+- 🥇 joelday
+- Scrivener07
+- shad0wshayd3
+- rjstone
+- fireundubh (for Pyro)

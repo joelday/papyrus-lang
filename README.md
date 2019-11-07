@@ -6,7 +6,7 @@
 
 ## Advanced language tools for the Papyrus scripting language.
 
-You can now write mods for Fallout 4 and Skyrim with the aid of modern code editing features such as code completion, jump to definition, hover, symbol search and live updated diagnostics.
+You can now write mods for Fallout 4 and Skyrim with the aid of modern code editing features such as code completion, jump to definition, hover, symbol search, PPJ-based build tasks, and live updated diagnostics.
 
 ## ✒ Visual Studio Code Extension
 
@@ -20,3 +20,11 @@ Updated frequently with new features and improvements.
 <br />
 
 <img src="src/papyrus-lang-vscode/images/demo-autocomplete.gif" width="100%" />
+
+## 🎖 Credits
+
+- 🥇 joelday
+- Scrivener07
+- shad0wshayd3
+- rjstone
+- fireundubh (for Pyro)
