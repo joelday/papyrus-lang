@@ -9,6 +9,8 @@ import { PapyrusGame } from './PapyrusGame';
 import { getExecutableNameForGame } from './Paths';
 
 
+const readFile = promisify(fs.readFile);
+const writeFile = promisify(fs.writeFile);
 const exists = promisify(fs.exists);
 
 
@@ -120,4 +122,13 @@ export async function getWorkspaceGame(): Promise<PapyrusGame | undefined> {
     }
 
     return game;
+}
+
+// This will replace tokens of the form ${KEY_NAME} with values from an object { 'KEY_NAME': "replacement string" }
+export async function copyAndFillTemplate(srcPath: string, dstPath: string, values: { [key: string]: string }) {
+    let templStr = await readFile(srcPath).toString();
+    for (let key in values) {
+        templStr = templStr.replace("${" + key + "}", values[key]);
+    }
+    await writeFile(dstPath, templStr);
 }
