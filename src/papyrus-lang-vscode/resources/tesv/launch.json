@@ -1,12 +1,5 @@
 {
     // created by vscode papyrus-lang papyrus.skyrimSpecialEdition.generateProject
     "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Skyrim LE",
-            "type": "papyrus",
-            "request": "attach",
-            "game": "skyrim"
-        }
-    ]
+    "configurations": [] // no debug support for SkyrimLE :(
 }
