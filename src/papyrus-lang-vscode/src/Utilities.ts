@@ -126,9 +126,9 @@ export async function getWorkspaceGame(): Promise<PapyrusGame | undefined> {
 
 // This will replace tokens of the form ${KEY_NAME} with values from an object { 'KEY_NAME': "replacement string" }
 export async function copyAndFillTemplate(srcPath: string, dstPath: string, values: { [key: string]: string }) {
-    let templStr = await readFile(srcPath).toString();
+    let templStr = (await readFile(srcPath)).toString();
     for (let key in values) {
         templStr = templStr.replace("${" + key + "}", values[key]);
     }
-    await writeFile(dstPath, templStr);
+    return writeFile(dstPath, templStr);
 }
