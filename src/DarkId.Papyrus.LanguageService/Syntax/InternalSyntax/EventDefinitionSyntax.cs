@@ -17,5 +17,9 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         {
             return visitor.Visit(this);
         }
+
+        public EventDefinitionSyntax(TypeIdentifierSyntax typeIdentifier, SyntaxToken functionorEventKeyword, ExpressionSyntax identifier, SyntaxToken openParen, IReadOnlyList<FunctionParameterSyntax> parameters, SyntaxToken closeParen, IEnumerable<GreenNode> statements, SyntaxToken endFunctionOrEventKeyword) : base(typeIdentifier, functionorEventKeyword, identifier, openParen, parameters, closeParen, statements, endFunctionOrEventKeyword)
+        {
+        }
     }
 }

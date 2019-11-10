@@ -7,20 +7,18 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
     {
         public SyntaxKind Kind { get; }
         public string Text { get; }
-        public Range Range { get; }
         public ScriptLexerState LexerState { get; }
 
-        public ScriptToken(SyntaxKind kind, string text, Range range, ScriptLexerState lexerState)
+        public ScriptToken(SyntaxKind kind, string text, ScriptLexerState lexerState)
         {
             Kind = kind;
             Text = text;
-            Range = range;
             LexerState = lexerState;
         }
 
         public bool Equals(ScriptToken other)
         {
-            return Kind == other.Kind && Text == other.Text && Range.Equals(other.Range) && LexerState.Equals(other.LexerState);
+            return Kind == other.Kind && Text == other.Text && LexerState.Equals(other.LexerState);
         }
 
         public override bool Equals(object obj)
@@ -34,7 +32,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
             {
                 var hashCode = (int) Kind;
                 hashCode = (hashCode * 397) ^ (Text != null ? Text.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ Range.GetHashCode();
                 hashCode = (hashCode * 397) ^ LexerState.GetHashCode();
                 return hashCode;
             }
@@ -42,7 +39,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
 
         public override string ToString()
         {
-            return $"{nameof(Kind)}: {Kind}, {nameof(Text)}: \"{Text.Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t")}\", {nameof(Range)}: {{ {Range} }}";
+            return $"{nameof(Kind)}: {Kind}, {nameof(Text)}: \"{Text.Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t")}\"";
         }
     }
 }

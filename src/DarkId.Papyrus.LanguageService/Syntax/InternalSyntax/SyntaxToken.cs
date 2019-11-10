@@ -8,6 +8,12 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
     {
         private readonly ScriptToken _token;
 
+        public SyntaxToken(SyntaxKind kind)
+        {
+            _token = new ScriptToken(kind, string.Empty, default);
+            IsMissing = true;
+        }
+
         public SyntaxToken(ScriptToken token, IEnumerable<ScriptToken> leadingTrivia = null, IEnumerable<ScriptToken> trailingTrivia = null)
         {
             _token = token;
@@ -16,6 +22,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
             TrailingTriviaTokens = trailingTrivia ?? Enumerable.Empty<ScriptToken>();
         }
 
+        public override bool IsMissing { get; }
         public override SyntaxKind Kind => _token.Kind;
         public override string Text => _token.Text;
         public override string FullText => LeadingTrivia + Text + TrailingTrivia;

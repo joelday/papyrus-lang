@@ -12,6 +12,8 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         private readonly List<DiagnosticInfo> _diagnostics = new List<DiagnosticInfo>();
         public IReadOnlyList<DiagnosticInfo> Diagnostics => _diagnostics;
 
+        public virtual bool IsMissing => false;
+
         public virtual string FullText => string.Join(string.Empty, Children.Select(c => c.FullText));
         public virtual string Text => FullText.Substring(LeadingTriviaWidth, Width);
 

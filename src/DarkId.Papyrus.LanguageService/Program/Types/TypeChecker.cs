@@ -71,88 +71,88 @@ int Property Length_ auto
 
         private readonly PapyrusProgram _program;
         // private readonly CompilerTypeTable _compilerTypeTable;
-        private readonly TypeEvaluationVisitor _typeEvaluationVisitor;
-        private readonly Dictionary<ObjectIdentifier, ArrayType> _arrayTypes =
-            new Dictionary<ObjectIdentifier, ArrayType>();
+        // private readonly TypeEvaluationVisitor _typeEvaluationVisitor;
+        //private readonly Dictionary<ObjectIdentifier, ArrayType> _arrayTypes =
+        //    new Dictionary<ObjectIdentifier, ArrayType>();
 
-        internal TypeEvaluationVisitor TypeEvaluationVisitor => _typeEvaluationVisitor;
+        // internal TypeEvaluationVisitor TypeEvaluationVisitor => _typeEvaluationVisitor;
 
         public TypeChecker(PapyrusProgram program)
         {
             _program = program;
             // _compilerTypeTable = new CompilerTypeTable();
-            _typeEvaluationVisitor = new TypeEvaluationVisitor(this);
+            //_typeEvaluationVisitor = new TypeEvaluationVisitor(this);
         }
 
-        private ArrayType GetArrayType(PapyrusType elementType)
-        {
-            //var objectIdentifier = elementType.Name;
+        //private ArrayType GetArrayType(PapyrusType elementType)
+        //{
+        //    //var objectIdentifier = elementType.Name;
 
-            //lock (_arrayTypes)
-            //{
-            //    if (!_arrayTypes.ContainsKey(objectIdentifier))
-            //    {
-            //        var source = CreateArrayTypeSource(objectIdentifier);
-            //        var stream = new CaseInsensitiveStringStream(source);
-            //        var lexer = new PapyrusLexer(stream);
-            //        var parser = new PapyrusParser(new CommonTokenStream(lexer));
-            //        parser.AsDynamic().KnownUserFlags = _program.FlagsFile.NativeFlagsDict;
-            //        parser.script();
+        //    //lock (_arrayTypes)
+        //    //{
+        //    //    if (!_arrayTypes.ContainsKey(objectIdentifier))
+        //    //    {
+        //    //        var source = CreateArrayTypeSource(objectIdentifier);
+        //    //        var stream = new CaseInsensitiveStringStream(source);
+        //    //        var lexer = new PapyrusLexer(stream);
+        //    //        var parser = new PapyrusParser(new CommonTokenStream(lexer));
+        //    //        parser.AsDynamic().KnownUserFlags = _program.FlagsFile.NativeFlagsDict;
+        //    //        parser.script();
 
-            //        var compilerType = parser.ParsedObject;
+        //    //        var compilerType = parser.ParsedObject;
 
-            //        var nodeBinder = new NodeBinder();
+        //    //        var nodeBinder = new NodeBinder();
 
-            //        var node = nodeBinder.Bind(null, _program,
-            //            new ScriptText(null, source, "0"), compilerType.GetTokenStream(), compilerType.GetAst());
+        //    //        var node = nodeBinder.Bind(null, _program,
+        //    //            new ScriptText(null, source, "0"), compilerType.GetTokenStream(), compilerType.GetAst());
 
-            //        var scopeBinder = new ScopeBinder();
-            //        var scopeResult = scopeBinder.Bind(compilerType, node.Value);
+        //    //        var scopeBinder = new ScopeBinder();
+        //    //        var scopeResult = scopeBinder.Bind(compilerType, node.Value);
 
-            //        node.Diagnostics.AddRange(scopeResult.Diagnostics);
+        //    //        node.Diagnostics.AddRange(scopeResult.Diagnostics);
                     
-            //        var symbolBinder = new SymbolBinder();
-            //        var symbolResult = symbolBinder.Bind(node.Value);
+        //    //        var symbolBinder = new SymbolBinder();
+        //    //        var symbolResult = symbolBinder.Bind(node.Value);
 
-            //        var type = new ArrayType(_program, symbolResult.Value, compilerType, elementType.Name);
-            //        _arrayTypes.Add(objectIdentifier, type);
-            //    }
+        //    //        var type = new ArrayType(_program, symbolResult.Value, compilerType, elementType.Name);
+        //    //        _arrayTypes.Add(objectIdentifier, type);
+        //    //    }
 
-            //    return _arrayTypes[objectIdentifier];
-            //}
+        //    //    return _arrayTypes[objectIdentifier];
+        //    //}
 
-            throw new NotImplementedException();
-        }
+        //    throw new NotImplementedException();
+        //}
 
-        public PapyrusType GetTypeForObjectId(ObjectIdentifier objectIdentifier, bool asArray)
-        {
-            var type = GetTypeForObjectId(objectIdentifier);
-            if (asArray)
-            {
-                return GetArrayType(type as PapyrusType ?? new IntrinsicType(_program, objectIdentifier));
-            }
+        //public PapyrusType GetTypeForObjectId(ObjectIdentifier objectIdentifier, bool asArray)
+        //{
+        //    var type = GetTypeForObjectId(objectIdentifier);
+        //    if (asArray)
+        //    {
+        //        return GetArrayType(type as PapyrusType ?? new IntrinsicType(_program, objectIdentifier));
+        //    }
 
-            return type;
-        }
+        //    return type;
+        //}
 
-        public ComplexType GetTypeForObjectId(ObjectIdentifier objectIdentifier)
-        {
-            var scriptIdentifier = ObjectIdentifier.Parse(objectIdentifier.FullScriptName);
-            _program.ScriptFiles.TryGetValue(scriptIdentifier, out var scriptFile);
-            var scriptType = scriptFile?.Type;
+        //public ComplexType GetTypeForObjectId(ObjectIdentifier objectIdentifier)
+        //{
+        //    var scriptIdentifier = ObjectIdentifier.Parse(objectIdentifier.FullScriptName);
+        //    _program.ScriptFiles.TryGetValue(scriptIdentifier, out var scriptFile);
+        //    var scriptType = scriptFile?.Type;
 
-            if (scriptType == null)
-            {
-                return null;
-            }
+        //    if (scriptType == null)
+        //    {
+        //        return null;
+        //    }
 
-            if (!string.IsNullOrEmpty(objectIdentifier.StructName))
-            {
-                scriptType.StructTypes.TryGetValue(objectIdentifier, out var structType);
-                return structType;
-            }
+        //    if (!string.IsNullOrEmpty(objectIdentifier.StructName))
+        //    {
+        //        scriptType.StructTypes.TryGetValue(objectIdentifier, out var structType);
+        //        return structType;
+        //    }
 
-            return scriptType;
-        }
+        //    return scriptType;
+        //}
     }
 }

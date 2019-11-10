@@ -36,6 +36,20 @@ namespace DarkId.Papyrus.LanguageService.Syntax
             );
         }
 
+        public static bool IsNativeFlag(this SyntaxKind kind)
+        {
+            return (
+                kind == SyntaxKind.NativeKeyword ||
+                kind == SyntaxKind.DebugOnlyKeyword ||
+                kind == SyntaxKind.BetaOnlyKeyword
+            );
+        }
+
+        public static bool IsFlagOrIdentifier(this SyntaxKind kind)
+        {
+            return kind.IsNativeFlag() || kind == SyntaxKind.IdentifierToken;
+        }
+
         public static bool IsBinaryOperator(this SyntaxKind kind)
         {
             return (

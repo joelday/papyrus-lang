@@ -8,9 +8,9 @@ using NUnit.Framework;
 
 namespace DarkId.Papyrus.Test.LanguageService.Syntax
 {
-    public class ScriptLexerTest : PerLanguageProgramTestBase
+    public class ScriptParserTest : PerLanguageProgramTestBase
     {
-        public ScriptLexerTest(PapyrusProgram program) : base(program)
+        public ScriptParserTest(PapyrusProgram program) : base(program)
         {
         }
 
@@ -24,15 +24,10 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
             var tokens = lexer.Tokenize(
                 scriptText);
 
-            var tokenText = string.Empty;
+            var parser = new ScriptParser();
+            var node = parser.Parse(tokens);
 
-            foreach (var token in tokens)
-            {
-                tokenText += token.Text;
-                TestContext.Out.WriteLine(token.ToString());
-            }
-
-            Assert.AreEqual(scriptText, tokenText, "Concatenated token texts should match the source text.");
+            TestContext.Out.WriteLine(node.ToString());
         }
     }
 }

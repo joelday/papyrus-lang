@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text.RegularExpressions;
 using DarkId.Papyrus.Common;
@@ -47,43 +48,46 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                 {";/", SyntaxKind.SemicolonSlashToken},
                 {"/;", SyntaxKind.SlashSemicolonToken},
                 {"[]", SyntaxKind.ArrayToken},
-                {"as", SyntaxKind.AsKeyword},
-                {"auto", SyntaxKind.AutoKeyword},
-                {"autoreadonly", SyntaxKind.AutoReadOnlyKeyword},
-                {"betaonly", SyntaxKind.BetaOnlyKeyword},
-                {"const", SyntaxKind.ConstKeyword},
-                {"customevent", SyntaxKind.CustomEventKeyword},
-                {"debugonly", SyntaxKind.DebugOnlyKeyword},
-                {"else", SyntaxKind.ElseKeyword},
-                {"elseif", SyntaxKind.ElseIfKeyword},
-                {"endevent", SyntaxKind.EndEventKeyword},
-                {"endfunction", SyntaxKind.EndFunctionKeyword},
-                {"endgroup", SyntaxKind.EndGroupKeyword},
-                {"endif", SyntaxKind.EndIfKeyword},
-                {"endproperty", SyntaxKind.EndPropertyKeyword},
-                {"endstate", SyntaxKind.EndStateKeyword},
-                {"endstruct", SyntaxKind.EndStructKeyword},
-                {"endwhile", SyntaxKind.EndWhileKeyword},
-                {"event", SyntaxKind.EventKeyword},
-                {"extends", SyntaxKind.ExtendsKeyword},
-                {"function", SyntaxKind.FunctionKeyword},
-                {"global", SyntaxKind.GlobalKeyword},
-                {"group", SyntaxKind.GroupKeyword},
-                {"if", SyntaxKind.IfKeyword},
-                {"import", SyntaxKind.ImportKeyword},
-                {"is", SyntaxKind.IsKeyword},
-                {"native", SyntaxKind.NativeKeyword},
+                {"As", SyntaxKind.AsKeyword},
+                {"Auto", SyntaxKind.AutoKeyword},
+                {"AutoReadonly", SyntaxKind.AutoReadOnlyKeyword},
+                {"BetaOnly", SyntaxKind.BetaOnlyKeyword},
+                {"Const", SyntaxKind.ConstKeyword},
+                {"CustomEvent", SyntaxKind.CustomEventKeyword},
+                {"DebugOnly", SyntaxKind.DebugOnlyKeyword},
+                {"Else", SyntaxKind.ElseKeyword},
+                {"ElseIf", SyntaxKind.ElseIfKeyword},
+                {"EndEvent", SyntaxKind.EndEventKeyword},
+                {"EndFunction", SyntaxKind.EndFunctionKeyword},
+                {"EndGroup", SyntaxKind.EndGroupKeyword},
+                {"EndIf", SyntaxKind.EndIfKeyword},
+                {"EndProperty", SyntaxKind.EndPropertyKeyword},
+                {"EndState", SyntaxKind.EndStateKeyword},
+                {"EndStruct", SyntaxKind.EndStructKeyword},
+                {"EndWhile", SyntaxKind.EndWhileKeyword},
+                {"Event", SyntaxKind.EventKeyword},
+                {"Extends", SyntaxKind.ExtendsKeyword},
+                {"Function", SyntaxKind.FunctionKeyword},
+                {"Global", SyntaxKind.GlobalKeyword},
+                {"Group", SyntaxKind.GroupKeyword},
+                {"If", SyntaxKind.IfKeyword},
+                {"Import", SyntaxKind.ImportKeyword},
+                {"Is", SyntaxKind.IsKeyword},
+                {"Native", SyntaxKind.NativeKeyword},
                 {"new", SyntaxKind.NewKeyword},
-                {"property", SyntaxKind.PropertyKeyword},
-                {"return", SyntaxKind.ReturnKeyword},
-                {"scriptname", SyntaxKind.ScriptNameKeyword},
-                {"state", SyntaxKind.StateKeyword},
-                {"struct", SyntaxKind.StructKeyword},
-                {"while", SyntaxKind.WhileKeyword},
-                {"true", SyntaxKind.TrueKeyword},
-                {"false", SyntaxKind.FalseKeyword},
-                {"none", SyntaxKind.NoneKeyword}
-            };
+                {"Property", SyntaxKind.PropertyKeyword},
+                {"Return", SyntaxKind.ReturnKeyword},
+                {"ScriptName", SyntaxKind.ScriptNameKeyword},
+                {"State", SyntaxKind.StateKeyword},
+                {"Struct", SyntaxKind.StructKeyword},
+                {"While", SyntaxKind.WhileKeyword},
+                {"True", SyntaxKind.TrueKeyword},
+                {"False", SyntaxKind.FalseKeyword},
+                {"None", SyntaxKind.NoneKeyword}
+            }.ToImmutableDictionary();
+
+        public static readonly IReadOnlyDictionary<SyntaxKind, string> StringTokenMap =
+            TokenStringMap.ToImmutableDictionary(kv => kv.Value, kv => kv.Key);
 
         private static readonly Regex NewLineRegex =
             new Regex(@"\r\n|\r|\n", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -131,25 +135,19 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                 SyntaxKind.Unknown;
         }
 
-        public IEnumerable<ScriptToken> Tokenize(string sourceText, ScriptToken? resumeFrom = default)
+        public IEnumerable<ScriptToken> Tokenize(string sourceText)
         {
-            var scanner = new Scanner<Match>(TokensRegex.Matches(sourceText, resumeFrom?.Range.End.Value ?? 0));
+            var scanner = new Scanner<Match>(TokensRegex.Matches(sourceText));
 
             if (!scanner.Next())
             {
                 yield break;
             }
 
-            var state = resumeFrom?.LexerState ?? new ScriptLexerState()
+            var state = new ScriptLexerState()
             {
                 StringLiteralStartPosition = -1
             };
-
-            if (resumeFrom.HasValue)
-            {
-                state.Position = resumeFrom.Value.LexerState.Position + resumeFrom.Value.Text.Length;
-                state.PreviousTokenKind = resumeFrom.Value.Kind;
-            }
 
             while (!scanner.Done)
             {
@@ -218,7 +216,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                         yield return new ScriptToken(
                             kind,
                             text,
-                            new Range(state.Position, nextPosition),
                             state
                         );
 
@@ -268,7 +265,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                 yield return new ScriptToken(
                     kind,
                     text,
-                    new Range(state.Position, nextPosition),
                     state
                 );
 
@@ -281,7 +277,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
             yield return new ScriptToken(
                 SyntaxKind.EndOfFileToken,
                 string.Empty,
-                new Range(state.Position, state.Position),
                 state
             );
         }

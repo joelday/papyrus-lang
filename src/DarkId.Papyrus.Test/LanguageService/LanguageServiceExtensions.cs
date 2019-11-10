@@ -7,9 +7,7 @@ using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Program.Symbols;
 using DarkId.Papyrus.LanguageService.Syntax;
-using DarkId.Papyrus.LanguageService.Syntax.Legacy;
 using NUnit.Framework;
-using SyntaxNode = DarkId.Papyrus.LanguageService.Syntax.Legacy.SyntaxNode;
 
 namespace DarkId.Papyrus.Test.LanguageService
 {
