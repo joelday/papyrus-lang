@@ -53,6 +53,9 @@ namespace DarkId.Papyrus.LanguageService.Syntax
             });
         }
 
+        public IReadOnlyList<Diagnostic> Diagnostics =>
+            Green.Diagnostics.Select(d => new Diagnostic(d, Range)).ToList();
+
         public IReadOnlyList<SyntaxNode> Children => _children.Value;
     }
 }

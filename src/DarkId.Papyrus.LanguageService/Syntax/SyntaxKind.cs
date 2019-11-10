@@ -94,9 +94,9 @@ namespace DarkId.Papyrus.LanguageService.Syntax
         NoneKeyword,
 
         StringLiteralContent,
-        SingleLineCommentContent,
-        DocumentationCommentContent,
-        MultilineCommentContent,
+        SingleLineComment,
+        DocumentationComment,
+        MultilineComment,
 
         ArrayIndexExpression,
         AssignmentStatement,
@@ -105,7 +105,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax
         CastExpression,
         CustomEventDefinition,
         DeclareStatement,
-        DocComment,
         EventDefinition,
         ExpressionStatement,
         FloatLiteral,

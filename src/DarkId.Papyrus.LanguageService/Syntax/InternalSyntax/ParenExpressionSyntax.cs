@@ -13,7 +13,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
             CloseParenToken = closeParenToken;
         }
 
-        public override SyntaxKind Kind => SyntaxKind.IsExpression;
+        public override SyntaxKind Kind => SyntaxKind.ParenExpression;
         public override SyntaxNode CreateRed(SyntaxNode parent, int position)
         {
             throw new NotImplementedException();

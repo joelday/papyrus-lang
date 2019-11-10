@@ -13,17 +13,14 @@
                 case SyntaxKind.CastExpression: return VisitCastExpression((CastExpressionNode)node, t1);
                 case SyntaxKind.CustomEventDefinition: return VisitCustomEventDefinition((CustomEventDefinitionNode)node, t1);
                 case SyntaxKind.DeclareStatement: return VisitDeclareStatement((DeclareStatementNode)node, t1);
-                case SyntaxKind.DocComment: return VisitDocComment((DocCommentNode)node, t1);
                 case SyntaxKind.EventDefinition: return VisitEventDefinition((EventDefinitionNode)node, t1);
                 case SyntaxKind.ExpressionStatement: return VisitExpressionStatement((ExpressionStatementNode)node, t1);
                 case SyntaxKind.FloatLiteral: return VisitFloatLiteral((FloatLiteralNode)node, t1);
                 case SyntaxKind.FunctionCallExpression: return VisitFunctionCallExpression((FunctionCallExpressionNode)node, t1);
                 case SyntaxKind.FunctionCallExpressionParameter: return VisitFunctionCallExpressionParameter((FunctionCallExpressionParameterNode)node, t1);
                 case SyntaxKind.FunctionDefinition: return VisitFunctionDefinition((FunctionDefinitionNode)node, t1);
-                case SyntaxKind.FunctionHeader: return VisitFunctionHeader((FunctionHeaderNode)node, t1);
                 case SyntaxKind.FunctionParameter: return VisitFunctionParameter((FunctionParameterNode)node, t1);
                 case SyntaxKind.GroupDefinition: return VisitGroupDefinition((GroupDefinitionNode)node, t1);
-                case SyntaxKind.GroupHeader: return VisitGroupHeader((GroupHeaderNode)node, t1);
                 case SyntaxKind.HexLiteral: return VisitHexLiteral((HexLiteralNode)node, t1);
                 case SyntaxKind.Identifier: return VisitIdentifier((IdentifierNode)node, t1);
                 case SyntaxKind.IdentifierExpression: return VisitIdentifierExpression((IdentifierExpressionNode)node, t1);
@@ -38,14 +35,12 @@
                 case SyntaxKind.NewStructExpression: return VisitNewStructExpression((NewStructExpressionNode)node, t1);
                 case SyntaxKind.NoneLiteral: return VisitNoneLiteral((NoneLiteralNode)node, t1);
                 case SyntaxKind.PropertyDefinition: return VisitPropertyDefinition((PropertyDefinitionNode)node, t1);
-                case SyntaxKind.PropertyHeader: return VisitPropertyHeader((PropertyHeaderNode)node, t1);
                 case SyntaxKind.ReturnStatement: return VisitReturnStatement((ReturnStatementNode)node, t1);
                 case SyntaxKind.Script: return VisitScript((ScriptNode)node, t1);
                 case SyntaxKind.ScriptHeader: return VisitScriptHeader((ScriptHeaderNode)node, t1);
                 case SyntaxKind.StateDefinition: return VisitStateDefinition((StateDefinitionNode)node, t1);
                 case SyntaxKind.StringLiteral: return VisitStringLiteral((StringLiteralNode)node, t1);
                 case SyntaxKind.StructDefinition: return VisitStructDefinition((StructDefinitionNode)node, t1);
-                case SyntaxKind.StructHeader: return VisitStructHeader((StructHeaderNode)node, t1);
                 case SyntaxKind.TypeIdentifier: return VisitTypeIdentifier((TypeIdentifierNode)node, t1);
                 case SyntaxKind.UnaryOperationExpression: return VisitUnaryOperationExpression((UnaryOperationExpressionNode)node, t1);
                 case SyntaxKind.VariableDefinition: return VisitVariableDefinition((VariableDefinitionNode)node, t1);
@@ -64,17 +59,14 @@
         public virtual T VisitCastExpression(CastExpressionNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitCustomEventDefinition(CustomEventDefinitionNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitDeclareStatement(DeclareStatementNode node, T1 t1) { return VisitDefault(node, t1); }
-        public virtual T VisitDocComment(DocCommentNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitEventDefinition(EventDefinitionNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitExpressionStatement(ExpressionStatementNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitFloatLiteral(FloatLiteralNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitFunctionCallExpression(FunctionCallExpressionNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitFunctionCallExpressionParameter(FunctionCallExpressionParameterNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitFunctionDefinition(FunctionDefinitionNode node, T1 t1) { return VisitDefault(node, t1); }
-        public virtual T VisitFunctionHeader(FunctionHeaderNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitFunctionParameter(FunctionParameterNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitGroupDefinition(GroupDefinitionNode node, T1 t1) { return VisitDefault(node, t1); }
-        public virtual T VisitGroupHeader(GroupHeaderNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitHexLiteral(HexLiteralNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitIdentifier(IdentifierNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitIdentifierExpression(IdentifierExpressionNode node, T1 t1) { return VisitDefault(node, t1); }
@@ -89,14 +81,12 @@
         public virtual T VisitNewStructExpression(NewStructExpressionNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitNoneLiteral(NoneLiteralNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitPropertyDefinition(PropertyDefinitionNode node, T1 t1) { return VisitDefault(node, t1); }
-        public virtual T VisitPropertyHeader(PropertyHeaderNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitReturnStatement(ReturnStatementNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitScript(ScriptNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitScriptHeader(ScriptHeaderNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitStateDefinition(StateDefinitionNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitStringLiteral(StringLiteralNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitStructDefinition(StructDefinitionNode node, T1 t1) { return VisitDefault(node, t1); }
-        public virtual T VisitStructHeader(StructHeaderNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitTypeIdentifier(TypeIdentifierNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitUnaryOperationExpression(UnaryOperationExpressionNode node, T1 t1) { return VisitDefault(node, t1); }
         public virtual T VisitVariableDefinition(VariableDefinitionNode node, T1 t1) { return VisitDefault(node, t1); }
@@ -123,10 +113,8 @@
                 case SyntaxKind.FunctionCallExpression: return VisitFunctionCallExpression((FunctionCallExpressionNode)node);
                 case SyntaxKind.FunctionCallExpressionParameter: return VisitFunctionCallExpressionParameter((FunctionCallExpressionParameterNode)node);
                 case SyntaxKind.FunctionDefinition: return VisitFunctionDefinition((FunctionDefinitionNode)node);
-                case SyntaxKind.FunctionHeader: return VisitFunctionHeader((FunctionHeaderNode)node);
                 case SyntaxKind.FunctionParameter: return VisitFunctionParameter((FunctionParameterNode)node);
                 case SyntaxKind.GroupDefinition: return VisitGroupDefinition((GroupDefinitionNode)node);
-                case SyntaxKind.GroupHeader: return VisitGroupHeader((GroupHeaderNode)node);
                 case SyntaxKind.HexLiteral: return VisitHexLiteral((HexLiteralNode)node);
                 case SyntaxKind.Identifier: return VisitIdentifier((IdentifierNode)node);
                 case SyntaxKind.IdentifierExpression: return VisitIdentifierExpression((IdentifierExpressionNode)node);
@@ -141,14 +129,12 @@
                 case SyntaxKind.NewStructExpression: return VisitNewStructExpression((NewStructExpressionNode)node);
                 case SyntaxKind.NoneLiteral: return VisitNoneLiteral((NoneLiteralNode)node);
                 case SyntaxKind.PropertyDefinition: return VisitPropertyDefinition((PropertyDefinitionNode)node);
-                case SyntaxKind.PropertyHeader: return VisitPropertyHeader((PropertyHeaderNode)node);
                 case SyntaxKind.ReturnStatement: return VisitReturnStatement((ReturnStatementNode)node);
                 case SyntaxKind.Script: return VisitScript((ScriptNode)node);
                 case SyntaxKind.ScriptHeader: return VisitScriptHeader((ScriptHeaderNode)node);
                 case SyntaxKind.StateDefinition: return VisitStateDefinition((StateDefinitionNode)node);
                 case SyntaxKind.StringLiteral: return VisitStringLiteral((StringLiteralNode)node);
                 case SyntaxKind.StructDefinition: return VisitStructDefinition((StructDefinitionNode)node);
-                case SyntaxKind.StructHeader: return VisitStructHeader((StructHeaderNode)node);
                 case SyntaxKind.TypeIdentifier: return VisitTypeIdentifier((TypeIdentifierNode)node);
                 case SyntaxKind.UnaryOperationExpression: return VisitUnaryOperationExpression((UnaryOperationExpressionNode)node);
                 case SyntaxKind.VariableDefinition: return VisitVariableDefinition((VariableDefinitionNode)node);
@@ -174,10 +160,8 @@
         public virtual T VisitFunctionCallExpression(FunctionCallExpressionNode node) { return VisitDefault(node); }
         public virtual T VisitFunctionCallExpressionParameter(FunctionCallExpressionParameterNode node) { return VisitDefault(node); }
         public virtual T VisitFunctionDefinition(FunctionDefinitionNode node) { return VisitDefault(node); }
-        public virtual T VisitFunctionHeader(FunctionHeaderNode node) { return VisitDefault(node); }
         public virtual T VisitFunctionParameter(FunctionParameterNode node) { return VisitDefault(node); }
         public virtual T VisitGroupDefinition(GroupDefinitionNode node) { return VisitDefault(node); }
-        public virtual T VisitGroupHeader(GroupHeaderNode node) { return VisitDefault(node); }
         public virtual T VisitHexLiteral(HexLiteralNode node) { return VisitDefault(node); }
         public virtual T VisitIdentifier(IdentifierNode node) { return VisitDefault(node); }
         public virtual T VisitIdentifierExpression(IdentifierExpressionNode node) { return VisitDefault(node); }
@@ -192,14 +176,12 @@
         public virtual T VisitNewStructExpression(NewStructExpressionNode node) { return VisitDefault(node); }
         public virtual T VisitNoneLiteral(NoneLiteralNode node) { return VisitDefault(node); }
         public virtual T VisitPropertyDefinition(PropertyDefinitionNode node) { return VisitDefault(node); }
-        public virtual T VisitPropertyHeader(PropertyHeaderNode node) { return VisitDefault(node); }
         public virtual T VisitReturnStatement(ReturnStatementNode node) { return VisitDefault(node); }
         public virtual T VisitScript(ScriptNode node) { return VisitDefault(node); }
         public virtual T VisitScriptHeader(ScriptHeaderNode node) { return VisitDefault(node); }
         public virtual T VisitStateDefinition(StateDefinitionNode node) { return VisitDefault(node); }
         public virtual T VisitStringLiteral(StringLiteralNode node) { return VisitDefault(node); }
         public virtual T VisitStructDefinition(StructDefinitionNode node) { return VisitDefault(node); }
-        public virtual T VisitStructHeader(StructHeaderNode node) { return VisitDefault(node); }
         public virtual T VisitTypeIdentifier(TypeIdentifierNode node) { return VisitDefault(node); }
         public virtual T VisitUnaryOperationExpression(UnaryOperationExpressionNode node) { return VisitDefault(node); }
         public virtual T VisitVariableDefinition(VariableDefinitionNode node) { return VisitDefault(node); }

@@ -11,10 +11,10 @@ namespace DarkId.Papyrus.LanguageService
 
         public DiagnosticLevel Severity => _diagnosticInfo.Severity;
         public string Message => _diagnosticInfo.Message;
-        public TextRange Range { get; }
+        public Range Range { get; }
         public Exception Exception => _diagnosticInfo.Exception;
 
-        public Diagnostic(DiagnosticInfo info, TextRange range = default)
+        public Diagnostic(DiagnosticInfo info, Range range = default)
         {
             _diagnosticInfo = info;
             Range = range;

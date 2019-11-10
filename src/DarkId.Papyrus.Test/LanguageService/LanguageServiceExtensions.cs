@@ -27,24 +27,24 @@ namespace DarkId.Papyrus.Test.LanguageService
             return file.Text.PositionAt(markerCommentIndex + (beforeMarker ? 0 : markerComment.Length));
         }
 
-        public static SyntaxNode GetNodeAtMarker(this ScriptFile file, string marker, bool beforeMarker = false)
-        {
-            var markerPosition = file.GetTestMarker(marker, beforeMarker);
-            return file.Node.GetNodeAtPosition(markerPosition);
-        }
+        //public static SyntaxNode GetNodeAtMarker(this ScriptFile file, string marker, bool beforeMarker = false)
+        //{
+        //    var markerPosition = file.GetTestMarker(marker, beforeMarker);
+        //    return file.Node.GetNodeAtPosition(markerPosition);
+        //}
 
-        public static T GetNodeAtMarker<T>(this ScriptFile file, string marker, bool beforeMarker = false) where T : SyntaxNode
-        {
-            var markerPosition = file.GetTestMarker(marker, beforeMarker);
-            return file.Node.GetDescendantNodeOfTypeAtPosition<T>(markerPosition);
-        }
+        //public static T GetNodeAtMarker<T>(this ScriptFile file, string marker, bool beforeMarker = false) where T : SyntaxNode
+        //{
+        //    var markerPosition = file.GetTestMarker(marker, beforeMarker);
+        //    return file.Node.GetDescendantNodeOfTypeAtPosition<T>(markerPosition);
+        //}
 
 
-        public static void AssertAreOfKinds(this IEnumerable<PapyrusSymbol> symbols, SymbolKinds kinds)
-        {
-            Assert.IsTrue(symbols.All(
-                s => (s.Kind & kinds) != 0),
-                $"All symbols must be one of kinds {kinds}.");
-        }
+        //public static void AssertAreOfKinds(this IEnumerable<PapyrusSymbol> symbols, SymbolKinds kinds)
+        //{
+        //    Assert.IsTrue(symbols.All(
+        //        s => (s.Kind & kinds) != 0),
+        //        $"All symbols must be one of kinds {kinds}.");
+        //}
     }
 }

@@ -33,8 +33,8 @@ namespace DarkId.Papyrus.LanguageService.Program
 
         public event EventHandler<ScriptFileChangedEventArgs> OnChanged;
 
-        public ScriptSyntaxNode => throw new NotImplementedException();
-        public ScriptSymbol Symbol => throw new NotImplementedException();
+        //public ScriptSyntaxNode => throw new NotImplementedException();
+        //public ScriptSymbol Symbol => throw new NotImplementedException();
         public ScriptType Type => throw new NotImplementedException();
 
         public IEnumerable<Diagnostic> Diagnostics

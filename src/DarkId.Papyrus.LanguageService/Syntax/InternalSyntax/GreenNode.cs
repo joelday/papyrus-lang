@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 using DarkId.Papyrus.Common;
 
 namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
@@ -9,6 +8,9 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
     internal abstract class GreenNode
     {
         public abstract SyntaxKind Kind { get; }
+
+        private readonly List<DiagnosticInfo> _diagnostics = new List<DiagnosticInfo>();
+        public IReadOnlyList<DiagnosticInfo> Diagnostics => _diagnostics;
 
         public virtual string FullText => string.Join(string.Empty, Children.Select(c => c.FullText));
         public virtual string Text => FullText.Substring(LeadingTriviaWidth, Width);
@@ -65,5 +67,10 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 
         public abstract void Accept(IGreenNodeVisitor visitor);
         public abstract T Accept<T>(IGreenNodeVisitor<T> visitor);
+
+        public void AddDiagnostic(DiagnosticInfo diagnosticInfo)
+        {
+            _diagnostics.Add(diagnosticInfo);
+        }
     }
 }

@@ -165,7 +165,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                         state.ContentState = ScriptLexerContentState.InSource;
                     }
 
-                    kind = SyntaxKind.DocumentationCommentContent;
+                    kind = SyntaxKind.DocumentationComment;
                 }
                 else if (state.ContentState == ScriptLexerContentState.InMultilineComment)
                 {
@@ -174,7 +174,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                         state.ContentState = ScriptLexerContentState.InSource;
                     }
 
-                    kind = SyntaxKind.MultilineCommentContent;
+                    kind = SyntaxKind.MultilineComment;
                 }
                 else if (state.ContentState == ScriptLexerContentState.InSingleLineComment)
                 {
@@ -184,7 +184,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                     }
                     else
                     {
-                        kind = SyntaxKind.SingleLineCommentContent;
+                        kind = SyntaxKind.SingleLineComment;
                     }
                 }
                 else if (state.ContentState == ScriptLexerContentState.InStringLiteral)
@@ -192,10 +192,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                     if (kind == SyntaxKind.NewLineTrivia)
                     {
                         state.ContentState = ScriptLexerContentState.InSource;
-
-                        //diagnostics.Add(new Diagnostic(DiagnosticLevel.Error, "Unterminated string literal.", new TextRange(
-                        //    sourceText.PositionAt(state.StringLiteralStartPosition),
-                        //    sourceText.PositionAt(state.Position))));
+                        state.AtUnterminatedStringLiteral = true;
                     }
                     else if (
                         kind == SyntaxKind.BackslashToken &&
@@ -242,15 +239,15 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                 switch (kind)
                 {
                     case SyntaxKind.OpenBraceToken when (state.ContentState == ScriptLexerContentState.InSource):
-                        kind = SyntaxKind.DocumentationCommentContent;
+                        kind = SyntaxKind.DocumentationComment;
                         state.ContentState = ScriptLexerContentState.InDocumentationComment;
                         break;
                     case SyntaxKind.SemicolonSlashToken when (state.ContentState == ScriptLexerContentState.InSource):
-                        kind = SyntaxKind.MultilineCommentContent;
+                        kind = SyntaxKind.MultilineComment;
                         state.ContentState = ScriptLexerContentState.InMultilineComment;
                         break;
                     case SyntaxKind.SemicolonToken when (state.ContentState == ScriptLexerContentState.InSource):
-                        kind = SyntaxKind.SingleLineCommentContent;
+                        kind = SyntaxKind.SingleLineComment;
                         state.ContentState = ScriptLexerContentState.InSingleLineComment;
                         break;
                     case SyntaxKind.DoubleQuoteToken when (state.ContentState == ScriptLexerContentState.InSource):
