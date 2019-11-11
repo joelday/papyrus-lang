@@ -52,7 +52,6 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
             args[0] = undefined;
         }
         let projectFolderUri: Uri = args[0] ? Uri.parse(args[0]) : Uri.file(path.join(config.installPath, defaultProjectSubdir[game]));
-        const projectFolder = projectFolderUri.fsPath;
 
         console.log("Default projectFolderUri = " + projectFolderUri.fsPath);
 
@@ -80,6 +79,7 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
         }
 
         console.log("Installing project files in: " + projectFolderUri.fsPath);
+        const projectFolder = projectFolderUri.fsPath;
 
         const resourcePath = this._context.asAbsolutePath(path.join('resources', resourceDir[game]));
 
