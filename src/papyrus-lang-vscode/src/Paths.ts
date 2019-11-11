@@ -18,7 +18,7 @@ const exists = promisify(fs.exists);
 /*** Internal paths                                                        */
 /************************************************************************* */
 
-function getToolGameName(game: PapyrusGame) {
+function getToolGameName(game: PapyrusGame): string {
     switch (game) {
         case PapyrusGame.fallout4:
             return 'Fallout4';
@@ -28,22 +28,30 @@ function getToolGameName(game: PapyrusGame) {
     }
 }
 
-export function getLanguageToolPath(game: PapyrusGame) {
+export function getLanguageToolPath(game: PapyrusGame): string {
     const toolGameName = getToolGameName(game);
     return `./bin/Debug/net461/DarkId.Papyrus.Host.${toolGameName}/DarkId.Papyrus.Host.${toolGameName}.exe`;
 }
 
-export function getDebugToolPath(game: PapyrusGame) {
+export function getDebugToolPath(game: PapyrusGame): string {
     const toolGameName = getToolGameName(game);
     return `./debug-bin/Debug/net461/DarkId.Papyrus.DebugAdapterProxy.${toolGameName}/DarkId.Papyrus.DebugAdapterProxy.${toolGameName}.exe`;
 }
 
-export function getPyroCliPath() {
+export function getPyroCliPath(): string {
     return './pyro/pyro_cli/pyro_cli.exe';
 }
 
-export function getPyroDirPath() {
+export function getPyroDirPath(): string {
     return './pyro';
+}
+
+export function getResourceDir(): string {
+    return './resources';
+}
+
+export function getWelcomeFile(): string {
+    return path.join(getResourceDir(), 'welcome', 'index.md');
 }
 
 

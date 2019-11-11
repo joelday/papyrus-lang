@@ -354,6 +354,11 @@
                 "category": "Papyrus",
                 "command": "papyrus.fallout4.generateProject",
                 "title": "Generate Fallout 4 Project Files"
+            },
+            {
+                "category": "Papyrus",
+                "command": "papyrus.showWelcome",
+                "title": "Show Getting Started Help"
             }
         ],
         "menus": {
@@ -413,6 +418,10 @@
                 {
                     "command": "papyrus.skyrim.generateProject",
                     "when": "view == papyrus-projects && config.papyrus.skyrim.enabled"
+                },
+                {
+                    "command": "papyrus.showWelcome",
+                    "when": "view == papyrus-projects"
                 }
             ]
         },

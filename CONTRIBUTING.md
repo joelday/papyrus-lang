@@ -49,7 +49,7 @@ Run the build script with default targets:
 In the same directory, run this to update the bundled third-party packages (which are provided by separate repos):
 ```
 .\build.ps1 -Script build.cake -Target update-debug-plugin
-.\build.ps1 -Script build.case -Target update-pyro-cli
+.\build.ps1 -Script build.cake -Target update-pyro-cli
 ```
 ### 3
 Run VSCode to open the papyrus-lang as a folder. If this is still your current directory then just run:

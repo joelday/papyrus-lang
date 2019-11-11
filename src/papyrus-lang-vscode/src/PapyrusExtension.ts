@@ -1,6 +1,7 @@
-import { Disposable, ExtensionContext, workspace, window, TreeDataProvider, TreeItem } from 'vscode';
+import { Disposable, extensions, ExtensionContext, workspace, window, TreeDataProvider, TreeItem, commands } from 'vscode';
 import { ServiceCollection, IInstantiationService, InstantiationService, Descriptor } from 'decoration-ioc';
 import { IExtensionContext } from './common/vscode/IocDecorators';
+import { extensionQualifiedId, GlobalState } from './common/constants';
 import { IExtensionConfigProvider, ExtensionConfigProvider } from './ExtensionConfigProvider';
 import { LanguageClientManager, ILanguageClientManager } from './server/LanguageClientManager';
 import { LanguageServiceStatusItems } from './features/LanguageServiceStatusItems';
@@ -21,6 +22,8 @@ import { ProjectsTreeDataProvider } from './features/projects/ProjectsTreeDataPr
 import { AssemblyTextContentProvider } from './features/AssemblyTextContentProvider';
 import { ViewAssemblyCommand } from './features/commands/ViewAssemblyCommand';
 import { GenerateProjectCommand } from './features/commands/GenerateProjectCommand';
+import { showWelcome } from './features/WelcomeHandler';
+import { ShowWelcomeCommand } from './features/commands/ShowWelcomeCommand';
 
 class PapyrusExtension implements Disposable {
     private readonly _serviceCollection: ServiceCollection;
@@ -42,8 +45,15 @@ class PapyrusExtension implements Disposable {
     private readonly _assemblyTextContentProvider: AssemblyTextContentProvider;
     private readonly _viewAssemblyCommand: ViewAssemblyCommand;
     private readonly _generateProjectCommand: GenerateProjectCommand;
+    private readonly _showWelcomeCommand: ShowWelcomeCommand;
 
     constructor(context: ExtensionContext) {
+
+        // This comes first just in case anything below needs to change based on version upgrades
+        const papyrus = extensions.getExtension(extensionQualifiedId)!;
+        const papyrusVersion = papyrus.packageJSON.version;
+        const previousVersion = context.globalState.get<string>(GlobalState.PapyrusVersion);
+
         this._languageConfigurations = new LanguageConfigurations();
 
         this._serviceCollection = new ServiceCollection(
@@ -83,9 +93,17 @@ class PapyrusExtension implements Disposable {
 
         this._generateProjectCommand = this._instantiationService.createInstance(GenerateProjectCommand);
 
+        this._showWelcomeCommand = this._instantiationService.createInstance(ShowWelcomeCommand);
+
+        // Show the getting started document if there's no previous version (new install)
+        // At some point we might want a "what's new" so I included both version numbers.
+        void showWelcome(papyrusVersion, previousVersion);
+        context.globalState.update(GlobalState.PapyrusVersion, papyrusVersion);
     }
 
     dispose() {
+        this._showWelcomeCommand.dispose();
+
         this._generateProjectCommand.dispose();
 
         this._viewAssemblyCommand.dispose();
