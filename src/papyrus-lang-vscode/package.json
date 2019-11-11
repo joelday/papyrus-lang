@@ -422,6 +422,10 @@
                 {
                     "command": "papyrus.showWelcome",
                     "when": "view == papyrus-projects"
+                },
+                {
+                    "command": "papyrus.showWelcome",
+                    "when": "view == papyrus-projects"
                 }
             ]
         },
