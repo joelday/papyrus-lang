@@ -353,7 +353,7 @@
             {
                 "category": "Papyrus",
                 "command": "papyrus.showWelcome",
-                "title": "Show Welcome and Getting Started"
+                "title": "Show Getting Started Help"
             }
         ],
         "menus": {
@@ -403,6 +403,10 @@
                 },
                 {
                     "command": "papyrus.skyrimSpecialEdition.generateProject",
+                    "when": "view == papyrus-projects"
+                },
+                {
+                    "command": "papyrus.showWelcome",
                     "when": "view == papyrus-projects"
                 }
             ]
