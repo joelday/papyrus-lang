@@ -5,6 +5,7 @@ import { IExtensionConfigProvider } from '../../ExtensionConfigProvider';
 import { GameCommandBase } from './GameCommandBase';
 import { PapyrusGame } from '../../PapyrusGame';
 import { resolveInstallPath } from '../../Paths';
+import { copyAndFillTemplate } from '../../Utilities';
 
 // import * as vscode from 'vscode';
 import * as path from 'path';
@@ -35,12 +36,14 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
 
         const defaultProjectSubdir = {
             'fallout4': "Data",
-            'skyrimSpecialEdition': "Data"
+            'skyrimSpecialEdition': "Data",
+            'skyrim': "Data"
         };
 
         const resourceDir = {
             'fallout4': 'fo4',
-            'skyrimSpecialEdition': "sse"
+            'skyrimSpecialEdition': "sse",
+            'skyrim': "tesv"
         };
 
         // Ignore the context menu folder for Fallout 4 because we don't currenlty have a solution for anything other
@@ -49,7 +52,6 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
             args[0] = undefined;
         }
         let projectFolderUri: Uri = args[0] ? Uri.parse(args[0]) : Uri.file(path.join(config.installPath, defaultProjectSubdir[game]));
-        const projectFolder = projectFolderUri.fsPath;
 
         console.log("Default projectFolderUri = " + projectFolderUri.fsPath);
 
@@ -77,12 +79,14 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
         }
 
         console.log("Installing project files in: " + projectFolderUri.fsPath);
+        const projectFolder = projectFolderUri.fsPath;
 
         const resourcePath = this._context.asAbsolutePath(path.join('resources', resourceDir[game]));
 
         const workspaceFilename = {
             'fallout4': "Fallout4.code-workspace",
-            'skyrimSpecialEdition': "SkyrimSE.code-workspace"
+            'skyrimSpecialEdition': "SkyrimSE.code-workspace",
+            'skyrim': "SkyrimLE.code-workspace"
         }[game];
 
         const filesToCopy = [
@@ -90,16 +94,30 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
             ['tasks.json', '.vscode\\tasks.json'],
             [workspaceFilename, workspaceFilename],
         ];
+        let configGamePath = await resolveInstallPath(game, config.installPath, this._context);
+        if (!configGamePath) {
+            window.showErrorMessage(
+                "Could not find game installation directory for " + PapyrusGame[game] +
+                ". Is the game installed and configured in" +
+                " the extension configuration?", "Ok");
+            return;
+        }
+        const configSourcePath = path.join(configGamePath, "Data\\Source\\Scripts");
         if (game === PapyrusGame.fallout4) {
             filesToCopy.push(['fallout4.ppj', 'Scripts\\Source\\User\\fallout4.ppj']);
         } else if (game === PapyrusGame.skyrimSpecialEdition) {
-            let ppjstr: string = (await readFile(path.join(resourcePath, 'skyrimse.ppj'))).toString();
-            let configGamePath = await resolveInstallPath(PapyrusGame.skyrimSpecialEdition, config.installPath, this._context);
-            const configSourcePath = path.join(configGamePath, "Data\\Source\\Scripts");
-            ppjstr = ppjstr.replace("${SKYRIMSE_PATH}", configSourcePath);
-            await writeFile(path.join(projectFolder, "skyrimse.ppj"), ppjstr);
+            await copyAndFillTemplate(
+                path.join(resourcePath, 'skyrimse.ppj'),
+                path.join(projectFolder, 'skyrimse.ppj'),
+                { 'SKYRIMSE_PATH': configSourcePath }
+            );
+        } else if (game === PapyrusGame.skyrim) {
+            await copyAndFillTemplate(
+                path.join(resourcePath, 'skyrimle.ppj'),
+                path.join(projectFolder, 'skyrimle.ppj'),
+                { 'SKYRIMLE_PATH': configSourcePath }
+            );
         }
-
 
         let nerrs = 0;
         let already_exists: string[] = [];

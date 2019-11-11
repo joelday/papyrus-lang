@@ -347,6 +347,11 @@
             },
             {
                 "category": "Papyrus",
+                "command": "papyrus.skyrim.generateProject",
+                "title": "Generate Skyrim LE Project Files"
+            },
+            {
+                "category": "Papyrus",
                 "command": "papyrus.fallout4.generateProject",
                 "title": "Generate Fallout 4 Project Files"
             }
@@ -386,6 +391,11 @@
                     "when": "config.papyrus.skyrimSpecialEdition.enabled && explorerResourceIsFolder"
                 },
                 {
+                    "command": "papyrus.skyrim.generateProject",
+                    "group": "a_papyrus",
+                    "when": "config.papyrus.skyrim.enabled && explorerResourceIsFolder"
+                },
+                {
                     "command": "papyrus.fallout4.generateProject",
                     "group": "a_papyrus",
                     "when": "config.papyrus.fallout4.enabled && explorerResourceIsFolder"
@@ -394,11 +404,15 @@
             "view/title": [
                 {
                     "command": "papyrus.fallout4.generateProject",
-                    "when": "view == papyrus-projects"
+                    "when": "view == papyrus-projects && config.papyrus.fallout4.enabled"
                 },
                 {
                     "command": "papyrus.skyrimSpecialEdition.generateProject",
-                    "when": "view == papyrus-projects"
+                    "when": "view == papyrus-projects && config.papyrus.skyrimSpecialEdition.enabled"
+                },
+                {
+                    "command": "papyrus.skyrim.generateProject",
+                    "when": "view == papyrus-projects && config.papyrus.skyrim.enabled"
                 }
             ]
         },
