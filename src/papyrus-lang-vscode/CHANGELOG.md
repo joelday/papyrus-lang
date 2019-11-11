@@ -1,3 +1,15 @@
+# [2.20.0](https://github.com/joelday/papyrus-lang/compare/v2.19.1...v2.20.0) (2019-11-11)
+
+
+### Bug Fixes
+
+* **project:** include Skyrim le and fix some bugs [skip ci] ([2a58681](https://github.com/joelday/papyrus-lang/commit/2a58681f7251f157cdd218f5f28dd13191943d14))
+
+
+### Features
+
+* **help:** In editor help viewer. ([b7f4183](https://github.com/joelday/papyrus-lang/commit/b7f41831cf2984828f7e3467a2184f7c6e0e237b))
+
 ## [2.19.1](https://github.com/joelday/papyrus-lang/compare/v2.19.0...v2.19.1) (2019-11-07)
 
 
