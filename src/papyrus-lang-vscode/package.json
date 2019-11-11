@@ -404,15 +404,15 @@
             "view/title": [
                 {
                     "command": "papyrus.fallout4.generateProject",
-                    "when": "view == papyrus-projects"
+                    "when": "view == papyrus-projects && config.papyrus.fallout4.enabled"
                 },
                 {
                     "command": "papyrus.skyrimSpecialEdition.generateProject",
-                    "when": "view == papyrus-projects"
+                    "when": "view == papyrus-projects && config.papyrus.skyrimSpecialEdition.enabled"
                 },
                 {
                     "command": "papyrus.skyrim.generateProject",
-                    "when": "view == papyrus-projects"
+                    "when": "view == papyrus-projects && config.papyrus.skyrim.enabled"
                 }
             ]
         },
