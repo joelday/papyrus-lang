@@ -97,8 +97,7 @@ class PapyrusExtension implements Disposable {
 
         // Show the getting started document if there's no previous version (new install)
         // At some point we might want a "what's new" so I included both version numbers.
-        // void showWelcome(papyrusVersion, previousVersion);
-        void showWelcome(papyrusVersion, undefined);
+        void showWelcome(papyrusVersion, previousVersion);
         context.globalState.update(GlobalState.PapyrusVersion, papyrusVersion);
     }
 
