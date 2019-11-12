@@ -1,3 +1,10 @@
+## [2.20.1](https://github.com/joelday/papyrus-lang/compare/v2.20.0...v2.20.1) (2019-11-12)
+
+
+### Bug Fixes
+
+* nasty bug when no workspace open ([#115](https://github.com/joelday/papyrus-lang/issues/115)) ([a5c25fa](https://github.com/joelday/papyrus-lang/commit/a5c25facc15fd6c4892850e0cafca91def95dd87))
+
 # [2.20.0](https://github.com/joelday/papyrus-lang/compare/v2.19.1...v2.20.0) (2019-11-11)
 
 
