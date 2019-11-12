@@ -32,6 +32,10 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
 
         this._taskProviderHandle = tasks.registerTaskProvider('pyro', this);
 
+        if (!workspace.workspaceFolders) {
+            return;
+        }
+
         this._projPattern = new RelativePattern(workspace.workspaceFolders[0], "**/*.ppj");
         const fsw = this._fileWatcher = workspace.createFileSystemWatcher(this._projPattern);
         fsw.onDidChange(() => this._taskCachePromise = undefined);
