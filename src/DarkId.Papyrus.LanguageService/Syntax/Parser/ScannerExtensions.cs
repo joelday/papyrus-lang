@@ -19,6 +19,26 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
             }
         }
 
+        public static IEnumerable<SyntaxToken> TakeNonTriviaWhile(this Scanner<ScriptToken> scanner, Func<ScriptToken, bool> whileFunc, bool multiline = false)
+        {
+            var token = scanner.NextNonTrivia(multiline);
+            while (token != null)
+            {
+                yield return token;
+                token = scanner.NextNonTrivia(multiline);
+            }
+        }
+
+        public static IEnumerable<SyntaxToken> ExpectRemainingNonTrivia(this Scanner<ScriptToken> scanner, Func<ScriptToken, bool> whileFunc, bool multiline = false)
+        {
+            var token = scanner.NextNonTrivia(multiline);
+            while (token != null)
+            {
+                yield return token;
+                token = scanner.NextNonTrivia(multiline);
+            }
+        }
+
         public static SyntaxToken NextNonTrivia(this Scanner<ScriptToken> scanner, bool multiline = false)
         {
             var leadingTrivia = scanner.TakeWhile(t => t.Kind.IsTrivia(multiline)).ToList();
@@ -48,11 +68,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
         public static SyntaxToken ExpectNextNonTrivia(this Scanner<ScriptToken> scanner, SyntaxKind kind,
             bool multiline = false)
         {
-            var token = scanner.NextNonTrivia(multiline);
-            if (token != null && token.Kind == kind)
-            {
-                return token;
-            }
+            var token = scanner.MaybeNextNonTrivia(kind, multiline);
 
             token ??= new SyntaxToken(kind);
 
@@ -63,6 +79,17 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
             token.AddDiagnostic(new DiagnosticInfo(DiagnosticLevel.Error, 0, $"Expected {expected}."));
 
             return token;
+        }
+
+        public static SyntaxToken MaybeNextNonTrivia(this Scanner<ScriptToken> scanner, SyntaxKind kind, bool multiline = false)
+        {
+            var token = scanner.NextNonTrivia(multiline);
+            if (token != null && token.Kind == kind)
+            {
+                return token;
+            }
+
+            return null;
         }
     }
 }

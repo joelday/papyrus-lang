@@ -3,22 +3,20 @@ using DarkId.Papyrus.Common;
 
 namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
 {
-    public struct ScriptToken : IEquatable<ScriptToken>
+    public readonly struct ScriptToken : IEquatable<ScriptToken>
     {
         public SyntaxKind Kind { get; }
         public string Text { get; }
-        public ScriptLexerState LexerState { get; }
 
-        public ScriptToken(SyntaxKind kind, string text, ScriptLexerState lexerState)
+        public ScriptToken(SyntaxKind kind, string text)
         {
             Kind = kind;
             Text = text;
-            LexerState = lexerState;
         }
 
         public bool Equals(ScriptToken other)
         {
-            return Kind == other.Kind && Text == other.Text && LexerState.Equals(other.LexerState);
+            return Kind == other.Kind && Text == other.Text;
         }
 
         public override bool Equals(object obj)
@@ -32,7 +30,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
             {
                 var hashCode = (int) Kind;
                 hashCode = (hashCode * 397) ^ (Text != null ? Text.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ LexerState.GetHashCode();
                 return hashCode;
             }
         }

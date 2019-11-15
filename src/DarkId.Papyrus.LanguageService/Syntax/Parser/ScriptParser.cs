@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 using DarkId.Papyrus.Common;
-using DarkId.Papyrus.LanguageService.Syntax.InternalSyntax;
 using DarkId.Papyrus.LanguageService.Syntax.Lexer;
-using DarkId.Papyrus.LanguageService.Syntax.Parser;
 
-namespace DarkId.Papyrus.LanguageService.Syntax
+namespace DarkId.Papyrus.LanguageService.Syntax.Parser
 {
     public class ScriptParser
     {
@@ -25,6 +21,15 @@ namespace DarkId.Papyrus.LanguageService.Syntax
         {
             var scriptNameKeyword = _scanner.ExpectNextNonTrivia(SyntaxKind.ScriptNameKeyword);
             var identifier = _scanner.ExpectNextNonTrivia(SyntaxKind.Identifier);
+
+            var current = _scanner.NextNonTrivia();
+            var extendsKeyword = current.Kind == SyntaxKind.ExtendsKeyword ? current : null;
+
+            var extended = _scanner.ExpectNextNonTrivia(SyntaxKind.Identifier);
+
+            var flags = _scanner.TakeWhile(t => t.Kind.IsFlagOrIdentifier());
+
+
             return null;
         }
     }

@@ -77,7 +77,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                 {"new", SyntaxKind.NewKeyword},
                 {"Property", SyntaxKind.PropertyKeyword},
                 {"Return", SyntaxKind.ReturnKeyword},
-                {"ScriptName", SyntaxKind.ScriptNameKeyword},
+                {"Scriptname", SyntaxKind.ScriptNameKeyword},
                 {"State", SyntaxKind.StateKeyword},
                 {"Struct", SyntaxKind.StructKeyword},
                 {"While", SyntaxKind.WhileKeyword},
@@ -215,8 +215,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
 
                         yield return new ScriptToken(
                             kind,
-                            text,
-                            state
+                            text
                         );
 
                         state.PreviousTokenKind = kind;
@@ -264,8 +263,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
 
                 yield return new ScriptToken(
                     kind,
-                    text,
-                    state
+                    text
                 );
 
                 state.PreviousTokenKind = kind;
@@ -276,8 +274,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
 
             yield return new ScriptToken(
                 SyntaxKind.EndOfFileToken,
-                string.Empty,
-                state
+                string.Empty
             );
         }
     }

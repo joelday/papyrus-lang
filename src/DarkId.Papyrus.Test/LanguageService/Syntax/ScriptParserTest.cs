@@ -4,13 +4,14 @@ using DarkId.Papyrus.LanguageService;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Syntax;
 using DarkId.Papyrus.LanguageService.Syntax.Lexer;
+using DarkId.Papyrus.LanguageService.Syntax.Parser;
 using NUnit.Framework;
 
 namespace DarkId.Papyrus.Test.LanguageService.Syntax
 {
-    public class ScriptParserTest : ProgramTestBase
+    public class ScriptParserTest : PerLanguageProgramTestBase
     {
-        public ScriptParserTest() : base(new TestServiceInstance(LanguageVersion.Fallout4).CreateProgram())
+        public ScriptParserTest(PapyrusProgram program) : base(program)
         {
         }
 
@@ -25,6 +26,9 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
             var parser = new ScriptParser();
             var node = parser.Parse(tokens, LanguageVersion.Fallout4);
 
+            // TODO: Traversed
+            // Assert.IsEmpty(node.Diagnostics);
         }
+
     }
 }

@@ -10,7 +10,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 
         public SyntaxToken(SyntaxKind kind)
         {
-            _token = new ScriptToken(kind, string.Empty, default);
+            _token = new ScriptToken(kind, string.Empty);
             IsMissing = true;
         }
 
