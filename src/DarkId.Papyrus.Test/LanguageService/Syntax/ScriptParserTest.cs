@@ -8,26 +8,23 @@ using NUnit.Framework;
 
 namespace DarkId.Papyrus.Test.LanguageService.Syntax
 {
-    public class ScriptParserTest : PerLanguageProgramTestBase
+    public class ScriptParserTest : ProgramTestBase
     {
-        public ScriptParserTest(PapyrusProgram program) : base(program)
+        public ScriptParserTest() : base(new TestServiceInstance(LanguageVersion.Fallout4).CreateProgram())
         {
         }
 
         [Test]
-        public void Tokenize_ProducesTokensFromSourceText()
+        public void Parser_ParsesScriptsFromTokens()
         {
             var lexer = new ScriptLexer();
-
             var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("LineContinuations")].Text.Text;
 
-            var tokens = lexer.Tokenize(
-                scriptText);
+            var tokens = lexer.Tokenize(scriptText);
 
             var parser = new ScriptParser();
-            var node = parser.Parse(tokens);
+            var node = parser.Parse(tokens, LanguageVersion.Fallout4);
 
-            TestContext.Out.WriteLine(node.ToString());
         }
     }
 }

@@ -22,7 +22,7 @@ namespace DarkId.Papyrus.Common
                 return path;
             }
 
-            return Path.GetFullPath(Path.Combine(basePath, path));
+            return Path.GetFullPath(Path.Combine(basePath, Normalize(path)));
         }
 
         public static string GetUnrootedFullPath(string path)

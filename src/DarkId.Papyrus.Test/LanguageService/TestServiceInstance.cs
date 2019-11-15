@@ -1,4 +1,5 @@
-﻿using System;
+﻿using System.IO;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,6 +10,7 @@ using DarkId.Papyrus.LanguageService.Configuration.CreationKit;
 using DarkId.Papyrus.LanguageService.Program;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using NUnit.Framework;
 
 namespace DarkId.Papyrus.Test.LanguageService
 {
@@ -26,9 +28,12 @@ namespace DarkId.Papyrus.Test.LanguageService
 
             public CreationKitIniLocations GetIniLocations()
             {
+                var scriptsPath = Path.Combine(TestContext.CurrentContext.TestDirectory, "../../../scripts");
+                TestContext.Error.WriteLine(scriptsPath);
+
                 return new CreationKitIniLocations()
                 {
-                    CreationKitInstallPath = "../../../scripts",
+                    CreationKitInstallPath = scriptsPath,
                     RelativeIniPaths = new List<string>()
                     {
                         _languageVersion == LanguageVersion.Fallout4 ? "Fallout4.ini" :  "Skyrim.ini"

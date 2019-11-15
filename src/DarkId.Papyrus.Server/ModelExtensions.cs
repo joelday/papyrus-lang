@@ -73,7 +73,7 @@ namespace DarkId.Papyrus.Server
             {
                 Message = sb.ToString(),
                 Severity = SeverityMap[diagnostic.Severity],
-                Range = diagnostic.Range.ToRange(),
+                Range = new Range(),// diagnostic.Range.ToRange(),
                 Code = new DiagnosticCode(null),
                 Source = "Papyrus"
             };

@@ -15,6 +15,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
 
             return kind switch
             {
+                SyntaxKind.Unknown => true,
                 SyntaxKind.DocumentationComment => true,
                 SyntaxKind.MultilineComment => true,
                 SyntaxKind.SingleLineComment => true,

@@ -64,10 +64,10 @@ namespace DarkId.Papyrus.LanguageService.Configuration.CreationKit
                 .Select(importPath => importPath.CaseInsensitiveEquals("$(source)") ? sourceDirectoryPath : importPath)
                 .Select(path => PathUtilities.GetCombinedOrRooted(installPath, path))
                 .Select(path => new SourceInclude()
-                 {
-                     Path = path,
-                     IsImport = true
-                 })
+                {
+                    Path = path,
+                    IsImport = true
+                })
                 .ToList();
 
             if (!string.IsNullOrEmpty(sourceDirectoryPath))

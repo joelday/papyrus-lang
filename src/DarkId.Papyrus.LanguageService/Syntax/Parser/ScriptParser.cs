@@ -11,10 +11,12 @@ namespace DarkId.Papyrus.LanguageService.Syntax
     public class ScriptParser
     {
         private Scanner<ScriptToken> _scanner;
+        private LanguageVersion _languageVersion;
 
-        public SyntaxNode Parse(IEnumerable<ScriptToken> tokens)
+        public SyntaxNode Parse(IEnumerable<ScriptToken> tokens, LanguageVersion languageVersion)
         {
             _scanner = new Scanner<ScriptToken>(tokens);
+            _languageVersion = languageVersion;
 
             return ParseScript();
         }

@@ -60,5 +60,10 @@ namespace DarkId.Papyrus.Common
                 }
             }
         }
+
+        public static IEnumerable<T> Of<T>(params T[] values)
+        {
+            return values;
+        }
     }
 }

@@ -19,49 +19,50 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
             }
         }
 
-        //public static SyntaxToken NextNonTrivia(this Scanner<ScriptToken> scanner, bool multiline = false)
-        //{
-        //    var leadingTrivia = scanner.TakeWhile(t => t.Kind.IsTrivia(multiline)).ToList();
+        public static SyntaxToken NextNonTrivia(this Scanner<ScriptToken> scanner, bool multiline = false)
+        {
+            var leadingTrivia = scanner.TakeWhile(t => t.Kind.IsTrivia(multiline)).ToList();
+            scanner.Next();
 
-        //    if (scanner.Done)
-        //    {
-        //        return new SyntaxToken(default, leadingTrivia);
-        //    }
+            if (scanner.Done)
+            {
+                return new SyntaxToken(default, leadingTrivia);
+            }
 
-        //    var token = scanner.Current;
+            var token = scanner.Current;
 
-        //    if (multiline || scanner.Done || scanner.Peek().Kind != SyntaxKind.NewLineTrivia)
-        //    {
-        //        return new SyntaxToken(token, leadingTrivia);
-        //    }
+            if (multiline || scanner.Done || scanner.Peek().Kind != SyntaxKind.NewLineTrivia)
+            {
+                return new SyntaxToken(token, leadingTrivia);
+            }
 
-        //    scanner.Next();
-        //    var trailingTrivia = new List<ScriptToken>
-        //    {
-        //        scanner.Current
-        //    };
+            scanner.Next();
+            var trailingTrivia = new List<ScriptToken>
+            {
+                scanner.Current
+            };
 
-        //    return new SyntaxToken(token, leadingTrivia, trailingTrivia);
-        //}
+            return new SyntaxToken(token, leadingTrivia, trailingTrivia);
+        }
 
-        //public static SyntaxToken ExpectNextNonTrivia(this Scanner<ScriptToken> scanner, SyntaxKind kind,
-        //    bool multiline = false)
-        //{
-        //    var token = scanner.NextNonTrivia(multiline);
-        //    if (token != null && token.Kind == kind)
-        //    { 
-        //        return token;
-        //    }
+        public static SyntaxToken ExpectNextNonTrivia(this Scanner<ScriptToken> scanner, SyntaxKind kind,
+            bool multiline = false)
+        {
+            var token = scanner.NextNonTrivia(multiline);
+            if (token != null && token.Kind == kind)
+            {
+                return token;
+            }
 
-        //    token ??= new SyntaxToken(kind);
+            token ??= new SyntaxToken(kind);
 
-        //    var expected = ScriptLexer.StringTokenMap.ContainsKey(kind)
-        //        ? ScriptLexer.StringTokenMap[kind]
-        //        : nameof(kind);
+            var expected = ScriptLexer.StringTokenMap.ContainsKey(kind)
+                ? ScriptLexer.StringTokenMap[kind]
+                : nameof(kind);
 
-        //    token.AddDiagnostic(new DiagnosticInfo(DiagnosticLevel.Error, 0, $"Expected {expected}."));
+            token.AddDiagnostic(new DiagnosticInfo(DiagnosticLevel.Error, 0, $"Expected {expected}."));
 
-        //    return token;
-        //}
+            return token;
+        }
     }
 }

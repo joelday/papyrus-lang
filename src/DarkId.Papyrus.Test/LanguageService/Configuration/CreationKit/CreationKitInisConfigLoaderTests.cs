@@ -1,5 +1,4 @@
 // using System;
-// using DarkId.Papyrus.LanguageService.Compiler;
 // using NUnit.Framework;
 // using System.Collections.Generic;
 // using DarkId.Papyrus.LanguageService.Projects;
@@ -8,7 +7,7 @@
 
 // namespace DarkId.Papyrus.Test.LanguageService.Configuration.CreationKit
 // {
-//     [TestFixture]
+
 //     public class CreationKitInisConfigLoaderTests
 //     {
 //         private readonly CreationKitInisConfigLoader _configLoader = new CreationKitInisConfigLoader();
