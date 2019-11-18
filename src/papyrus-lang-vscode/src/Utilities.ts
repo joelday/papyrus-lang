@@ -6,7 +6,7 @@ import procList from 'ps-list';
 
 import { workspace, CancellationTokenSource } from 'vscode';
 import { PapyrusGame } from './PapyrusGame';
-import { getExecutableNameForGame } from './Paths';
+import { getExecutableNameForGame } from './common/PathResolver';
 
 
 const readFile = promisify(fs.readFile);

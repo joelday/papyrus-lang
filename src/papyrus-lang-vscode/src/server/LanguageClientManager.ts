@@ -5,11 +5,11 @@ import { Observable, Subscription, combineLatest } from 'rxjs';
 import { IExtensionConfigProvider, IGameConfig } from '../ExtensionConfigProvider';
 import { map, take } from 'rxjs/operators';
 import { asyncDisposable } from '../common/Reactive';
-import { IExtensionContext } from '../common/vscode/IocDecorators';
-import { ExtensionContext, Disposable, CancellationTokenSource, CancellationToken } from 'vscode';
+import { Disposable, CancellationTokenSource, CancellationToken } from 'vscode';
 import fastDeepEqual from 'fast-deep-equal';
 import { ILanguageClientHost, LanguageClientHost, ClientHostStatus } from './LanguageClientHost';
 import { ICreationKitInfoProvider, ICreationKitInfo } from '../CreationKitInfoProvider';
+import { IPathResolver } from '../common/PathResolver';
 
 export interface ILanguageClientManager extends Disposable {
     readonly clients: ReadonlyMap<PapyrusGame, Observable<ILanguageClientHost>>;
@@ -26,7 +26,7 @@ export class LanguageClientManager implements Disposable, ILanguageClientManager
     constructor(
         @IExtensionConfigProvider configProvider: IExtensionConfigProvider,
         @ICreationKitInfoProvider infoProvider: ICreationKitInfoProvider,
-        @IExtensionContext context: ExtensionContext
+        @IPathResolver pathResolver: IPathResolver
     ) {
         const createClientObservable = (game: PapyrusGame) => {
             return combineLatest(
@@ -35,7 +35,7 @@ export class LanguageClientManager implements Disposable, ILanguageClientManager
             ).pipe(
                 asyncDisposable<[IGameConfig, ICreationKitInfo], LanguageClientHost>(
                     ([gameConfig, creationKitInfo]) =>
-                        new LanguageClientHost(game, gameConfig, creationKitInfo, context),
+                        new LanguageClientHost(game, gameConfig, creationKitInfo, pathResolver),
                     (host) => host.start(),
                     fastDeepEqual
                 )
@@ -50,6 +50,7 @@ export class LanguageClientManager implements Disposable, ILanguageClientManager
 
         this._clientSubscriptions = Array.from(this._clients).map((client) =>
             client[1].subscribe((instance) => {
+                // This is waiting for logging cleanup.
                 // console.log('Client manager instance:', client[0], instance);
             })
         );

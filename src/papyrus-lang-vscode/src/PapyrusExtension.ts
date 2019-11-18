@@ -1,8 +1,9 @@
 import { Disposable, extensions, ExtensionContext, workspace, window, TreeDataProvider, TreeItem, commands } from 'vscode';
 import { ServiceCollection, IInstantiationService, InstantiationService, Descriptor } from 'decoration-ioc';
-import { IExtensionContext } from './common/vscode/IocDecorators';
 import { extensionQualifiedId, GlobalState } from './common/constants';
+import { IExtensionContext } from './common/vscode/IocDecorators';
 import { IExtensionConfigProvider, ExtensionConfigProvider } from './ExtensionConfigProvider';
+import { IPathResolver, PathResolver } from './common/PathResolver';
 import { LanguageClientManager, ILanguageClientManager } from './server/LanguageClientManager';
 import { LanguageServiceStatusItems } from './features/LanguageServiceStatusItems';
 import { LanguageConfigurations } from './features/LanguageConfigurations';
@@ -59,6 +60,7 @@ class PapyrusExtension implements Disposable {
         this._serviceCollection = new ServiceCollection(
             [IExtensionContext, context],
             [IExtensionConfigProvider, new Descriptor(ExtensionConfigProvider)],
+            [IPathResolver, new Descriptor(PathResolver)],
             [ICreationKitInfoProvider, new Descriptor(CreationKitInfoProvider)],
             [ILanguageClientManager, new Descriptor(LanguageClientManager)],
             [IDebugSupportInstallService, new Descriptor(DebugSupportInstallService)],

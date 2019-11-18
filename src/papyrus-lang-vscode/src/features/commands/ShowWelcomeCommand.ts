@@ -1,22 +1,18 @@
-import * as path from 'path';
-import { Uri, commands, ExtensionContext, MarkdownString } from 'vscode';
+import { Uri, commands } from 'vscode';
 import { CommandBase } from '../../common/vscode/commands/CommandBase';
-import { IExtensionContext } from '../../common/vscode/IocDecorators';
-import { getWelcomeFile } from '../../Paths';
+import { IPathResolver } from '../../common/PathResolver';
 
 export class ShowWelcomeCommand extends CommandBase<[Uri]> {
-    private readonly _context: ExtensionContext;
+    private readonly _pathResolver: IPathResolver;
     constructor(
-        @IExtensionContext context: ExtensionContext
+        @IPathResolver pathResolver: IPathResolver
     ) {
         super('papyrus.showWelcome');
-        this._context = context;
+        this._pathResolver = pathResolver;
     }
 
     protected async onExecute() {
-        const fileUri = Uri.file(
-            path.join(this._context.extensionPath, getWelcomeFile())
-        );
+        const fileUri = Uri.file(await this._pathResolver.getWelcomeFile());
 
         commands.executeCommand('markdown.showPreview', fileUri);
     }

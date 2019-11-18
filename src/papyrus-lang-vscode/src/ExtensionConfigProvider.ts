@@ -9,8 +9,6 @@ export interface IGameConfig {
     readonly installPath: string;
     readonly ignoreDebuggerVersion: boolean;
     readonly modDirectoryPath: string;              // For supporting mod managers managing the debug plugin
-    readonly importDirs: string[];                  // the <Imports> for the compiler (no .PPJ for skyrim)
-    readonly sourceDirs: string[];                  // the <Sources> for the compiler
 }
 
 export interface IExtensionConfig {
