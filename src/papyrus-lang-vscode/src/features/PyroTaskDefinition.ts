@@ -2,10 +2,16 @@ import { TaskDefinition, Task } from 'vscode';
 
 export type TaskOf<T extends TaskDefinition> = { readonly definition: T } & Task;
 
-export enum PyroGame {
+export enum PyroGameToPapyrusGame {
     fo4 = 'fallout4',
     tesv = 'skyrim',
     sse = 'skyrimSpecialEdition'
+}
+
+export enum PyroGame {
+    fallout4 = 'fo4',
+    skyrim = 'tesv',
+    skyrimSpecialEdition = 'sse'
 }
 
 export interface IPyroTaskDefinition extends TaskDefinition {
@@ -23,7 +29,7 @@ export interface IPyroTaskDefinition extends TaskDefinition {
     readonly flagsPath?: string;
     readonly outputPath?: string;
     // game arguments
-    readonly game?: string;
+    readonly game?: PyroGame;
     readonly gamePath?: string;
     readonly registryPath?: string;
     // bsarch arguments

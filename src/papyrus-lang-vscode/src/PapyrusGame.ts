@@ -5,7 +5,7 @@ import { xml2js } from 'xml-js';
 
 import { Uri } from 'vscode';
 
-import { PyroGame } from './features/PyroTaskDefinition';
+import { PyroGameToPapyrusGame } from './features/PyroTaskDefinition';
 
 const readFile = promisify(fs.readFile);
 
@@ -64,5 +64,5 @@ export async function getWorkspaceGame(ppjFiles: Uri[]): Promise<PapyrusGame | u
         let results = xml2js(xml, { compact: true, trim: true });
         game = results['PapyrusProject']['_attributes']['Game'];
     }
-    return PyroGame[game]; // this reverse maps to PapyrusGame
+    return PyroGameToPapyrusGame[game];
 }
