@@ -1,14 +1,33 @@
 import { TaskDefinition, Task } from 'vscode';
-// import { PapyrusGame } from '../PapyrusGame';
 
 export type TaskOf<T extends TaskDefinition> = { readonly definition: T } & Task;
 
+export enum PyroGame {
+    fo4 = 'fallout4',
+    tesv = 'skyrim',
+    sse = 'skyrimSpecialEdition'
+}
+
 export interface IPyroTaskDefinition extends TaskDefinition {
+    // required arguments
     readonly projectFile: string;
-    readonly game?: string;
-    readonly ini?: string;
+    // build arguments
+    readonly logPath?: string;
     readonly anonymize?: boolean;
-    readonly index?: boolean;
-    readonly parallelize?: boolean;
     readonly archive?: boolean;
+    readonly incremental?: boolean;
+    readonly parallelize?: boolean;
+    readonly workerLimit?: number;
+    // compiler arguments
+    readonly compilerPath?: string;
+    readonly flagsPath?: string;
+    readonly outputPath?: string;
+    // game arguments
+    readonly game?: string;
+    readonly gamePath?: string;
+    readonly registryPath?: string;
+    // bsarch arguments
+    readonly bsarchPath?: string;
+    readonly archivePath?: string;
+    readonly tempPath?: string;
 }

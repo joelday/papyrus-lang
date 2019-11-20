@@ -122,29 +122,70 @@
                         "type": "string",
                         "description": "The path to the PPJ file relative to workspace folder (required)."
                     },
-                    "game": {
+                    "logPath": {
                         "type": "string",
-                        "description": "The game that the build task is for (optional, please specify in PPJ)."
-                    },
-                    "ini": {
-                        "type": "string",
-                        "description": "The path to the pyro.ini file (optional)."
+                        "description": "relative or absolute path to build log folder (if relative, must be relative to current working directory)"
                     },
                     "anonymize": {
                         "type": "boolean",
-                        "description": "Run the anonymizer on files to remove personal info from output."
-                    },
-                    "index": {
-                        "type": "boolean",
-                        "description": "Run the 'indexer' for incremental builds."
-                    },
-                    "parallelize": {
-                        "type": "boolean",
-                        "description": "Use multiple CPUs to compile faster in parallel."
+                        "description": "Allow anonymization of scripts. False here will override but must also be enabled in ppj to run."
                     },
                     "archive": {
                         "type": "boolean",
-                        "description": "Build BSA archives (not currently supported yet)"
+                        "description": "Allow ppj to enable archiving. False here will override but must also be enabled in ppj to run."
+                    },
+                    "incremental": {
+                        "type": "boolean",
+                        "description": "Allow incremental builds. False here will override but must also be enabled in ppj to run."
+                    },
+                    "parallelize": {
+                        "type": "boolean",
+                        "description": "Allow parallel compilation tasks. False here will override but must also be enabled in ppj to run."
+                    },
+                    "workerLimit": {
+                        "type": "number",
+                        "description": "Maximum workers for parallel compilation. Default value is number of CPU cores."
+                    },
+                    "compilerPath": {
+                        "type": "string",
+                        "description": "Relative or absolute path to PapyrusCompiler.exe. If relative, must be relative to current working directory."
+                    },
+                    "flagsPath": {
+                        "type": "string",
+                        "description": "Relative or absolute path to Papyrus Flags file. If relative, must be relative to ppj file location."
+                    },
+                    "outputPath": {
+                        "type": "string",
+                        "description": "Relative or absolute path to output folder. If relative, must be relative to ppj file location."
+                    },
+                    "game": {
+                        "type": "string",
+                        "enum": [
+                            "fo4",
+                            "sse",
+                            "tesv"
+                        ],
+                        "description": "Set game type (choices: fo4, tesv, sse). Overrides type in ppj."
+                    },
+                    "gamePath": {
+                        "type": "string",
+                        "description": "Relative or absolute path to game install directory. If relative, must be relative to current working directory. Default is based on registry and value of 'game' option."
+                    },
+                    "registryPath": {
+                        "type": "string",
+                        "description": "Path to Installed Path key in Windows Registry for the game."
+                    },
+                    "bsarchPath": {
+                        "type": "string",
+                        "description": "Relative or absolute path to bsarch.exe. If relative, must be relative to current working directory."
+                    },
+                    "archivePath": {
+                        "type": "string",
+                        "description": "Relative or absolute path to bsa/ba2 output file. If relative, must be relative to ppj file location."
+                    },
+                    "tempPath": {
+                        "type": "string",
+                        "description": "Relative or absolute path to temp folder. If relative, must be relative to current working directory."
                     }
                 }
             }
