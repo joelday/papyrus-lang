@@ -106,7 +106,7 @@ export class PathResolver implements IPathResolver {
     }
 
     public async getWelcomeFile(): Promise<string> {
-        return this._asExtensionAbsolutePath(path.join(await this.getResourceDir(), 'welcome', 'index.md'));
+        return path.join(await this.getResourceDir(), 'welcome', 'index.md');
     }
 
     /************************************************************************* */
