@@ -1,0 +1,51 @@
+name: GitHub CI
+
+on:
+ push:
+  paths:
+  - dependencies/**
+  - src/**
+  - build.cake
+  - build.ps1
+    
+branches:
+   - master
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+    - uses: actions/checkout@v1
+    - name: Update Debug
+      if: success()
+      uses: ecampidoglio/cake-action@v1.1.1
+      with:
+        target: update-debug-plugin
+    - name: Update Pyro
+      if: success()
+      uses: ecampidoglio/cake-action@v1.1.1
+      with:
+        target: update-pyro-cli
+    - name: Full Build (default)
+      if: success()
+      uses: ecampidoglio/cake-action@v1.1.1
+      with:
+        target: default
+    - name: VSCE Package
+      if: success()
+      run: cd src\papyrus-lang-vscode ; npm install vsce ; npx vsce package
+    - name: Upload artifact
+      if: success()
+      uses: actions/upload-artifact@v1
+      with:
+        name: papyrus-lang-vscode.vsix
+        path: src\papyrus-lang-vscode
+    - name: Discord notification
+      env:
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      uses: Ilshidur/action-discord@master
+      with:
+        args: 'The project {{ EVENT_PAYLOAD.repository.full_name }} has been uploaded as release.'
