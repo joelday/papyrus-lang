@@ -1,6 +1,6 @@
 ﻿namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
 {
-    public enum ScriptLexerContentState
+    internal enum ScriptLexerContentState
     {
         InSource = 0,
         InDocumentationComment,

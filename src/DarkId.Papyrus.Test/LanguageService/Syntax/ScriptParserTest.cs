@@ -18,16 +18,13 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
         [Test]
         public void Parser_ParsesScriptsFromTokens()
         {
-            var lexer = new ScriptLexer();
             var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("LineContinuations")].Text.Text;
 
-            var tokens = lexer.Tokenize(scriptText);
-
             var parser = new ScriptParser();
-            var node = parser.Parse(tokens, LanguageVersion.Fallout4);
+            var node = parser.Parse(scriptText, LanguageVersion.Fallout4);
 
             // TODO: Traversed
-            // Assert.IsEmpty(node.Diagnostics);
+            Assert.IsEmpty(node.Diagnostics);
         }
 
     }

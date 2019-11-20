@@ -6,35 +6,16 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {
     internal class SyntaxToken : GreenNode
     {
-        private readonly ScriptToken _token;
-
-        public SyntaxToken(SyntaxKind kind)
+        public SyntaxToken(SyntaxKind kind, string text, List<GreenNode> leadingTrivia = null, List<GreenNode> trailingTrivia = null) : base(leadingTrivia, trailingTrivia)
         {
-            _token = new ScriptToken(kind, string.Empty);
-            IsMissing = true;
+            Kind = kind;
+            Text = text;
         }
 
-        public SyntaxToken(ScriptToken token, IEnumerable<ScriptToken> leadingTrivia = null, IEnumerable<ScriptToken> trailingTrivia = null)
-        {
-            _token = token;
+        public override SyntaxKind Kind { get; }
 
-            LeadingTriviaTokens = leadingTrivia ?? Enumerable.Empty<ScriptToken>();
-            TrailingTriviaTokens = trailingTrivia ?? Enumerable.Empty<ScriptToken>();
-        }
-
-        public override bool IsMissing { get; }
-        public override SyntaxKind Kind => _token.Kind;
-        public override string Text => _token.Text;
+        public override string Text { get; }
         public override string FullText => LeadingTrivia + Text + TrailingTrivia;
-
-        public IEnumerable<ScriptToken> LeadingTriviaTokens { get; }
-        public IEnumerable<ScriptToken> TrailingTriviaTokens { get; }
-
-        public override string LeadingTrivia => string.Join(string.Empty, LeadingTriviaTokens.Select(c => c.Text));
-        public override string TrailingTrivia => string.Join(string.Empty, TrailingTriviaTokens.Select(c => c.Text));
-
-        public override int FullWidth => FullText.Length;
-        public override int Width => Text.Length;
 
         public override SyntaxNode CreateRed(SyntaxNode parent, int position)
         {

@@ -23,6 +23,7 @@ namespace DarkId.Papyrus.Common
 
         public T Current => _current;
         public bool Done => _enumeratorDone && _right.Count == 0;
+        public bool PeekDone => Peek() == null;
 
         public T Peek()
         {

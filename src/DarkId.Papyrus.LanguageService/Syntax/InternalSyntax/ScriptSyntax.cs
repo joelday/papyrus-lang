@@ -5,19 +5,15 @@ using DarkId.Papyrus.LanguageService.Program;
 
 namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {
-    internal class ScriptSyntax : GreenNode
+    internal class ScriptHeaderSyntax : GreenNode
     {
-        public ScriptSyntax(ScriptFile file, PapyrusProgram program, SyntaxToken scriptKeyword, IdentifierSyntax identifier, SyntaxToken extendsKeyword, TypeIdentifierSyntax typeIdentifier, IReadOnlyList<SyntaxToken> flags, IReadOnlyList<GreenNode> definitions)
+        public ScriptHeaderSyntax(SyntaxToken scriptKeyword, IdentifierSyntax identifier, SyntaxToken extendsKeyword, TypeIdentifierSyntax typeIdentifier, IReadOnlyList<SyntaxToken> flags)
         {
-            File = file;
-            Program = program;
-
             ScriptKeyword = scriptKeyword;
             Identifier = identifier;
             ExtendsKeyword = extendsKeyword;
             TypeIdentifier = typeIdentifier;
             Flags = flags;
-            Definitions = definitions;
         }
 
         public override SyntaxKind Kind => SyntaxKind.Script;
@@ -36,16 +32,12 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
             return visitor.Visit(this);
         }
 
-        public ScriptFile File { get; }
-        public PapyrusProgram Program { get; }
-
         public SyntaxToken ScriptKeyword { get; }
         public IdentifierSyntax Identifier { get; }
         public SyntaxToken ExtendsKeyword { get; }
         public TypeIdentifierSyntax TypeIdentifier { get; }
         
         public IReadOnlyList<SyntaxToken> Flags { get; }
-        public IReadOnlyList<GreenNode> Definitions { get; }
 
         protected override IEnumerable<GreenNode> ChildrenInternal
         {
@@ -59,11 +51,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
                 foreach (var flag in Flags)
                 {
                     yield return flag;
-                }
-
-                foreach (var definition in Definitions)
-                {
-                    yield return definition;
                 }
             }
         }

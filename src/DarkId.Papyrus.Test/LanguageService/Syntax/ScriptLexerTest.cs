@@ -4,6 +4,8 @@ using DarkId.Papyrus.LanguageService;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Syntax;
 using DarkId.Papyrus.LanguageService.Syntax.Lexer;
+using DarkId.Papyrus.LanguageService.Syntax.InternalSyntax;
+
 using NUnit.Framework;
 
 namespace DarkId.Papyrus.Test.LanguageService.Syntax
@@ -22,13 +24,13 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
             var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("LineContinuations")].Text.Text;
 
             var tokens = lexer.Tokenize(
-                scriptText);
+                scriptText).ToLogicalLines().ToList();
 
             var tokenText = string.Empty;
 
-            foreach (var token in tokens)
+            foreach (var token in tokens.SelectMany(n => n))
             {
-                tokenText += token.Text;
+                tokenText += token.FullText;
                 TestContext.Out.WriteLine(token.ToString());
             }
 

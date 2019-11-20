@@ -4,10 +4,11 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Text.RegularExpressions;
 using DarkId.Papyrus.Common;
+using DarkId.Papyrus.LanguageService.Syntax.InternalSyntax;
 
 namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
 {
-    public class ScriptLexer
+    internal class ScriptLexer
     {
         public static readonly IReadOnlyDictionary<string, SyntaxKind> TokenStringMap =
             new Dictionary<string, SyntaxKind>(StringComparer.OrdinalIgnoreCase)
@@ -84,7 +85,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                 {"True", SyntaxKind.TrueKeyword},
                 {"False", SyntaxKind.FalseKeyword},
                 {"None", SyntaxKind.NoneKeyword}
-            }.ToImmutableDictionary();
+            }.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase);
 
         public static readonly IReadOnlyDictionary<SyntaxKind, string> StringTokenMap =
             TokenStringMap.ToImmutableDictionary(kv => kv.Value, kv => kv.Key);
@@ -113,12 +114,12 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
             TokensRegex = new Regex(
                 $@"{
                     string.Join('|',
-                        new[] {NewLineRegex, WhitespaceRegex, IdentifierRegex, HexRegex, FloatRegex, IntRegex}
+                        new[] {NewLineRegex, WhitespaceRegex, HexRegex, FloatRegex, IntRegex}
                             .Select(r => r.ToString())
                             .Concat(TokenStringMap.Keys.OrderBy(k => k.Length).Reverse()
                                 .Select(k => Regex.Escape(k).Replace("/", "\\/"))
                             )
-                        )}",
+                        )}|{IdentifierRegex}",
                 RegexOptions.Compiled | RegexOptions.IgnoreCase
             );
         }
@@ -135,7 +136,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                 SyntaxKind.Unknown;
         }
 
-        public IEnumerable<ScriptToken> Tokenize(string sourceText)
+        public IEnumerable<SyntaxToken> Tokenize(string sourceText)
         {
             var scanner = new Scanner<Match>(TokensRegex.Matches(sourceText));
 
@@ -213,7 +214,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                     {
                         state.ContentState = ScriptLexerContentState.InSource;
 
-                        yield return new ScriptToken(
+                        yield return new SyntaxToken(
                             kind,
                             text
                         );
@@ -261,10 +262,17 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                         break;
                 }
 
-                yield return new ScriptToken(
+                var token = new SyntaxToken(
                     kind,
                     text
                 );
+
+                if (state.AtUnterminatedStringLiteral)
+                {
+                    token.AddDiagnostic(new DiagnosticInfo(DiagnosticLevel.Error, 1000, "Unterminated string literal."));
+                }
+
+                yield return token;
 
                 state.PreviousTokenKind = kind;
                 state.Position = nextPosition;
@@ -272,7 +280,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                 scanner.Next();
             }
 
-            yield return new ScriptToken(
+            yield return new SyntaxToken(
                 SyntaxKind.EndOfFileToken,
                 string.Empty
             );

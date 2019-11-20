@@ -6,21 +6,33 @@ namespace DarkId.Papyrus.LanguageService.Syntax
 {
     public static class SyntaxExtensions
     {
-        public static bool IsTrivia(this SyntaxKind kind, bool multiline = false)
+        public static bool IsNonStructuredTrivia(this SyntaxKind kind)
         {
-            if (kind == SyntaxKind.NewLineTrivia && multiline)
-            {
-                return true;
-            }
+            return !kind.IsStructuredTrivia() && kind.IsTrivia();
+        }
 
+        public static bool IsTrivia(this SyntaxKind kind)
+        {
             return kind switch
             {
                 SyntaxKind.Unknown => true,
+                SyntaxKind.NewLineTrivia => true,
                 SyntaxKind.DocumentationComment => true,
                 SyntaxKind.MultilineComment => true,
                 SyntaxKind.SingleLineComment => true,
                 SyntaxKind.LineContinuationTrivia => true,
                 SyntaxKind.WhitespaceTrivia => true,
+                _ => false
+            };
+        }
+
+        public static bool IsStructuredTrivia(this SyntaxKind kind)
+        {
+            return kind switch
+            {
+                SyntaxKind.DocumentationComment => true,
+                SyntaxKind.MultilineComment => true,
+                SyntaxKind.SingleLineComment => true,
                 _ => false
             };
         }
@@ -42,7 +54,10 @@ namespace DarkId.Papyrus.LanguageService.Syntax
             return (
                 kind == SyntaxKind.NativeKeyword ||
                 kind == SyntaxKind.DebugOnlyKeyword ||
-                kind == SyntaxKind.BetaOnlyKeyword
+                kind == SyntaxKind.BetaOnlyKeyword ||
+                kind == SyntaxKind.ConstKeyword ||
+                kind == SyntaxKind.AutoReadOnlyKeyword ||
+                kind == SyntaxKind.AutoKeyword
             );
         }
 

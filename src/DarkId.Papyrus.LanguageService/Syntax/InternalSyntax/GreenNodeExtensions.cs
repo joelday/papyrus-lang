@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using DarkId.Papyrus.LanguageService.Syntax.Lexer;
 
 namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {

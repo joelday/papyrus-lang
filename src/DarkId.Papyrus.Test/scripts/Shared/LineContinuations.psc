@@ -1,4 +1,4 @@
-Scriptname LineContinuations extends BaseScript Const
+Scriptname LineContinuations extends ;/inline header comment/; BaseScript Const ;/inline header comment/;
 {Trigger used to add additional ghouls (ghouls that run in from College Square, etc.)
 
 to the BoS100Fight AllGhouls array.}

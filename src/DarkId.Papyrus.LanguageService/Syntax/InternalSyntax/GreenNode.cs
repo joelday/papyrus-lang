@@ -10,9 +10,16 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         public abstract SyntaxKind Kind { get; }
 
         private readonly List<DiagnosticInfo> _diagnostics = new List<DiagnosticInfo>();
+
+        protected GreenNode(List<GreenNode> leadingTriviaTokens = null, List<GreenNode> trailingTriviaTokens = null)
+        {
+            LeadingTriviaNodes = leadingTriviaTokens ?? new List<GreenNode>();
+            TrailingTriviaTokens = trailingTriviaTokens ?? new List<GreenNode>();
+        }
+
         public IReadOnlyList<DiagnosticInfo> Diagnostics => _diagnostics;
 
-        public virtual bool IsMissing => false;
+        public bool IsMissing { get; set; }
 
         public virtual string FullText => string.Join(string.Empty, Children.Select(c => c.FullText));
         public virtual string Text => FullText.Substring(LeadingTriviaWidth, Width);
@@ -24,18 +31,18 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         {
             get
             {
-                var node = Children.FirstOrDefault();
-                while (node != null)
-                {
-                    if (!node.Children.Any() && node.LeadingTriviaWidth > 0)
-                    {
-                        return node.LeadingTrivia;
-                    }
+                var leadingTrivia = LeadingTriviaNodes.Aggregate(string.Empty, (current, trivia) => current + trivia.FullText);
 
-                    node = node.Children.FirstOrDefault();
+                foreach (var child in Children)
+                {
+                    leadingTrivia += child.LeadingTrivia;
+                    if (!string.IsNullOrEmpty(child.Text))
+                    {
+                        break;
+                    }
                 }
 
-                return string.Empty;
+                return leadingTrivia;
             }
         }
 
@@ -43,27 +50,51 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         {
             get
             {
-                var node = Children.LastOrDefault();
-                while (node != null)
-                {
-                    if (!node.Children.Any() && node.TrailingTriviaWidth > 0)
-                    {
-                        return node.TrailingTrivia;
-                    }
+                var trailingTrivia = string.Empty;
 
-                    node = node.Children.LastOrDefault();
+                foreach (var child in Children.Reverse())
+                {
+                    trailingTrivia = child.TrailingTrivia + trailingTrivia;
+                    if (!string.IsNullOrEmpty(child.Text))
+                    {
+                        break;
+                    }
                 }
 
-                return string.Empty;
+                trailingTrivia += TrailingTriviaTokens.Aggregate(string.Empty, (current, trivia) => current + trivia.FullText);
+
+                return trailingTrivia;
             }
         }
+
+        public List<GreenNode> LeadingTriviaNodes { get; set; }
+        public List<GreenNode> TrailingTriviaTokens { get; set; }
 
         public virtual int LeadingTriviaWidth => LeadingTrivia.Length;
         public virtual int TrailingTriviaWidth => TrailingTrivia.Length;
 
         protected abstract IEnumerable<GreenNode> ChildrenInternal { get; }
 
-        public IEnumerable<GreenNode> Children => ChildrenInternal.WhereNotNull().ToList();
+        public IEnumerable<GreenNode> Children
+        {
+            get
+            {
+                foreach (var trivia in LeadingTriviaNodes)
+                {
+                    yield return trivia;
+                }
+
+                foreach (var child in ChildrenInternal.WhereNotNull())
+                {
+                    yield return child;
+                }
+
+                foreach (var trivia in TrailingTriviaTokens)
+                {
+                    yield return trivia;
+                }
+            }
+        }
 
         public abstract SyntaxNode CreateRed(SyntaxNode parent, int position);
 

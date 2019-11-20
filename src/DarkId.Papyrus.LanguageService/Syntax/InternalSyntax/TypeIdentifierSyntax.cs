@@ -4,23 +4,25 @@ using DarkId.Papyrus.LanguageService.Syntax.Lexer;
 
 namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {
-    internal class TypeIdentifierSyntax : IdentifierSyntax
+    internal class TypeIdentifierSyntax : GreenNode
     {
         public override SyntaxKind Kind => SyntaxKind.TypeIdentifier;
 
+        public IdentifierSyntax Identifier { get; }
         public SyntaxToken ArrayToken { get; }
 
         protected override IEnumerable<GreenNode> ChildrenInternal
         {
             get
             {
-                foreach (var child in base.ChildrenInternal)
-                {
-                    yield return child;
-                }
-
+                yield return Identifier;
                 yield return ArrayToken;
             }
+        }
+
+        public override SyntaxNode CreateRed(SyntaxNode parent, int position)
+        {
+            throw new System.NotImplementedException();
         }
 
         public override void Accept(IGreenNodeVisitor visitor)
@@ -33,8 +35,9 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
             return visitor.Visit(this);
         }
 
-        public TypeIdentifierSyntax(ScriptToken token, SyntaxToken arrayToken, IEnumerable<ScriptToken> leadingTrivia = null, IEnumerable<ScriptToken> trailingTrivia = null) : base(token, leadingTrivia, trailingTrivia)
+        public TypeIdentifierSyntax(IdentifierSyntax identifier, SyntaxToken arrayToken)
         {
+            Identifier = identifier;
             ArrayToken = arrayToken;
         }
     }
