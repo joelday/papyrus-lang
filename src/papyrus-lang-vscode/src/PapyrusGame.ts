@@ -1,3 +1,14 @@
+import * as fs from 'fs';
+import { promisify } from 'util';
+
+import { xml2js } from 'xml-js';
+
+import { Uri } from 'vscode';
+
+import { PyroGame } from './features/PyroTaskDefinition';
+
+const readFile = promisify(fs.readFile);
+
 export enum PapyrusGame {
     fallout4 = 'fallout4',
     skyrim = 'skyrim',
@@ -41,4 +52,17 @@ export function getShortDisplayNameForGame(game: PapyrusGame) {
 
 export function getGames(): PapyrusGame[] {
     return Object.keys(PapyrusGame).map((k) => PapyrusGame[k]);
+}
+
+export async function getWorkspaceGame(ppjFiles: Uri[]): Promise<PapyrusGame | undefined> {
+    let game: string = undefined;
+    if (ppjFiles.length) {
+        // Just use the first one we find because they should be all the same game.
+        // (Except for multiroot workspaces that mix games which we don't support yet.)
+        let ppjFile: Uri = ppjFiles[0];
+        let xml = await readFile(ppjFile.fsPath, { encoding: 'utf-8' });
+        let results = xml2js(xml, { compact: true, trim: true });
+        game = results['PapyrusProject']['_attributes']['Game'];
+    }
+    return PyroGame[game]; // this reverse maps to PapyrusGame
 }
