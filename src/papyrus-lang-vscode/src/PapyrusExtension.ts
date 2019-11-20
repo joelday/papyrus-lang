@@ -1,4 +1,4 @@
-import { Disposable, extensions, ExtensionContext, workspace, window, TreeDataProvider, TreeItem, commands } from 'vscode';
+import { Disposable, extensions, ExtensionContext } from 'vscode';
 import { ServiceCollection, IInstantiationService, InstantiationService, Descriptor } from 'decoration-ioc';
 import { extensionQualifiedId, GlobalState } from './common/constants';
 import { IExtensionContext } from './common/vscode/IocDecorators';
@@ -117,7 +117,6 @@ class PapyrusExtension implements Disposable {
         this._attachCommand.dispose();
 
         this._debugAdapterTrackerFactory.dispose();
-
         this._installDebugSupportCommand.dispose();
 
         this._debugAdapterDescriptorFactory.dispose();
@@ -127,8 +126,6 @@ class PapyrusExtension implements Disposable {
         this._scriptStatusCodeLensProvider.dispose();
 
         this._pyroProvider.dispose();
-
-        // this._taskProvider.dispose();
 
         this._statusItems.dispose();
         this._clientManager.dispose();

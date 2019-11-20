@@ -4,7 +4,6 @@ import {
     DebugAdapterDescriptor,
     debug,
     Disposable,
-    ExtensionContext,
     window,
     commands,
     Uri,

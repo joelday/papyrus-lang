@@ -2,18 +2,15 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { createDecorator } from 'decoration-ioc';
-import { Observable } from 'rxjs';
 import { take } from 'rxjs/operators';
 import winreg from 'winreg';
 import { promisify } from 'util';
 
-import { workspace, Disposable, ExtensionContext, Uri } from 'vscode';
-import { CancellationToken } from 'vscode-jsonrpc';
+import { ExtensionContext } from 'vscode';
 import { IExtensionContext } from '../common/vscode/IocDecorators';
 
 import { PapyrusGame, getScriptExtenderName } from '../PapyrusGame';
 import { inDevelopmentEnvironment } from '../Utilities';
-import { ICreationKitInfoProvider } from '../CreationKitInfoProvider';
 import { IExtensionConfigProvider, IGameConfig, IExtensionConfig } from '../ExtensionConfigProvider';
 
 const exists = promisify(fs.exists);
