@@ -3,7 +3,7 @@ import { promisify } from 'util';
 
 import { xml2js } from 'xml-js';
 
-import { Uri } from 'vscode';
+import { workspace, Uri, RelativePattern } from 'vscode';
 
 import { PyroGameToPapyrusGame } from './features/PyroTaskDefinition';
 
@@ -54,15 +54,24 @@ export function getGames(): PapyrusGame[] {
     return Object.keys(PapyrusGame).map((k) => PapyrusGame[k]);
 }
 
-export async function getWorkspaceGame(ppjFiles: Uri[]): Promise<PapyrusGame | undefined> {
+export async function getWorkspaceGameFromProjects(ppjFiles: Uri[]): Promise<PapyrusGame | undefined> {
     let game: string = undefined;
     if (ppjFiles.length) {
         // Just use the first one we find because they should be all the same game.
         // (Except for multiroot workspaces that mix games which we don't support yet.)
         let ppjFile: Uri = ppjFiles[0];
-        let xml = await readFile(ppjFile.fsPath, { encoding: 'utf-8' });
-        let results = xml2js(xml, { compact: true, trim: true });
-        game = results['PapyrusProject']['_attributes']['Game'];
+        game = await getWorkspaceGameFromProjectFile(ppjFile.fsPath);
     }
     return PyroGameToPapyrusGame[game];
+}
+
+export async function getWorkspaceGameFromProjectFile(projectFile: string): Promise<PapyrusGame | undefined> {
+    let xml = await readFile(projectFile, { encoding: 'utf-8' });
+    let results = xml2js(xml, { compact: true, trim: true });
+    return results['PapyrusProject']['_attributes']['Game'];
+}
+
+export async function getWorkspaceGame(): Promise<PapyrusGame | undefined> {
+    const ppjFiles: Uri[] = await workspace.findFiles(new RelativePattern(workspace.workspaceFolders[0], "**/*.ppj"));
+    return getWorkspaceGameFromProjects(ppjFiles);
 }

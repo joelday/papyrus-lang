@@ -5,7 +5,7 @@ import {
 import { CancellationToken, Disposable } from 'vscode-jsonrpc';
 
 import { IPyroTaskDefinition, TaskOf, PyroGameToPapyrusGame } from './PyroTaskDefinition';
-import { PapyrusGame, getWorkspaceGame } from '../PapyrusGame';
+import { PapyrusGame, getWorkspaceGameFromProjects, getWorkspaceGame } from '../PapyrusGame';
 import { IPathResolver, PathResolver } from '../common/PathResolver';
 
 
@@ -55,7 +55,7 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
         const ppjFiles: Uri[] = await workspace.findFiles(this._projPattern, undefined, undefined, token);
 
         let tasks: Task[] = [];
-        const game: PapyrusGame | undefined = await getWorkspaceGame(ppjFiles);
+        const game: PapyrusGame | undefined = await getWorkspaceGameFromProjects(ppjFiles);
         if (!game) {
             window.showWarningMessage(
                 "Could not find a ppj file in this workspace with a game type specified."
@@ -143,7 +143,7 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
             argv.push(taskDef.game);
             game = PyroGameToPapyrusGame[game];
         } else {
-            game = await getWorkspaceGame([Uri.file(taskDef.projectFile)]);
+            game = await getWorkspaceGame();
         }
         if (taskDef.gamePath) {
             argv.push('--game-path');
