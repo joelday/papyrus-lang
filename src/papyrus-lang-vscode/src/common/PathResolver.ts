@@ -94,7 +94,7 @@ export class PathResolver implements IPathResolver {
     }
 
     public async getPyroCliPath(): Promise<string> {
-        return this._asExtensionAbsolutePath('./pyro/pyro_cli/pyro_cli.exe');
+        return this._asExtensionAbsolutePath('./pyro/pyro.exe');
     }
 
     public async getPyroDirPath(): Promise<string> {
