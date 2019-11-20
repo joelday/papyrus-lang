@@ -479,7 +479,7 @@
         "vscode-debugprotocol": "^1.37.0",
         "vscode-languageclient": "^5.2.1",
         "winreg": "^1.2.4",
-        "xml-writer": "^1.7.0"
+        "xml-js": "^1.6.11"
     },
     "description": "Advanced language support for Bethesda Game Studio's Papyrus scripting language.",
     "devDependencies": {
