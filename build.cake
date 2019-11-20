@@ -44,8 +44,9 @@ public void UpdatePyroCli()
             Force = true
         });
     }
-    var pyroCliZip = DownloadFile("https://github.com/rjstone/pyro/releases/download/1.3.3vsc.77/pyro_cli_v1-3-3vsc-77.zip");
-    Unzip(pyroCliZip, pyroCliDirectory);
+    // Will switch to using fireundubh's repo once he has releases working with Github CI
+    var pyroCliZip = DownloadFile("https://github.com/rjstone/pyro/releases/download/20191119vsc.99/pyro.zip");
+    Unzip(pyroCliZip, pyroCliDirectory + Directory(".."));
 }
 
 Task("npm-install")
