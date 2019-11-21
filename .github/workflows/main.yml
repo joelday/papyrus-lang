@@ -1,15 +1,13 @@
 name: GitHub CI
 
 on:
- push:
-  paths:
-  - dependencies/**
-  - src/**
-  - build.cake
-  - build.ps1
-    
-branches:
-   - master
+  push:
+    paths:
+      - dependencies/**
+      - src/**
+      - build.cake
+      - build.ps1
+      - .github/workflows/**
 
 jobs:
   build:
@@ -17,8 +15,13 @@ jobs:
     runs-on: windows-latest
 
     steps:
+    - name: Info
+      run: echo 'Ref=${{ github.event.ref }} Pusher=${{ github.event.pusher.name }} Pushed_At=${{ github.event.repository.pushed_at }}'
     - name: Checkout
       uses: actions/checkout@v1
+    - name: Setup Nuget.exe
+      if: success()
+      uses: warrenbuckley/Setup-Nuget@v1
     - name: Update Debug
       if: success()
       uses: ecampidoglio/cake-action@v1.1.1
@@ -36,16 +39,14 @@ jobs:
         target: default
     - name: VSCE Package
       if: success()
-      run: cd src\papyrus-lang-vscode ; npm install vsce ; npx vsce package
+      run: > 
+        cd src\papyrus-lang-vscode ;
+        npm install vsce ;
+        mkdir artifact ;
+        npx vsce package -o artifact\papyrus-lang-test-${{ github.event.repository.pushed_at }}.vsix
     - name: Upload artifact
       if: success()
       uses: actions/upload-artifact@v1
       with:
-        name: papyrus-lang-vscode-*.vsix
-        path: src\papyrus-lang-vscode
-#    - name: Discord notification
-#      env:
-#        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-#      uses: Ilshidur/action-discord@master
-#      with:
-#        args: 'The project {{ EVENT_PAYLOAD.repository.full_name }} has been uploaded as release.'
+        name: papyrus-lang-test-${{ github.event.repository.pushed_at }}.vsix
+        path: src\papyrus-lang-vscode\artifact
