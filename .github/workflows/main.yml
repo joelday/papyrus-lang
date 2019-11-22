@@ -47,13 +47,13 @@ jobs:
         cd src\papyrus-lang-vscode ;
         npm install vsce ;
         mkdir artifact ;
-        npx vsce package -o artifact\$VSIX_NAME
+        npx vsce package -o artifact\${{ env.VSIX_NAME }}
     - name: Upload artifact
       if: success()
       uses: actions/upload-artifact@v1
       with:
-        name: $VSIX_NAME
-        path: src\papyrus-lang-vscode\artifact\$VSIX_NAME
+        name: ${{ env.VSIX_NAME }}
+        path: src\papyrus-lang-vscode\artifact\${{ env.VSIX_NAME }}
     # - name: Notify Success
     #   if: success()
     #   uses: rjstone/discord-webhook-notify@v1
