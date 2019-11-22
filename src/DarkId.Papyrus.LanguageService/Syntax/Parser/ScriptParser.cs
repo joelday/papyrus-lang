@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Syntax.InternalSyntax;
@@ -127,12 +128,45 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
 
         private IEnumerable<GreenNode> ParseDefinitions()
         {
-            while (!_scanner.PeekDone)
+            var definitions = new List<GreenNode>();
+
+            while (MoveToNextLine())
             {
-                MoveToNextLine();
+                if (CurrentLine.PeekDone)
+                {
+                    continue;
+                }
+
+                MoveToNextToken();
+
+                switch (CurrentToken.Kind)
+                {
+                    case SyntaxKind.ImportKeyword:
+                        break;
+                    case SyntaxKind.AutoKeyword:
+                    case SyntaxKind.StateKeyword:
+                        break;
+                    case SyntaxKind.StructKeyword:
+                        break;
+                    case SyntaxKind.CustomEventKeyword:
+                        break;
+                    case SyntaxKind.EventDefinition:
+                    case SyntaxKind.FunctionDefinition:
+                        definitions.Add(ParseFunction());
+                        break;
+                    case SyntaxKind.Identifier:
+                        break;
+                    default:
+                        break;
+                }
             }
 
-            return Enumerable.Empty<GreenNode>();
+            return definitions;
+        }
+
+        private FunctionDefinitionSyntax ParseFunction()
+        {
+            throw new NotImplementedException();
         }
 
         private IdentifierSyntax ParseIdentifier()

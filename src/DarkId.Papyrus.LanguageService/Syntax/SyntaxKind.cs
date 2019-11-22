@@ -137,6 +137,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
         UnaryOperationExpression,
         VariableDefinition,
         WhileStatement,
-        ScriptHeader
+        ScriptHeader,
+        FunctionHeader
     }
 }

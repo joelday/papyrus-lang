@@ -6,14 +6,9 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {
     internal class FunctionDefinitionSyntax : GreenNode
     {
-        public FunctionDefinitionSyntax(TypeIdentifierSyntax typeIdentifier, SyntaxToken functionorEventKeyword, ExpressionSyntax identifier, SyntaxToken openParen, IReadOnlyList<FunctionParameterSyntax> parameters, SyntaxToken closeParen, IEnumerable<GreenNode> statements, SyntaxToken endFunctionOrEventKeyword)
+        public FunctionDefinitionSyntax(FunctionHeaderSyntax functionHeader, IEnumerable<GreenNode> statements, SyntaxToken endFunctionOrEventKeyword)
         {
-            TypeIdentifier = typeIdentifier;
-            FunctionorEventKeyword = functionorEventKeyword;
-            Identifier = identifier;
-            OpenParen = openParen;
-            Parameters = parameters;
-            CloseParen = closeParen;
+            Header = functionHeader;
             Statements = statements;
             EndFunctionOrEventKeyword = endFunctionOrEventKeyword;
         }
@@ -34,12 +29,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
             return visitor.Visit(this);
         }
 
-        public TypeIdentifierSyntax TypeIdentifier { get; }
-        public SyntaxToken FunctionorEventKeyword { get; }
-        public ExpressionSyntax Identifier { get; }
-        public SyntaxToken OpenParen { get; }
-        public IReadOnlyList<FunctionParameterSyntax> Parameters { get; }
-        public SyntaxToken CloseParen { get; }
+        public FunctionHeaderSyntax Header { get; }
         public IEnumerable<GreenNode> Statements { get; }
         public SyntaxToken EndFunctionOrEventKeyword { get; }
 
@@ -47,17 +37,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         {
             get
             {
-                yield return TypeIdentifier;
-                yield return FunctionorEventKeyword;
-                yield return Identifier;
-                yield return OpenParen;
-
-                foreach (var parameter in Parameters)
-                {
-                    yield return parameter;
-                }
-
-                yield return CloseParen;
+                yield return Header;
 
                 foreach (var statement in Statements)
                 {

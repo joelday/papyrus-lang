@@ -16,7 +16,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
         }
 
         [Test]
-        public void Parser_ParsesScriptsFromTokens()
+        public void Parser_ParsesScripts()
         {
             var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("LineContinuations")].Text.Text;
 

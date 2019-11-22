@@ -41,6 +41,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         void Visit(VariableDefinitionSyntax node);
         void Visit(WhileStatementSyntax node);
         void Visit(ScriptHeaderSyntax node);
+        void Visit(FunctionHeaderSyntax node);
     }
 
     internal interface IGreenNodeVisitor<out T>
@@ -80,5 +81,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         T Visit(VariableDefinitionSyntax node);
         T Visit(WhileStatementSyntax node);
         T Visit(ScriptHeaderSyntax node);
+        T Visit(FunctionHeaderSyntax node);
     }
 }
