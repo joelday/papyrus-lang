@@ -8,9 +8,7 @@ on:
       - build.cake
       - build.ps1
       - .github/workflows/**
-  pull_request:
-    branches:
-      - refs/pull/**
+  pull_request
 
 
 jobs:
