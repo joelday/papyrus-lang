@@ -8,8 +8,8 @@ on:
       - build.cake
       - build.ps1
       - .github/workflows/**
-  pull_request
-
+  pull_request:
+    types: [ opened, reopened, synchronize ]
 
 jobs:
   build:
