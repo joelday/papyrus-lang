@@ -28,3 +28,4 @@ Updated frequently with new features and improvements.
 - shad0wshayd3
 - rjstone
 - fireundubh (for Pyro)
+- Nyo (Pyro fixes)
