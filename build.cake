@@ -45,7 +45,7 @@ public void UpdatePyroCli()
         });
     }
     // Will switch to using fireundubh's repo once he has releases working with Github CI
-    var pyroCliZip = DownloadFile("https://github.com/rjstone/pyro/releases/download/20191119vsc.99/pyro.zip");
+    var pyroCliZip = DownloadFile("https://github.com/rjstone/pyro/releases/download/20191119vsc.102/pyro.zip");
     Unzip(pyroCliZip, pyroCliDirectory + Directory(".."));
 }
 
