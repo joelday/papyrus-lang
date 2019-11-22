@@ -2,18 +2,15 @@ name: GitHub CI
 
 on:
   push:
-    paths:
-      - dependencies/**
-      - src/**
-      - build.cake
-      - build.ps1
-      - .github/workflows/**
+    branches:
+      - master
+      - pull/**
 
 jobs:
   build:
-
     runs-on: windows-latest
-
+    env:
+      VSIX_NAME: papyrus-lang-test-${{ github.event.repository.pushed_at }}.vsix
     steps:
     - name: Info
       run: echo 'Ref=${{ github.event.ref }} Pusher=${{ github.event.pusher.name }} Pushed_At=${{ github.event.repository.pushed_at }}'
@@ -43,10 +40,24 @@ jobs:
         cd src\papyrus-lang-vscode ;
         npm install vsce ;
         mkdir artifact ;
-        npx vsce package -o artifact\papyrus-lang-test-${{ github.event.repository.pushed_at }}.vsix
+        npx vsce package -o artifact\${{ env.VSIX_NAME }}
     - name: Upload artifact
       if: success()
       uses: actions/upload-artifact@v1
       with:
-        name: papyrus-lang-test-${{ github.event.repository.pushed_at }}.vsix
-        path: src\papyrus-lang-vscode\artifact
+        name: ${{ env.VSIX_NAME }}
+        path: src\papyrus-lang-vscode\artifact\${{ env.VSIX_NAME }}
+    # - name: Notify Success
+    #   if: success()
+    #   uses: rjstone/discord-webhook-notify@v1
+    #   with:
+    #     severity: info
+    #     details: Build Succeeded!
+    #     webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+    # - name: Notify Failure
+    #   if: failure()
+    #   uses: rjstone/discord-webhook-notify@v1
+    #   with:
+    #     severity: error
+    #     details: Build Failed!
+    #     webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
