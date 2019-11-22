@@ -2,14 +2,9 @@ name: GitHub CI
 
 on:
   push:
-    paths:
-      - dependencies/**
-      - src/**
-      - build.cake
-      - build.ps1
-      - .github/workflows/**
-  pull_request:
-    types: [ opened, reopened, synchronize ]
+    branches:
+      - master
+      - pull/**
 
 jobs:
   build:
