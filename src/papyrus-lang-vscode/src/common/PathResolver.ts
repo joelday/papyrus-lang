@@ -117,7 +117,7 @@ export class PathResolver implements IPathResolver {
         return resolveInstallPath(game, (await this._getGameConfig(game)).installPath, this._context);
     }
 
-    public async getDebugPluginInstallPath(game: PapyrusGame, legacy?: boolean) {
+    public async getDebugPluginInstallPath(game: PapyrusGame, legacy?: boolean): Promise<string> {
         const config = await this._getGameConfig(game);
         if (config.modDirectoryPath) {
             return path.join(
@@ -126,7 +126,7 @@ export class PathResolver implements IPathResolver {
                 getPluginDllName(game, legacy)
             );
         } else {
-            path.join(
+            return path.join(
                 await this.getInstallPath(game),
                 await this._getExtenderPluginPath(game),
                 getPluginDllName(game, legacy)
