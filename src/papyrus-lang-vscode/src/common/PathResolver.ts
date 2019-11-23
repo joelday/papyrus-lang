@@ -241,3 +241,7 @@ const executableNames = new Map([
 export function getExecutableNameForGame(game: PapyrusGame) {
     return executableNames.get(game);
 }
+
+export function pathToOsPath(pathname) {
+    return path.format(path.parse(pathname));
+}

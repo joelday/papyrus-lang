@@ -6,7 +6,7 @@ import { CancellationToken, Disposable } from 'vscode-jsonrpc';
 
 import { IPyroTaskDefinition, TaskOf, PyroGameToPapyrusGame } from './PyroTaskDefinition';
 import { PapyrusGame, getWorkspaceGameFromProjects, getWorkspaceGame } from '../PapyrusGame';
-import { IPathResolver, PathResolver } from '../common/PathResolver';
+import { IPathResolver, PathResolver, pathToOsPath } from '../common/PathResolver';
 
 
 export class PyroTaskProvider implements TaskProvider, Disposable {
@@ -16,6 +16,7 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
     private readonly _projPattern: GlobPattern;
     private readonly _fileWatcher: FileSystemWatcher;
     private readonly _source: string = "pyro";
+    private _workspaceGame: PapyrusGame;
 
     constructor(
         @IPathResolver pathResolver: PathResolver
@@ -55,13 +56,21 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
         const ppjFiles: Uri[] = await workspace.findFiles(this._projPattern, undefined, undefined, token);
 
         let tasks: Task[] = [];
-        const game: PapyrusGame | undefined = await getWorkspaceGameFromProjects(ppjFiles);
-        if (!game) {
-            window.showWarningMessage(
-                "Could not find a ppj file in this workspace with a game type specified."
-                + "  Please specify a game type in your ppj file or use the Generate Project Files command for a"
-                + " template.", "Ok");
-            return tasks;
+
+        let game: PapyrusGame | undefined;
+        if (this._workspaceGame) {
+            game = this._workspaceGame;
+        } else {
+            game = await getWorkspaceGameFromProjects(ppjFiles);
+            if (!game) {
+                window.showWarningMessage(
+                    "Could not find a ppj file in this workspace with a game type specified."
+                    + "  Please specify a game type in your ppj file or use the Generate Project Files command for a"
+                    + " template.", "Ok");
+                return tasks;
+            } else {
+                this._workspaceGame = game;
+            }
         }
 
         // provide a build task for each one found
@@ -98,7 +107,7 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
 
         // Required arguments
         argv.push('--input-path');
-        argv.push(taskDef.projectFile);
+        argv.push(pathToOsPath(taskDef.projectFile));
 
         // Build arguments
         if (taskDef.logPath) {
@@ -143,7 +152,7 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
             argv.push(taskDef.game);
             game = PyroGameToPapyrusGame[game];
         } else {
-            game = await getWorkspaceGame();
+            game = this._workspaceGame;
         }
         if (taskDef.gamePath) {
             argv.push('--game-path');
