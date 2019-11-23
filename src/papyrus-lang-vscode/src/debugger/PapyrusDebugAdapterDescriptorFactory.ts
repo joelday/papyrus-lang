@@ -4,7 +4,6 @@ import {
     DebugAdapterDescriptor,
     debug,
     Disposable,
-    ExtensionContext,
     window,
     commands,
     Uri,
@@ -22,8 +21,7 @@ import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
 import { take } from 'rxjs/operators';
 import { IPapyrusDebugSession } from './PapyrusDebugSession';
 import { toCommandLineArgs, getGameIsRunning } from '../Utilities';
-import { getDebugToolPath } from '../Paths';
-import { IExtensionContext } from '../common/vscode/IocDecorators';
+import { IPathResolver } from '../common/PathResolver';
 import { IDebugSupportInstallService, DebugSupportInstallState } from './DebugSupportInstallService';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
 import { showGameDisabledMessage, showGameMissingMessage } from '../features/commands/InstallDebugSupportCommand';
@@ -48,7 +46,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
     private readonly _languageClientManager: ILanguageClientManager;
     private readonly _creationKitInfoProvider: ICreationKitInfoProvider;
     private readonly _configProvider: IExtensionConfigProvider;
-    private readonly _context: ExtensionContext;
+    private readonly _pathResolver: IPathResolver;
     private readonly _debugSupportInstaller: IDebugSupportInstallService;
     private readonly _registration: Disposable;
 
@@ -56,13 +54,13 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
         @ILanguageClientManager languageClientManager: ILanguageClientManager,
         @ICreationKitInfoProvider creationKitInfoProvider: ICreationKitInfoProvider,
         @IExtensionConfigProvider configProvider: IExtensionConfigProvider,
-        @IExtensionContext context: ExtensionContext,
+        @IPathResolver pathResolver: IPathResolver,
         @IDebugSupportInstallService debugSupportInstaller: IDebugSupportInstallService
     ) {
         this._languageClientManager = languageClientManager;
         this._creationKitInfoProvider = creationKitInfoProvider;
         this._configProvider = configProvider;
-        this._context = context;
+        this._pathResolver = pathResolver;
         this._debugSupportInstaller = debugSupportInstaller;
 
         this._registration = debug.registerDebugAdapterDescriptorFactory('papyrus', this);
@@ -179,7 +177,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
             clientProcessId: Number.parseInt(process.env.VSCODE_PID),
         };
 
-        const toolPath = this._context.asAbsolutePath(getDebugToolPath(game));
+        const toolPath = await this._pathResolver.getDebugToolPath(game);
         const commandLineArgs = toCommandLineArgs(toolArguments);
 
         const outputChannel = (await this._languageClientManager.getLanguageClientHost(session.configuration.game))

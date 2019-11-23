@@ -7,7 +7,7 @@ import { Observable, BehaviorSubject } from 'rxjs';
 import { ICreationKitInfo } from '../CreationKitInfoProvider';
 import { DocumentScriptInfo } from './messages/DocumentScriptInfo';
 import { shareReplay, take, map, switchMap } from 'rxjs/operators';
-import { getDefaultFlagsFileNameForGame, getLanguageToolPath } from '../Paths';
+import { getDefaultFlagsFileNameForGame, IPathResolver } from '../common/PathResolver';
 import { ProjectInfos } from './messages/ProjectInfos';
 
 export enum ClientHostStatus {
@@ -41,7 +41,7 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
     private readonly _game: PapyrusGame;
     private readonly _config: IGameConfig;
     private readonly _creationKitInfo: ICreationKitInfo;
-    private readonly _context: ExtensionContext;
+    private readonly _pathResolver: IPathResolver;
     private _outputChannel: OutputChannel;
     private _client: LanguageClient;
 
@@ -50,11 +50,16 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
     private readonly _status = new BehaviorSubject(ClientHostStatus.none);
     private readonly _error = new BehaviorSubject(null);
 
-    constructor(game: PapyrusGame, config: IGameConfig, creationKitInfo: ICreationKitInfo, context: ExtensionContext) {
+    constructor(
+        game: PapyrusGame,
+        config: IGameConfig,
+        creationKitInfo: ICreationKitInfo,
+        @IPathResolver pathResolver: IPathResolver
+    ) {
         this._game = game;
         this._config = config;
         this._creationKitInfo = creationKitInfo;
-        this._context = context;
+        this._pathResolver = pathResolver;
 
         this._projectInfos = this._status.pipe(
             switchMap((status) => {
@@ -133,7 +138,7 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
 
             this._client = new LanguageClient({
                 game: this._game,
-                toolPath: this._context.asAbsolutePath(getLanguageToolPath(this._game)),
+                toolPath: await this._pathResolver.getLanguageToolPath(this._game),
                 outputChannel: this._outputChannel,
                 toolArguments,
             });

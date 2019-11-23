@@ -1,10 +1,8 @@
-import { window, Uri, ExtensionContext, workspace } from 'vscode';
-import { take } from 'rxjs/operators';
+import { window, Uri, ExtensionContext } from 'vscode';
 import { IExtensionContext } from '../../common/vscode/IocDecorators';
-import { IExtensionConfigProvider } from '../../ExtensionConfigProvider';
 import { GameCommandBase } from './GameCommandBase';
 import { PapyrusGame } from '../../PapyrusGame';
-import { resolveInstallPath } from '../../Paths';
+import { IPathResolver } from '../../common/PathResolver';
 import { copyAndFillTemplate } from '../../Utilities';
 
 // import * as vscode from 'vscode';
@@ -12,8 +10,6 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
 
-const readFile = promisify(fs.readFile);
-const writeFile = promisify(fs.writeFile);
 const exists = promisify(fs.exists);
 const mkdir = promisify(fs.mkdir);
 const copyFile = promisify(fs.copyFile);
@@ -21,18 +17,20 @@ const copyFile = promisify(fs.copyFile);
 
 
 export class GenerateProjectCommand extends GameCommandBase<[string]> {
-    private readonly _configProvider: IExtensionConfigProvider;
     private readonly _context: ExtensionContext;
+    private readonly _pathResolver: IPathResolver;
 
-    constructor(@IExtensionContext context: ExtensionContext,
-        @IExtensionConfigProvider configProvider: IExtensionConfigProvider) {
+    constructor(
+        @IExtensionContext context: ExtensionContext,
+        @IPathResolver pathResolver: IPathResolver,
+    ) {
         super("generateProject"); // pass additional args for execute() and onExecute() here
         this._context = context;
-        this._configProvider = configProvider;
+        this._pathResolver = pathResolver;
     }
 
     protected async onExecute(game: PapyrusGame, ...args: [string]) {
-        const config = (await this._configProvider.config.pipe(take(1)).toPromise())[game];
+        const installPath = await this._pathResolver.getInstallPath(game);
 
         const defaultProjectSubdir = {
             'fallout4': "Data",
@@ -51,7 +49,7 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
         if (game === PapyrusGame.fallout4) {
             args[0] = undefined;
         }
-        let projectFolderUri: Uri = args[0] ? Uri.parse(args[0]) : Uri.file(path.join(config.installPath, defaultProjectSubdir[game]));
+        let projectFolderUri: Uri = args[0] ? Uri.parse(args[0]) : Uri.file(path.join(installPath, defaultProjectSubdir[game]));
 
         console.log("Default projectFolderUri = " + projectFolderUri.fsPath);
 
@@ -94,7 +92,7 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
             ['tasks.json', '.vscode\\tasks.json'],
             [workspaceFilename, workspaceFilename],
         ];
-        let configGamePath = await resolveInstallPath(game, config.installPath, this._context);
+        let configGamePath = await this._pathResolver.getInstallPath(game);
         if (!configGamePath) {
             window.showErrorMessage(
                 "Could not find game installation directory for " + PapyrusGame[game] +

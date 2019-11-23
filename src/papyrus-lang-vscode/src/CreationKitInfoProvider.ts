@@ -3,15 +3,13 @@ import { PapyrusGame, getGames } from './PapyrusGame';
 import { IExtensionConfigProvider } from './ExtensionConfigProvider';
 import { Observable, combineLatest } from 'rxjs';
 import { map, mergeMap, shareReplay } from 'rxjs/operators';
-import { resolveInstallPath, getDevelopmentCompilerFolderForGame } from './Paths';
+import { IPathResolver, getDevelopmentCompilerFolderForGame } from './common/PathResolver';
 import { inDevelopmentEnvironment } from './Utilities';
 import * as path from 'path';
 import * as ini from 'ini';
 import { all as deepMergeAll } from 'deepmerge';
 import * as fs from 'fs';
 import { promisify } from 'util';
-import { IExtensionContext } from './common/vscode/IocDecorators';
-import { ExtensionContext } from 'vscode';
 
 const readFile = promisify(fs.readFile);
 const exists = promisify(fs.exists);
@@ -75,13 +73,13 @@ export class CreationKitInfoProvider {
 
     constructor(
         @IExtensionConfigProvider infoProvider: IExtensionConfigProvider,
-        @IExtensionContext extensionContext: ExtensionContext
+        @IPathResolver pathResolver: IPathResolver
     ) {
         const createInfoObservable = (game: PapyrusGame) => {
             const gameConfig = infoProvider.config.pipe(map((config) => config[game]));
 
             const resolvedInstallPath = gameConfig.pipe(
-                mergeMap((gameConfig) => resolveInstallPath(game, gameConfig.installPath, extensionContext)),
+                mergeMap(() => pathResolver.getInstallPath(game)),
                 shareReplay(1)
             );
 

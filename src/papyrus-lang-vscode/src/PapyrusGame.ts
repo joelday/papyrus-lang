@@ -1,5 +1,3 @@
-import { CancellationToken } from 'vscode';
-
 export enum PapyrusGame {
     fallout4 = 'fallout4',
     skyrim = 'skyrim',

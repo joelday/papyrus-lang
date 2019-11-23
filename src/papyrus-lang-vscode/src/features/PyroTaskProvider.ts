@@ -9,7 +9,7 @@ import { CancellationToken, Disposable } from 'vscode-jsonrpc';
 import { IPyroTaskDefinition, TaskOf } from './PyroTaskDefinition';
 import { PapyrusGame } from '../PapyrusGame';
 import { ICreationKitInfoProvider } from '../CreationKitInfoProvider';
-import { getPyroCliPath } from '../Paths';
+import { IPathResolver, PathResolver } from '../common/PathResolver';
 import { getWorkspaceGame } from '../Utilities';
 import { IExtensionContext } from '../common/vscode/IocDecorators';
 
@@ -17,6 +17,7 @@ import { IExtensionContext } from '../common/vscode/IocDecorators';
 export class PyroTaskProvider implements TaskProvider, Disposable {
     private readonly _taskProviderHandle: Disposable;
     private readonly _creationKitInfoProvider: ICreationKitInfoProvider;
+    private readonly _pathResolver: IPathResolver;
     private readonly _context: ExtensionContext;
     private _taskCachePromise: Promise<Task[]> | undefined = undefined;
     private readonly _projPattern: GlobPattern;
@@ -25,10 +26,12 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
 
     constructor(
         @ICreationKitInfoProvider creationKitInfoProvider: ICreationKitInfoProvider,
-        @IExtensionContext context: ExtensionContext
+        @IExtensionContext context: ExtensionContext,
+        @IPathResolver pathResolver: PathResolver
     ) {
         this._creationKitInfoProvider = creationKitInfoProvider;
         this._context = context;
+        this._pathResolver = pathResolver;
 
         this._taskProviderHandle = tasks.registerTaskProvider('pyro', this);
 
@@ -90,11 +93,6 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
     }
 
     async resolveTask(task: TaskOf<IPyroTaskDefinition>, token?: CancellationToken): Promise<Task | undefined> {
-        const creationKitInfo = await this._creationKitInfoProvider.infos
-            .get(task.definition.papyrus.game)
-            .pipe(take(1))
-            .toPromise();
-
         if (token.isCancellationRequested) {
             return null;
         }
@@ -133,7 +131,7 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
             argv.push('--disable-bsarch');
         }
 
-        const pyroAbsPath = this._context.asAbsolutePath(getPyroCliPath());
+        const pyroAbsPath = await this._pathResolver.getPyroCliPath();
         console.log("New task, process: " + pyroAbsPath + " " + argv);
         const label = `Compile Project (${taskDef.projectFile})`;
         taskDef['label'] = label;
