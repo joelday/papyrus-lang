@@ -32,6 +32,8 @@ public void UpdateDebugPlugin()
     }
     var pluginDllZip = DownloadFile("https://github.com/joelday/papyrus-debug-server/releases/latest/download/papyrus-debug-server.zip");
     Unzip(pluginDllZip, pluginFileDirectory);
+    Information("Debug plugin update complete.");
+
 }
 
 public void UpdatePyroCli()
@@ -44,9 +46,9 @@ public void UpdatePyroCli()
             Force = true
         });
     }
-    // Will switch to using fireundubh's repo once he has releases working with Github CI
-    var pyroCliZip = DownloadFile("https://github.com/rjstone/pyro/releases/download/20191119vsc.102/pyro.zip");
+    var pyroCliZip = DownloadFile("https://github.com/fireundubh/pyro/releases/download/2019-11-22/pyro.zip");
     Unzip(pyroCliZip, pyroCliDirectory + Directory(".."));
+    Information("Pyro update complete.");
 }
 
 Task("npm-install")
