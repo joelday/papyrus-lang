@@ -8,16 +8,6 @@
     "settings": {
         "papyrus.skyrimSpecialEdition.enabled": true,
         "papyrus.fallout4.enabled": false,
-        "papyrus.skyrim.enabled": false,
-        // If you have more Import directories then add them here
-        "papyrus.skyrimSpecialEdition.importDirs": [
-            "${installPath}\\Data\\Source\\Scripts",
-            ".\\Source\\Scripts"
-        ],
-        // Currently the build task does not work with more than one directory
-        // (papyruscompiler.exe only accepts one for SSE)
-        "papyrus.skyrimSpecialEdition.sourceDirs": [
-            ".\\Source\\Scripts"
-        ]
+        "papyrus.skyrim.enabled": false
     }
 }
