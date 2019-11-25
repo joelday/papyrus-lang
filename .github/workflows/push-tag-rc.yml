@@ -94,7 +94,7 @@ jobs:
       uses: rjstone/discord-webhook-notify@v1
       with:
         severity: info
-        description: '**Build Succeeded!** ${{ steps.upload_release_asset.browser_download_url }}'
+        description: '**Build Succeeded!** ${{ github.ref }} ${{ steps.upload_release_asset.browser_download_url }}'
         webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
 
     - name: Notify Failure
@@ -102,7 +102,7 @@ jobs:
       uses: rjstone/discord-webhook-notify@v1
       with:
         severity: error
-        description: '**Build Failed!** ${{ env.VSIX_NAME }}'
+        description: '**Build Failed!** ${{ github.ref }} ${{ env.VSIX_NAME }}'
         webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
 
     - name: Notify Cancelled
@@ -110,5 +110,5 @@ jobs:
       uses: rjstone/discord-webhook-notify@v1
       with:
         severity: warn
-        description: '**Build Cancelled!** ${{ env.VSIX_NAME }}'
+        description: '**Build Cancelled!** ${{ github.ref }} ${{ env.VSIX_NAME }}'
         webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
