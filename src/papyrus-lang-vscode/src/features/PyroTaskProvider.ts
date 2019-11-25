@@ -114,11 +114,11 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
             argv.push('--log-path');
             argv.push(taskDef.logPath);
         }
-        if (taskDef.anonymize === false) {
-            argv.push('--no-anonymize');
+        if (taskDef.anonymize === true) {
+            argv.push('--anonymize');
         }
-        if (taskDef.archive === false) {
-            argv.push('--no-bsarch');
+        if (taskDef.archive === true) {
+            argv.push('--bsarch');
         }
         if (taskDef.incremental === false) {
             argv.push('--no-incremental-build');
