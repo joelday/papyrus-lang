@@ -65,6 +65,9 @@ export async function getWorkspaceGameFromProjects(ppjFiles: Uri[]): Promise<Pap
             break;
         }
     }
+    if (!game) {
+        return undefined;
+    }
     return PyroGameToPapyrusGame[game];
 }
 
