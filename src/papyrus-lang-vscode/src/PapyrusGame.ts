@@ -56,11 +56,14 @@ export function getGames(): PapyrusGame[] {
 
 export async function getWorkspaceGameFromProjects(ppjFiles: Uri[]): Promise<PapyrusGame | undefined> {
     let game: string = undefined;
-    if (ppjFiles.length) {
-        // Just use the first one we find because they should be all the same game.
-        // (Except for multiroot workspaces that mix games which we don't support yet.)
-        let ppjFile: Uri = ppjFiles[0];
+    if (!ppjFiles) {
+        return undefined;
+    }
+    for (let ppjFile of ppjFiles) {
         game = await getWorkspaceGameFromProjectFile(ppjFile.fsPath);
+        if (game) {
+            break;
+        }
     }
     return PyroGameToPapyrusGame[game];
 }
