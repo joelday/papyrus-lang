@@ -46,9 +46,9 @@ public void UpdatePyroCli()
             Force = true
         });
     }
-    var pyroCliZip = DownloadFile("https://github.com/fireundubh/pyro/releases/download/1574589710/pyro-master-1574589710.zip");
+    var pyroCliZip = DownloadFile("https://github.com/fireundubh/pyro/releases/download/1574827307/pyro-master-1574827307.zip");
     Unzip(pyroCliZip, pyroCliDirectory + Directory(".."));
-    MoveDirectory((pyroCliDirectory + Directory("../pyro-master-1574589710")), pyroCliDirectory);
+    MoveDirectory((pyroCliDirectory + Directory("../pyro-master-1574827307")), pyroCliDirectory);
     Information("Pyro update complete.");
 }
 
