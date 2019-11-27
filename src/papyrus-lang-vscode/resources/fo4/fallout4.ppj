@@ -3,6 +3,7 @@
 <PapyrusProject xmlns="PapyrusProject.xsd" 
     Flags="Institute_Papyrus_Flags.flg" 
     Output="..\..\" 
+    Game="fo4" 
     Asm="Discard" 
     Optimize="false" 
     Release="false" 

@@ -94,7 +94,7 @@ export class PathResolver implements IPathResolver {
     }
 
     public async getPyroCliPath(): Promise<string> {
-        return this._asExtensionAbsolutePath('./pyro/pyro_cli/pyro_cli.exe');
+        return this._asExtensionAbsolutePath('./pyro/pyro.exe');
     }
 
     public async getPyroDirPath(): Promise<string> {
@@ -106,7 +106,7 @@ export class PathResolver implements IPathResolver {
     }
 
     public async getWelcomeFile(): Promise<string> {
-        return this._asExtensionAbsolutePath(path.join(await this.getResourceDir(), 'welcome', 'index.md'));
+        return path.join(await this.getResourceDir(), 'welcome', 'index.md');
     }
 
     /************************************************************************* */
@@ -240,4 +240,8 @@ const executableNames = new Map([
 
 export function getExecutableNameForGame(game: PapyrusGame) {
     return executableNames.get(game);
+}
+
+export function pathToOsPath(pathname) {
+    return path.format(path.parse(pathname));
 }

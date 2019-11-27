@@ -107,7 +107,7 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
             return false;
         }
 
-        mkdirIfNeeded(path.dirname(pluginInstallPath));
+        await mkdirIfNeeded(path.dirname(pluginInstallPath));
         await copyFile(bundledPluginPath, pluginInstallPath);
         return true;
     }

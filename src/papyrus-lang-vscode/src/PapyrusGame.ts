@@ -1,3 +1,14 @@
+import * as fs from 'fs';
+import { promisify } from 'util';
+
+import { xml2js } from 'xml-js';
+
+import { workspace, Uri, RelativePattern } from 'vscode';
+
+import { PyroGameToPapyrusGame } from './features/PyroTaskDefinition';
+
+const readFile = promisify(fs.readFile);
+
 export enum PapyrusGame {
     fallout4 = 'fallout4',
     skyrim = 'skyrim',
@@ -41,4 +52,32 @@ export function getShortDisplayNameForGame(game: PapyrusGame) {
 
 export function getGames(): PapyrusGame[] {
     return Object.keys(PapyrusGame).map((k) => PapyrusGame[k]);
+}
+
+export async function getWorkspaceGameFromProjects(ppjFiles: Uri[]): Promise<PapyrusGame | undefined> {
+    let game: string = undefined;
+    if (!ppjFiles) {
+        return undefined;
+    }
+    for (let ppjFile of ppjFiles) {
+        game = await getWorkspaceGameFromProjectFile(ppjFile.fsPath);
+        if (game) {
+            break;
+        }
+    }
+    if (!game) {
+        return undefined;
+    }
+    return PyroGameToPapyrusGame[game];
+}
+
+export async function getWorkspaceGameFromProjectFile(projectFile: string): Promise<PapyrusGame | undefined> {
+    let xml = await readFile(projectFile, { encoding: 'utf-8' });
+    let results = xml2js(xml, { compact: true, trim: true });
+    return results['PapyrusProject']['_attributes']['Game'];
+}
+
+export async function getWorkspaceGame(): Promise<PapyrusGame | undefined> {
+    const ppjFiles: Uri[] = await workspace.findFiles(new RelativePattern(workspace.workspaceFolders[0], "**/*.ppj"));
+    return getWorkspaceGameFromProjects(ppjFiles);
 }
