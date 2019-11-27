@@ -1,36 +1,26 @@
-import { take } from 'rxjs/operators';
-
 import {
     TaskProvider, Task, tasks, ProcessExecution, workspace, TaskScope,
-    RelativePattern, GlobPattern, FileSystemWatcher, Uri, ExtensionContext
+    RelativePattern, GlobPattern, FileSystemWatcher, Uri, window
 } from 'vscode';
 import { CancellationToken, Disposable } from 'vscode-jsonrpc';
 
-import { IPyroTaskDefinition, TaskOf } from './PyroTaskDefinition';
-import { PapyrusGame } from '../PapyrusGame';
-import { ICreationKitInfoProvider } from '../CreationKitInfoProvider';
-import { IPathResolver, PathResolver } from '../common/PathResolver';
-import { getWorkspaceGame } from '../Utilities';
-import { IExtensionContext } from '../common/vscode/IocDecorators';
+import { IPyroTaskDefinition, TaskOf, PyroGameToPapyrusGame } from './PyroTaskDefinition';
+import { PapyrusGame, getWorkspaceGameFromProjects, getWorkspaceGame } from '../PapyrusGame';
+import { IPathResolver, PathResolver, pathToOsPath } from '../common/PathResolver';
 
 
 export class PyroTaskProvider implements TaskProvider, Disposable {
     private readonly _taskProviderHandle: Disposable;
-    private readonly _creationKitInfoProvider: ICreationKitInfoProvider;
     private readonly _pathResolver: IPathResolver;
-    private readonly _context: ExtensionContext;
     private _taskCachePromise: Promise<Task[]> | undefined = undefined;
     private readonly _projPattern: GlobPattern;
     private readonly _fileWatcher: FileSystemWatcher;
     private readonly _source: string = "pyro";
+    private _workspaceGame: PapyrusGame;
 
     constructor(
-        @ICreationKitInfoProvider creationKitInfoProvider: ICreationKitInfoProvider,
-        @IExtensionContext context: ExtensionContext,
         @IPathResolver pathResolver: PathResolver
     ) {
-        this._creationKitInfoProvider = creationKitInfoProvider;
-        this._context = context;
         this._pathResolver = pathResolver;
 
         this._taskProviderHandle = tasks.registerTaskProvider('pyro', this);
@@ -61,30 +51,34 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
         if (token.isCancellationRequested) {
             return null;
         }
-        const creationKitInfo = await this._creationKitInfoProvider.infos
-            .get(PapyrusGame.fallout4)
-            .pipe(take(1))
-            .toPromise();
 
         // search for all .PPJ files in workspace
         const ppjFiles: Uri[] = await workspace.findFiles(this._projPattern, undefined, undefined, token);
 
-
         let tasks: Task[] = [];
-        const game: PapyrusGame | undefined = await getWorkspaceGame();
-        if (!game) {
-            return tasks;
-        }
 
-        const pyroGame = papyrusGameToPyroGame(game);
+        let game: PapyrusGame | undefined;
+        if (this._workspaceGame) {
+            game = this._workspaceGame;
+        } else {
+            game = await getWorkspaceGameFromProjects(ppjFiles);
+            if (!game) {
+                window.showWarningMessage(
+                    "Could not find a ppj file in this workspace with a game type specified."
+                    + "  Please specify a game type in your ppj file or use the Generate Project Files command for a"
+                    + " template.", "Ok");
+                return tasks;
+            } else {
+                this._workspaceGame = game;
+            }
+        }
 
         // provide a build task for each one found
         for (let uri of ppjFiles) {
-            let ppj = workspace.asRelativePath(uri);
             let taskDef: IPyroTaskDefinition = {
                 type: this._source,
-                game: pyroGame,
-                projectFile: ppj
+                projectFile: workspace.asRelativePath(uri),
+                gamePath: await this._pathResolver.getInstallPath(game)
             };
             tasks.push(await this.createTaskForDefinition(taskDef));
         }
@@ -103,32 +97,87 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
                 projectFile: "unknown.ppj"
             };
         }
+        if (!definition.gamePath) {
+        }
         return this.createTaskForDefinition(definition);
     }
 
     private async createTaskForDefinition(taskDef: IPyroTaskDefinition) {
         let argv: string[] = [];
-        argv.push('-i');
-        argv.push(taskDef.projectFile);
-        if (taskDef.game) {
-            argv.push('-g');
-            argv.push(taskDef.game);
+
+        // Required arguments
+        argv.push('--input-path');
+        argv.push(pathToOsPath(taskDef.projectFile));
+
+        // Build arguments
+        if (taskDef.logPath) {
+            argv.push('--log-path');
+            argv.push(taskDef.logPath);
         }
-        if (taskDef.ini) {
-            argv.push('-c');
-            argv.push(taskDef.ini);
+        if (taskDef.anonymize === true) {
+            argv.push('--anonymize');
         }
-        if (taskDef.anonymize === false) {
-            argv.push('--disable-anonymizer');
+        if (taskDef.archive === true) {
+            argv.push('--bsarch');
         }
-        if (taskDef.index === false) {
-            argv.push('--disable-indexer');
+        if (taskDef.incremental === false) {
+            argv.push('--no-incremental-build');
         }
         if (taskDef.parallelize === false) {
-            argv.push('--disable-parallel');
+            argv.push('--no-parallel');
         }
-        if (taskDef.archive === false) {
-            argv.push('--disable-bsarch');
+        if (taskDef.workerLimit) {
+            argv.push('--worker-limit');
+            argv.push(taskDef.workerLimit.toString());
+        }
+
+        // Compiler arguments
+        if (taskDef.compilerPath) {
+            argv.push('--compiler-path');
+            argv.push(taskDef.compilerPath);
+        }
+        if (taskDef.flagsPath) {
+            argv.push('--flags-path');
+            argv.push(taskDef.flagsPath);
+        }
+        if (taskDef.outputPath) {
+            argv.push('--output-path');
+            argv.push(taskDef.outputPath);
+        }
+
+        // Game arguments
+        let game: PapyrusGame | undefined;
+        if (taskDef.game) {
+            argv.push('--game-type');
+            argv.push(taskDef.game);
+            game = PyroGameToPapyrusGame[game];
+        } else {
+            game = this._workspaceGame;
+        }
+        if (taskDef.gamePath) {
+            argv.push('--game-path');
+            argv.push(taskDef.gamePath);
+        } else {
+            argv.push('--game-path');
+            argv.push(await this._pathResolver.getInstallPath(game));
+        }
+        if (taskDef.registryPath) {
+            argv.push('--registry-path');
+            argv.push(taskDef.registryPath);
+        }
+
+        // bsarch arguments
+        if (taskDef.bsarchPath) {
+            argv.push('--bsarch-path');
+            argv.push(taskDef.bsarchPath);
+        }
+        if (taskDef.archivePath) {
+            argv.push('--archive-path');
+            argv.push(taskDef.archivePath);
+        }
+        if (taskDef.tempPath) {
+            argv.push('--temp-path');
+            argv.push(taskDef.tempPath);
         }
 
         const pyroAbsPath = await this._pathResolver.getPyroCliPath();
@@ -149,14 +198,4 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
         this._taskProviderHandle.dispose();
         this._fileWatcher.dispose();
     }
-}
-
-
-function papyrusGameToPyroGame(game: PapyrusGame): string {
-    const pyroGames = new Map([
-        [PapyrusGame.fallout4, 'fo4'],
-        [PapyrusGame.skyrimSpecialEdition, 'sse'],
-        [PapyrusGame.skyrim, 'tesv']
-    ]);
-    return pyroGames.get(game);
 }

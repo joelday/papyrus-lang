@@ -1,3 +1,10 @@
+# [2.21.0](https://github.com/joelday/papyrus-lang/compare/v2.20.1...v2.21.0) (2019-11-27)
+
+
+### Features
+
+* New pyro+bsarch and build task support for new pyro ([#109](https://github.com/joelday/papyrus-lang/issues/109)) ([#122](https://github.com/joelday/papyrus-lang/issues/122)) ([a5cd24c](https://github.com/joelday/papyrus-lang/commit/a5cd24c2c8e898adcf4d29a17f835d87a4cda031))
+
 ## [2.20.1](https://github.com/joelday/papyrus-lang/compare/v2.20.0...v2.20.1) (2019-11-12)
 
 

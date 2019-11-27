@@ -1,6 +1,6 @@
 # Getting Started With Papyrus for VSCode
 
-**Welcome to the Papyrus language support VSCode extension!** This document is here to help you get up and running as quickly as possible. Once you no longer need it, just close the tab.
+**Welcome to the Papyrus language support VSCode extension!** This document is here to help you get up and running as quickly as possible. Once you no longer need it, just close the tab. You can open it again from the Papyrus project explorer menu if needed.
 
 ## Requirements
 If you have ever modded a game that uses Papyrus before then you likely already meet these requirements.
@@ -38,7 +38,9 @@ After that you should see a success message appear. One of the files created is 
 
 You will notice that there is now a `.ppj` file in the data directory. Edit this file and add folders for any scripts you have added. You can also add specific scripts if you want. This Papyrus Project file will work even if you're using Skyrim SE or Skyrim LE because the extension uses fireundubh's Pyro build utility to parse the project file.
 
-To build using the `.ppj` file, select **Terminal->Run Task...** and you should see a build item for every detected `.ppj` file in the workspace folders. You can have more than one `.ppj` file if you're working on multiple projects and they will automatically be detected as build tasks.
+To build using the `.ppj` file, select **Terminal->Run Task...** and you should see a build item for every detected `.ppj` file in the workspace folders. You can have more than one `.ppj` file if you're working on multiple projects and they will automatically be detected as build tasks. If you set a task as the default with **Terminal->Configure Default Build Task...** then you can use **Shift-Ctrl-B** to build the project.
+
+[See the Pyro documentation](https://wiki.fireundubh.com/pyro) for more information about configuring Pyro settingsin ppj files.
 
 ## Debugging
 

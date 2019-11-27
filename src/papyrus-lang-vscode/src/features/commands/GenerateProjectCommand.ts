@@ -3,7 +3,7 @@ import { IExtensionContext } from '../../common/vscode/IocDecorators';
 import { GameCommandBase } from './GameCommandBase';
 import { PapyrusGame } from '../../PapyrusGame';
 import { IPathResolver } from '../../common/PathResolver';
-import { copyAndFillTemplate } from '../../Utilities';
+import { copyAndFillTemplate, mkDirByPathSync } from '../../Utilities';
 
 // import * as vscode from 'vscode';
 import * as path from 'path';
@@ -102,7 +102,9 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
         }
         const configSourcePath = path.join(configGamePath, "Data\\Source\\Scripts");
         if (game === PapyrusGame.fallout4) {
-            filesToCopy.push(['fallout4.ppj', 'Scripts\\Source\\User\\fallout4.ppj']);
+            let ppjDstDir = 'Scripts\\Source\\User';
+            filesToCopy.push(['fallout4.ppj', path.join(ppjDstDir, 'fallout4.ppj')]);
+            mkDirByPathSync(path.join(projectFolder, ppjDstDir));
         } else if (game === PapyrusGame.skyrimSpecialEdition) {
             await copyAndFillTemplate(
                 path.join(resourcePath, 'skyrimse.ppj'),
