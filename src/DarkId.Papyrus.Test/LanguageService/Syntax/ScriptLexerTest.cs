@@ -28,10 +28,10 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
 
             var tokenText = string.Empty;
 
-            foreach (var token in tokens.SelectMany(n => n))
+            foreach (var line in tokens.Select(tokenLine => tokenLine.Aggregate(string.Empty, (s, t) => s + t.FullText)))
             {
-                tokenText += token.FullText;
-                TestContext.Out.WriteLine(token.ToString());
+                tokenText += line;
+                TestContext.Out.WriteLine("--- " + line + " ---");
             }
 
             Assert.AreEqual(scriptText, tokenText, "Concatenated token texts should match the source text.");

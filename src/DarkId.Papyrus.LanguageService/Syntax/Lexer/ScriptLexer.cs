@@ -252,8 +252,8 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                         state.StringLiteralStartPosition = state.Position;
                         break;
                     case SyntaxKind.BackslashToken when (state.ContentState == ScriptLexerContentState.InSource &&
-                                                         scanner.Peek() != null &&
-                                                         GetTextTokenSyntaxKind(scanner.Peek().Value) == SyntaxKind.NewLineTrivia):
+                                                         (scanner.Peek() == null ||
+                                                         GetTextTokenSyntaxKind(scanner.Peek().Value) == SyntaxKind.NewLineTrivia)):
                         kind = SyntaxKind.LineContinuationTrivia;
                         break;
                     case SyntaxKind.NewLineTrivia when (state.ContentState == ScriptLexerContentState.InSource &&

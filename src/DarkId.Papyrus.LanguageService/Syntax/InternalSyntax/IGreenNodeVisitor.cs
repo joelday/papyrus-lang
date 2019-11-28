@@ -19,6 +19,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         void Visit(FunctionDefinitionSyntax node);
         void Visit(FunctionParameterSyntax node);
         void Visit(GroupDefinitionSyntax node);
+        void Visit(GroupHeaderSyntax node);
         void Visit(IdentifierExpressionSyntax node);
         void Visit(IdentifierSyntax node);
         void Visit(IfStatementBodySyntax node);
@@ -42,6 +43,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         void Visit(WhileStatementSyntax node);
         void Visit(ScriptHeaderSyntax node);
         void Visit(FunctionHeaderSyntax node);
+        void Visit(StateHeaderSyntax node);
     }
 
     internal interface IGreenNodeVisitor<out T>
@@ -59,6 +61,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         T Visit(FunctionDefinitionSyntax node);
         T Visit(FunctionParameterSyntax node);
         T Visit(GroupDefinitionSyntax node);
+        T Visit(GroupHeaderSyntax node);
         T Visit(IdentifierExpressionSyntax node);
         T Visit(IdentifierSyntax node);
         T Visit(IfStatementBodySyntax node);
@@ -82,5 +85,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         T Visit(WhileStatementSyntax node);
         T Visit(ScriptHeaderSyntax node);
         T Visit(FunctionHeaderSyntax node);
+        T Visit(StateHeaderSyntax node);
     }
 }

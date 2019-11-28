@@ -4,15 +4,16 @@ using System.Linq;
 
 namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {
-    internal class ImportSyntax : GreenNode
+    internal class StateHeaderSyntax : GreenNode
     {
-        public ImportSyntax(SyntaxToken importKeyword, IdentifierSyntax identifier)
+        public StateHeaderSyntax(SyntaxToken autoKeyword, SyntaxToken stateKeyword, IdentifierSyntax identifier)
         {
-            ImportKeyword = importKeyword;
+            AutoKeyword = autoKeyword;
+            StateKeyword = stateKeyword;
             Identifier = identifier;
         }
 
-        public override SyntaxKind Kind => SyntaxKind.Import;
+        public override SyntaxKind Kind => SyntaxKind.StateHeader;
         public override SyntaxNode CreateRed(SyntaxNode parent, int position)
         {
             throw new NotImplementedException();
@@ -28,14 +29,16 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
             return visitor.Visit(this);
         }
 
-        public SyntaxToken ImportKeyword { get; }
+        public SyntaxToken AutoKeyword { get; }
+        public SyntaxToken StateKeyword { get; }
         public IdentifierSyntax Identifier { get; }
 
         protected override IEnumerable<GreenNode> ChildrenInternal
         {
             get
             {
-                yield return ImportKeyword;
+                yield return AutoKeyword;
+                yield return StateKeyword;
                 yield return Identifier;
             }
         }

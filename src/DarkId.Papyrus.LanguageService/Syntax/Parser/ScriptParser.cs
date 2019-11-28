@@ -75,20 +75,13 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
 
         public List<GreenNode> ExpectEndOfLine()
         {
-            if (!CurrentLine.Done)
+            var restOfLine = CurrentLine.AllRemaining().Cast<GreenNode>().ToList();
+            foreach (var remaining in restOfLine)
             {
-                var restOfLine = CurrentLine.AllRemaining().Cast<GreenNode>().ToList();
-                foreach (var remaining in restOfLine)
-                {
-                    remaining.AddDiagnostic(new DiagnosticInfo(DiagnosticLevel.Error, 1002, "Expected end of line."));
-                }
-
-                MoveToNextLine();
-                return restOfLine;
+                remaining.AddDiagnostic(new DiagnosticInfo(DiagnosticLevel.Error, 1002, "Expected end of line."));
             }
 
-            MoveToNextLine();
-            return new List<GreenNode>();
+            return restOfLine;
         }
 
         public ScriptSyntax Parse(string sourceText, LanguageVersion languageVersion)
@@ -126,31 +119,31 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
             };
         }
 
-        private IEnumerable<GreenNode> ParseDefinitions()
+        private List<GreenNode> ParseDefinitions()
         {
             var definitions = new List<GreenNode>();
 
+            // Need to handle single upcoming line.
             while (MoveToNextLine())
             {
-                if (CurrentLine.PeekDone)
-                {
-                    continue;
-                }
-
-                MoveToNextToken();
-
-                switch (CurrentToken.Kind)
+                switch (CurrentLine.Peek().Kind)
                 {
                     case SyntaxKind.ImportKeyword:
+                        definitions.Add(ParseImport());
                         break;
                     case SyntaxKind.AutoKeyword:
                     case SyntaxKind.StateKeyword:
+                        definitions.Add(ParseState());
                         break;
                     case SyntaxKind.StructKeyword:
+                        definitions.Add(ParseStruct());
                         break;
                     case SyntaxKind.CustomEventKeyword:
+                        definitions.Add(ParseCustomEvent());
                         break;
                     case SyntaxKind.EventDefinition:
+                        definitions.Add(ParseEvent());
+                        break;
                     case SyntaxKind.FunctionDefinition:
                         definitions.Add(ParseFunction());
                         break;
@@ -164,9 +157,61 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
             return definitions;
         }
 
+        private GreenNode ParseCustomEvent()
+        {
+            return null;
+        }
+
+        private GreenNode ParseStruct()
+        {
+            return null;
+        }
+
+        private StateHeaderSyntax ParseStateHeader()
+        {
+            var autoKeyword = ConsumeKind(SyntaxKind.AutoKeyword);
+            var stateKeyword = Expect(SyntaxKind.StateKeyword);
+            var identifier = ParseIdentifier();
+
+            return new StateHeaderSyntax(autoKeyword, stateKeyword, identifier)
+            {
+                TrailingTriviaTokens = ExpectEndOfLine()
+            };
+        }
+
+        private GreenNode ParseState()
+        {
+            var header = ParseStateHeader();
+            var definitions = ParseDefinitions();
+
+            MoveToNextLine();
+            var endStateKeyword = Expect(SyntaxKind.EndStateKeyword);
+
+            return new StateDefinitionSyntax(header, definitions, endStateKeyword)
+            {
+                TrailingTriviaTokens = ExpectEndOfLine()
+            };
+        }
+
+        private GreenNode ParseImport()
+        {
+            var importKeyword = Expect(SyntaxKind.ImportKeyword);
+            var identifier = ParseIdentifier();
+
+            return new ImportSyntax(importKeyword, identifier)
+            {
+                TrailingTriviaTokens = ExpectEndOfLine()
+            };
+        }
+
+        private EventDefinitionSyntax ParseEvent()
+        {
+            return null;
+        }
+
         private FunctionDefinitionSyntax ParseFunction()
         {
-            throw new NotImplementedException();
+            return null;
         }
 
         private IdentifierSyntax ParseIdentifier()

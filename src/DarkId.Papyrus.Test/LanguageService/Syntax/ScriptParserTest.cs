@@ -3,9 +3,11 @@ using System.Linq;
 using DarkId.Papyrus.LanguageService;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Syntax;
+using DarkId.Papyrus.LanguageService.Syntax.InternalSyntax;
 using DarkId.Papyrus.LanguageService.Syntax.Lexer;
 using DarkId.Papyrus.LanguageService.Syntax.Parser;
 using NUnit.Framework;
+using SyntaxExtensions = DarkId.Papyrus.LanguageService.Syntax.SyntaxExtensions;
 
 namespace DarkId.Papyrus.Test.LanguageService.Syntax
 {
@@ -21,10 +23,20 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
             var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("LineContinuations")].Text.Text;
 
             var parser = new ScriptParser();
-            var node = parser.Parse(scriptText, LanguageVersion.Fallout4);
+            var script = parser.Parse(scriptText, LanguageVersion.Fallout4);
 
-            // TODO: Traversed
-            Assert.IsEmpty(node.Diagnostics);
+            foreach (var node in script.EnumerateDescendants())
+            {
+                if (node is SyntaxToken && !node.Kind.IsTrivia())
+                {
+                    TestContext.Out.Write(node.Text + " ");
+                }
+
+                Assert.IsEmpty(node.Diagnostics);
+            }
+
+            TestContext.Out.WriteLine();
+            TestContext.Out.Write(script.PrintTree());
         }
 
     }

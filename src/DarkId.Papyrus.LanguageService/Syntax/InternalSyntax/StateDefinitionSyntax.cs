@@ -6,11 +6,9 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {
     internal class StateDefinitionSyntax : GreenNode
     {
-        public StateDefinitionSyntax(SyntaxToken stateKeyword, IdentifierSyntax identifier, SyntaxToken autoKeyword, IReadOnlyList<GreenNode> definitions, SyntaxToken endStateKeyword)
+        public StateDefinitionSyntax(StateHeaderSyntax header, IReadOnlyList<GreenNode> definitions, SyntaxToken endStateKeyword)
         {
-            StateKeyword = stateKeyword;
-            Identifier = identifier;
-            AutoKeyword = autoKeyword;
+            Header = header;
             Definitions = definitions;
             EndStateKeyword = endStateKeyword;
         }
@@ -31,12 +29,23 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
             return visitor.Visit(this);
         }
 
-        public SyntaxToken StateKeyword { get; }
-        public IdentifierSyntax Identifier { get; }
-        public SyntaxToken AutoKeyword { get; }
+        public StateHeaderSyntax Header { get; }
         public IReadOnlyList<GreenNode> Definitions { get; }
         public SyntaxToken EndStateKeyword { get; }
 
-        protected override IEnumerable<GreenNode> ChildrenInternal => Enumerable.Empty<GreenNode>();
+        protected override IEnumerable<GreenNode> ChildrenInternal
+        {
+            get
+            {
+                yield return Header;
+
+                foreach (var definition in Definitions)
+                {
+                    yield return definition;
+                }
+
+                yield return EndStateKeyword;
+            }
+        }
     }
 }

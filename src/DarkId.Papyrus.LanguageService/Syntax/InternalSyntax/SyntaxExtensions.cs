@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,17 +11,35 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
     {
         private static IEnumerable<SyntaxToken> ToInlinedTriviaTokens(IEnumerable<SyntaxToken> tokens)
         {
-            var currentTrivia = new List<GreenNode>();
+            var trailingTrivia = new List<GreenNode>();
+            var leadingTrivia = new List<GreenNode>();
+
+            SyntaxToken currentNonTriviaToken = null;
+
             foreach (var token in tokens)
             {
                 if (token.Kind.IsTrivia())
                 {
-                    currentTrivia.Add(new SyntaxToken(token.Kind, token.Text));
-                    continue;
+                    if (currentNonTriviaToken == null)
+                    {
+                        leadingTrivia.Add(token);
+                    }
+                    else
+                    {
+                        trailingTrivia.Add(token);
+                    }
                 }
+                else
+                {
+                    if (currentNonTriviaToken != null)
+                    {
+                        yield return new SyntaxToken(currentNonTriviaToken.Kind, currentNonTriviaToken.Text, leadingTrivia, trailingTrivia);
+                        leadingTrivia = null;
+                    }
 
-                yield return new SyntaxToken(token.Kind, token.Text, currentTrivia);
-                currentTrivia = new List<GreenNode>();
+                    currentNonTriviaToken = token;
+                    trailingTrivia = new List<GreenNode>();
+                }
             }
         }
 
@@ -30,14 +49,12 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 
             foreach (var token in ToInlinedTriviaTokens(tokens))
             {
-                if (token.Children.All(t => t.Kind != SyntaxKind.NewLineTrivia))
-                {
-                    currentLine.Add(token);
-                    continue;
-                }
+                currentLine.Add(token);
+
+                if (token.Children.All(t => t.Kind != SyntaxKind.NewLineTrivia)) continue;
 
                 yield return currentLine;
-                currentLine = new List<SyntaxToken>() { token };
+                currentLine = new List<SyntaxToken>();
             }
 
             if (currentLine.Count > 0)

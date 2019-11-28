@@ -1,7 +1,9 @@
-Scriptname LineContinuations extends ;/inline header comment/; BaseScript Const ;/inline header comment/;
+ Scriptname LineContinuations extends ;/inline header comment/; BaseScript Const ;/inline header comment/;
 {Trigger used to add additional ghouls (ghouls that run in from College Square, etc.)
 
 to the BoS100Fight AllGhouls array.}
+
+import BoS100Fight
 
 int property BoS100Fight Auto Const
 int property FeralGhoulRace Auto Const
@@ -10,6 +12,11 @@ string property DMP_Combat_HoldPosition_512 Auto Const
 string property DMP_Patrol_Run Auto Const
 BaseScript property BoS100Fight_FightCenterMarker Auto Const
 
+state Blah
+endstate
+
+auto state Durr
+endstate
 
 Event OnTriggerEnter(ObjectReference akActionRef)
 	;Debug.Trace("GHOUL ADDITION TRIGGER: " + akActionRef)

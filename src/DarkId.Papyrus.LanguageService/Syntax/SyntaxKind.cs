@@ -138,6 +138,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
         VariableDefinition,
         WhileStatement,
         ScriptHeader,
-        FunctionHeader
+        FunctionHeader,
+        StateHeader
     }
 }

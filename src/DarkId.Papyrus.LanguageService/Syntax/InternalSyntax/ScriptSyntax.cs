@@ -16,7 +16,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
             Flags = flags;
         }
 
-        public override SyntaxKind Kind => SyntaxKind.Script;
+        public override SyntaxKind Kind => SyntaxKind.ScriptHeader;
         public override SyntaxNode CreateRed(SyntaxNode parent, int position)
         {
             throw new NotImplementedException();

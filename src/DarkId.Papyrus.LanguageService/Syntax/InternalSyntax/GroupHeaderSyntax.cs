@@ -4,15 +4,15 @@ using System.Linq;
 
 namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {
-    internal class ImportSyntax : GreenNode
+    internal class GroupHeaderSyntax : GreenNode
     {
-        public ImportSyntax(SyntaxToken importKeyword, IdentifierSyntax identifier)
+        public GroupHeaderSyntax(SyntaxToken groupKeyword, IdentifierSyntax identifier)
         {
-            ImportKeyword = importKeyword;
+            GroupKeyword = groupKeyword;
             Identifier = identifier;
         }
 
-        public override SyntaxKind Kind => SyntaxKind.Import;
+        public override SyntaxKind Kind => SyntaxKind.GroupDefinition;
         public override SyntaxNode CreateRed(SyntaxNode parent, int position)
         {
             throw new NotImplementedException();
@@ -28,14 +28,14 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
             return visitor.Visit(this);
         }
 
-        public SyntaxToken ImportKeyword { get; }
+        public SyntaxToken GroupKeyword { get; }
         public IdentifierSyntax Identifier { get; }
 
         protected override IEnumerable<GreenNode> ChildrenInternal
         {
             get
             {
-                yield return ImportKeyword;
+                yield return GroupKeyword;
                 yield return Identifier;
             }
         }

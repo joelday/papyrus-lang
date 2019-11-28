@@ -6,10 +6,9 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {
     internal class GroupDefinitionSyntax : GreenNode
     {
-        public GroupDefinitionSyntax(SyntaxToken groupKeyword, IdentifierSyntax identifier, IReadOnlyList<PropertyDefinitionSyntax> definitions, SyntaxToken endGroupKeyword)
+        public GroupDefinitionSyntax(GroupHeaderSyntax header, IReadOnlyList<PropertyDefinitionSyntax> definitions, SyntaxToken endGroupKeyword)
         {
-            GroupKeyword = groupKeyword;
-            Identifier = identifier;
+            Header = header;
             Definitions = definitions;
             EndGroupKeyword = endGroupKeyword;
         }
@@ -30,8 +29,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
             return visitor.Visit(this);
         }
 
-        public SyntaxToken GroupKeyword { get; }
-        public IdentifierSyntax Identifier { get; }
+        public GroupHeaderSyntax Header { get; }
         public IReadOnlyList<PropertyDefinitionSyntax> Definitions { get; }
         public SyntaxToken EndGroupKeyword { get; }
 
@@ -39,8 +37,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         {
             get
             {
-                yield return GroupKeyword;
-                yield return Identifier;
+                yield return Header;
 
                 foreach (var definition in Definitions)
                 {
