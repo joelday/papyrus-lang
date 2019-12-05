@@ -1,3 +1,10 @@
+## [2.21.1](https://github.com/joelday/papyrus-lang/compare/v2.21.0...v2.21.1) (2019-12-05)
+
+
+### Bug Fixes
+
+* Update Fallout and Skyrim debuggers to latest xSE versions ([2578fc0](https://github.com/joelday/papyrus-lang/commit/2578fc08b5b25d5dfbe2972dde0d94f5e5572137))
+
 # [2.21.0](https://github.com/joelday/papyrus-lang/compare/v2.20.1...v2.21.0) (2019-11-27)
 
 
