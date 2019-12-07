@@ -5,6 +5,8 @@ var target = Argument("target", "default");
 var solution = File("./DarkId.Papyrus.sln");
 
 var pluginFileDirectory = Directory("src/papyrus-lang-vscode/debug-plugin/");
+var pyroCliDirectory = Directory("src/papyrus-lang-vscode/pyro/");
+
 var isCIBuild = EnvironmentVariable("APPVEYOR") == "true";
 
 public void DownloadAndUnzip(string address, DirectoryPath outputPath, DirectoryPath existsPath)
@@ -28,9 +30,26 @@ public void UpdateDebugPlugin()
             Force = true
         });
     }
-
     var pluginDllZip = DownloadFile("https://github.com/joelday/papyrus-debug-server/releases/latest/download/papyrus-debug-server.zip");
     Unzip(pluginDllZip, pluginFileDirectory);
+    Information("Debug plugin update complete.");
+
+}
+
+public void UpdatePyroCli()
+{
+    if (DirectoryExists(pyroCliDirectory))
+    {
+        DeleteDirectory(pyroCliDirectory, new DeleteDirectorySettings()
+        {
+            Recursive = true,
+            Force = true
+        });
+    }
+    var pyroCliZip = DownloadFile("https://github.com/fireundubh/pyro/releases/download/1574827307/pyro-master-1574827307.zip");
+    Unzip(pyroCliZip, pyroCliDirectory + Directory(".."));
+    MoveDirectory((pyroCliDirectory + Directory("../pyro-master-1574827307")), pyroCliDirectory);
+    Information("Pyro update complete.");
 }
 
 Task("npm-install")
@@ -80,6 +99,11 @@ Task("npm-build")
 Task("update-debug-plugin")
     .Does(() => {
         UpdateDebugPlugin();
+    });
+
+Task("update-pyro-cli")
+    .Does(() => {
+        UpdatePyroCli();
     });
 
 Task("npm-semantic-release")

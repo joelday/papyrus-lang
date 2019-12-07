@@ -13,6 +13,7 @@ build_script:
 test: off
 on_success:
   - cmd: powershell ./build.ps1 --target="update-debug-plugin"
+  - cmd: powershell ./build.ps1 --target="update-pyro-cli"
   - cmd: powershell ./build.ps1 --target="npm-semantic-release"
   - ps: Invoke-RestMethod https://raw.githubusercontent.com/DiscordHooks/appveyor-discord-webhook/master/send.ps1 -o send.ps1
   - ps: ./send.ps1 success $env:WEBHOOK_URL

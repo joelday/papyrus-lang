@@ -1,3 +1,64 @@
+## [2.21.2](https://github.com/joelday/papyrus-lang/compare/v2.21.1...v2.21.2) (2019-12-06)
+
+
+### Bug Fixes
+
+* Updating Fallout debugger to 163 ([00acac9](https://github.com/joelday/papyrus-lang/commit/00acac97b42e4a13c5bc30de66b15b5dd61a69e5))
+
+## [2.21.1](https://github.com/joelday/papyrus-lang/compare/v2.21.0...v2.21.1) (2019-12-05)
+
+
+### Bug Fixes
+
+* Update Fallout and Skyrim debuggers to latest xSE versions ([2578fc0](https://github.com/joelday/papyrus-lang/commit/2578fc08b5b25d5dfbe2972dde0d94f5e5572137))
+
+# [2.21.0](https://github.com/joelday/papyrus-lang/compare/v2.20.1...v2.21.0) (2019-11-27)
+
+
+### Features
+
+* New pyro+bsarch and build task support for new pyro ([#109](https://github.com/joelday/papyrus-lang/issues/109)) ([#122](https://github.com/joelday/papyrus-lang/issues/122)) ([a5cd24c](https://github.com/joelday/papyrus-lang/commit/a5cd24c2c8e898adcf4d29a17f835d87a4cda031))
+
+## [2.20.1](https://github.com/joelday/papyrus-lang/compare/v2.20.0...v2.20.1) (2019-11-12)
+
+
+### Bug Fixes
+
+* nasty bug when no workspace open ([#115](https://github.com/joelday/papyrus-lang/issues/115)) ([a5c25fa](https://github.com/joelday/papyrus-lang/commit/a5c25facc15fd6c4892850e0cafca91def95dd87))
+
+# [2.20.0](https://github.com/joelday/papyrus-lang/compare/v2.19.1...v2.20.0) (2019-11-11)
+
+
+### Bug Fixes
+
+* **project:** include Skyrim le and fix some bugs [skip ci] ([2a58681](https://github.com/joelday/papyrus-lang/commit/2a58681f7251f157cdd218f5f28dd13191943d14))
+
+
+### Features
+
+* **help:** In editor help viewer. ([b7f4183](https://github.com/joelday/papyrus-lang/commit/b7f41831cf2984828f7e3467a2184f7c6e0e237b))
+
+## [2.19.1](https://github.com/joelday/papyrus-lang/compare/v2.19.0...v2.19.1) (2019-11-07)
+
+
+### Bug Fixes
+
+* Task detection issues. ([#99](https://github.com/joelday/papyrus-lang/issues/99)) ([2ccd79c](https://github.com/joelday/papyrus-lang/commit/2ccd79cba041583cda9a3c34e2355da3d1e7d9a6))
+
+# [2.19.0](https://github.com/joelday/papyrus-lang/compare/v2.18.0...v2.19.0) (2019-11-06)
+
+
+### Features
+
+* Project File Generation ([#96](https://github.com/joelday/papyrus-lang/issues/96)) and Pyro Compiler Integration ([dd445b5](https://github.com/joelday/papyrus-lang/commit/dd445b590792e98d164096c980b709a2dae43d88))
+
+# [2.18.0](https://github.com/joelday/papyrus-lang/compare/v2.17.0...v2.18.0) (2019-10-12)
+
+
+### Features
+
+* Debugger plugin mod manager support ([#92](https://github.com/joelday/papyrus-lang/issues/92)) ([c24c951](https://github.com/joelday/papyrus-lang/commit/c24c951))
+
 # [2.17.0](https://github.com/joelday/papyrus-lang/compare/v2.16.2...v2.17.0) (2019-09-22)
 
 

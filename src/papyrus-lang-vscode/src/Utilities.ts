@@ -1,11 +1,15 @@
 import * as fs from 'fs';
-import { PapyrusGame } from './PapyrusGame';
-
-import winreg from 'winreg';
+import * as path from 'path';
 import { promisify } from 'util';
+
 import procList from 'ps-list';
 
-import { ExtensionContext, CancellationTokenSource } from 'vscode';
+import { CancellationTokenSource } from 'vscode';
+import { PapyrusGame } from './PapyrusGame';
+import { getExecutableNameForGame } from './common/PathResolver';
+
+const readFile = promisify(fs.readFile);
+const writeFile = promisify(fs.writeFile);
 const exists = promisify(fs.exists);
 
 export function* flatten<T>(arrs: T[][]): IterableIterator<T> {
@@ -16,69 +20,8 @@ export function* flatten<T>(arrs: T[][]): IterableIterator<T> {
     }
 }
 
-function getRegistryKeyForGame(game: PapyrusGame) {
-    switch (game) {
-        case PapyrusGame.fallout4:
-            return 'Fallout4';
-        case PapyrusGame.skyrim:
-            return 'Skyrim';
-        case PapyrusGame.skyrimSpecialEdition:
-            return 'Skyrim Special Edition';
-    }
-}
-
-export function getDevelopmentCompilerFolderForGame(game: PapyrusGame) {
-    switch (game) {
-        case PapyrusGame.fallout4:
-            return 'fallout4';
-        case PapyrusGame.skyrim:
-            return 'does-not-exist';
-        case PapyrusGame.skyrimSpecialEdition:
-            return 'skyrim';
-    }
-}
-
-export async function resolveInstallPath(
-    game: PapyrusGame,
-    installPath: string,
-    context: ExtensionContext
-): Promise<string> {
-    if (await exists(installPath)) {
-        return installPath;
-    }
-
-    const reg = new winreg({
-        key: `\\SOFTWARE\\${process.arch === 'x64' ? 'WOW6432Node\\' : ''}Bethesda Softworks\\${getRegistryKeyForGame(
-            game
-        )}`,
-    });
-
-    try {
-        const item = await promisify(reg.get).call(reg, 'installed path');
-
-        if (await exists(item.value)) {
-            return item.value;
-        }
-    } catch (_) {}
-
-    return null;
-}
-
 export function delayAsync(durationMs: number): Promise<void> {
     return new Promise((r) => setTimeout(r, durationMs));
-}
-
-export function getDefaultFlagsFileNameForGame(game: PapyrusGame) {
-    return game === PapyrusGame.fallout4 ? 'Institute_Papyrus_Flags.flg' : 'TESV_Papyrus_Flags.flg';
-}
-
-const executableNames = new Map([
-    [PapyrusGame.fallout4, 'Fallout4.exe'],
-    [PapyrusGame.skyrimSpecialEdition, 'SkyrimSE.exe'],
-]);
-
-export function getExecutableNameForGame(game: PapyrusGame) {
-    return executableNames.get(game);
 }
 
 export async function getGameIsRunning(game: PapyrusGame) {
@@ -113,5 +56,51 @@ export function toCommandLineArgs(obj: Object): string[] {
     );
 }
 
-export const languageToolPath = './bin/Debug/netcoreapp3.0/win-x64/DarkId.Papyrus.Server.Host.exe';
-export const debugToolPath = './debug-bin/Debug/netcoreapp3.0/win-x64/DarkId.Papyrus.DebugAdapterProxy.exe';
+export async function mkdirIfNeeded(pathname: string) {
+    if (await exists(pathname)) {
+        return false;
+    }
+    mkDirByPathSync(pathname);
+}
+
+// Apparently recursive mkdir doesn't want to work on windows.
+// Copied this from https://stackoverflow.com/questions/31645738/how-to-create-full-path-with-nodes-fs-mkdirsync
+export function mkDirByPathSync(targetDir: string, { isRelativeToScript = false } = {}) {
+    const sep = path.sep;
+    const initDir = path.isAbsolute(targetDir) ? sep : '';
+    const baseDir = isRelativeToScript ? __dirname : '.';
+
+    return targetDir.split(sep).reduce((parentDir, childDir) => {
+        const curDir = path.resolve(baseDir, parentDir, childDir);
+        try {
+            fs.mkdirSync(curDir);
+        } catch (err) {
+            if (err.code === 'EEXIST') {
+                // curDir already exists!
+                return curDir;
+            }
+
+            // To avoid `EISDIR` error on Mac and `EACCES`-->`ENOENT` and `EPERM` on Windows.
+            if (err.code === 'ENOENT') {
+                // Throw the original parentDir error on curDir `ENOENT` failure.
+                throw new Error(`EACCES: permission denied, mkdir '${parentDir}'`);
+            }
+
+            const caughtErr = ['EACCES', 'EPERM', 'EISDIR'].indexOf(err.code) > -1;
+            if (!caughtErr || (caughtErr && curDir === path.resolve(targetDir))) {
+                throw err; // Throw if it's just the last created dir.
+            }
+        }
+
+        return curDir;
+    }, initDir);
+}
+
+// This will replace tokens of the form ${KEY_NAME} with values from an object { 'KEY_NAME': "replacement string" }
+export async function copyAndFillTemplate(srcPath: string, dstPath: string, values: { [key: string]: string }) {
+    let templStr = (await readFile(srcPath)).toString();
+    for (let key in values) {
+        templStr = templStr.replace('${' + key + '}', values[key]);
+    }
+    return writeFile(dstPath, templStr);
+}
