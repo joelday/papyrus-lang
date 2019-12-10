@@ -1,3 +1,10 @@
+## [2.21.2](https://github.com/joelday/papyrus-lang/compare/v2.21.1...v2.21.2) (2019-12-06)
+
+
+### Bug Fixes
+
+* Updating Fallout debugger to 163 ([00acac9](https://github.com/joelday/papyrus-lang/commit/00acac97b42e4a13c5bc30de66b15b5dd61a69e5))
+
 ## [2.21.1](https://github.com/joelday/papyrus-lang/compare/v2.21.0...v2.21.1) (2019-12-05)
 
 
