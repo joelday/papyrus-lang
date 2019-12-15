@@ -9,6 +9,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
     public enum SyntaxKind
     {
         Unknown,
+        Error,
 
         LineContinuationTrivia,
         NewLineTrivia,

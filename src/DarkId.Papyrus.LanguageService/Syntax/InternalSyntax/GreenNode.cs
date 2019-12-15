@@ -11,10 +11,10 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 
         private readonly List<DiagnosticInfo> _diagnostics = new List<DiagnosticInfo>();
 
-        protected GreenNode(List<GreenNode> leadingTriviaTokens = null, List<GreenNode> trailingTriviaTokens = null)
+        protected GreenNode(List<GreenNode> leadingTriviaNodes = null, List<GreenNode> trailingTriviaNodes = null)
         {
-            LeadingTriviaNodes = leadingTriviaTokens ?? new List<GreenNode>();
-            TrailingTriviaTokens = trailingTriviaTokens ?? new List<GreenNode>();
+            LeadingTriviaNodes = leadingTriviaNodes ?? new List<GreenNode>();
+            TrailingTriviaNodes = trailingTriviaNodes ?? new List<GreenNode>();
         }
 
         public IReadOnlyList<DiagnosticInfo> Diagnostics => _diagnostics;
@@ -61,14 +61,14 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
                     }
                 }
 
-                trailingTrivia += TrailingTriviaTokens.Aggregate(string.Empty, (current, trivia) => current + trivia.FullText);
+                trailingTrivia += TrailingTriviaNodes.Aggregate(string.Empty, (current, trivia) => current + trivia.FullText);
 
                 return trailingTrivia;
             }
         }
 
-        public List<GreenNode> LeadingTriviaNodes { get; set; }
-        public List<GreenNode> TrailingTriviaTokens { get; set; }
+        public IReadOnlyList<GreenNode> LeadingTriviaNodes { get; set; }
+        public IReadOnlyList<GreenNode> TrailingTriviaNodes { get; set; }
 
         public virtual int LeadingTriviaWidth => LeadingTrivia.Length;
         public virtual int TrailingTriviaWidth => TrailingTrivia.Length;
@@ -89,7 +89,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
                     yield return child;
                 }
 
-                foreach (var trivia in TrailingTriviaTokens)
+                foreach (var trivia in TrailingTriviaNodes)
                 {
                     yield return trivia;
                 }

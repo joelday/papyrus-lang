@@ -24,15 +24,9 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
             var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("LineContinuations")].Text.Text;
 
             var tokens = lexer.Tokenize(
-                scriptText).ToLogicalLines().ToList();
+                scriptText).ToList();
 
-            var tokenText = string.Empty;
-
-            foreach (var line in tokens.Select(tokenLine => tokenLine.Aggregate(string.Empty, (s, t) => s + t.FullText)))
-            {
-                tokenText += line;
-                TestContext.Out.WriteLine("--- " + line + " ---");
-            }
+            var tokenText = tokens.Aggregate(string.Empty, (s, t) => s + t.FullText);
 
             Assert.AreEqual(scriptText, tokenText, "Concatenated token texts should match the source text.");
         }

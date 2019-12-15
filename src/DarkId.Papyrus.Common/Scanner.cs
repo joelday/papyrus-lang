@@ -37,6 +37,18 @@ namespace DarkId.Papyrus.Common
             return default(T);
         }
 
+        public T PeekPrevious()
+        {
+            if (Previous())
+            {
+                var current = Current;
+                Next();
+                return current;
+            }
+
+            return default(T);
+        }
+
         public IEnumerable<T> AllRemaining()
         {
             while (Next())
@@ -86,6 +98,39 @@ namespace DarkId.Papyrus.Common
             _current = _left.Pop();
 
             return true;
+        }
+
+        public U DoLookahead<U>(Func<U> lookaheadFunc)
+        {
+            var currentLeftStackLength = _left.Count;
+
+            try
+            {
+                return lookaheadFunc();
+            }
+            finally
+            {
+                while (_left.Count != currentLeftStackLength)
+                {
+                    if (_left.Count > currentLeftStackLength)
+                    {
+                        Previous();
+                    }
+                    else
+                    {
+                        Next();
+                    }
+                }
+            }
+        }
+
+        public void DoLookahead(Action lookaheadFunc)
+        {
+            DoLookahead(() =>
+            {
+                lookaheadFunc();
+                return 0;
+            });
         }
     }
 }

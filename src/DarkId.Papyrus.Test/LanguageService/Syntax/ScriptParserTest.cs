@@ -25,15 +25,17 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
             var parser = new ScriptParser();
             var script = parser.Parse(scriptText, LanguageVersion.Fallout4);
 
+            TestContext.Out.Write(script.PrintTree());
+
             foreach (var node in script.EnumerateDescendants())
             {
-                if (node is SyntaxToken && !node.Kind.IsTrivia())
+                foreach (var diagnostic in node.Diagnostics)
                 {
-                    TestContext.Out.Write(node.Text + " ");
+                    TestContext.Out.WriteLine(node.Text + " (" + diagnostic.Message + ")");
                 }
-
-                Assert.IsEmpty(node.Diagnostics);
             }
+
+            Assert.IsEmpty(script.EnumerateDescendants().SelectMany(n => n.Diagnostics));
 
             TestContext.Out.WriteLine();
             TestContext.Out.Write(script.PrintTree());

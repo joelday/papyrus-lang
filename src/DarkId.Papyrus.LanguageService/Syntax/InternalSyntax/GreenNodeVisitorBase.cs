@@ -11,6 +11,11 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
             return default;
         }
 
+        public virtual T Visit(ErrorSyntax node)
+        {
+            return DefaultVisit(node);
+        }
+
         public virtual T Visit(ArrayIndexExpressionSyntax node)
         {
             return DefaultVisit(node);
@@ -207,6 +212,11 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         public virtual void DefaultVisit(GreenNode node)
         {
 
+        }
+
+        public virtual void Visit(ErrorSyntax node)
+        {
+            DefaultVisit(node);
         }
 
         public virtual void Visit(ArrayIndexExpressionSyntax node)

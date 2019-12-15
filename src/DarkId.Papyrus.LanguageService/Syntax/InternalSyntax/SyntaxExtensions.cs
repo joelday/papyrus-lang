@@ -9,7 +9,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {
     internal static class SyntaxExtensions
     {
-        private static IEnumerable<SyntaxToken> ToInlinedTriviaTokens(IEnumerable<SyntaxToken> tokens)
+        public static IEnumerable<SyntaxToken> ToInlinedTriviaTokens(this IEnumerable<SyntaxToken> tokens)
         {
             var trailingTrivia = new List<GreenNode>();
             var leadingTrivia = new List<GreenNode>();
@@ -40,26 +40,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
                     currentNonTriviaToken = token;
                     trailingTrivia = new List<GreenNode>();
                 }
-            }
-        }
-
-        public static IEnumerable<IEnumerable<SyntaxToken>> ToLogicalLines(this IEnumerable<SyntaxToken> tokens)
-        {
-            var currentLine = new List<SyntaxToken>();
-
-            foreach (var token in ToInlinedTriviaTokens(tokens))
-            {
-                currentLine.Add(token);
-
-                if (token.Children.All(t => t.Kind != SyntaxKind.NewLineTrivia)) continue;
-
-                yield return currentLine;
-                currentLine = new List<SyntaxToken>();
-            }
-
-            if (currentLine.Count > 0)
-            {
-                yield return currentLine;
             }
         }
     }

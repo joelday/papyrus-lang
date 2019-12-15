@@ -8,6 +8,11 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {
     internal static class GreenNodeExtensions
     {
+        public static bool TriviaHasNewLine(this GreenNode node)
+        {
+            return node != null && node.TrailingTriviaNodes.Any(t => t.Kind == SyntaxKind.NewLineTrivia);
+        }
+
         public static IEnumerable<GreenNode> EnumerateDescendants(this GreenNode node, bool includeSelf = true)
         {
             if (includeSelf)
