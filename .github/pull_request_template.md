@@ -9,7 +9,7 @@ Update (For docs ention the docs updated.)
 Testing: (instructions for testing that needs to pass before commit if applicable)
 
 Checklist before doing the merge commit:
-- [] Review code in PR
-- [] Testing
-- [] Check format of title for CI (make sure it has valid `<type>: <subject>` format)
-- [] **Use Squash and Commit**
+- [ ] Review code in PR
+- [ ] Testing
+- [ ] Check format of title for CI (make sure it has valid `<type>: <subject>` format)
+- [ ] **Use Squash and Commit**

@@ -1,53 +1,53 @@
-name: 'GitHub CI: RC Build'
+name: 'GitHub CI: Dev Build'
 
 on:
   push:
-    tags:
-      - '*-rc*'
+    branches-ignore:
+      - 'master'
 
 jobs:
-  build_rc_tag:
+  dev_build:
     runs-on: windows-latest
     env:
-      VSIX_NAME: papyrus-lang-rc-${{ github.event.repository.pushed_at }}.vsix
+      VSIX_NAME: papyrus-lang-test-${{ github.event.repository.pushed_at }}.vsix
     steps:
-  
-    - name: Notify RC Build Started
+
+    - name: Notify Build Started
       uses: rjstone/discord-webhook-notify@v1
       with:
         severity: warn
         description: |
-          New **Release Candidate** build [${{ github.workflow }}](https://github.com/joelday/papyrus-lang/actions) \(${{ github.ref }}\)
+          New build [${{ github.workflow }}](https://github.com/joelday/papyrus-lang/actions) \(${{ github.ref }}\)
           started by ${{ github.actor }}. (**${{ github.repository }}** got **${{ github.event_name }}** for **${{ github.ref }}**)
           Building ${{ env.VSIX_NAME }}....
         footer: Build Started
         webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
- 
+
     - name: Checkout
       uses: actions/checkout@v1
- 
+
     - name: Setup Nuget.exe
       if: success()
       uses: warrenbuckley/Setup-Nuget@v1
- 
+
     - name: Update Debug
       if: success()
       uses: ecampidoglio/cake-action@v1.1.1
       with:
         target: update-debug-plugin
- 
+
     - name: Update Pyro
       if: success()
       uses: ecampidoglio/cake-action@v1.1.1
       with:
         target: update-pyro-cli
- 
+
     - name: Full Build (default)
       if: success()
       uses: ecampidoglio/cake-action@v1.1.1
       with:
         target: default
- 
+
     - name: VSCE Package
       if: success()
       run: > 
@@ -63,41 +63,14 @@ jobs:
         name: ${{ env.VSIX_NAME }}
         path: src\papyrus-lang-vscode\artifact\${{ env.VSIX_NAME }}
  
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release Candidate ${{ github.ref }}
-        body: |
-          Release Candidate ${{ github.ref }} ${{ env.VSIX_NAME }}
-          This RC adds <insert details here>
-
-          - Make sure to uninstall your existing papyrus extension before installing this.
-          - Disable auto-updates because the version on test builds is always "2.0.0"
-        draft: false
-        prerelease: true
- 
-    - name: Upload Release Asset
-      id: upload_release_asset 
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }} # See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-        asset_path: src\papyrus-lang-vscode\artifact\${{ env.VSIX_NAME }}
-        asset_name: ${{ env.VSIX_NAME }}
-        asset_content_type: application/vsix
-
     # Notifications
     - name: Notify Success
       if: success()
       uses: rjstone/discord-webhook-notify@v1
       with:
         severity: info
-        description: '**Build Succeeded!** ${{ github.ref }} ${{ steps.upload_release_asset.browser_download_url }}'
+        description: '**Build Succeeded!** ${{ github.ref }} https://github.com/joelday/papyrus-lang/actions'
+        footer: Build Ended (Success)
         webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
 
     - name: Notify Failure
@@ -106,6 +79,7 @@ jobs:
       with:
         severity: error
         description: '**Build Failed!** ${{ github.ref }} ${{ env.VSIX_NAME }}'
+        footer: Build Ended (Error)
         webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
 
     - name: Notify Cancelled
@@ -114,4 +88,5 @@ jobs:
       with:
         severity: warn
         description: '**Build Cancelled!** ${{ github.ref }} ${{ env.VSIX_NAME }}'
+        footer: Build Ended (Warning)
         webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
