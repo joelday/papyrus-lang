@@ -12,78 +12,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
     {
         private Scanner<SyntaxToken> _scanner;
 
-        private SyntaxToken ConsumeExpected(SyntaxKind kind)
-        {
-            var token = _scanner.Current;
-
-            if (token == null || token.Kind != kind)
-            {
-
-                token = new SyntaxToken(kind, string.Empty)
-                {
-                    IsMissing = true,
-                    TrailingTriviaNodes = token != null ? new List<GreenNode>() { token } : new List<GreenNode>()
-                };
-
-                AddMissingExpectedDiagnostic(token, kind);
-            }
-
-            _scanner.Next();
-
-            return token;
-        }
-
-        private void AddMissingExpectedDiagnostic(GreenNode node, params SyntaxKind[] kinds)
-        {
-            var expected = kinds.Select(kind => ScriptLexer.StringTokenMap.ContainsKey(kind)
-                ? ScriptLexer.StringTokenMap[kind]
-                : nameof(kind)).Join(" | ");
-
-            node.AddDiagnostic(new DiagnosticInfo(DiagnosticLevel.Error, 1001, $"Expected {expected}."));
-        }
-
-        private SyntaxToken ConsumeKind(SyntaxKind kind)
-        {
-            var current = _scanner.Current;
-            if (current != null && current.Kind == kind)
-            {
-                _scanner.Next();
-                return current;
-            }
-
-            return null;
-        }
-
-        private IReadOnlyList<SyntaxToken> ConsumeWhile(Func<SyntaxToken, bool> func)
-        {
-            var list = new List<SyntaxToken>();
-
-            while (!_scanner.Done && func(_scanner.Current))
-            {
-                list.Add(_scanner.Current);
-                _scanner.Next();
-            }
-
-            return list;
-        }
-
-        private IReadOnlyList<GreenNode> ExpectEndOfLine(bool ignoreDiagnostic = false)
-        {
-            if (_scanner.PeekPrevious().TriviaHasNewLine())
-            {
-                return new List<GreenNode>();
-            } 
-
-            var restOfLine = ConsumeWhile(token => !token.TriviaHasNewLine()).ToList();
-
-            if (!ignoreDiagnostic)
-            {
-                restOfLine.FirstOrDefault()?.AddDiagnostic(new DiagnosticInfo(DiagnosticLevel.Error, 1002, "Expected end of line."));
-            }
-
-            return restOfLine;
-        }
-
         public ScriptSyntax Parse(string sourceText, LanguageVersion languageVersion)
         {
             var lexer = new ScriptLexer();
@@ -92,214 +20,323 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
             _scanner = new Scanner<SyntaxToken>(tokens);
             _scanner.Next();
 
-            return ParseScript();
+            return null; // ParseScript();
         }
 
-        private ScriptSyntax ParseScript()
-        {
-            var header = ParseScriptHeader();
-            var definitions = ParseDefinitions();
+        private SyntaxToken CurrentToken => _scanner.Current;
 
-            return new ScriptSyntax(header, definitions.ToList());
+        private SyntaxToken EatToken()
+        {
+            var current = CurrentToken;
+            MoveToNextToken();
+            return current;
         }
 
-        private ScriptHeaderSyntax ParseScriptHeader()
+        private SyntaxToken EatToken(SyntaxKind kind)
         {
-            var scriptNameKeyword = ConsumeExpected(SyntaxKind.ScriptNameKeyword);
-            var identifier = ParseIdentifier();
+            var current = CurrentToken;
 
-            var extendsKeyword = ConsumeKind(SyntaxKind.ExtendsKeyword);
-            var extended = extendsKeyword != null ? ParseTypeIdentifier() : null;
-
-            var flags = ParseFlags();
-
-            return new ScriptHeaderSyntax(scriptNameKeyword, identifier, extendsKeyword, extended, flags)
+            if (current.Kind == kind)
             {
-                TrailingTriviaNodes = ExpectEndOfLine()
-            };
-        }
-
-        private List<GreenNode> ParseDefinitions(Func<bool> predicateFunc = null)
-        {
-            var definitions = new List<GreenNode>();
-
-            while (!_scanner.Done && (predicateFunc == null || predicateFunc()))
-            {
-                switch (_scanner.Current.Kind)
-                {
-                    case SyntaxKind.ImportKeyword:
-                        definitions.Add(ParseImport());
-                        break;
-                    case SyntaxKind.AutoKeyword:
-                    case SyntaxKind.StateKeyword:
-                        definitions.Add(ParseState());
-                        break;
-                    case SyntaxKind.StructKeyword:
-                        definitions.Add(ParseStruct());
-                        break;
-                    case SyntaxKind.CustomEventKeyword:
-                        definitions.Add(ParseCustomEvent());
-                        break;
-                    case SyntaxKind.EventKeyword:
-                        definitions.Add(ParseEvent());
-                        break;
-                    case SyntaxKind.FunctionKeyword:
-                        definitions.Add(ParseFunction());
-                        break;
-                    case SyntaxKind.IdentifierToken:
-                        switch (_scanner.Peek().Kind)
-                        {
-                            case SyntaxKind.IdentifierToken:
-                                definitions.Add(ParseVariable());
-                                break;
-                            case SyntaxKind.PropertyKeyword:
-                                definitions.Add(ParseProperty());
-                                break;
-                            case SyntaxKind.FunctionKeyword:
-                                definitions.Add(ParseFunction());
-                                break;
-                            default:
-                                var currentIdentifier = _scanner.Current;
-                                _scanner.Next();
-
-                                var identifierErrorNode = new ErrorSyntax(currentIdentifier)
-                                {
-                                    TrailingTriviaNodes = ExpectEndOfLine(true)
-                                };
-                                
-                                AddMissingExpectedDiagnostic(identifierErrorNode, SyntaxKind.IdentifierToken, SyntaxKind.FunctionKeyword);
-                                definitions.Add(identifierErrorNode);
-                                
-                                break;
-                        }
-
-                        break;
-                    default:
-                        var current = _scanner.Current;
-                        _scanner.Next();
-
-                        var errorNode = new ErrorSyntax(current)
-                        {
-                            TrailingTriviaNodes = ExpectEndOfLine(true)
-                        };
-
-                        AddMissingExpectedDiagnostic(errorNode, 
-                            SyntaxKind.ImportKeyword,
-                            SyntaxKind.AutoKeyword,
-                            SyntaxKind.StateKeyword,
-                            SyntaxKind.StructKeyword,
-                            SyntaxKind.CustomEventKeyword,
-                            SyntaxKind.EventKeyword,
-                            SyntaxKind.FunctionKeyword,
-                            SyntaxKind.IdentifierToken,
-                            SyntaxKind.FunctionKeyword);
-
-                        definitions.Add(errorNode);
-
-                        break;
-                }
+                MoveToNextToken();
+                return current;
             }
 
-            return definitions;
+            return CreateMissingToken(kind, current.Kind, true);
         }
 
-        private GreenNode ParseProperty()
+        private void MoveToNextToken()
         {
-            ExpectEndOfLine();
-
-            return null;
+            _scanner.Next();
         }
 
-        private GreenNode ParseVariable()
+        private SyntaxToken CreateMissingToken(SyntaxKind expected, SyntaxKind actual, bool reportError)
         {
-            ExpectEndOfLine();
+            var token = new SyntaxToken(expected, string.Empty, isMissing: true);
 
-            return null;
+            
+
+            return token;
         }
 
-        private GreenNode ParseCustomEvent()
-        {
-            var customEventKeyword = ConsumeExpected(SyntaxKind.CustomEventKeyword);
-            var identifier = ParseIdentifier();
+        //private SyntaxToken ConsumeExpected(SyntaxKind kind)
+        //{
+        //    var token = _scanner.Current;
 
-            return new CustomEventDefinitionSyntax(customEventKeyword, identifier)
-            {
-                TrailingTriviaNodes = ExpectEndOfLine()
-            };
-        }
+        //    if (token == null || token.Kind != kind)
+        //    {
 
-        private GreenNode ParseStruct()
-        {
-            ExpectEndOfLine();
+        //        token = new SyntaxToken(kind, string.Empty)
+        //        {
+        //            IsMissing = true,
+        //            TrailingTriviaNodes = token != null ? new List<GreenNode>() { token } : new List<GreenNode>()
+        //        };
 
-            return null;
-        }
+        //        AddMissingExpectedDiagnostic(token, kind);
+        //    }
 
-        private StateHeaderSyntax ParseStateHeader()
-        {
-            var autoKeyword = ConsumeKind(SyntaxKind.AutoKeyword);
-            var stateKeyword = ConsumeExpected(SyntaxKind.StateKeyword);
-            var identifier = ParseIdentifier();
+        //    _scanner.Next();
 
-            return new StateHeaderSyntax(autoKeyword, stateKeyword, identifier)
-            {
-                TrailingTriviaNodes = ExpectEndOfLine()
-            };
-        }
+        //    return token;
+        //}
 
-        private GreenNode ParseState()
-        {
-            var header = ParseStateHeader();
-            var definitions = ParseDefinitions(() => _scanner.Current.Kind != SyntaxKind.EndStateKeyword);
+        //private void AddMissingExpectedDiagnostic(GreenNode node, params SyntaxKind[] kinds)
+        //{
+        //    var expected = kinds.Select(kind => ScriptLexer.StringTokenMap.ContainsKey(kind)
+        //        ? ScriptLexer.StringTokenMap[kind]
+        //        : nameof(kind)).Join(" | ");
 
-            var endStateKeyword = ConsumeExpected(SyntaxKind.EndStateKeyword);
+        //    node.AddDiagnostic(new DiagnosticInfo(DiagnosticLevel.Error, 1001, $"Expected {expected}."));
+        //}
 
-            return new StateDefinitionSyntax(header, definitions, endStateKeyword)
-            {
-                TrailingTriviaNodes = ExpectEndOfLine()
-            };
-        }
+        //private SyntaxToken ConsumeKind(SyntaxKind kind)
+        //{
+        //    var current = _scanner.Current;
+        //    if (current != null && current.Kind == kind)
+        //    {
+        //        _scanner.Next();
+        //        return current;
+        //    }
 
-        private GreenNode ParseImport()
-        {
-            var importKeyword = ConsumeExpected(SyntaxKind.ImportKeyword);
-            var identifier = ParseIdentifier();
+        //    return null;
+        //}
 
-            return new ImportSyntax(importKeyword, identifier)
-            {
-                TrailingTriviaNodes = ExpectEndOfLine()
-            };
-        }
+        //private IReadOnlyList<SyntaxToken> ConsumeWhile(Func<SyntaxToken, bool> func)
+        //{
+        //    var list = new List<SyntaxToken>();
 
-        private EventDefinitionSyntax ParseEvent()
-        {
-            ExpectEndOfLine();
+        //    while (!_scanner.Done && func(_scanner.Current))
+        //    {
+        //        list.Add(_scanner.Current);
+        //        _scanner.Next();
+        //    }
 
-            return null;
-        }
+        //    return list;
+        //}
 
-        private FunctionDefinitionSyntax ParseFunction()
-        {
-            ExpectEndOfLine();
+        //private IReadOnlyList<GreenNode> ExpectEndOfLine(bool ignoreDiagnostic = false)
+        //{
+        //    if (_scanner.PeekPrevious().TriviaHasNewLine())
+        //    {
+        //        return new List<GreenNode>();
+        //    } 
 
-            return null;
-        }
+        //    var restOfLine = ConsumeWhile(token => !token.TriviaHasNewLine()).ToList();
 
-        private IdentifierSyntax ParseIdentifier()
-        {
-            return new IdentifierSyntax(ConsumeExpected(SyntaxKind.IdentifierToken));
-        }
+        //    if (!ignoreDiagnostic)
+        //    {
+        //        restOfLine.FirstOrDefault()?.AddDiagnostic(new DiagnosticInfo(DiagnosticLevel.Error, 1002, "Expected end of line."));
+        //    }
 
-        private TypeIdentifierSyntax ParseTypeIdentifier()
-        {
-            var identifier = ParseIdentifier();
+        //    return restOfLine;
+        //}
 
-            return new TypeIdentifierSyntax(identifier, ConsumeKind(SyntaxKind.ArrayToken));
-        }
 
-        private IReadOnlyList<SyntaxToken> ParseFlags()
-        {
-            return ConsumeWhile(t => t.Kind.IsFlagOrIdentifier());
-        }
+        //private ScriptSyntax ParseScript()
+        //{
+        //    var header = ParseScriptHeader();
+        //    var definitions = ParseDefinitions();
+
+        //    return new ScriptSyntax(header, definitions.ToList());
+        //}
+
+        //private ScriptHeaderSyntax ParseScriptHeader()
+        //{
+        //    var scriptNameKeyword = ConsumeExpected(SyntaxKind.ScriptNameKeyword);
+        //    var identifier = ParseIdentifier();
+
+        //    var extendsKeyword = ConsumeKind(SyntaxKind.ExtendsKeyword);
+        //    var extended = extendsKeyword != null ? ParseTypeIdentifier() : null;
+
+        //    var flags = ParseFlags();
+
+        //    return new ScriptHeaderSyntax(scriptNameKeyword, identifier, extendsKeyword, extended, flags)
+        //    {
+        //        TrailingTriviaNodes = ExpectEndOfLine()
+        //    };
+        //}
+
+        //private List<GreenNode> ParseDefinitions(Func<bool> predicateFunc = null)
+        //{
+        //    var definitions = new List<GreenNode>();
+
+        //    while (!_scanner.Done && (predicateFunc == null || predicateFunc()))
+        //    {
+        //        switch (_scanner.Current.Kind)
+        //        {
+        //            case SyntaxKind.ImportKeyword:
+        //                definitions.Add(ParseImport());
+        //                break;
+        //            case SyntaxKind.AutoKeyword:
+        //            case SyntaxKind.StateKeyword:
+        //                definitions.Add(ParseState());
+        //                break;
+        //            case SyntaxKind.StructKeyword:
+        //                definitions.Add(ParseStruct());
+        //                break;
+        //            case SyntaxKind.CustomEventKeyword:
+        //                definitions.Add(ParseCustomEvent());
+        //                break;
+        //            case SyntaxKind.EventKeyword:
+        //                definitions.Add(ParseEvent());
+        //                break;
+        //            case SyntaxKind.FunctionKeyword:
+        //                definitions.Add(ParseFunction());
+        //                break;
+        //            case SyntaxKind.IdentifierToken:
+        //                switch (_scanner.Peek().Kind)
+        //                {
+        //                    case SyntaxKind.IdentifierToken:
+        //                        definitions.Add(ParseVariable());
+        //                        break;
+        //                    case SyntaxKind.PropertyKeyword:
+        //                        definitions.Add(ParseProperty());
+        //                        break;
+        //                    case SyntaxKind.FunctionKeyword:
+        //                        definitions.Add(ParseFunction());
+        //                        break;
+        //                    default:
+        //                        var currentIdentifier = _scanner.Current;
+        //                        _scanner.Next();
+
+        //                        var identifierErrorNode = new ErrorSyntax(currentIdentifier)
+        //                        {
+        //                            TrailingTriviaNodes = ExpectEndOfLine(true)
+        //                        };
+
+        //                        AddMissingExpectedDiagnostic(identifierErrorNode, SyntaxKind.IdentifierToken, SyntaxKind.FunctionKeyword);
+        //                        definitions.Add(identifierErrorNode);
+
+        //                        break;
+        //                }
+
+        //                break;
+        //            default:
+        //                var current = _scanner.Current;
+        //                _scanner.Next();
+
+        //                var errorNode = new ErrorSyntax(current)
+        //                {
+        //                    TrailingTriviaNodes = ExpectEndOfLine(true)
+        //                };
+
+        //                AddMissingExpectedDiagnostic(errorNode, 
+        //                    SyntaxKind.ImportKeyword,
+        //                    SyntaxKind.AutoKeyword,
+        //                    SyntaxKind.StateKeyword,
+        //                    SyntaxKind.StructKeyword,
+        //                    SyntaxKind.CustomEventKeyword,
+        //                    SyntaxKind.EventKeyword,
+        //                    SyntaxKind.FunctionKeyword,
+        //                    SyntaxKind.IdentifierToken,
+        //                    SyntaxKind.FunctionKeyword);
+
+        //                definitions.Add(errorNode);
+
+        //                break;
+        //        }
+        //    }
+
+        //    return definitions;
+        //}
+
+        //private GreenNode ParseProperty()
+        //{
+        //    ExpectEndOfLine();
+
+        //    return null;
+        //}
+
+        //private GreenNode ParseVariable()
+        //{
+        //    ExpectEndOfLine();
+
+        //    return null;
+        //}
+
+        //private GreenNode ParseCustomEvent()
+        //{
+        //    var customEventKeyword = ConsumeExpected(SyntaxKind.CustomEventKeyword);
+        //    var identifier = ParseIdentifier();
+
+        //    return new CustomEventDefinitionSyntax(customEventKeyword, identifier)
+        //    {
+        //        TrailingTriviaNodes = ExpectEndOfLine()
+        //    };
+        //}
+
+        //private GreenNode ParseStruct()
+        //{
+        //    ExpectEndOfLine();
+
+        //    return null;
+        //}
+
+        //private StateHeaderSyntax ParseStateHeader()
+        //{
+        //    var autoKeyword = ConsumeKind(SyntaxKind.AutoKeyword);
+        //    var stateKeyword = ConsumeExpected(SyntaxKind.StateKeyword);
+        //    var identifier = ParseIdentifier();
+
+        //    return new StateHeaderSyntax(autoKeyword, stateKeyword, identifier)
+        //    {
+        //        TrailingTriviaNodes = ExpectEndOfLine()
+        //    };
+        //}
+
+        //private GreenNode ParseState()
+        //{
+        //    var header = ParseStateHeader();
+        //    var definitions = ParseDefinitions(() => _scanner.Current.Kind != SyntaxKind.EndStateKeyword);
+
+        //    var endStateKeyword = ConsumeExpected(SyntaxKind.EndStateKeyword);
+
+        //    return new StateDefinitionSyntax(header, definitions, endStateKeyword)
+        //    {
+        //        TrailingTriviaNodes = ExpectEndOfLine()
+        //    };
+        //}
+
+        //private GreenNode ParseImport()
+        //{
+        //    var importKeyword = ConsumeExpected(SyntaxKind.ImportKeyword);
+        //    var identifier = ParseIdentifier();
+
+        //    return new ImportSyntax(importKeyword, identifier)
+        //    {
+        //        TrailingTriviaNodes = ExpectEndOfLine()
+        //    };
+        //}
+
+        //private EventDefinitionSyntax ParseEvent()
+        //{
+        //    ExpectEndOfLine();
+
+        //    return null;
+        //}
+
+        //private FunctionDefinitionSyntax ParseFunction()
+        //{
+        //    ExpectEndOfLine();
+
+        //    return null;
+        //}
+
+        //private IdentifierSyntax ParseIdentifier()
+        //{
+        //    return new IdentifierSyntax(ConsumeExpected(SyntaxKind.IdentifierToken));
+        //}
+
+        //private TypeIdentifierSyntax ParseTypeIdentifier()
+        //{
+        //    var identifier = ParseIdentifier();
+
+        //    return new TypeIdentifierSyntax(identifier, ConsumeKind(SyntaxKind.ArrayToken));
+        //}
+
+        //private IReadOnlyList<SyntaxToken> ParseFlags()
+        //{
+        //    return ConsumeWhile(t => t.Kind.IsFlagOrIdentifier());
+        //}
     }
 }

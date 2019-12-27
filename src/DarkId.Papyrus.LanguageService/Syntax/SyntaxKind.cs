@@ -8,8 +8,8 @@ namespace DarkId.Papyrus.LanguageService.Syntax
 {
     public enum SyntaxKind
     {
+        None,
         Unknown,
-        Error,
 
         LineContinuationTrivia,
         NewLineTrivia,

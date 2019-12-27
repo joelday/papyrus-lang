@@ -6,7 +6,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {
     internal interface IGreenNodeVisitor
     {
-        void Visit(ErrorSyntax node);
         void Visit(ArrayIndexExpressionSyntax node);
         void Visit(AssignmentStatementSyntax node);
         void Visit(BinaryOperationExpressionSyntax node);
@@ -49,7 +48,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 
     internal interface IGreenNodeVisitor<out T>
     {
-        T Visit(ErrorSyntax node);
         T Visit(ArrayIndexExpressionSyntax node);
         T Visit(AssignmentStatementSyntax node);
         T Visit(BinaryOperationExpressionSyntax node);

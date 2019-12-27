@@ -6,16 +6,23 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {
     internal class SyntaxToken : GreenNode
     {
-        public SyntaxToken(SyntaxKind kind, string text, List<GreenNode> leadingTrivia = null, List<GreenNode> trailingTrivia = null) : base(leadingTrivia, trailingTrivia)
+        public SyntaxToken(SyntaxKind kind, string text, IReadOnlyList<GreenNode> leadingTrivia = null, IReadOnlyList<GreenNode> trailingTrivia = null, bool isMissing = false) : base(leadingTrivia, trailingTrivia)
         {
             Kind = kind;
             Text = text;
+            IsMissing = isMissing;
         }
 
         public override SyntaxKind Kind { get; }
-
         public override string Text { get; }
+        public override bool IsMissing { get; }
+
         public override string FullText => LeadingTrivia + Text + TrailingTrivia;
+
+        public SyntaxToken AddTrailingTrivia(params GreenNode[] nodes)
+        {
+            return new SyntaxToken(Kind, Text, LeadingTriviaNodes, TrailingTriviaNodes.Concat(nodes).ToList());
+        }
 
         public override SyntaxNode CreateRed(SyntaxNode parent, int position)
         {

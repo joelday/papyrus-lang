@@ -11,7 +11,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 
         private readonly List<DiagnosticInfo> _diagnostics = new List<DiagnosticInfo>();
 
-        protected GreenNode(List<GreenNode> leadingTriviaNodes = null, List<GreenNode> trailingTriviaNodes = null)
+        protected GreenNode(IReadOnlyList<GreenNode> leadingTriviaNodes = null, IReadOnlyList<GreenNode> trailingTriviaNodes = null)
         {
             LeadingTriviaNodes = leadingTriviaNodes ?? new List<GreenNode>();
             TrailingTriviaNodes = trailingTriviaNodes ?? new List<GreenNode>();
@@ -19,7 +19,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 
         public IReadOnlyList<DiagnosticInfo> Diagnostics => _diagnostics;
 
-        public bool IsMissing { get; set; }
+        public virtual bool IsMissing => false;
 
         public virtual string FullText => string.Join(string.Empty, Children.Select(c => c.FullText));
         public virtual string Text => FullText.Substring(LeadingTriviaWidth, Width);

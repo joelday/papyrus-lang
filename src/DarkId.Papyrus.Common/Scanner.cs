@@ -10,20 +10,22 @@ namespace DarkId.Papyrus.Common
     {
         private readonly Stack<T> _left = new Stack<T>();
         private readonly Stack<T> _right = new Stack<T>();
+        private readonly int _startingOffset;
 
         private readonly IEnumerator<T> _enumerator;
 
         private bool _enumeratorDone;
         private T _current;
 
-        public Scanner(IEnumerable<T> enumerable)
+        public Scanner(IEnumerable<T> enumerable, int startingOffset = 0)
         {
             _enumerator = enumerable.GetEnumerator();
+            _startingOffset = startingOffset;
         }
 
         public T Current => _current;
         public bool Done => _enumeratorDone && _right.Count == 0;
-        public bool PeekDone => Peek() == null;
+        public int CurrentOffset => _startingOffset + _left.Count;
 
         public T Peek()
         {
@@ -37,17 +39,17 @@ namespace DarkId.Papyrus.Common
             return default(T);
         }
 
-        public T PeekPrevious()
-        {
-            if (Previous())
-            {
-                var current = Current;
-                Next();
-                return current;
-            }
+        //public T PeekPrevious()
+        //{
+        //    if (Previous())
+        //    {
+        //        var current = Current;
+        //        Next();
+        //        return current;
+        //    }
 
-            return default(T);
-        }
+        //    return default(T);
+        //}
 
         public IEnumerable<T> AllRemaining()
         {
@@ -100,7 +102,7 @@ namespace DarkId.Papyrus.Common
             return true;
         }
 
-        public U DoLookahead<U>(Func<U> lookaheadFunc)
+        public U WithReset<U>(Func<U> lookaheadFunc)
         {
             var currentLeftStackLength = _left.Count;
 
@@ -124,9 +126,9 @@ namespace DarkId.Papyrus.Common
             }
         }
 
-        public void DoLookahead(Action lookaheadFunc)
+        public void WithReset(Action lookaheadFunc)
         {
-            DoLookahead(() =>
+            WithReset(() =>
             {
                 lookaheadFunc();
                 return 0;
