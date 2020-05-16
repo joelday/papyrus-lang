@@ -1,3 +1,5 @@
 {
-  "recommendations": ["cake-build.cake-vscode", "ms-vscode.csharp"]
+  "recommendations": [
+    "cake-build.cake-vscode"
+  ]
 }
