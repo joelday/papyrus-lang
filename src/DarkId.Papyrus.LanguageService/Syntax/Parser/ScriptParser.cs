@@ -25,26 +25,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
 
         private SyntaxToken CurrentToken => _scanner.Current;
 
-        private SyntaxToken EatToken()
-        {
-            var current = CurrentToken;
-            MoveToNextToken();
-            return current;
-        }
-
-        private SyntaxToken EatToken(SyntaxKind kind)
-        {
-            var current = CurrentToken;
-
-            if (current.Kind == kind)
-            {
-                MoveToNextToken();
-                return current;
-            }
-
-            return CreateMissingToken(kind, current.Kind, true);
-        }
-
         private void MoveToNextToken()
         {
             _scanner.Next();
@@ -148,76 +128,74 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
             };
         }
 
-        private GreenNode ParseDefinition() {
+        private GreenNode ParseDefinition()
+        {
             switch (_scanner.Current.Kind)
-                {
-                    case SyntaxKind.ImportKeyword:
-                        return ParseImport();
-                    case SyntaxKind.AutoKeyword:
-                    case SyntaxKind.StateKeyword:
-                        return ParseState();
-                    case SyntaxKind.StructKeyword:
-                        return ParseStruct();
-                    case SyntaxKind.CustomEventKeyword:
-                        return ParseCustomEvent();
-                    case SyntaxKind.EventKeyword:
-                        return ParseEvent();
-                    case SyntaxKind.FunctionKeyword:
-                        return ParseFunction();
-                    case SyntaxKind.IdentifierToken:
-                        switch (_scanner.Peek().Kind)
-                        {
-                            case SyntaxKind.IdentifierToken:
-                                return ParseVariable();
-                                break;
-                            case SyntaxKind.PropertyKeyword:
-                                return ParseProperty();
-                                break;
-                            case SyntaxKind.FunctionKeyword:
-                                return ParseFunction();
-                                break;
-                            default:
-                                var currentIdentifier = _scanner.Current;
-                                _scanner.Next();
+            {
+                case SyntaxKind.ImportKeyword:
+                    return ParseImport();
+                case SyntaxKind.AutoKeyword:
+                case SyntaxKind.StateKeyword:
+                    return ParseState();
+                case SyntaxKind.StructKeyword:
+                    return ParseStruct();
+                case SyntaxKind.CustomEventKeyword:
+                    return ParseCustomEvent();
+                case SyntaxKind.EventKeyword:
+                    return ParseEvent();
+                case SyntaxKind.FunctionKeyword:
+                    return ParseFunction();
+                case SyntaxKind.IdentifierToken:
+                    switch (_scanner.Peek().Kind)
+                    {
+                        case SyntaxKind.IdentifierToken:
+                            return ParseVariable();
+                        case SyntaxKind.PropertyKeyword:
+                            return ParseProperty();
+                        case SyntaxKind.FunctionKeyword:
+                            return ParseFunction();
+                        default:
+                            var currentIdentifier = _scanner.Current;
+                            _scanner.Next();
 
-                                // var identifierErrorNode = new ErrorSyntax(currentIdentifier)
-                                // {
-                                //     TrailingTriviaNodes = ExpectEndOfLine(true)
-                                // };
+                            // var identifierErrorNode = new ErrorSyntax(currentIdentifier)
+                            // {
+                            //     TrailingTriviaNodes = ExpectEndOfLine(true)
+                            // };
 
-                                // AddMissingExpectedDiagnostic(identifierErrorNode, SyntaxKind.IdentifierToken, SyntaxKind.FunctionKeyword);
-                                // definitions.Add(identifierErrorNode);
+                            // AddMissingExpectedDiagnostic(identifierErrorNode, SyntaxKind.IdentifierToken, SyntaxKind.FunctionKeyword);
+                            // definitions.Add(identifierErrorNode);
 
-                                break;
-                        }
+                            break;
+                    }
 
-                        break;
-                    default:
-                        var current = _scanner.Current;
-                        _scanner.Next();
+                    break;
+                default:
+                    var current = _scanner.Current;
+                    _scanner.Next();
 
-                        // var errorNode = new ErrorSyntax(current)
-                        // {
-                        //     TrailingTriviaNodes = ExpectEndOfLine(true)
-                        // };
+                    // var errorNode = new ErrorSyntax(current)
+                    // {
+                    //     TrailingTriviaNodes = ExpectEndOfLine(true)
+                    // };
 
-                        // AddMissingExpectedDiagnostic(errorNode,
-                        //     SyntaxKind.ImportKeyword,
-                        //     SyntaxKind.AutoKeyword,
-                        //     SyntaxKind.StateKeyword,
-                        //     SyntaxKind.StructKeyword,
-                        //     SyntaxKind.CustomEventKeyword,
-                        //     SyntaxKind.EventKeyword,
-                        //     SyntaxKind.FunctionKeyword,
-                        //     SyntaxKind.IdentifierToken,
-                        //     SyntaxKind.FunctionKeyword);
+                    // AddMissingExpectedDiagnostic(errorNode,
+                    //     SyntaxKind.ImportKeyword,
+                    //     SyntaxKind.AutoKeyword,
+                    //     SyntaxKind.StateKeyword,
+                    //     SyntaxKind.StructKeyword,
+                    //     SyntaxKind.CustomEventKeyword,
+                    //     SyntaxKind.EventKeyword,
+                    //     SyntaxKind.FunctionKeyword,
+                    //     SyntaxKind.IdentifierToken,
+                    //     SyntaxKind.FunctionKeyword);
 
-                        // definitions.Add(errorNode);
+                    // definitions.Add(errorNode);
 
-                        break;
-                }
+                    break;
+            }
 
-                return null;
+            return null;
         }
 
         private List<GreenNode> ParseDefinitions()

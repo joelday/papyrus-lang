@@ -13,10 +13,6 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
 {
     public class ScriptFileTests : PerLanguageProgramTestBase
     {
-        public ScriptFileTests(PapyrusProgram program) : base(program)
-        {
-        }
-
         // TODO: Failure case tests.
 
         // [Test]

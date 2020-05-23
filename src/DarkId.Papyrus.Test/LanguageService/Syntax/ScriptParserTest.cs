@@ -13,10 +13,6 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
 {
     public class ScriptParserTest : PerLanguageProgramTestBase
     {
-        public ScriptParserTest(PapyrusProgram program) : base(program)
-        {
-        }
-
         [Test]
         public void Parser_ParsesScripts()
         {

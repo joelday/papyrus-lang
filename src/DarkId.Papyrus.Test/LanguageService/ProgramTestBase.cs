@@ -5,6 +5,7 @@ using System.Reflection;
 using DarkId.Papyrus.LanguageService;
 using DarkId.Papyrus.LanguageService.Program;
 using NUnit.Framework;
+using System.Collections.Generic;
 
 namespace DarkId.Papyrus.Test.LanguageService
 {
@@ -13,26 +14,9 @@ namespace DarkId.Papyrus.Test.LanguageService
     {
         public LanguageVersion[] Versions { get; }
 
-        public LanguageVersionsAttribute(params LanguageVersion[] versions)
+        public LanguageVersionsAttribute(LanguageVersion version, params LanguageVersion[] versions)
         {
-            Versions = versions;
-        }
-    }
-
-    [TestFixture]
-    public abstract class ProgramTestBase : IDisposable
-    {
-        protected PapyrusProgram Program { get; }
-
-        protected ProgramTestBase(PapyrusProgram program)
-        {
-            Program = program;
-            Program.ResolveSources().Wait();
-        }
-
-        public void Dispose()
-        {
-            Program.Dispose();
+            Versions = new List<LanguageVersion>().Append(version).Concat(versions).ToArray();
         }
     }
 
@@ -40,24 +24,31 @@ namespace DarkId.Papyrus.Test.LanguageService
     [TestFixtureSource(typeof(PerLanguageFixtureData))]
     public abstract class PerLanguageProgramTestBase : IDisposable
     {
-        protected PapyrusProgram Program { get; }
-        protected LanguageVersion LanguageVersion => Program.Options.LanguageVersion;
+        protected PapyrusProgram Program { get; private set; }
+        protected LanguageVersion LanguageVersion { get; set; }
 
-        protected PerLanguageProgramTestBase(PapyrusProgram program)
+        [OneTimeSetUp]
+        public void CreateProgram()
         {
-            Program = program;
+            Program = new TestServiceInstance(LanguageVersion).CreateProgram();
             Program.ResolveSources().Wait();
         }
 
+        [OneTimeTearDown]
+        public void DisposeProgram()
+        {
+            Program.Dispose();
+        }
+
         [SetUp]
-        public void PreLanguageSetup()
+        public void ValidateVersionIsApplicable()
         {
             var testMethod = GetType().GetMethod(TestContext.CurrentContext.Test.MethodName);
             var attribute = testMethod?.GetCustomAttribute<LanguageVersionsAttribute>();
 
-            if (attribute != null && !attribute.Versions.Contains(Program.Options.LanguageVersion))
+            if (attribute != null && !attribute.Versions.Contains(LanguageVersion))
             {
-                Assert.Ignore($"This test only applies to {string.Join(", ", attribute.Versions)}");
+                Assert.Ignore($"This test does not apply to {LanguageVersion}");
             }
         }
 

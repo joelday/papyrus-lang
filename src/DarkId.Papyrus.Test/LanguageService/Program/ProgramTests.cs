@@ -14,10 +14,6 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
 {
     public class ProgramTests : PerLanguageProgramTestBase
     {
-        public ProgramTests(PapyrusProgram program) : base(program)
-        {
-        }
-
         [Test]
         public async Task Program_ShouldResolveSources()
         {
@@ -26,7 +22,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Program
             await Program.ResolveSources();
 
             var sourcesPath = Path.Combine(scriptsDirectory,
-                Program.Options.LanguageVersion == LanguageVersion.Fallout4 ? "Fallout 4" : "Skyrim");
+                LanguageVersion == LanguageVersion.Fallout4 ? "Fallout 4" : "Skyrim");
 
             var sharedSources = Path.Combine(scriptsDirectory, "Shared");
 

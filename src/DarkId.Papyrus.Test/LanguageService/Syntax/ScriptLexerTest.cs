@@ -12,10 +12,6 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
 {
     public class ScriptLexerTest : PerLanguageProgramTestBase
     {
-        public ScriptLexerTest(PapyrusProgram program) : base(program)
-        {
-        }
-
         [Test]
         public void Tokenize_ProducesTokensFromSourceText()
         {

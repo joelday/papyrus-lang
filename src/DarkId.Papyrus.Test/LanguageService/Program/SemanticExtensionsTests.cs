@@ -16,7 +16,7 @@
 //{
 //    public class SemanticExtensionsTests : PerLanguageProgramTestBase
 //    {
-//        public SemanticExtensionsTests(PapyrusProgram program) : base(program)
+//        public SemanticExtensionsTests(LanguageVersion languageVersion) : base(languageVersion)
 //        {
 //        }
 
@@ -86,10 +86,10 @@
 //            var symbols = GetReferencableSymbolsAtMarker("function-body", canReturnDeclaredGlobals: true);
 //            symbols.AssertAreOfKinds(SymbolKinds.Script | SymbolKinds.Struct | SymbolKinds.Function | SymbolKinds.Variable | SymbolKinds.Property | SymbolKinds.Event);
 
-            
+
 //            Assert.IsNotNull(symbols.SingleOrDefault(s => s.Name == "LocalGlobalFunction"));
-           
-//            if (Program.Options.LanguageVersion == LanguageVersion.Fallout4)
+
+//            if (LanguageVersion == LanguageVersion.Fallout4)
 //            {
 //                Assert.IsNotNull(symbols.SingleOrDefault(s => s.Name == "GroupProperty"));
 //            }

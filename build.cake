@@ -1,4 +1,4 @@
-#addin nuget:?package=Cake.Npm&version=0.16.0
+#addin nuget:?package=Cake.Npm&version=0.17.0
 #tool nuget:?package=Microsoft.TestPlatform&version=15.9.0
 
 var target = Argument("target", "default");
