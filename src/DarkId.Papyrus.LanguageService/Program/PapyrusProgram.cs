@@ -48,6 +48,12 @@ namespace DarkId.Papyrus.LanguageService.Program
             ILogger<FlagsFile> flagsFileLogger)
         {
             _options = options.Clone();
+
+            if (_options.LanguageVersion != LanguageVersion.Fallout4 && _options.LanguageVersion != LanguageVersion.Skyrim)
+            {
+                throw new InvalidOperationException("Invalid language version.");
+            }
+
             _fileSystem = fileSystem;
             _textProvider = textProvider;
 

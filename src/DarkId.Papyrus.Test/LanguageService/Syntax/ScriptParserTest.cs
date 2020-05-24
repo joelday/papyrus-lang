@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System;
 using System.Linq;
 using DarkId.Papyrus.LanguageService;
 using DarkId.Papyrus.LanguageService.Program;
@@ -16,25 +17,26 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
         [Test]
         public void Parser_ParsesScripts()
         {
+            TestContext.Error.WriteLine($"Language Version: {LanguageVersion}");
             var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("LineContinuations")].Text.Text;
 
             var parser = new ScriptParser();
-            var script = parser.Parse(scriptText, LanguageVersion.Fallout4);
+            var script = parser.Parse(scriptText, LanguageVersion);
 
-            TestContext.Out.Write(script.PrintTree());
+            TestContext.Error.Write(script.PrintTree());
 
             foreach (var node in script.EnumerateDescendants())
             {
                 foreach (var diagnostic in node.Diagnostics)
                 {
-                    TestContext.Out.WriteLine(node.Text + " (" + diagnostic.Message + ")");
+                    TestContext.Error.WriteLine(node.Text + " (" + diagnostic.Message + ")");
                 }
             }
 
             Assert.IsEmpty(script.EnumerateDescendants().SelectMany(n => n.Diagnostics));
 
-            TestContext.Out.WriteLine();
-            TestContext.Out.Write(script.PrintTree());
+            TestContext.Error.WriteLine();
+            TestContext.Error.WriteLine();
         }
 
     }

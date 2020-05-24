@@ -1,5 +1,9 @@
 {
   "omnisharp.disableMSBuildDiagnosticWarning": true,
   "editor.formatOnSave": true,
-  "papyrus.fallout4.ignoreDebuggerVersion": true
+  "papyrus.fallout4.ignoreDebuggerVersion": true,
+  "files.watcherExclude": {
+    "**/obj": true,
+    "**/bin": true
+  }
 }

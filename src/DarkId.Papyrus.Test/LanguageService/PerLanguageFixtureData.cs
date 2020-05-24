@@ -12,7 +12,7 @@ namespace DarkId.Papyrus.Test.LanguageService
         private TestFixtureData CreateFixtureData(LanguageVersion languageVersion)
         {
             var fixtureData = new TestFixtureData();
-            fixtureData.Properties.Add("LanguageVersion", LanguageVersion.Fallout4);
+            fixtureData.Properties.Add("LanguageVersion", languageVersion);
             return fixtureData;
         }
 

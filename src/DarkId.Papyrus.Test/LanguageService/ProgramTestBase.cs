@@ -25,11 +25,12 @@ namespace DarkId.Papyrus.Test.LanguageService
     public abstract class PerLanguageProgramTestBase : IDisposable
     {
         protected PapyrusProgram Program { get; private set; }
-        protected LanguageVersion LanguageVersion { get; set; }
+        protected LanguageVersion LanguageVersion { get; private set; }
 
         [OneTimeSetUp]
         public void CreateProgram()
         {
+            LanguageVersion = (LanguageVersion)TestContext.CurrentContext.Test.Properties["LanguageVersion"].First();
             Program = new TestServiceInstance(LanguageVersion).CreateProgram();
             Program.ResolveSources().Wait();
         }

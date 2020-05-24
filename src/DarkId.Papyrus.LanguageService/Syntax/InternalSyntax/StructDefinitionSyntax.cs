@@ -6,10 +6,9 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {
     internal class StructDefinitionSyntax : GreenNode
     {
-        public StructDefinitionSyntax(SyntaxToken structKeyword, IdentifierSyntax identifier, IEnumerable<GreenNode> definitions, SyntaxToken endStructKeyword)
+        public StructDefinitionSyntax(StructHeaderSyntax header, IEnumerable<GreenNode> definitions, SyntaxToken endStructKeyword)
         {
-            StructKeyword = structKeyword;
-            Identifier = identifier;
+            Header = header;
             Definitions = definitions;
             EndStructKeyword = endStructKeyword;
         }
@@ -30,10 +29,9 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
             return visitor.Visit(this);
         }
 
-        public SyntaxToken StructKeyword { get; }
-        public IdentifierSyntax Identifier { get; }
+        public StructHeaderSyntax Header { get; }
 
-        public IEnumerable<GreenNode> Definitions { get;  }
+        public IEnumerable<GreenNode> Definitions { get; }
 
         public SyntaxToken EndStructKeyword { get; }
 
@@ -41,8 +39,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         {
             get
             {
-                yield return StructKeyword;
-                yield return Identifier;
+                yield return Header;
 
                 foreach (var definition in Definitions)
                 {

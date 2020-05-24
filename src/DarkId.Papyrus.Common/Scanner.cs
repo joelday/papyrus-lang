@@ -27,12 +27,17 @@ namespace DarkId.Papyrus.Common
         public bool Done => _enumeratorDone && _right.Count == 0;
         public int CurrentOffset => _startingOffset + _left.Count;
 
-        public T Peek()
+        public T Peek(int count = 1)
         {
             if (Next())
             {
-                var current = Current;
-                Previous();
+                var current = count > 1 ? Peek(count - 1) : Current;
+
+                if (current != null)
+                {
+                    Previous();
+                }
+
                 return current;
             }
 
@@ -100,39 +105,6 @@ namespace DarkId.Papyrus.Common
             _current = _left.Pop();
 
             return true;
-        }
-
-        public U WithReset<U>(Func<U> lookaheadFunc)
-        {
-            var currentLeftStackLength = _left.Count;
-
-            try
-            {
-                return lookaheadFunc();
-            }
-            finally
-            {
-                while (_left.Count != currentLeftStackLength)
-                {
-                    if (_left.Count > currentLeftStackLength)
-                    {
-                        Previous();
-                    }
-                    else
-                    {
-                        Next();
-                    }
-                }
-            }
-        }
-
-        public void WithReset(Action lookaheadFunc)
-        {
-            WithReset(() =>
-            {
-                lookaheadFunc();
-                return 0;
-            });
         }
     }
 }

@@ -140,6 +140,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
         WhileStatement,
         ScriptHeader,
         FunctionHeader,
-        StateHeader
+        StateHeader,
+        StructHeader
     }
 }

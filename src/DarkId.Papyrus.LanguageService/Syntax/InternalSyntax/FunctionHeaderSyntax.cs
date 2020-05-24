@@ -6,14 +6,15 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {
     internal class FunctionHeaderSyntax : GreenNode
     {
-        public FunctionHeaderSyntax(TypeIdentifierSyntax typeIdentifier, SyntaxToken functionorEventKeyword, ExpressionSyntax identifier, SyntaxToken openParen, IReadOnlyList<FunctionParameterSyntax> parameters, SyntaxToken closeParen)
+        public FunctionHeaderSyntax(TypeIdentifierSyntax typeIdentifier, SyntaxToken functionOrEventKeyword, ExpressionSyntax identifier, SyntaxToken openParen, IReadOnlyList<FunctionParameterSyntax> parameters, SyntaxToken closeParen, IReadOnlyList<SyntaxToken> flags)
         {
             TypeIdentifier = typeIdentifier;
-            FunctionOrEventKeyword = functionorEventKeyword;
+            FunctionOrEventKeyword = functionOrEventKeyword;
             Identifier = identifier;
             OpenParen = openParen;
             Parameters = parameters;
             CloseParen = closeParen;
+            Flags = flags;
         }
 
         public override SyntaxKind Kind => SyntaxKind.FunctionHeader;
@@ -38,6 +39,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         public SyntaxToken OpenParen { get; }
         public IReadOnlyList<FunctionParameterSyntax> Parameters { get; }
         public SyntaxToken CloseParen { get; }
+        public IReadOnlyList<SyntaxToken> Flags { get; }
 
         protected override IEnumerable<GreenNode> ChildrenInternal
         {
@@ -54,6 +56,11 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
                 }
 
                 yield return CloseParen;
+
+                foreach (var flag in Flags)
+                {
+                    yield return flag;
+                }
             }
         }
     }

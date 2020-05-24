@@ -39,7 +39,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
 
         private SyntaxToken ConsumeExpected(SyntaxKind kind)
         {
-            var token = _scanner.Current;
+            var token = _scanner.Peek();
 
             if (token == null || token.Kind != kind)
             {
@@ -49,7 +49,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
 
             _scanner.Next();
 
-            return token;
+            return _scanner.Current;
         }
 
         private void AddMissingExpectedDiagnostic(GreenNode node, params SyntaxKind[] kinds)
@@ -63,24 +63,28 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
 
         private SyntaxToken ConsumeKind(SyntaxKind kind)
         {
-            var current = _scanner.Current;
-            if (current != null && current.Kind == kind)
+            if (!_scanner.Done && _scanner.Peek().Kind == kind)
             {
                 _scanner.Next();
-                return current;
+                return _scanner.Current;
             }
 
             return null;
         }
 
-        private IReadOnlyList<SyntaxToken> ConsumeWhile(Func<SyntaxToken, bool> func)
+        private IReadOnlyList<SyntaxToken> ConsumeWhile(Func<SyntaxToken, bool> func, bool stopAfterNewLine = true)
         {
             var list = new List<SyntaxToken>();
 
-            while (!_scanner.Done && func(_scanner.Current))
+            while (!_scanner.Done && func(_scanner.Peek()))
             {
-                list.Add(_scanner.Current);
                 _scanner.Next();
+                list.Add(_scanner.Current);
+
+                if (_scanner.Current.TriviaHasNewLine() && stopAfterNewLine)
+                {
+                    break;
+                }
             }
 
             return list;
@@ -88,10 +92,10 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
 
         private IReadOnlyList<GreenNode> ExpectEndOfLine(bool ignoreDiagnostic = false)
         {
-            // if (_scanner.PeekPrevious().TriviaHasNewLine())
-            // {
-            //     return new List<GreenNode>();
-            // }
+            if (_scanner.Current.TriviaHasNewLine())
+            {
+                return new List<GreenNode>();
+            }
 
             var restOfLine = ConsumeWhile(token => !token.TriviaHasNewLine()).ToList();
 
@@ -130,7 +134,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
 
         private GreenNode ParseDefinition()
         {
-            switch (_scanner.Current.Kind)
+            switch (_scanner.Peek().Kind)
             {
                 case SyntaxKind.ImportKeyword:
                     return ParseImport();
@@ -146,7 +150,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
                 case SyntaxKind.FunctionKeyword:
                     return ParseFunction();
                 case SyntaxKind.IdentifierToken:
-                    switch (_scanner.Peek().Kind)
+                    switch (_scanner.Peek(2).Kind)
                     {
                         case SyntaxKind.IdentifierToken:
                             return ParseVariable();
@@ -198,11 +202,11 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
             return null;
         }
 
-        private List<GreenNode> ParseDefinitions()
+        private List<GreenNode> ParseDefinitions(Func<SyntaxToken, bool> func = null)
         {
             var definitions = new List<GreenNode>();
 
-            while (!_scanner.Done)
+            while (!_scanner.Done && (func == null || func(_scanner.Peek())))
             {
                 var definition = ParseDefinition();
                 if (definition == null)
@@ -216,21 +220,40 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
             return definitions;
         }
 
-        private GreenNode ParseProperty()
+        private PropertyDefinitionSyntax ParseProperty()
+        {
+            var typeIdentifier = ParseTypeIdentifier();
+            var propertyKeyword = ConsumeExpected(SyntaxKind.PropertyKeyword);
+            var identifier = ParseIdentifier();
+
+            var flags = ParseFlags();
+
+            if (flags.Any(f => f.Kind == SyntaxKind.AutoKeyword || f.Kind == SyntaxKind.AutoReadOnlyKeyword))
+            {
+                return new PropertyDefinitionSyntax(typeIdentifier, propertyKeyword, identifier, flags, new List<GreenNode>(), null)
+                {
+                    TrailingTriviaNodes = ExpectEndOfLine()
+                };
+            }
+
+            var accessors = ParseDefinitions(t => t.Kind != SyntaxKind.EndPropertyKeyword);
+
+            var endPropertyKeyword = ConsumeExpected(SyntaxKind.EndPropertyKeyword);
+
+            return new PropertyDefinitionSyntax(typeIdentifier, propertyKeyword, identifier, flags, accessors, endPropertyKeyword)
+            {
+                TrailingTriviaNodes = ExpectEndOfLine()
+            };
+        }
+
+        private VariableDefinitionSyntax ParseVariable()
         {
             ExpectEndOfLine();
 
             return null;
         }
 
-        private GreenNode ParseVariable()
-        {
-            ExpectEndOfLine();
-
-            return null;
-        }
-
-        private GreenNode ParseCustomEvent()
+        private CustomEventDefinitionSyntax ParseCustomEvent()
         {
             var customEventKeyword = ConsumeExpected(SyntaxKind.CustomEventKeyword);
             var identifier = ParseIdentifier();
@@ -241,11 +264,27 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
             };
         }
 
-        private GreenNode ParseStruct()
+        private StructDefinitionSyntax ParseStruct()
         {
-            ExpectEndOfLine();
+            var header = ParseStructHeader();
+            var definitions = ParseDefinitions((t) => t.Kind != SyntaxKind.EndStructKeyword);
+            var endStructKeyword = ConsumeExpected(SyntaxKind.EndStructKeyword);
 
-            return null;
+            return new StructDefinitionSyntax(header, definitions, endStructKeyword)
+            {
+                TrailingTriviaNodes = ExpectEndOfLine()
+            };
+        }
+
+        private StructHeaderSyntax ParseStructHeader()
+        {
+            var structKeyword = ConsumeExpected(SyntaxKind.StructKeyword);
+            var identifier = ParseIdentifier();
+
+            return new StructHeaderSyntax(structKeyword, identifier)
+            {
+                TrailingTriviaNodes = ExpectEndOfLine()
+            };
         }
 
         private StateHeaderSyntax ParseStateHeader()
@@ -260,10 +299,10 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
             };
         }
 
-        private GreenNode ParseState()
+        private StateDefinitionSyntax ParseState()
         {
             var header = ParseStateHeader();
-            var definitions = ParseDefinitions(); //ParseDefinitions(() => _scanner.Current.Kind != SyntaxKind.EndStateKeyword);
+            var definitions = ParseDefinitions((t) => t.Kind != SyntaxKind.EndStateKeyword);
 
             var endStateKeyword = ConsumeExpected(SyntaxKind.EndStateKeyword);
 
@@ -273,7 +312,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
             };
         }
 
-        private GreenNode ParseImport()
+        private ImportSyntax ParseImport()
         {
             var importKeyword = ConsumeExpected(SyntaxKind.ImportKeyword);
             var identifier = ParseIdentifier();
@@ -293,9 +332,37 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
 
         private FunctionDefinitionSyntax ParseFunction()
         {
-            ExpectEndOfLine();
+            var header = ParseFunctionHeader();
+
+            if (header.Flags.Any(f => f.Kind == SyntaxKind.NativeKeyword))
+            {
+                return new FunctionDefinitionSyntax(header, new List<GreenNode>(), null)
+                {
+                    TrailingTriviaNodes = ExpectEndOfLine()
+                };
+            }
+
+            var endFunctionKeyword = ConsumeExpected(SyntaxKind.EndFunctionKeyword);
+
+            return new FunctionDefinitionSyntax(header, null, endFunctionKeyword)
+            {
+                TrailingTriviaNodes = ExpectEndOfLine()
+            };
+        }
+
+        private FunctionHeaderSyntax ParseFunctionHeader(bool asEvent = false)
+        {
+            var typeIdentifier = ParseTypeIdentifier();
+            var functionKeyword = ConsumeExpected(asEvent ? SyntaxKind.EventKeyword : SyntaxKind.FunctionKeyword);
+
+            // var identifier // Member access expression for events ();
+
+            var openParen = ConsumeExpected(SyntaxKind.OpenParenToken);
+
+            var closeParen = ConsumeExpected(SyntaxKind.CloseParenToken);
 
             return null;
+            // return new FunctionHeaderSyntax(typeIdentifier, functionKeyword, )
         }
 
         private IdentifierSyntax ParseIdentifier()
@@ -312,6 +379,11 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
 
         private IReadOnlyList<SyntaxToken> ParseFlags()
         {
+            if (_scanner.Current.TriviaHasNewLine())
+            {
+                return new List<SyntaxToken>();
+            }
+
             return ConsumeWhile(t => t.Kind.IsFlagOrIdentifier());
         }
     }
