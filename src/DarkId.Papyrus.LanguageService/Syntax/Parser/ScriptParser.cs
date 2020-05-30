@@ -28,7 +28,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
 
             if (token == null || !kinds.Any(kind => kind == token.Kind))
             {
-                token = new SyntaxToken(token == null ? kinds.First() : token.Kind, string.Empty, null, token != null ? new List<GreenNode>() { token } : new List<GreenNode>(), true);
+                token = new SyntaxToken(kinds.First(), string.Empty, null, token != null ? new List<GreenNode>() { token } : new List<GreenNode>(), true);
                 AddMissingExpectedDiagnostic(token, kinds);
             }
 
@@ -48,8 +48,13 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
 
         private SyntaxToken ConsumeKind(params SyntaxKind[] kinds)
         {
-            var nextKind = _scanner.Peek().Kind;
-            if (!_scanner.Done && kinds.Any(kind => kind == nextKind))
+            var upcoming = _scanner.Peek();
+            if (upcoming == null)
+            {
+                return null;
+            }
+
+            if (kinds.Any(kind => kind == upcoming.Kind))
             {
                 _scanner.Next();
                 return _scanner.Current;
@@ -62,8 +67,14 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
         {
             var list = new List<SyntaxToken>();
 
-            while (!_scanner.Done && func(_scanner.Peek()))
+            while (!_scanner.Done)
             {
+                var upcoming = _scanner.Peek();
+                if (upcoming == null || !func(upcoming))
+                {
+                    break;
+                }
+
                 _scanner.Next();
                 list.Add(_scanner.Current);
 
@@ -221,8 +232,14 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
         {
             var definitions = new List<GreenNode>();
 
-            while (!_scanner.Done && (func == null || func(_scanner.Peek())))
+            while (!_scanner.Done)
             {
+                var upcoming = _scanner.Peek();
+                if (upcoming == null || !(func == null || func(_scanner.Peek())))
+                {
+                    break;
+                }
+
                 var definition = ParseDefinition();
                 if (definition == null)
                 {
@@ -239,8 +256,14 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Parser
         {
             var statements = new List<GreenNode>();
 
-            while (!_scanner.Done && func(_scanner.Peek()))
+            while (!_scanner.Done)
             {
+                var upcoming = _scanner.Peek();
+                if (upcoming == null || !(func == null || func(_scanner.Peek())))
+                {
+                    break;
+                }
+
                 _scanner.Next();
                 ExpectEndOfLine(true);
             }

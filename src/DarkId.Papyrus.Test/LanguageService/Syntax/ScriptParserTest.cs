@@ -9,6 +9,8 @@ using DarkId.Papyrus.LanguageService.Syntax.Lexer;
 using DarkId.Papyrus.LanguageService.Syntax.Parser;
 using NUnit.Framework;
 using SyntaxExtensions = DarkId.Papyrus.LanguageService.Syntax.SyntaxExtensions;
+using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace DarkId.Papyrus.Test.LanguageService.Syntax
 {
@@ -19,21 +21,15 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
         {
             TestContext.Error.WriteLine($"Language Version: {LanguageVersion}");
 
-            // var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("LineContinuations")].Text.Text;
             var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("WorkshopParentScript")].Text.Text;
 
+            var watch = new Stopwatch();
+            watch.Start();
             var parser = new ScriptParser();
             var script = parser.Parse(scriptText, LanguageVersion);
+            watch.Stop();
 
-            TestContext.Error.Write(script.PrintTree());
-
-            foreach (var node in script.EnumerateDescendants())
-            {
-                foreach (var diagnostic in node.Diagnostics)
-                {
-                    TestContext.Error.WriteLine(node.Text + "(" + diagnostic.Message + ")");
-                }
-            }
+            TestContext.Error.WriteLine(watch.Elapsed.ToString());
 
             Assert.IsEmpty(script.EnumerateDescendants().SelectMany(n => n.Diagnostics));
 
@@ -41,5 +37,25 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
             TestContext.Error.WriteLine();
         }
 
+        [Test]
+        public void Parser_IsStableWhenParsingPartialText()
+        {
+            TestContext.Error.WriteLine($"Language Version: {LanguageVersion}");
+
+            var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("WorkshopParentScript")].Text.Text;
+
+            Console.WriteLine(System.Environment.ProcessorCount);
+
+            Enumerable.Range(0, scriptText.Length).Where(length => length % 2000 == 0).
+                AsParallel().
+                AsUnordered().
+                WithExecutionMode(ParallelExecutionMode.ForceParallelism).
+                WithDegreeOfParallelism(16).
+                ForAll(length =>
+            {
+                var parser = new ScriptParser();
+                parser.Parse(scriptText.Substring(0, length), LanguageVersion);
+            });
+        }
     }
 }
