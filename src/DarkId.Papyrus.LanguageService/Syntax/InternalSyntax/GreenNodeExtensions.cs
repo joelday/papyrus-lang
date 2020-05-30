@@ -10,7 +10,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
     {
         public static bool TriviaHasNewLine(this GreenNode node)
         {
-            return node != null && node.TrailingTriviaNodes.Any(t => t.Kind == SyntaxKind.NewLineTrivia);
+            return node != null && node.TrailingTriviaNodes.Any(t => t.Kind == SyntaxKind.NewLineTrivia || t.Kind == SyntaxKind.EndOfFileToken);
         }
 
         public static IEnumerable<GreenNode> EnumerateDescendants(this GreenNode node, bool includeSelf = true)
@@ -28,7 +28,9 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 
         private static string PrintTreeInternal(GreenNode tree, string indent, bool last)
         {
-            var output = indent + "+- " + tree.Text.Trim() + " (" + tree.Kind + ") " + "\r\n";
+            var diagnosticMessages = string.Join(", ", tree.Diagnostics.Select(diag => diag.Message));
+
+            var output = indent + "+- " + "(" + tree.Kind + ") " + new string(tree.Text.Take(20).ToArray()).Trim() + " " + diagnosticMessages + "\r\n";
             indent += last ? "   " : "|  ";
 
             var children = tree.Children.ToList();

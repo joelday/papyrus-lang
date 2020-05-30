@@ -18,7 +18,9 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
         public void Parser_ParsesScripts()
         {
             TestContext.Error.WriteLine($"Language Version: {LanguageVersion}");
-            var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("LineContinuations")].Text.Text;
+
+            // var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("LineContinuations")].Text.Text;
+            var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("WorkshopParentScript")].Text.Text;
 
             var parser = new ScriptParser();
             var script = parser.Parse(scriptText, LanguageVersion);
@@ -29,7 +31,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
             {
                 foreach (var diagnostic in node.Diagnostics)
                 {
-                    TestContext.Error.WriteLine(node.Text + " (" + diagnostic.Message + ")");
+                    TestContext.Error.WriteLine(node.Text + "(" + diagnostic.Message + ")");
                 }
             }
 

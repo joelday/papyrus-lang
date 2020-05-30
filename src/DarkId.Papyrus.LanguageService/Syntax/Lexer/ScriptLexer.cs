@@ -114,10 +114,10 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
             TokensRegex = new Regex(
                 $@"{
                     string.Join('|',
-                        new[] {NewLineRegex, WhitespaceRegex, HexRegex, FloatRegex, IntRegex}
+                        new[] { NewLineRegex, WhitespaceRegex, HexRegex, FloatRegex, IntRegex }
                             .Select(r => r.ToString())
                             .Concat(TokenStringMap.Keys.OrderBy(k => k.Length).Reverse()
-                                .Select(k => Regex.Escape(k).Replace("/", "\\/"))
+                                .Select(k => Regex.Escape(k).Replace("/", "\\/") + (Regex.IsMatch(k, "[a-zA-Z]") ? "\\b" : string.Empty))
                             )
                         )}|{IdentifierRegex}",
                 RegexOptions.Compiled | RegexOptions.IgnoreCase
@@ -138,6 +138,16 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
 
         public IEnumerable<SyntaxToken> Tokenize(string sourceText)
         {
+            return TokenizeInternal(sourceText).
+                ToMergedOfKind(SyntaxKind.DocumentationComment).
+                ToMergedOfKind(SyntaxKind.MultilineComment).
+                ToMergedOfKind(SyntaxKind.SingleLineComment).
+                ToMergedOfKind(SyntaxKind.StringLiteral).
+                ToInlinedTriviaTokens().ToList();
+        }
+
+        private IEnumerable<SyntaxToken> TokenizeInternal(string sourceText)
+        {
             var scanner = new Scanner<Match>(TokensRegex.Matches(sourceText));
 
             if (!scanner.Next())
@@ -156,6 +166,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
 
                 var nextPosition = state.Position + text.Length;
                 var kind = GetTextTokenSyntaxKind(text);
+                var actualKind = kind;
 
                 if (state.ContentState == ScriptLexerContentState.InDocumentationComment)
                 {
@@ -195,11 +206,11 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                     }
                     else if (
                         kind == SyntaxKind.BackslashToken &&
-                        state.PreviousTokenKind != SyntaxKind.BackslashToken
+                        state.ActualPreviousTokenKind != SyntaxKind.BackslashToken
                     )
                     {
                         // we know we are escaping something
-                        kind = SyntaxKind.StringLiteralContent;
+                        kind = SyntaxKind.StringLiteral;
 
                         if (!scanner.Next())
                         {
@@ -215,11 +226,12 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                         state.ContentState = ScriptLexerContentState.InSource;
 
                         yield return new SyntaxToken(
-                            kind,
+                            SyntaxKind.StringLiteral,
                             text
                         );
 
-                        state.PreviousTokenKind = kind;
+                        state.ActualPreviousTokenKind = actualKind;
+                        state.PreviousTokenKind = SyntaxKind.StringLiteral;
                         state.Position = nextPosition;
 
                         scanner.Next();
@@ -228,7 +240,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                     }
                     else
                     {
-                        kind = SyntaxKind.StringLiteralContent;
+                        kind = SyntaxKind.StringLiteral;
                     }
                 }
 
@@ -248,6 +260,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
                         state.ContentState = ScriptLexerContentState.InSingleLineComment;
                         break;
                     case SyntaxKind.DoubleQuoteToken when (state.ContentState == ScriptLexerContentState.InSource):
+                        kind = SyntaxKind.StringLiteral;
                         state.ContentState = ScriptLexerContentState.InStringLiteral;
                         state.StringLiteralStartPosition = state.Position;
                         break;
@@ -274,6 +287,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
 
                 yield return token;
 
+                state.ActualPreviousTokenKind = actualKind;
                 state.PreviousTokenKind = kind;
                 state.Position = nextPosition;
 

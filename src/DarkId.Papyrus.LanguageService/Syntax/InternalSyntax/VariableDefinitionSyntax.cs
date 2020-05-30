@@ -5,13 +5,13 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {
     internal class VariableDefinitionSyntax : GreenNode
     {
-        public VariableDefinitionSyntax(TypeIdentifierSyntax typeIdentifier, IdentifierSyntax identifier, SyntaxToken equalsToken, LiteralExpressionSyntax initialValue, IReadOnlyList<SyntaxToken> flagTokens)
+        public VariableDefinitionSyntax(TypeIdentifierSyntax typeIdentifier, IdentifierSyntax identifier, SyntaxToken equalsToken, LiteralExpressionSyntax initialValue, IReadOnlyList<SyntaxToken> flags)
         {
             TypeIdentifier = typeIdentifier;
             Identifier = identifier;
             EqualsToken = equalsToken;
             InitialValue = initialValue;
-            FlagTokens = flagTokens;
+            Flags = flags;
         }
 
         public override SyntaxKind Kind => SyntaxKind.VariableDefinition;
@@ -25,9 +25,9 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
                 yield return EqualsToken;
                 yield return InitialValue;
 
-                foreach (var flagToken in FlagTokens)
+                foreach (var flag in Flags)
                 {
-                    yield return flagToken;
+                    yield return flag;
                 }
             }
         }
@@ -51,6 +51,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         public IdentifierSyntax Identifier { get; }
         public SyntaxToken EqualsToken { get; }
         public LiteralExpressionSyntax InitialValue { get; }
-        public IReadOnlyList<SyntaxToken> FlagTokens { get; }
+        public IReadOnlyList<SyntaxToken> Flags { get; }
     }
 }

@@ -22,6 +22,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                 SyntaxKind.SingleLineComment => true,
                 SyntaxKind.LineContinuationTrivia => true,
                 SyntaxKind.WhitespaceTrivia => true,
+                SyntaxKind.EndOfFileToken => true,
                 _ => false
             };
         }
@@ -57,7 +58,20 @@ namespace DarkId.Papyrus.LanguageService.Syntax
                 kind == SyntaxKind.BetaOnlyKeyword ||
                 kind == SyntaxKind.ConstKeyword ||
                 kind == SyntaxKind.AutoReadOnlyKeyword ||
-                kind == SyntaxKind.AutoKeyword
+                kind == SyntaxKind.AutoKeyword ||
+                kind == SyntaxKind.GlobalKeyword
+            );
+        }
+
+        public static bool IsLiteralToken(this SyntaxKind kind)
+        {
+            return (
+                kind == SyntaxKind.TrueKeyword ||
+                kind == SyntaxKind.FalseKeyword ||
+                kind == SyntaxKind.NoneKeyword ||
+                kind == SyntaxKind.IntLiteralToken ||
+                kind == SyntaxKind.FloatLiteralToken ||
+                kind == SyntaxKind.HexLiteralToken
             );
         }
 

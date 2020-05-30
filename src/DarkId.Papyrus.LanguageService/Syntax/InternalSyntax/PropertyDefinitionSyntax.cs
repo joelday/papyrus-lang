@@ -6,12 +6,9 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {
     internal class PropertyDefinitionSyntax : GreenNode
     {
-        public PropertyDefinitionSyntax(TypeIdentifierSyntax typeIdentifier, SyntaxToken propertyKeyword, IdentifierSyntax identifier, IReadOnlyList<SyntaxToken> flags, IReadOnlyList<GreenNode> accessors, SyntaxToken endPropertyKeyword)
+        public PropertyDefinitionSyntax(PropertyHeaderSyntax header, IReadOnlyList<GreenNode> accessors, SyntaxToken endPropertyKeyword)
         {
-            TypeIdentifier = typeIdentifier;
-            PropertyKeyword = propertyKeyword;
-            Identifier = identifier;
-            Flags = flags;
+            Header = header;
             Accessors = accessors;
             EndPropertyKeyword = endPropertyKeyword;
         }
@@ -32,10 +29,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
             return visitor.Visit(this);
         }
 
-        public TypeIdentifierSyntax TypeIdentifier { get; }
-        public SyntaxToken PropertyKeyword { get; }
-        public IdentifierSyntax Identifier { get; }
-        public IReadOnlyList<SyntaxToken> Flags { get; }
+        public PropertyHeaderSyntax Header { get; }
 
         public IReadOnlyList<GreenNode> Accessors { get; }
 
@@ -45,14 +39,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         {
             get
             {
-                yield return TypeIdentifier;
-                yield return PropertyKeyword;
-                yield return Identifier;
-
-                foreach (var flag in Flags)
-                {
-                    yield return flag;
-                }
+                yield return Header;
 
                 foreach (var accessor in Accessors)
                 {

@@ -6,7 +6,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {
     internal class GroupDefinitionSyntax : GreenNode
     {
-        public GroupDefinitionSyntax(GroupHeaderSyntax header, IReadOnlyList<PropertyDefinitionSyntax> definitions, SyntaxToken endGroupKeyword)
+        public GroupDefinitionSyntax(GroupHeaderSyntax header, IReadOnlyList<GreenNode> definitions, SyntaxToken endGroupKeyword)
         {
             Header = header;
             Definitions = definitions;
@@ -30,7 +30,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         }
 
         public GroupHeaderSyntax Header { get; }
-        public IReadOnlyList<PropertyDefinitionSyntax> Definitions { get; }
+        public IReadOnlyList<GreenNode> Definitions { get; }
         public SyntaxToken EndGroupKeyword { get; }
 
         protected override IEnumerable<GreenNode> ChildrenInternal

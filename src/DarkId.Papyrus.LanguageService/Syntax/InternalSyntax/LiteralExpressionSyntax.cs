@@ -12,10 +12,11 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
             throw new NotImplementedException();
         }
 
+        public SyntaxToken LeadingNegative { get; }
         public SyntaxToken Value { get; }
-
-        public LiteralExpressionSyntax(SyntaxToken value)
+        public LiteralExpressionSyntax(SyntaxToken leadingNegative, SyntaxToken value)
         {
+            LeadingNegative = leadingNegative;
             Value = value;
         }
 
@@ -33,6 +34,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         {
             get
             {
+                yield return LeadingNegative;
                 yield return Value;
             }
         }

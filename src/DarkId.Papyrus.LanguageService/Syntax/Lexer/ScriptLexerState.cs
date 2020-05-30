@@ -8,6 +8,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.Lexer
         public int Position { get; set; }
         public int StringLiteralStartPosition { get; set; }
         public SyntaxKind PreviousTokenKind { get; set; }
+        public SyntaxKind ActualPreviousTokenKind { get; set; }
         public bool AtUnterminatedStringLiteral { get; set; }
     }
 }

@@ -44,26 +44,6 @@ namespace DarkId.Papyrus.Common
             return default(T);
         }
 
-        //public T PeekPrevious()
-        //{
-        //    if (Previous())
-        //    {
-        //        var current = Current;
-        //        Next();
-        //        return current;
-        //    }
-
-        //    return default(T);
-        //}
-
-        public IEnumerable<T> AllRemaining()
-        {
-            while (Next())
-            {
-                yield return Current;
-            }
-        }
-
         public bool Next()
         {
             if (Done)

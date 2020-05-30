@@ -205,6 +205,16 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         {
             return DefaultVisit(node);
         }
+
+        public virtual T Visit(PropertyHeaderSyntax node)
+        {
+            return DefaultVisit(node);
+        }
+
+        public virtual T Visit(UnknownSyntax node)
+        {
+            return DefaultVisit(node);
+        }
     }
 
     internal abstract class GreenNodeVisitorBase : IGreenNodeVisitor
@@ -405,6 +415,16 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         }
 
         public virtual void Visit(StructHeaderSyntax node)
+        {
+            DefaultVisit(node);
+        }
+
+        public virtual void Visit(PropertyHeaderSyntax node)
+        {
+            DefaultVisit(node);
+        }
+
+        public virtual void Visit(UnknownSyntax node)
         {
             DefaultVisit(node);
         }

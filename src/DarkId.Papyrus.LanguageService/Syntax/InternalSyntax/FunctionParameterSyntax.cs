@@ -6,12 +6,13 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
 {
     internal class FunctionParameterSyntax : GreenNode
     {
-        public FunctionParameterSyntax(TypeIdentifierSyntax typeIdentifier, IdentifierSyntax identifier, SyntaxToken equalsToken, LiteralExpressionSyntax defaultValue)
+        public FunctionParameterSyntax(TypeIdentifierSyntax typeIdentifier, IdentifierSyntax identifier, SyntaxToken equalsToken, LiteralExpressionSyntax defaultValue, SyntaxToken trailingComma)
         {
             TypeIdentifier = typeIdentifier;
             Identifier = identifier;
             EqualsToken = equalsToken;
             DefaultValue = defaultValue;
+            TrailingComma = trailingComma;
         }
 
         public override SyntaxKind Kind => SyntaxKind.FunctionParameter;
@@ -24,6 +25,7 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
                 yield return Identifier;
                 yield return EqualsToken;
                 yield return DefaultValue;
+                yield return TrailingComma;
             }
         }
 
@@ -46,5 +48,6 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
         public IdentifierSyntax Identifier { get; }
         public SyntaxToken EqualsToken { get; }
         public LiteralExpressionSyntax DefaultValue { get; }
+        public SyntaxToken TrailingComma { get; }
     }
 }

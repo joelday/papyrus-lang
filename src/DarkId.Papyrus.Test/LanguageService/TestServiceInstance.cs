@@ -68,13 +68,6 @@ namespace DarkId.Papyrus.Test.LanguageService
             var programOptionsProvider = _serviceProvider.GetService<CreationKitProgramOptionsProvider>();
             var options = programOptionsProvider.GetAmbientProgramOptions();
 
-            options.Sources.Includes.Insert(0, new SourceInclude()
-            {
-                Path = Path.Combine(TestContext.CurrentContext.TestDirectory, "../../../FO4Scripts/Base"),
-                IsImport = true,
-                Recursive = true
-            });
-
             return _serviceProvider.CreateInstance<PapyrusProgram>(options);
         }
     }
