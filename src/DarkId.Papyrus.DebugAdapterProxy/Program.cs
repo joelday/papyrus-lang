@@ -169,7 +169,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                     {
                         var root = JObject.Parse(message);
 
-                        if (root.Property("event") != null && root["event"].ToString() == "stopped")
+                        if (root.TryGetValue("event", out var ev) && ev.ToString() == "stopped")
                         {
                             var processId = clientProcessId;
                             var process = System.Diagnostics.Process.GetProcessById(clientProcessId);
@@ -182,10 +182,14 @@ namespace DarkId.Papyrus.DebugAdapterProxy
 
                         WalkNode(root, (obj) =>
                         {
-                            if (obj["sourceReference"] != null && obj["name"] != null && sources.ContainsKey(obj["name"].ToString()))
+                            if (obj.ContainsKey("sourceReference") && obj.TryGetValue("name", out var n))
                             {
-                                obj["sourceReference"] = 0;
-                                obj["path"] = sources[obj["name"].ToString()];
+                                var nameStr = n.ToString();
+                                if (sources.ContainsKey(nameStr))
+                                {
+                                    obj["sourceReference"] = 0;
+                                    obj["path"] = sources[nameStr.ToString()];
+                                }
                             }
                         });
 
@@ -283,9 +287,9 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                     // For any source file that does not have a sourceReference, resolve what the actual script name is.
                     WalkNode(root, (obj) =>
                     {
-                        if ((obj.Property("sourceReference") == null || (int)obj["sourceReference"] == 0) && obj["path"] != null && obj["name"] != null)
+                        if ((!obj.TryGetValue("sourceReference", out var srcRef) || (int)srcRef == 0) && obj.TryGetValue("path", out var path) && obj.TryGetValue("name", out var _))
                         {
-                            var filePath = obj["path"].ToString();
+                            var filePath = path.ToString();
                             var matchingPair = sources.FirstOrDefault(pair => pair.Value.CaseInsensitiveEquals(filePath));
 
                             if (matchingPair.Key != default(ObjectIdentifier))
