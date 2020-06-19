@@ -28,10 +28,10 @@ namespace DarkId.Papyrus.LanguageService.Program
                 {
                     if (!await fileSystem.GetExists(include.Path))
                     {
-                        return null;
+                        return Enumerable.Empty<string>();
                     }
 
-                    return await fileSystem.FindFiles(include.Path, options.FlagsFileName, true);
+                    return await fileSystem.FindFiles(include.Path, options.FlagsFileName, true).ToArrayAsync();
                 })
                 .ToArray());
 
@@ -56,7 +56,7 @@ namespace DarkId.Papyrus.LanguageService.Program
 #else
                         include.Recursive
 #endif
-                    );
+                    ).ToListAsync();
                     return new Tuple<SourceInclude, IEnumerable<string>>(include, files);
                 })
                 .ToArray());

@@ -48,7 +48,7 @@ namespace DarkId.Papyrus.Server
 
                 if (Path.GetExtension(filePath).CaseInsensitiveEquals(".psc") && _projectManager.Projects.Count() == 0)
                 {
-                    await UpdateProjects(UpdateProjectsOptions.ReloadProjects);
+                    UpdateProjects(UpdateProjectsOptions.ReloadProjects);
                 }
 
                 await _projectManager.PublishDiagnosticsForFilePath(filePath);
@@ -57,17 +57,15 @@ namespace DarkId.Papyrus.Server
             _languageServer.AddHandlers(textProvider);
         }
 
-        private Task UpdateProjects(UpdateProjectsOptions options = UpdateProjectsOptions.None)
+        private void UpdateProjects(UpdateProjectsOptions options = UpdateProjectsOptions.None)
         {
             _projectManager.UpdateProjects(options);
             _languageServer.SendNotification("papyrus/projectsUpdated");
-
-            return Task.FromResult<object>(null);
         }
 
         public async Task<Unit> Handle(DidChangeWorkspaceFoldersParams request, CancellationToken cancellationToken)
         {
-            await UpdateProjects(UpdateProjectsOptions.ReloadProjects);
+            UpdateProjects(UpdateProjectsOptions.ReloadProjects);
             return Unit.Value;
         }
 
@@ -80,7 +78,7 @@ namespace DarkId.Papyrus.Server
         {
             if (Path.GetExtension(request.TextDocument.Uri.ToFilePath()).CaseInsensitiveEquals(".ppj"))
             {
-                await UpdateProjects(UpdateProjectsOptions.ReloadProjects);
+                UpdateProjects(UpdateProjectsOptions.ReloadProjects);
             }
 
             return Unit.Value;
@@ -107,11 +105,11 @@ namespace DarkId.Papyrus.Server
 
             if (createdOrDeleted.Any(c => Path.GetExtension(c.Uri.ToFilePath()).CaseInsensitiveEquals(".psc")))
             {
-                await UpdateProjects(UpdateProjectsOptions.ReloadProjects);
+                UpdateProjects(UpdateProjectsOptions.ReloadProjects);
             }
             else if (createdOrDeleted.Any(c => Path.GetExtension(c.Uri.ToFilePath()).CaseInsensitiveEquals(".psc")))
             {
-                await UpdateProjects(UpdateProjectsOptions.ResolveExistingProjectSources);
+                UpdateProjects(UpdateProjectsOptions.ResolveExistingProjectSources);
             }
 
             return Unit.Value;

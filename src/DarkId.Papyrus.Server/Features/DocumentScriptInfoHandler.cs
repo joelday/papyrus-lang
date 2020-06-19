@@ -35,7 +35,7 @@ namespace DarkId.Papyrus.Server.Features
             };
         }
 
-        public Task<DocumentScriptInfo> Handle(DocumentScriptInfoParams request, CancellationToken cancellationToken)
+        public async Task<DocumentScriptInfo> Handle(DocumentScriptInfoParams request, CancellationToken cancellationToken)
         {
             try
             {
@@ -51,7 +51,7 @@ namespace DarkId.Papyrus.Server.Features
                 var scriptFiles = possibleIdentifiers.SelectMany(identifier =>
                     _projectManager.Projects.Select(p => p.Program.ScriptFiles.GetValueOrDefault(identifier))).WhereNotNull().ToArray();
 
-                return Task.FromResult(new DocumentScriptInfo()
+                return new DocumentScriptInfo()
                 {
                     Identifiers = possibleIdentifiers,
                     IdentifierFiles = scriptFiles.GroupBy(f => f.Id).ToDictionary(k => k.Key.ToString(), k => k.Select(f => f.FilePath).ToList()).ToList().Select(kvp => new IdentifierFiles()
@@ -60,14 +60,14 @@ namespace DarkId.Papyrus.Server.Features
                         Files = kvp.Value
                     }).ToArray(),
                     SearchPaths = searchPaths
-                });
+                };
             }
             catch (Exception e)
             {
                 _logger.LogWarning(e, "Error while handling request.");
             }
 
-            return Task.FromResult<DocumentScriptInfo>(null);
+            return null;
         }
 
         public void SetCapability(DocumentScriptInfoCapability capability)
