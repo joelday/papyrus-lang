@@ -12,6 +12,8 @@ namespace DarkId.Papyrus.LanguageService.Syntax.InternalSyntax
             PropertyKeyword = propertyKeyword;
             Identifier = identifier;
             Flags = flags;
+            InitialValue = initialValue;
+            EqualsToken = equalsToken;
         }
 
         public override SyntaxKind Kind => SyntaxKind.PropertyHeader;
