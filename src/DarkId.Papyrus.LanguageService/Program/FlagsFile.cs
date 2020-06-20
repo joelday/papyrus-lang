@@ -1,13 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive;
+using System.Reactive.Subjects;
 using System.Text.RegularExpressions;
 using DarkId.Papyrus.Common;
 using Microsoft.Extensions.Logging;
 
 namespace DarkId.Papyrus.LanguageService.Program
 {
-    public class FlagsFile : IDisposable
+    public class FlagsFile : DisposableObject
     {
         private readonly PapyrusProgram _program;
         private readonly IScriptTextProvider _textProvider;
@@ -17,7 +19,8 @@ namespace DarkId.Papyrus.LanguageService.Program
         //private readonly TokenEqualityCachedValue<ScriptText, string> _scriptText;
         //private readonly TokenEqualityCachedValue<DiagnosticResult<dynamic>, string> _parseResult;
 
-        public event EventHandler<FlagsFileChangedEventArgs> OnChanged;
+        private readonly Subject<Unit> _changed = new Subject<Unit>();
+        public IObservable<Unit> Changed => _changed;
 
         public dynamic NativeFlagsDict => throw new NotImplementedException(); // _parseResult.Value.Value;
         public IReadOnlyList<Diagnostic> Diagnostics => throw new NotImplementedException(); // _parseResult.Value.Diagnostics);
@@ -60,24 +63,6 @@ namespace DarkId.Papyrus.LanguageService.Program
             //    });
             //},
             //(_) => _scriptText.Value.Version);
-        }
-
-        private void RaiseFlagsFileChanged()
-        {
-            OnChanged?.Invoke(this, new FlagsFileChangedEventArgs(this));
-        }
-
-        private void HandleScriptTextChanged(object sender, ScriptTextChangedEventArgs e)
-        {
-            if (e.ScriptText.FilePath.CaseInsensitiveEquals(_program.GetFlagsFilePath().WaitForResult()))
-            {
-                RaiseFlagsFileChanged();
-            }
-        }
-
-        public void Dispose()
-        {
-            _textProvider.OnScriptTextChanged -= HandleScriptTextChanged;
         }
     }
 }
