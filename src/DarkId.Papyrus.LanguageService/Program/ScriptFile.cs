@@ -12,10 +12,13 @@ using DarkId.Papyrus.LanguageService.Syntax;
 using DarkId.Papyrus.LanguageService.Program.Types;
 using DarkId.Papyrus.LanguageService.Syntax.Legacy;
 using Microsoft.Extensions.Logging;
+using System.Reactive.Subjects;
+using System.Reactive;
+using System.Reactive.Disposables;
 
 namespace DarkId.Papyrus.LanguageService.Program
 {
-    public class ScriptFile : IDisposable
+    public class ScriptFile : DisposableObject
     {
 
         private readonly ObjectIdentifier _id;
@@ -31,7 +34,9 @@ namespace DarkId.Papyrus.LanguageService.Program
         public ObjectIdentifier Id => _id;
         public string FilePath => _filePath;
 
-        public event EventHandler<ScriptFileChangedEventArgs> OnChanged;
+        private readonly Subject<Unit> _changed = new Subject<Unit>();
+        public IObservable<Unit> Changed => _changed;
+
 
         //public ScriptSyntaxNode => throw new NotImplementedException();
         //public ScriptSymbol Symbol => throw new NotImplementedException();
@@ -95,11 +100,6 @@ namespace DarkId.Papyrus.LanguageService.Program
             throw new NotImplementedException();
         }
 
-        private void RaiseScriptFileChanged()
-        {
-            OnChanged?.Invoke(this, new ScriptFileChangedEventArgs(this));
-        }
-
         private void HandleScriptTextChanged(object sender, ScriptTextChangedEventArgs e)
         {
             if (e.ScriptText.FilePath.CaseInsensitiveEquals(_filePath))
@@ -120,7 +120,7 @@ namespace DarkId.Papyrus.LanguageService.Program
                 //    }
                 //}
 
-                RaiseScriptFileChanged();
+                _changed.OnNext(Unit.Default);
             }
         }
 
@@ -153,7 +153,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             throw new NotImplementedException();
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             _textProvider.OnScriptTextChanged -= HandleScriptTextChanged;
         }

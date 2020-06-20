@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
@@ -10,7 +11,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 
 namespace DarkId.Papyrus.Server
 {
-    public class ProjectHost : IDisposable
+    public class ProjectHost : DisposableObject
     {
         private readonly object _lock = new object();
         private readonly PapyrusProgram _program;
@@ -28,30 +29,28 @@ namespace DarkId.Papyrus.Server
             _languageServer = languageServer;
 
             _program = serviceProvider.CreateInstance<PapyrusProgram>(options);
-            _program.OnScriptFileChanged += HandleScriptFileChanged;
-        }
-
-        private void HandleScriptFileChanged(object sender, ScriptFileChangedEventArgs e)
-        {
-            _logger.LogDebug($"Script file changed: {e.ScriptFile.Id} ({e.ScriptFile.FilePath})");
-
-            lock (_lock)
-            {
-                if (!_debouncedChangeHandlers.ContainsKey(e.ScriptFile.Id))
+            Add(_program.ScriptFileChanged
+                .Do(file => _logger.LogDebug($"Script file changed: {file.Id} ({file.FilePath})"))
+                .Subscribe(file =>
                 {
-                    _debouncedChangeHandlers.Add(e.ScriptFile.Id,
-                        new Debounce(() => Task.Run(() =>
+                    lock (_lock)
+                    {
+                        if (!_debouncedChangeHandlers.ContainsKey(file.Id))
                         {
-                            _program.ScriptFiles.TryGetValue(e.ScriptFile.Id, out var scriptFile);
-                            if (scriptFile != null)
-                            {
-                                scriptFile.PublishDiagnostics(_languageServer.Document);
-                            }
-                        }), TimeSpan.FromSeconds(0.5)));
-                }
+                            _debouncedChangeHandlers.Add(file.Id,
+                                new Debounce(() => Task.Run(() =>
+                                {
+                                    _program.ScriptFiles.TryGetValue(file.Id, out var scriptFile);
+                                    if (scriptFile != null)
+                                    {
+                                        scriptFile.PublishDiagnostics(_languageServer.Document);
+                                    }
+                                }), TimeSpan.FromSeconds(0.5)));
+                        }
 
-                _debouncedChangeHandlers[e.ScriptFile.Id].Trigger();
-            }
+                        _debouncedChangeHandlers[file.Id].Trigger();
+                    }
+                }));
         }
 
         public string Name => _name;
@@ -79,7 +78,7 @@ namespace DarkId.Papyrus.Server
             }
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             lock (_lock)
             {
@@ -88,7 +87,6 @@ namespace DarkId.Papyrus.Server
                     debounce.Dispose();
                 }
 
-                _program.OnScriptFileChanged -= HandleScriptFileChanged;
                 _program.Dispose();
             }
         }

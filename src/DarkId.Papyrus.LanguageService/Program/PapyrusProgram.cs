@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program.Types;
@@ -8,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DarkId.Papyrus.LanguageService.Program
 {
-    public class PapyrusProgram : IDisposable
+    public class PapyrusProgram : DisposableObject
     {
         private readonly object _lock = new object();
 
@@ -35,7 +36,8 @@ namespace DarkId.Papyrus.LanguageService.Program
         public string Name => _options.Name;
         public FlagsFile FlagsFile => _flagsFile;
 
-        public event EventHandler<ScriptFileChangedEventArgs> OnScriptFileChanged;
+        private readonly Subject<ScriptFile> _scriptFileChanged = new Subject<ScriptFile>();
+        public IObservable<ScriptFile> ScriptFileChanged => _scriptFileChanged;
 
         public ProgramOptions Options => _options.Clone();
 
@@ -63,11 +65,6 @@ namespace DarkId.Papyrus.LanguageService.Program
             _flagsFile = new FlagsFile(this, textProvider, flagsFileLogger);
 
             _typeChecker = new TypeChecker(this);
-        }
-
-        private void RaiseScriptFileChanged(object sender, ScriptFileChangedEventArgs e)
-        {
-            OnScriptFileChanged?.Invoke(this, e);
         }
 
         public ScriptFile GetScriptForFilePath(string filePath)
@@ -99,12 +96,8 @@ namespace DarkId.Papyrus.LanguageService.Program
                         (key) =>
                         {
                             var scriptFile = new ScriptFile(key, newFiles[key], this, _textProvider, _scriptFileLogger);
-                            scriptFile.OnChanged += RaiseScriptFileChanged;
+                            scriptFile.Add(scriptFile.Changed.Subscribe(_ => _scriptFileChanged.OnNext(scriptFile)));
                             return scriptFile;
-                        },
-                        preDisposalHandler: (key, scriptFile) =>
-                        {
-                            scriptFile.OnChanged -= RaiseScriptFileChanged;
                         });
                 });
 
@@ -119,7 +112,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             return includes;
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             lock (_lock)
             {
