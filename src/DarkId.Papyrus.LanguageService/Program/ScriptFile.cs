@@ -86,7 +86,30 @@ namespace DarkId.Papyrus.LanguageService.Program
                 },
                 initialVersion);
 
-            _textProvider.OnScriptTextChanged += HandleScriptTextChanged;
+            Add(_textProvider.ScriptTextChanged
+                .Subscribe((scriptText) =>
+                {
+                    if (scriptText.FilePath.CaseInsensitiveEquals(_filePath))
+                    {
+                        //var types = _program.TypeChecker.CompilerTypeTable.Types;
+                        //var scriptName = Id.FullScriptName;
+
+                        //lock (types)
+                        //{
+                        //    // We need to remove any structs that are now invalidated:
+
+                        //    var dirtyKeys = types.Keys.Where(k =>
+                        //        ObjectIdentifier.Parse(k).FullScriptName.CaseInsensitiveEquals(scriptName)).ToArray();
+
+                        //    foreach (var key in dirtyKeys)
+                        //    {
+                        //        types.Remove(key);
+                        //    }
+                        //}
+
+                        _changed.OnNext(Unit.Default);
+                    }
+                }));
         }
 
 
@@ -98,30 +121,6 @@ namespace DarkId.Papyrus.LanguageService.Program
             //});
 
             throw new NotImplementedException();
-        }
-
-        private void HandleScriptTextChanged(object sender, ScriptTextChangedEventArgs e)
-        {
-            if (e.ScriptText.FilePath.CaseInsensitiveEquals(_filePath))
-            {
-                //var types = _program.TypeChecker.CompilerTypeTable.Types;
-                //var scriptName = Id.FullScriptName;
-
-                //lock (types)
-                //{
-                //    // We need to remove any structs that are now invalidated:
-
-                //    var dirtyKeys = types.Keys.Where(k =>
-                //        ObjectIdentifier.Parse(k).FullScriptName.CaseInsensitiveEquals(scriptName)).ToArray();
-
-                //    foreach (var key in dirtyKeys)
-                //    {
-                //        types.Remove(key);
-                //    }
-                //}
-
-                _changed.OnNext(Unit.Default);
-            }
         }
 
         public string GetScriptAssembly()
@@ -151,11 +150,6 @@ namespace DarkId.Papyrus.LanguageService.Program
 //            }
 
             throw new NotImplementedException();
-        }
-
-        public override void Dispose()
-        {
-            _textProvider.OnScriptTextChanged -= HandleScriptTextChanged;
         }
     }
 }

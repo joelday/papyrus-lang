@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
@@ -40,7 +41,8 @@ namespace DarkId.Papyrus.Server
 
         public TextDocumentSyncKind Change => TextDocumentSyncKind.Incremental;
 
-        public event EventHandler<ScriptTextChangedEventArgs> OnScriptTextChanged;
+        private Subject<ScriptText> _scriptTextChanged = new Subject<ScriptText>();
+        public IObservable<ScriptText> ScriptTextChanged => _scriptTextChanged;
         public event EventHandler<DidOpenTextDocumentParams> OnDidOpenTextDocument;
 
         public TextDocumentChangeRegistrationOptions GetRegistrationOptions()
@@ -50,13 +52,6 @@ namespace DarkId.Papyrus.Server
                 SyncKind = TextDocumentSyncKind.Incremental,
                 DocumentSelector = Constants.PapyrusScriptSelector
             };
-        }
-
-        private void RaiseOnScriptTextChanged(ScriptText scriptText)
-        {
-            _logger.LogDebug($"Script text changed: {scriptText.FilePath}");
-
-            OnScriptTextChanged?.Invoke(this, new ScriptTextChangedEventArgs(scriptText));
         }
 
         public async Task<ScriptText> GetText(string filePath)
@@ -106,7 +101,9 @@ namespace DarkId.Papyrus.Server
                     request.ContentChanges.Select(change => change.ToScriptTextChange()).ToArray()
                 );
 
-                RaiseOnScriptTextChanged(scriptText);
+                _logger.LogDebug($"Script text changed: {scriptText.FilePath}");
+
+                _scriptTextChanged.OnNext(scriptText);
             }
 
             return Unit.Task;

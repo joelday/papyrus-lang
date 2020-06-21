@@ -1,8 +1,7 @@
 using System;
+using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
-
-#pragma warning disable CS0067 // Unused event handler;
 
 namespace DarkId.Papyrus.LanguageService.Program
 {
@@ -15,7 +14,8 @@ namespace DarkId.Papyrus.LanguageService.Program
             _fileSystem = fileSystem;
         }
 
-        public event EventHandler<ScriptTextChangedEventArgs> OnScriptTextChanged;
+        private readonly Subject<ScriptText> _scriptTextChanged = new Subject<ScriptText>();
+        public IObservable<ScriptText> ScriptTextChanged => _scriptTextChanged;
 
         public async Task<ScriptText> GetText(string filePath)
         {
