@@ -28,41 +28,47 @@ namespace DarkId.Papyrus.Server.Features
 
         public async Task<ProjectInfos> Handle(ProjectInfosParams request, CancellationToken cancellationToken)
         {
-            if (!_projectManager.Projects.Any())
+            if (_projectManager.Projects.Count == 0)
             {
-                _projectManager.UpdateProjects();
+                await _projectManager.UpdateProjects();
             }
 
             return new ProjectInfos()
             {
-                Projects = new Container<ProjectInfo>(_projectManager.Projects.AsParallel().AsOrdered().Select(p =>
-                {
-                    if (p.Sources == null)
+                Projects = new Container<ProjectInfo>(await _projectManager.Projects.Items
+                    .Select(p =>
                     {
-                        p.ResolveSources();
-                    }
-
-                    return new ProjectInfo()
-                    {
-                        Name = p.Name,
-                        SourceIncludes = new Container<ProjectInfoSourceInclude>(p.Sources != null ? p.Sources.Select(include =>
+                        return Task.Run(async () =>
                         {
-                            var name = !string.IsNullOrEmpty(include.Key.Path) ? Path.GetFileName(include.Key.Path) : "Scripts";
-
-                            return new ProjectInfoSourceInclude()
+                            if (p.Sources == null)
                             {
-                                Name = name,
-                                FullPath = include.Key.Path,
-                                IsImport = include.Key.IsImport,
-                                Scripts = new Container<ProjectInfoScript>(include.Value.Select(script => new ProjectInfoScript()
+                                await p.ResolveSources();
+                            }
+
+                            return new ProjectInfo()
+                            {
+                                Name = p.Name,
+                                SourceIncludes = new Container<ProjectInfoSourceInclude>(p.Sources != null ? p.Sources.Select(include =>
                                 {
-                                    Identifier = script.Key,
-                                    FilePath = script.Value
-                                }))
+                                    var name = !string.IsNullOrEmpty(include.Key.Path) ? Path.GetFileName(include.Key.Path) : "Scripts";
+
+                                    return new ProjectInfoSourceInclude()
+                                    {
+                                        Name = name,
+                                        FullPath = include.Key.Path,
+                                        IsImport = include.Key.IsImport,
+                                        Scripts = new Container<ProjectInfoScript>(include.Value.Select(script => new ProjectInfoScript()
+                                        {
+                                            Identifier = script.Key,
+                                            FilePath = script.Value
+                                        }))
+                                    };
+                                }) : Enumerable.Empty<ProjectInfoSourceInclude>())
                             };
-                        }) : Enumerable.Empty<ProjectInfoSourceInclude>())
-                    };
-                }))
+                        });
+                    })
+                    .ParallelAllAsync()
+                    .ToArrayAsync())
             };
         }
 

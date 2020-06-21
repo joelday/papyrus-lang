@@ -40,7 +40,7 @@ namespace DarkId.Papyrus.Server.Features
             try
             {
                 var filePath = request.TextDocument.Uri.ToFilePath();
-                var sourceIncludes = _projectManager.Projects.SelectMany(p => p.Program.Options.Sources.Includes);
+                var sourceIncludes = _projectManager.Projects.Items.SelectMany(p => p.Program.Options.Sources.Includes);
 
                 var searchPaths = sourceIncludes.Select(include => include.Path).Distinct().ToArray();
 
@@ -49,7 +49,7 @@ namespace DarkId.Papyrus.Server.Features
                     ObjectIdentifier.FromScriptFilePath(PathUtilities.PathNetCore.GetRelativePath(path, filePath)).ToString()).ToArray();
 
                 var scriptFiles = possibleIdentifiers.SelectMany(identifier =>
-                    _projectManager.Projects.Select(p => p.Program.ScriptFiles.GetValueOrDefault(identifier))).WhereNotNull().ToArray();
+                    _projectManager.Projects.Items.Select(p => p.Program.ScriptFiles.GetValueOrDefault(identifier))).WhereNotNull().ToArray();
 
                 return new DocumentScriptInfo()
                 {

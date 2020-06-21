@@ -44,10 +44,10 @@ namespace DarkId.Papyrus.Server
                 .Subscribe());
         }
 
-        public void ResolveSources()
+        public async Task ResolveSources()
         {
             _logger.LogInformation("Resolving script files for {0}...", Name);
-            Sources = Program.ResolveSources().WaitForResult();
+            Sources = await Program.ResolveSources();
             _logger.LogInformation("Done");
         }
     }

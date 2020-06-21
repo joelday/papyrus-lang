@@ -6,29 +6,29 @@ using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Projects;
+using DynamicData;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 
 namespace DarkId.Papyrus.Server
 {
-    [Flags]
-    public enum UpdateProjectsOptions
-    {
-        None = 0,
-        ReloadProjects = 1,
-        ResolveExistingProjectSources = 2
-    }
-
     public class ProjectManager : IDisposable
     {
         private readonly IServiceProvider _serviceProvider;
 
         private readonly ILogger _logger;
         private readonly IProgramOptionsProvider _programOptionsProvider;
-        private readonly Dictionary<string, ProjectHost> _projectHosts;
+        private readonly SourceCache<ProjectOptionsObject, string> _projectHostDriver = new SourceCache<ProjectOptionsObject, string>(o => o.Filepath);
+        public IObservableCache<ProjectHost, string> Projects { get; }
         private readonly ILanguageServer _languageServer;
-        private readonly object _lock = new object();
+        private readonly AsyncLock _projectUpdateLock = new AsyncLock();
+
+        class ProjectOptionsObject
+        {
+            public string Filepath;
+            public ProgramOptions Options;
+        }
 
         public ProjectManager(
             IServiceProvider serviceProvider,
@@ -41,100 +41,75 @@ namespace DarkId.Papyrus.Server
             _languageServer = languageServer;
             _logger = logger;
 
-            _projectHosts = new Dictionary<string, ProjectHost>();
-
             _logger.LogTrace("Project manager initialized");
-        }
 
-        public IEnumerable<ProjectHost> Projects
-        {
-            get
-            {
-                lock (_lock)
-                {
-                    return _projectHosts.Values.ToArray();
-                }
-            }
-        }
-
-        public ScriptFile GetScriptForFilePath(string filePath)
-        {
-            return _projectHosts.Values
-                .Select(p => p.Program.ScriptByPaths.Lookup(filePath))
-                .WhereLookup()
-                .FirstOrDefault();
-        }
-
-        public Task PublishDiagnosticsForFilePath(string filePath)
-        {
-            return Task.Run(() =>
-            {
-                try
-                {
-                    var script = Projects
-                        .Select(p => p.Program.ScriptByPaths.Lookup(filePath))
-                        .WhereLookup()
-                        .FirstOrDefault();
-                    script?.PublishDiagnostics(_languageServer.Document);
-                }
-                catch (Exception e)
-                {
-                    _logger.LogWarning(e, "Failed to publish diagnostics.");
-                }
-            });
-        }
-
-        // RefreshSources is for when files are added or removed.
-        // ReloadProjects is for when a project or flags file has changed.
-        public void UpdateProjects(UpdateProjectsOptions options = UpdateProjectsOptions.None)
-        {
-            lock (_lock)
-            {
-                _logger.LogTrace("Updating projects for workspaces");
-
-                if ((options & UpdateProjectsOptions.ReloadProjects) != 0)
-                {
-                    _projectHosts.SynchronizeWithFactory(new HashSet<string>(), (key) => null);
-                }
-
-                var projects = _programOptionsProvider.GetProgramOptions().WaitForResult();
-
-                _projectHosts.SynchronizeWithFactory(
-                    new HashSet<string>(projects.Keys),
-                    (key) =>
+            Projects = _projectHostDriver.Connect()
+                .TransformAsync(
+                    async o =>
                     {
                         try
                         {
-                            var projectHost = _serviceProvider.CreateInstance<ProjectHost>(projects[key]);
-                            projectHost.ResolveSources();
+                            var projectHost = _serviceProvider.CreateInstance<ProjectHost>(o.Options);
+                            await projectHost.ResolveSources();
 
                             return projectHost;
                         }
                         catch (Exception e)
                         {
-                            _logger.LogWarning(e, "Failed to load project: {0}", key);
+                            _logger.LogWarning(e, "Failed to load project: {0}", o.Filepath);
                         }
 
-                        return null;
+                        return default(ProjectHost);
                     },
-                    updateOrReplaceExisting: (key, host) =>
-                    {
-                        if ((options & UpdateProjectsOptions.ResolveExistingProjectSources) != 0)
-                        {
-                            host.ResolveSources();
-                        }
+                    // ToDo
+                    // Jack up?
+                    maximumConcurrency: 1)
+                .AsObservableCache();
+        }
 
-                        return host;
-                    });
-            }
+        public ScriptFile GetScriptForFilePath(string filePath)
+        {
+            return Projects.Items
+                .Select(p => p.Program.ScriptByPaths.Lookup(filePath))
+                .WhereLookup()
+                .FirstOrDefault();
+        }
+
+        public void PublishDiagnosticsForFilePath(string filePath)
+        {
+            var script = Projects.Items
+                .Select(p => p.Program.ScriptByPaths.Lookup(filePath))
+                .WhereLookup()
+                .FirstOrDefault();
+            script?.PublishDiagnostics(_languageServer.Document);
+        }
+
+        public async Task UpdateProjects()
+        {
+            // Lock, just to ensure only one user is updating
+            using var lockUsage = await _projectUpdateLock.WaitAsync();
+
+            _logger.LogTrace("Updating projects for workspaces");
+
+            var projects = await _programOptionsProvider.GetProgramOptions();
+            _projectHostDriver.SetTo(
+                keySelector: o => o.Filepath,
+                projects.Select(kv => new ProjectOptionsObject()
+                {
+                    Filepath = kv.Key,
+                    Options = kv.Value,
+                }),
+                setTo: CacheExtensions.SetToEnum.SetExisting);
+        }
+
+        public Task ResolveExistingProjectSources()
+        {
+            return Task.WhenAll(Projects.Items.Select(i => i.ResolveSources()));
         }
 
         public void Dispose()
         {
-            lock (_lock)
-            {
-                _projectHosts.SynchronizeWithFactory(new HashSet<string>(), (key) => null);
-            }
+            _projectHostDriver.Clear();
         }
     }
 }

@@ -47,26 +47,42 @@ namespace DarkId.Papyrus.Server
                 {
                     var filePath = textDoc.Uri.ToFilePath();
 
-                    if (Path.GetExtension(filePath).CaseInsensitiveEquals(".psc") && _projectManager.Projects.Count() == 0)
+                    if (Path.GetExtension(filePath).CaseInsensitiveEquals(".psc") && _projectManager.Projects.Count == 0)
                     {
-                        UpdateProjects(UpdateProjectsOptions.ReloadProjects);
+                        await UpdateProjects();
                     }
 
-                    await _projectManager.PublishDiagnosticsForFilePath(filePath);
+                    await Task.Run(() =>
+                    {
+                        try
+                        {
+                            _projectManager.PublishDiagnosticsForFilePath(filePath);
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.LogWarning(e, "Failed to publish diagnostics.");
+                        }
+                    });
                 }));
 
             _languageServer.AddHandlers(textProvider);
         }
 
-        private void UpdateProjects(UpdateProjectsOptions options = UpdateProjectsOptions.None)
+        private async Task UpdateProjects()
         {
-            _projectManager.UpdateProjects(options);
+            await _projectManager.UpdateProjects();
+            _languageServer.SendNotification("papyrus/projectsUpdated");
+        }
+
+        private async Task ResolveExistingProjectSources()
+        {
+            await _projectManager.ResolveExistingProjectSources();
             _languageServer.SendNotification("papyrus/projectsUpdated");
         }
 
         public async Task<Unit> Handle(DidChangeWorkspaceFoldersParams request, CancellationToken cancellationToken)
         {
-            UpdateProjects(UpdateProjectsOptions.ReloadProjects);
+            await UpdateProjects();
             return Unit.Value;
         }
 
@@ -79,7 +95,7 @@ namespace DarkId.Papyrus.Server
         {
             if (Path.GetExtension(request.TextDocument.Uri.ToFilePath()).CaseInsensitiveEquals(".ppj"))
             {
-                UpdateProjects(UpdateProjectsOptions.ReloadProjects);
+                await UpdateProjects();
             }
 
             return Unit.Value;
@@ -106,11 +122,11 @@ namespace DarkId.Papyrus.Server
 
             if (createdOrDeleted.Any(c => Path.GetExtension(c.Uri.ToFilePath()).CaseInsensitiveEquals(".psc")))
             {
-                UpdateProjects(UpdateProjectsOptions.ReloadProjects);
+                await UpdateProjects();
             }
             else if (createdOrDeleted.Any(c => Path.GetExtension(c.Uri.ToFilePath()).CaseInsensitiveEquals(".psc")))
             {
-                UpdateProjects(UpdateProjectsOptions.ResolveExistingProjectSources);
+                await ResolveExistingProjectSources();
             }
 
             return Unit.Value;
