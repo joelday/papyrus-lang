@@ -3,22 +3,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
-
-
 using DarkId.Papyrus.Common;
-using DarkId.Papyrus.LanguageService.Program.Symbols;
-using DarkId.Papyrus.LanguageService.Syntax;
-using DarkId.Papyrus.LanguageService.Program.Types;
-using DarkId.Papyrus.LanguageService.Syntax.Legacy;
 using Microsoft.Extensions.Logging;
-using System.Reactive.Subjects;
 using System.Reactive;
-using System.Reactive.Disposables;
+using DynamicData;
+using System.Reactive.Linq;
 
 namespace DarkId.Papyrus.LanguageService.Program
 {
-    public class ScriptFile : DisposableObject
+    public class ScriptFile
     {
 
         private readonly ObjectIdentifier _id;
@@ -34,8 +27,7 @@ namespace DarkId.Papyrus.LanguageService.Program
         public ObjectIdentifier Id => _id;
         public string FilePath => _filePath;
 
-        private readonly Subject<Unit> _changed = new Subject<Unit>();
-        public IObservable<Unit> Changed => _changed;
+        public IObservable<Unit> Changed { get; }
 
 
         //public ScriptSyntaxNode => throw new NotImplementedException();
@@ -86,30 +78,11 @@ namespace DarkId.Papyrus.LanguageService.Program
                 },
                 initialVersion);
 
-            Add(_textProvider.ScriptTextChanged
-                .Subscribe((scriptText) =>
-                {
-                    if (scriptText.FilePath.CaseInsensitiveEquals(_filePath))
-                    {
-                        //var types = _program.TypeChecker.CompilerTypeTable.Types;
-                        //var scriptName = Id.FullScriptName;
-
-                        //lock (types)
-                        //{
-                        //    // We need to remove any structs that are now invalidated:
-
-                        //    var dirtyKeys = types.Keys.Where(k =>
-                        //        ObjectIdentifier.Parse(k).FullScriptName.CaseInsensitiveEquals(scriptName)).ToArray();
-
-                        //    foreach (var key in dirtyKeys)
-                        //    {
-                        //        types.Remove(key);
-                        //    }
-                        //}
-
-                        _changed.OnNext(Unit.Default);
-                    }
-                }));
+            Changed = _textProvider.ScriptTextChanged
+                .Where(text => text.FilePath.CaseInsensitiveEquals(_filePath))
+                .Unit()
+                .Publish()
+                .RefCount();
         }
 
 

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive;
-using System.Reactive.Subjects;
+using System.Reactive.Linq;
 using System.Text.RegularExpressions;
 using DarkId.Papyrus.Common;
 using Microsoft.Extensions.Logging;
@@ -19,8 +19,7 @@ namespace DarkId.Papyrus.LanguageService.Program
         //private readonly TokenEqualityCachedValue<ScriptText, string> _scriptText;
         //private readonly TokenEqualityCachedValue<DiagnosticResult<dynamic>, string> _parseResult;
 
-        private readonly Subject<Unit> _changed = new Subject<Unit>();
-        public IObservable<Unit> Changed => _changed;
+        public IObservable<Unit> Changed => Observable.Empty<Unit>();
 
         public dynamic NativeFlagsDict => throw new NotImplementedException(); // _parseResult.Value.Value;
         public IReadOnlyList<Diagnostic> Diagnostics => throw new NotImplementedException(); // _parseResult.Value.Diagnostics);

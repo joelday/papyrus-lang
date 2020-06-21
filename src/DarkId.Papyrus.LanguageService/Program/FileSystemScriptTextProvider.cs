@@ -1,5 +1,5 @@
 using System;
-using System.Reactive.Subjects;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
 
@@ -14,8 +14,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             _fileSystem = fileSystem;
         }
 
-        private readonly Subject<ScriptText> _scriptTextChanged = new Subject<ScriptText>();
-        public IObservable<ScriptText> ScriptTextChanged => _scriptTextChanged;
+        public IObservable<ScriptText> ScriptTextChanged => Observable.Empty<ScriptText>();
 
         public async Task<ScriptText> GetText(string filePath)
         {

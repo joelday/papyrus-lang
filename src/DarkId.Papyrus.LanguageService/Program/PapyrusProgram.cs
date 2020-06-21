@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program.Types;
@@ -67,8 +66,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             _typeChecker = new TypeChecker(this);
 
             var scriptFiles = _objects.Connect()
-                .Transform(obj =>  new ScriptFile(obj.Identifier, obj.Path, this, _textProvider, _scriptFileLogger))
-                .DisposeMany()
+                .Transform(obj => new ScriptFile(obj.Identifier, obj.Path, this, _textProvider, _scriptFileLogger))
                 .RefCount();
             ScriptFiles = scriptFiles
                 .AsObservableCache(applyLocking: true);
