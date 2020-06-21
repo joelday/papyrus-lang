@@ -41,37 +41,33 @@ namespace DarkId.Papyrus.Server
 
         public async Task<Dictionary<string, ProgramOptions>> GetProgramOptions()
         {
-            var workspaceFolders = await Task.Run(() => _languageServer.Workspace.WorkspaceFolders().WaitForResult());
+            var workspaceFolders = await Task.Run(() => _languageServer.Workspace.WorkspaceFolders());
             var workspaceFolderPaths = workspaceFolders?.Select(f => f.Uri.ToFilePath()).ToArray() ?? new string[] { };
 
-            var workspaceProjectFiles = Task.WhenAll(workspaceFolderPaths.Select(async d =>
-            {
-                var files = await _projectLocator.FindProjectFiles(d);
-                return new Tuple<string, IEnumerable<string>>(d, files);
-            }))
-            .WaitForResult()
-            .ToDictionary(t => t.Item1, t => t.Item2);
-
-            var options = workspaceProjectFiles
-                .SelectMany(s => s.Value)
+            var options = await workspaceFolderPaths.ToAsyncEnumerable()
+                .Select(d =>
+                {
+                    return (Path: d, Files: _projectLocator.FindProjectFiles(d));
+                })
+                .Distinct(p => p.Path)
+                .SelectMany(s => s.Files)
                 .Distinct()
-                .Select(projectPath =>
+                .SelectAwait(async projectPath =>
                 {
                     try
                     {
-                        var project = _projectLoader.LoadProject(projectPath).WaitForResult();
-                        return new Tuple<string, ProgramOptions>(projectPath, new ProgramOptionsBuilder().WithProject(project).Build());
+                        var project = await _projectLoader.LoadProject(projectPath);
+                        return (ProjectPath: projectPath, Options: new ProgramOptionsBuilder().WithProject(project).Build());
                     }
                     catch (Exception e)
                     {
                         _logger.LogWarning(e, "Failed to load project file.");
                     }
 
-                    return new Tuple<string, ProgramOptions>(projectPath, null);
+                    return (ProjectPath: projectPath, Options: null);
                 })
-                .Where(p => p.Item2 != null)
-                .Where(p => p.Item2.FlagsFileName.CaseInsensitiveEquals(_projectFlagsFileName))
-                .ToDictionary(p => p.Item1, p => p.Item2);
+                .Where(p => p.Options?.FlagsFileName.CaseInsensitiveEquals(_projectFlagsFileName) ?? false)
+                .ToDictionaryAsync(p => p.ProjectPath, p => p.Options);
 
             var ambientOptions = _ambientOptionsProvider.GetAmbientProgramOptions();
             options.Add(ambientOptions.Name, ambientOptions);

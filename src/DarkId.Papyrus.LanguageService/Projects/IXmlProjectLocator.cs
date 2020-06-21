@@ -6,6 +6,6 @@ namespace DarkId.Papyrus.LanguageService.Projects
 {
     public interface IXmlProjectLocator
     {
-        Task<IEnumerable<string>> FindProjectFiles(string rootPath);
+        IAsyncEnumerable<string> FindProjectFiles(string rootPath);
     }
 }
