@@ -25,13 +25,13 @@ namespace DarkId.Papyrus.LanguageService.Program
         class SourceObject
         {
             public ObjectIdentifier Identifier;
-            public string Path;
+            public StringOrdinalIgnore Path;
         }
 
         private readonly SourceCache<SourceObject, ObjectIdentifier> _objects = new SourceCache<SourceObject, ObjectIdentifier>(i => i.Identifier);
         public readonly IObservableCache<ScriptFile, ObjectIdentifier> ScriptFiles;
-        public readonly IObservableCache<ObjectIdentifier, string> FilePaths;
-        public readonly IObservableCache<ScriptFile, string> ScriptByPaths;
+        public readonly IObservableCache<ObjectIdentifier, StringOrdinalIgnore> FilePaths;
+        public readonly IObservableCache<ScriptFile, StringOrdinalIgnore> ScriptByPaths;
         public TypeChecker TypeChecker => _typeChecker;
 
         public string Name => _options.Name;
@@ -75,7 +75,7 @@ namespace DarkId.Papyrus.LanguageService.Program
                 .Transform(obj => obj.Identifier)
                 .AsObservableCache(applyLocking: true);
             ScriptByPaths = scriptFiles
-                .ChangeKey(obj => obj.FilePath)
+                .ChangeKey(obj => new StringOrdinalIgnore(obj.FilePath))
                 .AsObservableCache(applyLocking: true);
         }
 

@@ -19,14 +19,14 @@ namespace DarkId.Papyrus.Server
 
         private readonly ILogger _logger;
         private readonly IProgramOptionsProvider _programOptionsProvider;
-        private readonly SourceCache<ProjectOptionsObject, string> _projectHostDriver = new SourceCache<ProjectOptionsObject, string>(o => o.Filepath);
-        public IObservableCache<ProjectHost, string> Projects { get; }
+        private readonly SourceCache<ProjectOptionsObject, StringOrdinalIgnore> _projectHostDriver = new SourceCache<ProjectOptionsObject, StringOrdinalIgnore>(o => o.Filepath);
+        public IObservableCache<ProjectHost, StringOrdinalIgnore> Projects { get; }
         private readonly ILanguageServer _languageServer;
         private readonly AsyncLock _projectUpdateLock = new AsyncLock();
 
         class ProjectOptionsObject
         {
-            public string Filepath;
+            public StringOrdinalIgnore Filepath;
             public ProgramOptions Options;
         }
 
