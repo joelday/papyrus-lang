@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program;
 using DarkId.Papyrus.LanguageService.Projects;
+using DynamicData;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.Embedded.MediatR;
@@ -25,12 +26,9 @@ namespace DarkId.Papyrus.Server
         IDidOpenTextDocumentHandler,
         IDidCloseTextDocumentHandler
     {
-        private readonly object _lock = new object();
-
         private readonly IScriptTextProvider _baseProvider;
 
-        private readonly Dictionary<string, ScriptText> _documentItems
-            = new Dictionary<string, ScriptText>(StringComparer.OrdinalIgnoreCase);
+        private SourceCache<ScriptText, StringOrdinalIgnore> _documentItems = new SourceCache<ScriptText, StringOrdinalIgnore>(o => o.FilePath);
         private readonly ILogger _logger;
 
         public TextDocumentScriptTextProvider(IScriptTextProvider baseProvider, ILogger<TextDocumentScriptTextProvider> logger)
@@ -57,12 +55,9 @@ namespace DarkId.Papyrus.Server
 
         public async Task<ScriptText> GetText(string filePath)
         {
-            lock (_lock)
+            if (_documentItems.TryGetValue(filePath, out var scriptText))
             {
-                if (_documentItems.ContainsKey(filePath))
-                {
-                    return _documentItems[filePath];
-                }
+                return scriptText;
             }
 
             return await _baseProvider.GetText(filePath);
@@ -80,12 +75,9 @@ namespace DarkId.Papyrus.Server
 
         public async Task<string> GetTextVersion(string filePath)
         {
-            lock (_lock)
+            if (_documentItems.TryGetValue(filePath, out var scriptText))
             {
-                if (_documentItems.ContainsKey(filePath))
-                {
-                    return _documentItems[filePath].Version.ToString();
-                }
+                return scriptText.Version.ToString();
             }
 
             return await _baseProvider.GetTextVersion(filePath);
@@ -93,51 +85,37 @@ namespace DarkId.Papyrus.Server
 
         public Task<Unit> Handle(DidChangeTextDocumentParams request, CancellationToken cancellationToken)
         {
-            lock (_lock)
+            var path = request.TextDocument.Uri.ToFilePath();
+            if (!_documentItems.TryGetValue(request.TextDocument.Uri.ToFilePath(), out var scriptText))
             {
-                var scriptText = _documentItems[request.TextDocument.Uri.ToFilePath()];
-
-                scriptText.Update(
-                    request.TextDocument.Version.ToString(),
-                    request.ContentChanges.Select(change => change.ToScriptTextChange()).ToArray()
-                );
-
-                _logger.LogDebug($"Script text changed: {scriptText.FilePath}");
-
-                _scriptTextChanged.OnNext(scriptText);
+                throw new ArgumentException($"Script text was updated for a document that was not registered: {path}");
             }
 
+            scriptText.Update(
+                request.TextDocument.Version.ToString(),
+                request.ContentChanges.Select(change => change.ToScriptTextChange()).ToArray()
+            );
+
+            _logger.LogDebug($"Script text changed: {scriptText.FilePath}");
+
+            _scriptTextChanged.OnNext(scriptText);
             return Unit.Task;
         }
 
         public Task<Unit> Handle(DidOpenTextDocumentParams request, CancellationToken cancellationToken)
         {
             _onDidOpenTextDocument.OnNext(request.TextDocument);
-
-            lock (_lock)
-            {
-                var filePath = request.TextDocument.Uri.ToFilePath();
-
-                _documentItems.Add(
-                    filePath,
-                    new ScriptText(filePath,
-                        request.TextDocument.Text,
-                        request.TextDocument.Version.ToString()
-                    ));
-            }
-
+            _documentItems.AddOrUpdate(
+                new ScriptText(
+                    request.TextDocument.Uri.ToFilePath(),
+                    request.TextDocument.Text,
+                    request.TextDocument.Version.ToString()));
             return Unit.Task;
         }
 
         public Task<Unit> Handle(DidCloseTextDocumentParams request, CancellationToken cancellationToken)
         {
-            lock (_lock)
-            {
-                var filePath = request.TextDocument.Uri.ToFilePath();
-
-                _documentItems.Remove(filePath);
-            }
-
+            _documentItems.Remove(request.TextDocument.Uri.ToFilePath());
             return Unit.Task;
         }
 
