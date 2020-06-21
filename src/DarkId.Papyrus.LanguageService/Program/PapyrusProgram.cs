@@ -38,9 +38,6 @@ namespace DarkId.Papyrus.LanguageService.Program
         public string Name => _options.Name;
         public FlagsFile FlagsFile => _flagsFile;
 
-        private readonly Subject<ScriptFile> _scriptFileChanged = new Subject<ScriptFile>();
-        public IObservable<ScriptFile> ScriptFileChanged => _scriptFileChanged;
-
         public ProgramOptions Options => _options.Clone();
 
         public PapyrusProgram(
@@ -70,14 +67,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             _typeChecker = new TypeChecker(this);
 
             var scriptFiles = _objects.Connect()
-                .Transform(obj =>
-                {
-                    var ret = new ScriptFile(obj.Identifier, obj.Path, this, _textProvider, _scriptFileLogger);
-                    // Add subscription to trickle changes up
-                    ret.Add(ret.Changed.Subscribe(_ => _scriptFileChanged.OnNext(ret)));
-                    return ret;
-                })
-                // Dispose of ScriptFiles when they are destroyed
+                .Transform(obj =>  new ScriptFile(obj.Identifier, obj.Path, this, _textProvider, _scriptFileLogger))
                 .DisposeMany()
                 .RefCount();
             ScriptFiles = scriptFiles
