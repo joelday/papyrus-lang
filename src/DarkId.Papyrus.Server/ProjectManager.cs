@@ -59,7 +59,10 @@ namespace DarkId.Papyrus.Server
 
         public ScriptFile GetScriptForFilePath(string filePath)
         {
-            return _projectHosts.Values.Select(p => p.Program.GetScriptForFilePath(filePath)).WhereNotNull().FirstOrDefault();
+            return _projectHosts.Values
+                .Select(p => p.Program.ScriptByPaths.Lookup(filePath))
+                .WhereLookup()
+                .FirstOrDefault();
         }
 
         public Task PublishDiagnosticsForFilePath(string filePath)
@@ -68,10 +71,11 @@ namespace DarkId.Papyrus.Server
             {
                 try
                 {
-                    Projects
-                        .Select(p => p.Program.GetScriptForFilePath(filePath))
-                        .FirstOrDefault()
-                        ?.PublishDiagnostics(_languageServer.Document);
+                    var script = Projects
+                        .Select(p => p.Program.ScriptByPaths.Lookup(filePath))
+                        .WhereLookup()
+                        .FirstOrDefault();
+                    script?.PublishDiagnostics(_languageServer.Document);
                 }
                 catch (Exception e)
                 {

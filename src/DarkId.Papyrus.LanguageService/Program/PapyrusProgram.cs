@@ -5,14 +5,13 @@ using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Program.Types;
+using DynamicData;
 using Microsoft.Extensions.Logging;
 
 namespace DarkId.Papyrus.LanguageService.Program
 {
     public class PapyrusProgram : DisposableObject
     {
-        private readonly object _lock = new object();
-
         private readonly ProgramOptions _options;
         private readonly IFileSystem _fileSystem;
         private readonly IScriptTextProvider _textProvider;
@@ -23,14 +22,17 @@ namespace DarkId.Papyrus.LanguageService.Program
         private readonly FlagsFile _flagsFile;
         private readonly TypeChecker _typeChecker;
 
-        private readonly Dictionary<ObjectIdentifier, ScriptFile> _scriptFiles
-            = new Dictionary<ObjectIdentifier, ScriptFile>();
+        // Internal storage class
+        class SourceObject
+        {
+            public ObjectIdentifier Identifier;
+            public string Path;
+        }
 
-        private Dictionary<string, ObjectIdentifier> _filePaths
-            = new Dictionary<string, ObjectIdentifier>(StringComparer.OrdinalIgnoreCase);
-
-        public IReadOnlyDictionary<ObjectIdentifier, ScriptFile> ScriptFiles => _scriptFiles;
-        public IReadOnlyDictionary<string, ObjectIdentifier> FilePaths => _filePaths;
+        private readonly SourceCache<SourceObject, ObjectIdentifier> _objects = new SourceCache<SourceObject, ObjectIdentifier>(i => i.Identifier);
+        public readonly IObservableCache<ScriptFile, ObjectIdentifier> ScriptFiles;
+        public readonly IObservableCache<ObjectIdentifier, string> FilePaths;
+        public readonly IObservableCache<ScriptFile, string> ScriptByPaths;
         public TypeChecker TypeChecker => _typeChecker;
 
         public string Name => _options.Name;
@@ -63,18 +65,30 @@ namespace DarkId.Papyrus.LanguageService.Program
             _scriptFileLogger = scriptFileLogger;
 
             _flagsFile = new FlagsFile(this, textProvider, flagsFileLogger);
+            Add(_flagsFile);
 
             _typeChecker = new TypeChecker(this);
-        }
 
-        public ScriptFile GetScriptForFilePath(string filePath)
-        {
-            lock (_lock)
-            {
-                // TODO: It's weird that both of these have to be checked given that they should always be in sync.
-                return _filePaths.ContainsKey(filePath) && _scriptFiles.ContainsKey(_filePaths[filePath])
-                    ? _scriptFiles[_filePaths[filePath]] : null;
-            }
+            var scriptFiles = _objects.Connect()
+                .Transform(obj =>
+                {
+                    var ret = new ScriptFile(obj.Identifier, obj.Path, this, _textProvider, _scriptFileLogger);
+                    // Add subscription to trickle changes up
+                    ret.Add(ret.Changed.Subscribe(_ => _scriptFileChanged.OnNext(ret)));
+                    return ret;
+                })
+                // Dispose of ScriptFiles when they are destroyed
+                .DisposeMany()
+                .RefCount();
+            ScriptFiles = scriptFiles
+                .AsObservableCache(applyLocking: true);
+            FilePaths = _objects.Connect()
+                .ChangeKey(obj => obj.Path)
+                .Transform(obj => obj.Identifier)
+                .AsObservableCache(applyLocking: true);
+            ScriptByPaths = scriptFiles
+                .ChangeKey(obj => obj.FilePath)
+                .AsObservableCache(applyLocking: true);
         }
 
         public Task<string> GetFlagsFilePath()
@@ -85,40 +99,18 @@ namespace DarkId.Papyrus.LanguageService.Program
         public async Task<Dictionary<SourceInclude, Dictionary<ObjectIdentifier, string>>> ResolveSources()
         {
             var includes = await _fileSystem.ResolveSourceFileIncludes(_options.Sources);
-            var newFiles = includes.FlattenIncludes();
-
-            lock (_lock)
-            {
-                var fileSyncTask = Task.Run(() =>
+            _objects.SetTo(includes.FlattenIncludes()
+                .Select(i => new SourceObject()
                 {
-                    _scriptFiles.SynchronizeWithFactory(
-                        new HashSet<ObjectIdentifier>(newFiles.Keys),
-                        (key) =>
-                        {
-                            var scriptFile = new ScriptFile(key, newFiles[key], this, _textProvider, _scriptFileLogger);
-                            scriptFile.Add(scriptFile.Changed.Subscribe(_ => _scriptFileChanged.OnNext(scriptFile)));
-                            return scriptFile;
-                        });
-                });
-
-                var filePathSyncTask = Task.Run(() =>
-                {
-                    _filePaths = newFiles.ToDictionary(kvp => kvp.Value, kvp => kvp.Key, StringComparer.OrdinalIgnoreCase);
-                });
-
-                Task.WaitAll(fileSyncTask, filePathSyncTask);
-            }
-
+                    Identifier = i.Key,
+                    Path = i.Value
+                }));
             return includes;
         }
 
         public override void Dispose()
         {
-            lock (_lock)
-            {
-                _flagsFile.Dispose();
-                _scriptFiles.SynchronizeWithFactory(new HashSet<ObjectIdentifier>(), _ => null);
-            }
+            _objects.Clear();
         }
     }
 }

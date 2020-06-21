@@ -6,6 +6,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="DynamicData" Version="6.15.1" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="3.0.0" />
 		<PackageReference Include="System.Interactive.Async" Version="4.1.1" />
 		<PackageReference Include="System.Linq.Async" Version="4.1.1" />

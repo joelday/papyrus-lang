@@ -21,7 +21,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
         {
             TestContext.Error.WriteLine($"Language Version: {LanguageVersion}");
 
-            var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("WorkshopParentScript")].Text.Text;
+            var scriptText = Program.ScriptFiles.Lookup(ObjectIdentifier.Parse("WorkshopParentScript")).Value.Text.Text;
 
             var watch = new Stopwatch();
             watch.Start();
@@ -42,7 +42,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
         {
             TestContext.Error.WriteLine($"Language Version: {LanguageVersion}");
 
-            var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("WorkshopParentScript")].Text.Text;
+            var scriptText = Program.ScriptFiles.Lookup(ObjectIdentifier.Parse("WorkshopParentScript")).Value.Text.Text;
 
             Console.WriteLine(System.Environment.ProcessorCount);
 

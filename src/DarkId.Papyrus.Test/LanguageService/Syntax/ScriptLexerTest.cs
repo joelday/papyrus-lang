@@ -17,7 +17,7 @@ namespace DarkId.Papyrus.Test.LanguageService.Syntax
         {
             var lexer = new ScriptLexer();
 
-            var scriptText = Program.ScriptFiles[ObjectIdentifier.Parse("LineContinuations")].Text.Text;
+            var scriptText = Program.ScriptFiles.Lookup(ObjectIdentifier.Parse("LineContinuations")).Value.Text.Text;
 
             var tokens = lexer.Tokenize(
                 scriptText).ToList();
