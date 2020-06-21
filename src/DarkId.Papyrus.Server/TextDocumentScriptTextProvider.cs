@@ -43,7 +43,8 @@ namespace DarkId.Papyrus.Server
 
         private Subject<ScriptText> _scriptTextChanged = new Subject<ScriptText>();
         public IObservable<ScriptText> ScriptTextChanged => _scriptTextChanged;
-        public event EventHandler<DidOpenTextDocumentParams> OnDidOpenTextDocument;
+        private readonly Subject<TextDocumentItem> _onDidOpenTextDocument = new Subject<TextDocumentItem>();
+        public IObservable<TextDocumentItem> OnDidOpenTextDocument => _onDidOpenTextDocument;
 
         public TextDocumentChangeRegistrationOptions GetRegistrationOptions()
         {
@@ -111,7 +112,7 @@ namespace DarkId.Papyrus.Server
 
         public Task<Unit> Handle(DidOpenTextDocumentParams request, CancellationToken cancellationToken)
         {
-            OnDidOpenTextDocument?.Invoke(this, request);
+            _onDidOpenTextDocument.OnNext(request.TextDocument);
 
             lock (_lock)
             {

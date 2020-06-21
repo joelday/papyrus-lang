@@ -68,14 +68,10 @@ namespace DarkId.Papyrus.Server
             {
                 try
                 {
-                    var scriptFile = Projects
+                    Projects
                         .Select(p => p.Program.GetScriptForFilePath(filePath))
-                        .FirstOrDefault();
-
-                    if (scriptFile != null)
-                    {
-                        scriptFile.PublishDiagnostics(_languageServer.Document);
-                    }
+                        .FirstOrDefault()
+                        ?.PublishDiagnostics(_languageServer.Document);
                 }
                 catch (Exception e)
                 {

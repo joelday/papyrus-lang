@@ -16,7 +16,7 @@ using DarkId.Papyrus.LanguageService.Program;
 
 namespace DarkId.Papyrus.Server
 {
-    public class WorkspaceManager : IDidChangeWorkspaceFoldersHandler, IDidSaveTextDocumentHandler, IDidChangeWatchedFilesHandler
+    public class WorkspaceManager : DisposableObject, IDidChangeWorkspaceFoldersHandler, IDidSaveTextDocumentHandler, IDidChangeWatchedFilesHandler
     {
         private readonly OmniSharp.Extensions.LanguageServer.Server.ILanguageServer _languageServer;
         private readonly ILogger _logger;
@@ -42,17 +42,18 @@ namespace DarkId.Papyrus.Server
 
             var textProvider = (TextDocumentScriptTextProvider)_serviceProvider.GetService<IScriptTextProvider>();
 
-            textProvider.OnDidOpenTextDocument += async (s, e) =>
-            {
-                var filePath = e.TextDocument.Uri.ToFilePath();
-
-                if (Path.GetExtension(filePath).CaseInsensitiveEquals(".psc") && _projectManager.Projects.Count() == 0)
+            Add(textProvider.OnDidOpenTextDocument
+                .Subscribe(async textDoc =>
                 {
-                    UpdateProjects(UpdateProjectsOptions.ReloadProjects);
-                }
+                    var filePath = textDoc.Uri.ToFilePath();
 
-                await _projectManager.PublishDiagnosticsForFilePath(filePath);
-            };
+                    if (Path.GetExtension(filePath).CaseInsensitiveEquals(".psc") && _projectManager.Projects.Count() == 0)
+                    {
+                        UpdateProjects(UpdateProjectsOptions.ReloadProjects);
+                    }
+
+                    await _projectManager.PublishDiagnosticsForFilePath(filePath);
+                }));
 
             _languageServer.AddHandlers(textProvider);
         }
