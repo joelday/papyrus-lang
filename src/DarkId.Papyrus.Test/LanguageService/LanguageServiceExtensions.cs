@@ -16,7 +16,7 @@ namespace DarkId.Papyrus.Test.LanguageService
         public static TextPosition GetTestMarker(this ScriptFile file, string marker, bool beforeMarker = false)
         {
             var markerComment = $";/marker:{marker}/;";
-            var markerCommentIndex = file.Text.Text.IndexOf(markerComment);
+            var markerCommentIndex = file.Text.Text.Value.IndexOf(markerComment);
             if (markerCommentIndex == -1)
             {
                 return new TextPosition();

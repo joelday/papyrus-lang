@@ -14,7 +14,7 @@ namespace DarkId.Papyrus.LanguageService.Program
             _fileSystem = fileSystem;
         }
 
-        public IObservable<ScriptText> ScriptTextChanged => Observable.Empty<ScriptText>();
+        public IObservable<System.Reactive.Unit> ScriptTextChanged(string filePath) => Observable.Empty<System.Reactive.Unit>();
 
         public async Task<ScriptText> GetText(string filePath)
         {

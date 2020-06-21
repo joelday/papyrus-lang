@@ -99,7 +99,7 @@ namespace DarkId.Papyrus.Common
                 .Switch();
         }
 
-        public static IObservable<Unit> Unit<T>(this IObservable<T> source)
+        public static IObservable<System.Reactive.Unit> Unit<T>(this IObservable<T> source)
         {
             return source.Select(u => System.Reactive.Unit.Default);
         }

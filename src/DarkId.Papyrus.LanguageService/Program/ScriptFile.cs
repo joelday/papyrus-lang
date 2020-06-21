@@ -78,11 +78,7 @@ namespace DarkId.Papyrus.LanguageService.Program
                 },
                 initialVersion);
 
-            Changed = _textProvider.ScriptTextChanged
-                .Where(text => text.FilePath.CaseInsensitiveEquals(_filePath))
-                .Unit()
-                .Publish()
-                .RefCount();
+            Changed = _textProvider.ScriptTextChanged(_filePath);
         }
 
 

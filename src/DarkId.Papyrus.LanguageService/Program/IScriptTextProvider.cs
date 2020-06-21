@@ -8,6 +8,6 @@ namespace DarkId.Papyrus.LanguageService.Program
     {
         Task<ScriptText> GetText(string filePath);
         Task<string> GetTextVersion(string filePath);
-        IObservable<ScriptText> ScriptTextChanged { get; }
+        IObservable<System.Reactive.Unit> ScriptTextChanged(string filePath);
     }
 }

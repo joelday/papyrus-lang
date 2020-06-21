@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,9 +39,6 @@ namespace DarkId.Papyrus.Server
         }
 
         public TextDocumentSyncKind Change => TextDocumentSyncKind.Incremental;
-
-        private Subject<ScriptText> _scriptTextChanged = new Subject<ScriptText>();
-        public IObservable<ScriptText> ScriptTextChanged => _scriptTextChanged;
         private readonly Subject<TextDocumentItem> _onDidOpenTextDocument = new Subject<TextDocumentItem>();
         public IObservable<TextDocumentItem> OnDidOpenTextDocument => _onDidOpenTextDocument;
 
@@ -97,8 +95,6 @@ namespace DarkId.Papyrus.Server
             );
 
             _logger.LogDebug($"Script text changed: {scriptText.FilePath}");
-
-            _scriptTextChanged.OnNext(scriptText);
             return Unit.Task;
         }
 
@@ -128,6 +124,17 @@ namespace DarkId.Papyrus.Server
         TextDocumentRegistrationOptions IRegistration<TextDocumentRegistrationOptions>.GetRegistrationOptions()
         {
             return GetRegistrationOptions();
+        }
+
+        public IObservable<System.Reactive.Unit> ScriptTextChanged(string filePath)
+        {
+            return _documentItems.Connect()
+                .Watch(filePath)
+                .Select(s => s.Current?.Text ?? Observable.Empty<string>())
+                .Switch()
+                .Unit()
+                .Publish()
+                .RefCount();
         }
     }
 }

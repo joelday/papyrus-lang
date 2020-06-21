@@ -9,8 +9,8 @@ namespace DarkId.Papyrus.Common
     public interface IReadOnlyScriptText
     {
         string FilePath { get; }
-        string Text { get; }
-        string Version { get; }
+        IReadOnlyBehavior<string> Text { get; }
+        IReadOnlyBehavior<string> Version { get; }
 
         string GetTextInRange(TextRange range);
 
@@ -23,14 +23,16 @@ namespace DarkId.Papyrus.Common
         private List<int> _lineOffsets;
 
         public string FilePath { get; }
-        public string Text { get; private set; }
-        public string Version { get; private set; }
+        private readonly Behavior<string> _text = new Behavior<string>();
+        public IReadOnlyBehavior<string> Text => _text;
+        private readonly Behavior<string> _version = new Behavior<string>();
+        public IReadOnlyBehavior<string> Version => _version;
 
         public ScriptText(string filePath, string text, string version)
         {
             FilePath = filePath;
-            Text = text;
-            Version = version;
+            _text.Value = text;
+            _version.Value = version;
         }
 
         private List<int> GetLineOffsets()
@@ -40,23 +42,24 @@ namespace DarkId.Papyrus.Common
                 var lineOffsets = new List<int>();
 
                 var isLineStart = true;
-                for (var i = 0; i < Text.Length; i++)
+                var text = Text.Value;
+                for (var i = 0; i < text.Length; i++)
                 {
                     if (isLineStart)
                     {
                         lineOffsets.Add(i);
                         isLineStart = false;
                     }
-                    var ch = Text[i];
+                    var ch = text[i];
                     isLineStart = (ch == '\r' || ch == '\n');
-                    if (ch == '\r' && i + 1 < Text.Length && Text[(i + 1)] == '\n')
+                    if (ch == '\r' && i + 1 < text.Length && text[(i + 1)] == '\n')
                     {
                         i++;
                     }
                 }
-                if (isLineStart && Text.Length > 0)
+                if (isLineStart && text.Length > 0)
                 {
-                    lineOffsets.Add(Text.Length);
+                    lineOffsets.Add(text.Length);
                 }
 
                 _lineOffsets = lineOffsets;
@@ -75,25 +78,26 @@ namespace DarkId.Papyrus.Common
                 return string.Empty;
             }
 
-            return Text.Substring(start, end - start);
+            return Text.Value.Substring(start, end - start);
         }
 
         public void Update(string version, IEnumerable<ScriptTextChange> changes)
         {
-            Version = version;
-
+            var text = _text.Value;
             foreach (var change in changes)
             {
                 var startOffset = OffsetAt(change.Range.Start);
-                var newPrepend = Text.Substring(0, startOffset);
+                var newPrepend = text.Substring(0, startOffset);
 
                 var endOffset = startOffset + change.RangeLength;
-                var newAppend = Text.Substring(endOffset);
+                var newAppend = text.Substring(endOffset);
 
-                Text = newPrepend + change.Text + newAppend;
+                text = newPrepend + change.Text + newAppend;
 
                 _lineOffsets = null;
             }
+            _text.Value = text;
+            _version.Value = version;
         }
 
         public int OffsetAt(TextPosition position)
@@ -102,7 +106,7 @@ namespace DarkId.Papyrus.Common
 
             if (position.Line >= lineOffsets.Count)
             {
-                return Text.Length;
+                return _text.Value.Length;
             }
             else if (position.Line < 0)
             {
@@ -110,14 +114,14 @@ namespace DarkId.Papyrus.Common
             }
 
             var lineOffset = lineOffsets[(int)position.Line];
-            var nextLineOffset = (position.Line + 1 < lineOffsets.Count) ? lineOffsets[(int)position.Line + 1] : Text.Length;
+            var nextLineOffset = (position.Line + 1 < lineOffsets.Count) ? lineOffsets[(int)position.Line + 1] : _text.Value.Length;
 
             return (int)Math.Max(Math.Min(lineOffset + position.Character, nextLineOffset), lineOffset);
         }
 
         public TextPosition PositionAt(int offset)
         {
-            offset = Math.Max(Math.Min(offset, Text.Length), 0);
+            offset = Math.Max(Math.Min(offset, _text.Value.Length), 0);
 
             var lineOffsets = GetLineOffsets();
             var low = 0;
