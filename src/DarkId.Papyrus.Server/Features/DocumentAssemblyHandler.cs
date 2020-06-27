@@ -35,27 +35,27 @@ namespace DarkId.Papyrus.Server.Features
             };
         }
 
-        public Task<DocumentAssembly> Handle(DocumentAssemblyParams request, CancellationToken cancellationToken)
+        public async Task<DocumentAssembly> Handle(DocumentAssemblyParams request, CancellationToken cancellationToken)
         {
             try
             {
                 var scriptFile = _projectManager.GetScriptForFilePath(request.TextDocument.Uri.ToFilePath());
                 if (scriptFile == null)
                 {
-                    return Task.FromResult<DocumentAssembly>(null);
+                    return null;
                 }
 
-                return Task.FromResult(new DocumentAssembly()
+                return new DocumentAssembly()
                 {
                     Assembly = scriptFile.GetScriptAssembly()
-                });
+                };
             }
             catch (Exception e)
             {
                 _logger.LogWarning(e, "Error while handling request.");
             }
 
-            return Task.FromResult<DocumentAssembly>(null);
+            return null;
         }
 
         public void SetCapability(DocumentAssemblyCapability capability)

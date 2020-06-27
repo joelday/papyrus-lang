@@ -26,14 +26,14 @@ namespace DarkId.Papyrus.Server.Features
             _logger = logger;
         }
 
-        public Task<ProjectInfos> Handle(ProjectInfosParams request, CancellationToken cancellationToken)
+        public async Task<ProjectInfos> Handle(ProjectInfosParams request, CancellationToken cancellationToken)
         {
             if (!_projectManager.Projects.Any())
             {
                 _projectManager.UpdateProjects();
             }
 
-            return Task.FromResult(new ProjectInfos()
+            return new ProjectInfos()
             {
                 Projects = new Container<ProjectInfo>(_projectManager.Projects.AsParallel().AsOrdered().Select(p =>
                 {
@@ -63,7 +63,7 @@ namespace DarkId.Papyrus.Server.Features
                         }) : Enumerable.Empty<ProjectInfoSourceInclude>())
                     };
                 }))
-            });
+            };
         }
 
         public void SetCapability(ProjectInfosCapability capability)

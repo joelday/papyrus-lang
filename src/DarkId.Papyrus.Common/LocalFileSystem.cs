@@ -8,27 +8,27 @@ namespace DarkId.Papyrus.Common
 {
     public class LocalFileSystem : IFileSystem
     {
-        public Task<IEnumerable<string>> FindFiles(string rootPath, string pattern, bool recursive)
+        public IAsyncEnumerable<string> FindFiles(string rootPath, string pattern, bool recursive)
         {
-            return Task.FromResult(Directory
+            return Directory
                 .EnumerateFiles(rootPath, pattern, recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)
                 .ToArray()
-                .AsEnumerable());
+                .ToAsyncEnumerable();
         }
 
-        public Task<bool> GetExists(string path)
+        public async Task<bool> GetExists(string path)
         {
-            return Task.FromResult(Directory.Exists(path) || File.Exists(path));
+            return Directory.Exists(path) || File.Exists(path);
         }
 
-        public Task<string> GetVersion(string path)
+        public async Task<string> GetVersion(string path)
         {
-            return Task.FromResult(File.GetLastWriteTimeUtc(path).Ticks.ToString());
+            return File.GetLastWriteTimeUtc(path).Ticks.ToString();
         }
 
-        public Task<Stream> OpenRead(string path)
+        public async Task<Stream> OpenRead(string path)
         {
-            return Task.FromResult((Stream)File.OpenRead(path));
+            return (Stream)File.OpenRead(path);
         }
     }
 }

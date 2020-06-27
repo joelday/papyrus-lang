@@ -8,7 +8,7 @@ namespace DarkId.Papyrus.Common
     public interface IFileSystem
     {
         Task<bool> GetExists(string path);
-        Task<IEnumerable<string>> FindFiles(string rootPath, string pattern, bool recursive);
+        IAsyncEnumerable<string> FindFiles(string rootPath, string pattern, bool recursive);
         Task<Stream> OpenRead(string path);
         Task<string> GetVersion(string path);
     }

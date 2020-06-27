@@ -1,0 +1,7 @@
+[*.cs]
+
+# CS4014: Task not awaited
+dotnet_diagnostic.CS4014.severity = error
+
+# CS1998: Async function does not contain await
+dotnet_diagnostic.CS1998.severity = silent

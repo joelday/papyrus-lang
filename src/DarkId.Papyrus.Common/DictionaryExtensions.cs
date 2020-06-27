@@ -17,7 +17,12 @@ namespace DarkId.Papyrus.Common
         }
 
         public static void SynchronizeWithFactory<K, V>(
-            this Dictionary<K, V> dict, HashSet<K> newKeys, Func<K, V> createValueForKey, bool disposeRemovedDisposables = true, Func<K, V, V> updateOrReplaceExisting = null, Action<K, V> preDisposalHandler = null) where V : class
+            this Dictionary<K, V> dict,
+            HashSet<K> newKeys, Func<K, V> createValueForKey, 
+            bool disposeRemovedDisposables = true, 
+            Func<K, V, V> updateOrReplaceExisting = null,
+            Action<K, V> preDisposalHandler = null)
+            where V : class
         {
             var currentKeys = new HashSet<K>(dict.Keys);
 
@@ -38,10 +43,18 @@ namespace DarkId.Papyrus.Common
             {
                 if (disposeRemovedDisposables)
                 {
-                    if (dict[keyToRemove] is IDisposable asDisposable)
+                    if (dict.TryGetValue(keyToRemove, out var val))
                     {
-                        updateOrReplaceExisting?.Invoke(keyToRemove, dict[keyToRemove]);
-                        asDisposable.Dispose();
+                        if (val is IDisposable asDisposable)
+                        {
+                            updateOrReplaceExisting?.Invoke(keyToRemove, val);
+                            preDisposalHandler?.Invoke(keyToRemove, val);
+                            asDisposable.Dispose();
+                        }
+                    }
+                    else
+                    {
+                        throw new ArgumentException($"Key to be removed could not be located: {keyToRemove}");
                     }
                 }
 
@@ -53,7 +66,7 @@ namespace DarkId.Papyrus.Common
                 foreach (var existingKey in existingKeys)
                 {
                     var existingValue = dict[existingKey];
-                    var newValue = updateOrReplaceExisting(existingKey, dict[existingKey]);
+                    var newValue = updateOrReplaceExisting(existingKey, existingValue);
                     if (newValue != existingValue)
                     {
                         dict.Remove(existingKey);

@@ -17,7 +17,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Protocol Hosts", "Protocol 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{16DCC7B6-3388-4208-8513-6BF4DFB85626}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DarkId.Papyrus.Test", "src\DarkId.Papyrus.Test\DarkId.Papyrus.Test.csproj", "{EE5047F5-E7E1-4C2D-B8C3-FE61B03B2835}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DarkId.Papyrus.Test", "src\DarkId.Papyrus.Test\DarkId.Papyrus.Test.csproj", "{EE5047F5-E7E1-4C2D-B8C3-FE61B03B2835}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B86DCC2B-8636-452E-9DD7-CA7C98BB4153}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
