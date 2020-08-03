@@ -1,5 +1,4 @@
 using System.IO;
-using System.Threading.Tasks;
 using System.Xml.Serialization;
 
 namespace DarkId.Papyrus.LanguageService.Projects
@@ -12,6 +11,7 @@ namespace DarkId.Papyrus.LanguageService.Projects
             {
                 var serializer = new XmlSerializer(typeof(PapyrusProject));
                 var project = (PapyrusProject)serializer.Deserialize(sr);
+                project.ExpandVariables();
 
                 return project;
             }
