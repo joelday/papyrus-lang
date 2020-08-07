@@ -51,7 +51,7 @@ jobs:
     - name: Semantic Release
       if: success()
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
       uses: ecampidoglio/cake-action@v1.1.1
       with:
