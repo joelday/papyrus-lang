@@ -4,6 +4,9 @@ on:
   push:
     branches-ignore:
       - 'master'
+  pull_request:
+    branches:
+      - 'develop'
 
 jobs:
   dev_build:
@@ -57,7 +60,7 @@ jobs:
         npx vsce package -o artifact\${{ env.VSIX_NAME }}
  
     - name: Upload artifact
-      if: success()
+      if: ${{ success() && github.ref == 'refs/heads/develop' }}
       uses: actions/upload-artifact@v1
       with:
         name: ${{ env.VSIX_NAME }}

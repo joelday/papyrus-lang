@@ -295,7 +295,7 @@
         "grammars": [
             {
                 "language": "papyrus",
-                "path": "./syntaxes/papyrus/papyrus.tmLanguage",
+                "path": "./syntaxes/papyrus/papyrus.json",
                 "scopeName": "source.papyrus"
             },
             {
