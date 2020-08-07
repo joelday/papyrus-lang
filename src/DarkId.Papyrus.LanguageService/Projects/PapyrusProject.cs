@@ -16,6 +16,8 @@ namespace DarkId.Papyrus.LanguageService.Projects
 
         private string[] scriptsField;
 
+        private Variable[] variablesField;
+
         private string outputField;
 
         private string flagsField;
@@ -75,6 +77,19 @@ namespace DarkId.Papyrus.LanguageService.Projects
             set
             {
                 this.scriptsField = value;
+            }
+        }
+
+        [System.Xml.Serialization.XmlArrayItemAttribute("Variable")]
+        public Variable[] Variables
+        {
+            get
+            {
+                return this.variablesField;
+            }
+            set
+            {
+                this.variablesField = value;
             }
         }
 
@@ -217,6 +232,44 @@ namespace DarkId.Papyrus.LanguageService.Projects
                 this.finalFieldSpecified = value;
             }
         }
+
+        public void ExpandVariables()
+        {
+            if (Variables?.Length <= 0)
+            {
+                return;
+            }
+
+            foreach (var variable in Variables)
+            {
+                var name = "@" + variable.Name;
+                Output = Output.Replace(name, variable.Value);
+
+                if (Imports?.Length > 0)
+                {
+                    for (var i = 0; i < Imports.Length; i++)
+                    {
+                        Imports[i] = Imports[i].Replace(name, variable.Value);
+                    }
+                }
+
+                if (Scripts?.Length > 0)
+                {
+                    for (var i = 0; i < Scripts.Length; i++)
+                    {
+                        Scripts[i] = Scripts[i].Replace(name, variable.Value);
+                    }
+                }
+
+                if (Folders?.Length > 0)
+                {
+                    for (var i = 0; i < Folders.Length; i++)
+                    {
+                        Folders[i].Value = Folders[i].Value.Replace(name, variable.Value);
+                    }
+                }
+            }
+        }
     }
 
     /// <remarks/>
@@ -264,6 +317,45 @@ namespace DarkId.Papyrus.LanguageService.Projects
 
         /// <remarks/>
         [System.Xml.Serialization.XmlTextAttribute()]
+        public string Value
+        {
+            get
+            {
+                return this.valueField;
+            }
+            set
+            {
+                this.valueField = value;
+            }
+        }
+    }
+
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("xsd", "0.0.0.0")]
+    [System.SerializableAttribute()]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.ComponentModel.DesignerCategoryAttribute("code")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "PapyrusProject.xsd")]
+    public class Variable
+    {
+        private string nameField;
+
+        private string valueField;
+
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public string Name
+        {
+            get
+            {
+                return this.nameField;
+            }
+            set
+            {
+                this.nameField = value;
+            }
+        }
+
+        [System.Xml.Serialization.XmlAttributeAttribute()]
         public string Value
         {
             get
