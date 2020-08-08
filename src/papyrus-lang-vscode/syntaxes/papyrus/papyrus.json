@@ -11,13 +11,7 @@
       "include": "#quoted-string"
     },
     {
-      "begin": ";/",
-      "end": "/;",
-      "name": "comment.block.papyrus"
-    },
-    {
-      "match": "(;).*$\\n?",
-      "name": "comment.line.semicolon.papyrus"
+      "include": "#comment"
     },
     {
       "begin": "{",
@@ -44,8 +38,7 @@
       "name": "meta.scriptname-declaration.papyrus",
       "patterns": [
         {
-          "match": ";([^\\n]*)",
-          "name": "comment.line.semicolon.papyrus"
+          "include": "#comment"
         },
         {
           "match": "(?i)(conditional|default|hidden|native|const)",
@@ -76,8 +69,7 @@
           "include": "#quoted-string"
         },
         {
-          "match": ";([^\\n]*)",
-          "name": "comment.line.semicolon.papyrus"
+          "include": "#comment"
         },
         {
           "match": "(?i)\\b(auto|autoreadonly|const|conditional|mandatory|hidden)\\b",
@@ -247,6 +239,19 @@
         }
       ]
     },
+    "comment": {
+      "patterns": [
+        {
+          "match": ";[^\\n]*",
+          "name": "comment.line.semicolon.papyrus"
+        },
+        {
+          "begin": ";/",
+          "end": "/;",
+          "name": "comment.block.papyrus"
+        }
+      ]
+    },
     "cast-expression": {
       "patterns": [
         {
@@ -410,6 +415,9 @@
               "include": "#cast-expression"
             },
             {
+              "include": "#comment"
+            },
+            {
               "include": "#constants"
             },
             {
@@ -425,7 +433,7 @@
         },
         {
           "comment": "Variable declaration without a default value",
-          "begin": "(?i)^\\s*(?!if|else|elseif|endif|while|endwhile|return)([_a-z][0-9_a-z]*)(?:\\[\\])?\\s+([_a-z][0-9_a-z]*)(?:\\s+(conditional)\b)?$",
+          "begin": "(?i)^\\s*(?!if|else|elseif|endif|while|endwhile|return)([_a-z][0-9_a-z]*)(?:\\[\\])?\\s+([_a-z][0-9_a-z]*)(?:\\s+(conditional)\b)?",
           "beginCaptures": {
             "1": {
               "name": "storage.type.papyrus"
@@ -435,7 +443,12 @@
             }
           },
           "end": "([\\n\\r])",
-          "name": "meta.variable.papyrus"
+          "name": "meta.variable.papyrus",
+          "patterns": [
+            {
+              "include": "#comment"
+            }
+          ]
         }
       ]
     }
