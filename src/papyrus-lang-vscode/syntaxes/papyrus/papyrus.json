@@ -82,27 +82,6 @@
       ]
     },
     {
-      "begin": "(?i)\\b(?:([_a-z][0-9_a-z]+)\\s+)?(function|event)\\s+([^\\(]*)\\(",
-      "beginCaptures": {
-        "1": {
-          "name": "storage.type.papyrus"
-        },
-        "2": {
-          "name": "keyword.control.functionstart.papyrus"
-        },
-        "3": {
-          "name": "entity.name.function.papyrus"
-        }
-      },
-      "end": "\\)",
-      "name": "meta.function.papyrus",
-      "patterns": [
-        {
-          "include": "#params"
-        }
-      ]
-    },
-    {
       "match": "(?i)\\b(auto\\s+)?(state)\\s+(.*)\\n",
       "name": "meta.state.papyrus",
       "captures": {
@@ -204,25 +183,22 @@
       "name": "keyword.control.propertyend.papyrus"
     },
     {
+      "include": "#function-declaration"
+    },
+    {
+      "include": "#variable"
+    },
+    {
       "include": "#base-types"
     },
     {
       "include": "#cast-expression"
     },
     {
-      "include": "#class-types"
-    },
-    {
-      "include": "#builtin-funcs"
-    },
-    {
       "include": "#function-call"
     },
     {
       "include": "#new-expression"
-    },
-    {
-      "include": "#variable"
     }
   ],
   "repository": {
@@ -345,6 +321,27 @@
         },
         {
           "include": "#quoted-string"
+        }
+      ]
+    },
+    "function-declaration": {
+      "begin": "(?i)\\s*\\b(?:([_a-z][0-9_a-z]+)(?:\\[\\])?\\s+)?(function|event)\\s+([^\\(]*)\\(",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.papyrus"
+        },
+        "2": {
+          "name": "keyword.control.functionstart.papyrus"
+        },
+        "3": {
+          "name": "entity.name.function.papyrus"
+        }
+      },
+      "end": "\\)",
+      "name": "meta.function.papyrus",
+      "patterns": [
+        {
+          "include": "#params"
         }
       ]
     },
