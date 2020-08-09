@@ -1,3 +1,10 @@
+# [2.22.0](https://github.com/joelday/papyrus-lang/compare/v2.21.2...v2.22.0) (2020-08-07)
+
+
+### Features
+
+* Grammar improvements ([#137](https://github.com/joelday/papyrus-lang/issues/137)) ([8375462](https://github.com/joelday/papyrus-lang/commit/8375462665d1dd3e9ca61fe500f00fe2ab11c89b))
+
 ## [2.21.2](https://github.com/joelday/papyrus-lang/compare/v2.21.1...v2.21.2) (2019-12-06)
 
 
