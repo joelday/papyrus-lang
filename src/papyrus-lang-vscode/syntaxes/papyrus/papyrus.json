@@ -392,8 +392,8 @@
     "variable": {
       "patterns": [
         {
-          "comment": "Variable declaration with a default value",
-          "begin": "(?i)^\\s*([_a-z][0-9_a-z]*)(?:\\[\\])?\\s+([_a-z][0-9_a-z]*)(?:\\s*(\\=)(?!\\=))",
+          "comment": "Variable declaration",
+          "begin": "(?i)^\\s*(?!if|else|elseif|endif|while|endwhile|return)([_a-z][0-9_a-z]*)(?:\\[\\])?\\s+([_a-z][0-9_a-z]*)",
           "beginCaptures": {
             "1": {
               "name": "storage.type.papyrus"
@@ -425,25 +425,10 @@
             },
             {
               "include": "#quoted-string"
-            }
-          ]
-        },
-        {
-          "comment": "Variable declaration without a default value",
-          "begin": "(?i)^\\s*(?!if|else|elseif|endif|while|endwhile|return)([_a-z][0-9_a-z]*)(?:\\[\\])?\\s+([_a-z][0-9_a-z]*)(?:\\s+(conditional)\b)?",
-          "beginCaptures": {
-            "1": {
-              "name": "storage.type.papyrus"
             },
-            "2": {
-              "name": "variable.other.papyrus"
-            }
-          },
-          "end": "([\\n\\r])",
-          "name": "meta.variable.papyrus",
-          "patterns": [
             {
-              "include": "#comment"
+              "match": "\\=",
+              "name": "keyword.operator.assignment.papyrus"
             }
           ]
         }
