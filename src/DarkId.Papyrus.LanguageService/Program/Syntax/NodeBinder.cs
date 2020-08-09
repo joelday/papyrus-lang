@@ -4,6 +4,7 @@ using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.External;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 namespace DarkId.Papyrus.LanguageService.Program.Syntax
@@ -712,7 +713,7 @@ namespace DarkId.Papyrus.LanguageService.Program.Syntax
                 case AstType.Bool:
                     return CreateNode<BoolLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = bool.Parse(valueText));
                 case AstType.Float:
-                    return CreateNode<FloatLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = float.Parse(valueText));
+                    return CreateNode<FloatLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = float.Parse(valueText, CultureInfo.InvariantCulture));
                 case AstType.HexDigit:
                     return CreateNode<HexLiteralNode>(node, parentChildren, (literalNode, _) => literalNode.Value = Convert.ToInt32(valueText, 16), true);
                 case AstType.String:
