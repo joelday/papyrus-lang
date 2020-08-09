@@ -1,0 +1,49 @@
+<PapyrusProject
+  xmlns="PapyrusProject.xsd"
+  Flags="Institute_Papyrus_Flags.flg"
+  Output="@MyProject\scripts"
+  Optimize="true" Anonymize="true" Package="true" Zip="true">
+  <Variables>
+    <Variable Name="Namespace" Value="Master of Disguise"/>
+    <Variable Name="ModName" Value="@Namespace - Special Edition"/>
+    <Variable Name="MyProject" Value="F:\repos\mods\skyrim\@ModName"/>
+	<Variable Name="GameDir" Value="E:\SteamLibrary\Skyrim Special Edition"/>
+	<Variable Name="ScriptsDir" Value="@GameDir\Data\Scripts\Source"/>
+  </Variables>
+  <Imports>
+    <Import>F:\SDKs\SKSE\Scripts\Source</Import>
+    <Import>https://api.github.com/repos/fireundubh/skyui/contents/dist/Data/Scripts/Source?ref=master</Import>
+    <Import>@MyProject\scripts\Source</Import>
+    <Import>@ScriptsDir\Base</Import>
+  </Imports>
+  <Scripts>
+	<Script>dubhUtilityScript.psc</Script>
+    <Script>dubhDisguiseMCMHelper.psc</Script>
+    <Script>dubhDisguiseMCMQuestScript.psc</Script>
+    <Script>dubhDisguiseMCMStringUtil.psc</Script>
+    <Script>dubhApplyingEffectScript.psc</Script>
+    <Script>dubhCompatibilityQuestScript.psc</Script>
+    <Script>dubhFactionEnemyScript.psc</Script>
+    <Script>dubhMonitorEffectScript.psc</Script>
+    <Script>dubhPlayerScript.psc</Script>
+  </Scripts>
+  <Packages Output="@MyProject">
+    <Package Name="@ModName" RootDir="@MyProject">
+      <Include>**/scripts/*.pex</Include>
+      <Include>**/interface/**/*.txt</Include>
+	  <Include>**/Strings/*.*</Include>
+    </Package>
+    <Package Name="@ModName - Textures" RootDir="@MyProject">
+      <Include NoRecurse="false">**/*.dds</Include>
+    </Package>
+  </Packages>
+  <ZipFiles Output="@MyProject">
+    <ZipFile Name="@ModName" RootDir="@MyProject" Compression="deflate">
+	  <Include NoRecurse="true">*/*.esp</Include>
+	  <Include NoRecurse="true">*.bsa</Include>
+    </ZipFile>
+	<ZipFile Name="@ModName - English" RootDir="@MyProject" Compression="deflate">
+	  <Include>**/Strings/*.*</Include>
+    </ZipFile>
+  </ZipFiles>
+</PapyrusProject>

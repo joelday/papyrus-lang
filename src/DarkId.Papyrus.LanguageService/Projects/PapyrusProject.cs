@@ -1,9 +1,12 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
 namespace DarkId.Papyrus.LanguageService.Projects
 {
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("xsd", "0.0.0.0")]
     [System.SerializableAttribute()]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
     [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true, Namespace = "PapyrusProject.xsd")]
     [System.Xml.Serialization.XmlRootAttribute(Namespace = "PapyrusProject.xsd")]
@@ -233,41 +236,60 @@ namespace DarkId.Papyrus.LanguageService.Projects
             }
         }
 
+        public static string ExpandVariableValue(string value, Dictionary<string, string> variables)
+        {
+            return ExpandVariableValue(value, variables, new Stack<string>());
+        }
+
+        public static string ExpandVariableValue(string value, Dictionary<string, string> variables, Stack<string> currentVariables)
+        {
+            var expandedValue = value;
+
+            var referencedVariables = variables.Where(v => value.Contains(v.Key));
+
+            foreach (var referencedVariable in referencedVariables)
+            {
+                if (currentVariables.Contains(referencedVariable.Key))
+                {
+                    throw new Exception("Project has cyclical variable substitutions.");
+                }
+
+                currentVariables.Push(referencedVariable.Key);
+
+                var replacementVariableValue = ExpandVariableValue(referencedVariable.Value, variables, currentVariables);
+                expandedValue = expandedValue.Replace(referencedVariable.Key, replacementVariableValue);
+
+                currentVariables.Pop();
+            }
+
+            return expandedValue;
+        }
+
         public void ExpandVariables()
         {
-            if (Variables?.Length <= 0)
+            if (Variables == null)
             {
                 return;
             }
 
-            foreach (var variable in Variables)
+            var variables = Variables.ToDictionary(v => "@" + v.Name, v => v.Value);
+
+            Imports = Imports?.Select(i => ExpandVariableValue(i, variables)).ToArray();
+            Scripts = Scripts?.Select(i => ExpandVariableValue(i, variables)).ToArray();
+
+            if (!string.IsNullOrEmpty(Output))
             {
-                var name = "@" + variable.Name;
-                Output = Output.Replace(name, variable.Value);
+                Output = ExpandVariableValue(Output, variables);
+            }
 
-                if (Imports?.Length > 0)
-                {
-                    for (var i = 0; i < Imports.Length; i++)
-                    {
-                        Imports[i] = Imports[i].Replace(name, variable.Value);
-                    }
-                }
+            if (Folders == null)
+            {
+                return;
+            }
 
-                if (Scripts?.Length > 0)
-                {
-                    for (var i = 0; i < Scripts.Length; i++)
-                    {
-                        Scripts[i] = Scripts[i].Replace(name, variable.Value);
-                    }
-                }
-
-                if (Folders?.Length > 0)
-                {
-                    for (var i = 0; i < Folders.Length; i++)
-                    {
-                        Folders[i].Value = Folders[i].Value.Replace(name, variable.Value);
-                    }
-                }
+            foreach (var folder in Folders)
+            {
+                folder.Value = ExpandVariableValue(folder.Value, variables);
             }
         }
     }
