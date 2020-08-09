@@ -362,8 +362,8 @@
       ]
     },
     "quoted-string": {
-      "begin": "\"",
-      "end": "\"",
+      "begin": "(?<!\\\\)\"",
+      "end": "(?<!\\\\)\"",
       "name": "string.quoted.double.papyrus"
     },
     "params": {
