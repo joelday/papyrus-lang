@@ -429,6 +429,10 @@
             {
               "match": "\\=",
               "name": "keyword.operator.assignment.papyrus"
+            },
+            {
+              "match": "(?i)\\b(const|conditional|hidden)\\b",
+              "name": "keyword.language.variable-flag.papyrus"
             }
           ]
         }
