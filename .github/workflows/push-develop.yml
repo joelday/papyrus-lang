@@ -17,6 +17,7 @@ jobs:
 
     - name: Notify Build Started
       uses: rjstone/discord-webhook-notify@v1
+      if: github.ref == 'refs/heads/develop'
       with:
         severity: warn
         description: |
@@ -68,7 +69,7 @@ jobs:
  
     # Notifications
     - name: Notify Success
-      if: success()
+      if: success() && github.ref == 'refs/heads/develop'
       uses: rjstone/discord-webhook-notify@v1
       with:
         severity: info
