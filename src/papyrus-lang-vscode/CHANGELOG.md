@@ -1,3 +1,11 @@
+## [2.22.1](https://github.com/joelday/papyrus-lang/compare/v2.22.0...v2.22.1) (2020-08-09)
+
+
+### Bug Fixes
+
+* NullReferenceException when parsing .ppj files. Incorrect resolution of .ppj variable substitutions. ([db68595](https://github.com/joelday/papyrus-lang/commit/db6859571dfe3b2257c1c79cb73b47bf7e728813))
+* Parsing exception related to Windows globalization settings. ([#133](https://github.com/joelday/papyrus-lang/issues/133)) ([bd15498](https://github.com/joelday/papyrus-lang/commit/bd15498ad46c8f33fad8069052326f3be38e2b35))
+
 # [2.22.0](https://github.com/joelday/papyrus-lang/compare/v2.21.2...v2.22.0) (2020-08-07)
 
 

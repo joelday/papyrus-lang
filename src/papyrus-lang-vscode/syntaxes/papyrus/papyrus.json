@@ -11,13 +11,7 @@
       "include": "#quoted-string"
     },
     {
-      "begin": ";/",
-      "end": "/;",
-      "name": "comment.block.papyrus"
-    },
-    {
-      "match": "(;).*$\\n?",
-      "name": "comment.line.semicolon.papyrus"
+      "include": "#comment"
     },
     {
       "begin": "{",
@@ -44,8 +38,7 @@
       "name": "meta.scriptname-declaration.papyrus",
       "patterns": [
         {
-          "match": ";([^\\n]*)",
-          "name": "comment.line.semicolon.papyrus"
+          "include": "#comment"
         },
         {
           "match": "(?i)(conditional|default|hidden|native|const)",
@@ -76,8 +69,7 @@
           "include": "#quoted-string"
         },
         {
-          "match": ";([^\\n]*)",
-          "name": "comment.line.semicolon.papyrus"
+          "include": "#comment"
         },
         {
           "match": "(?i)\\b(auto|autoreadonly|const|conditional|mandatory|hidden)\\b",
@@ -86,27 +78,6 @@
         {
           "match": "\\=",
           "name": "keyword.operator.assignment.papyrus"
-        }
-      ]
-    },
-    {
-      "begin": "(?i)\\b(?:([_a-z][0-9_a-z]+)\\s+)?(function|event)\\s+([^\\(]*)\\(",
-      "beginCaptures": {
-        "1": {
-          "name": "storage.type.papyrus"
-        },
-        "2": {
-          "name": "keyword.control.functionstart.papyrus"
-        },
-        "3": {
-          "name": "entity.name.function.papyrus"
-        }
-      },
-      "end": "\\)",
-      "name": "meta.function.papyrus",
-      "patterns": [
-        {
-          "include": "#params"
         }
       ]
     },
@@ -212,25 +183,22 @@
       "name": "keyword.control.propertyend.papyrus"
     },
     {
+      "include": "#function-declaration"
+    },
+    {
+      "include": "#variable"
+    },
+    {
       "include": "#base-types"
     },
     {
       "include": "#cast-expression"
     },
     {
-      "include": "#class-types"
-    },
-    {
-      "include": "#builtin-funcs"
-    },
-    {
       "include": "#function-call"
     },
     {
       "include": "#new-expression"
-    },
-    {
-      "include": "#variable"
     }
   ],
   "repository": {
@@ -244,6 +212,19 @@
           "comment": "Comma",
           "match": "\\,",
           "name": "meta.comma.papyrus"
+        }
+      ]
+    },
+    "comment": {
+      "patterns": [
+        {
+          "match": ";[^\\n]*",
+          "name": "comment.line.semicolon.papyrus"
+        },
+        {
+          "begin": ";/",
+          "end": "/;",
+          "name": "comment.block.papyrus"
         }
       ]
     },
@@ -343,6 +324,27 @@
         }
       ]
     },
+    "function-declaration": {
+      "begin": "(?i)\\s*\\b(?:([_a-z][0-9_a-z]+)(?:\\[\\])?\\s+)?(function|event)\\s+([^\\(]*)\\(",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.papyrus"
+        },
+        "2": {
+          "name": "keyword.control.functionstart.papyrus"
+        },
+        "3": {
+          "name": "entity.name.function.papyrus"
+        }
+      },
+      "end": "\\)",
+      "name": "meta.function.papyrus",
+      "patterns": [
+        {
+          "include": "#params"
+        }
+      ]
+    },
     "new-expression": {
       "patterns": [
         {
@@ -360,8 +362,8 @@
       ]
     },
     "quoted-string": {
-      "begin": "\"",
-      "end": "\"",
+      "begin": "(?<!\\\\)\"",
+      "end": "(?<!\\\\)\"",
       "name": "string.quoted.double.papyrus"
     },
     "params": {
@@ -390,8 +392,8 @@
     "variable": {
       "patterns": [
         {
-          "comment": "Variable declaration with a default value",
-          "begin": "(?i)^\\s*([_a-z][0-9_a-z]*)(?:\\[\\])?\\s+([_a-z][0-9_a-z]*)(?:\\s*(\\=)(?!\\=))",
+          "comment": "Variable declaration",
+          "begin": "(?i)^\\s*(?!if|else|elseif|endif|while|endwhile|return)([_a-z][0-9_a-z]*)(?:\\[\\])?\\s+([_a-z][0-9_a-z]*)",
           "beginCaptures": {
             "1": {
               "name": "storage.type.papyrus"
@@ -410,6 +412,9 @@
               "include": "#cast-expression"
             },
             {
+              "include": "#comment"
+            },
+            {
               "include": "#constants"
             },
             {
@@ -420,22 +425,16 @@
             },
             {
               "include": "#quoted-string"
+            },
+            {
+              "match": "\\=",
+              "name": "keyword.operator.assignment.papyrus"
+            },
+            {
+              "match": "(?i)\\b(const|conditional|hidden)\\b",
+              "name": "keyword.language.variable-flag.papyrus"
             }
           ]
-        },
-        {
-          "comment": "Variable declaration without a default value",
-          "begin": "(?i)^\\s*(?!if|else|elseif|endif|while|endwhile|return)([_a-z][0-9_a-z]*)(?:\\[\\])?\\s+([_a-z][0-9_a-z]*)(?:\\s+(conditional)\b)?$",
-          "beginCaptures": {
-            "1": {
-              "name": "storage.type.papyrus"
-            },
-            "2": {
-              "name": "variable.other.papyrus"
-            }
-          },
-          "end": "([\\n\\r])",
-          "name": "meta.variable.papyrus"
         }
       ]
     }
