@@ -78,7 +78,7 @@ jobs:
         webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
 
     - name: Notify Failure
-      if: failure()
+      if: failure() && github.ref == 'refs/heads/develop'
       uses: rjstone/discord-webhook-notify@v1
       with:
         severity: error
@@ -87,7 +87,7 @@ jobs:
         webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
 
     - name: Notify Cancelled
-      if: cancelled()
+      if: cancelled() && github.ref == 'refs/heads/develop'
       uses: rjstone/discord-webhook-notify@v1
       with:
         severity: warn
