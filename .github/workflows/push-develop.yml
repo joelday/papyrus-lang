@@ -11,12 +11,23 @@ on:
 jobs:
   dev_build:
     runs-on: windows-latest
-    env:
-      VSIX_NAME: papyrus-lang-test-${{ github.event.repository.pushed_at }}.vsix
     steps:
+    - name: Format push time
+      if: success()
+      uses: frabert/replace-string-action@master
+      id: format-time
+      with:
+        pattern: '[:\.]+'
+        string: "${{ github.event.repository.pushed_at }}"
+        replace-with: '-'
+        flags: 'g'
 
+    - name: Set VSIX name environment variable
+      run: echo '::set-env name=VSIX_NAME::papyrus-lang-test-${{ steps.format-time.outputs.replaced }}.vsix'
+          
     - name: Notify Build Started
       uses: rjstone/discord-webhook-notify@v1
+      if: github.ref == 'refs/heads/develop'
       with:
         severity: warn
         description: |
@@ -52,7 +63,7 @@ jobs:
         target: default
 
     - name: VSCE Package
-      if: success()
+      if: ${{ success() }}
       run: > 
         cd src\papyrus-lang-vscode ;
         npm install vsce ;
@@ -68,7 +79,7 @@ jobs:
  
     # Notifications
     - name: Notify Success
-      if: success()
+      if: ${{ success() && github.ref == 'refs/heads/develop' }}
       uses: rjstone/discord-webhook-notify@v1
       with:
         severity: info
@@ -77,7 +88,7 @@ jobs:
         webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
 
     - name: Notify Failure
-      if: failure()
+      if: ${{ failure() && github.ref == 'refs/heads/develop' }}
       uses: rjstone/discord-webhook-notify@v1
       with:
         severity: error
@@ -86,7 +97,7 @@ jobs:
         webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
 
     - name: Notify Cancelled
-      if: cancelled()
+      if: ${{ cancelled() && github.ref == 'refs/heads/develop' }}
       uses: rjstone/discord-webhook-notify@v1
       with:
         severity: warn
