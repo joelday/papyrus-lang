@@ -1,3 +1,10 @@
+## [2.23.1](https://github.com/joelday/papyrus-lang/compare/v2.23.0...v2.23.1) (2020-11-05)
+
+
+### Bug Fixes
+
+* Reverting recent syntax highlighting changes, based on user feedback. ([5d15189](https://github.com/joelday/papyrus-lang/commit/5d151897d673b9e71adc339c9f103d222bc30c0c))
+
 # [2.23.0](https://github.com/joelday/papyrus-lang/compare/v2.22.1...v2.23.0) (2020-08-15)
 
 
