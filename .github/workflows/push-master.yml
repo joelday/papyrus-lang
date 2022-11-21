@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: windows-latest
     env:
-      VSIX_NAME: papyrus-lang-test-${{ github.event.repository.pushed_at }}.vsix
+      VSIX_NAME: papyrus-lang-${{ github.event.repository.pushed_at }}.vsix
     steps:
 
     - name: Notify Build Started
@@ -32,19 +32,19 @@ jobs:
 
     - name: Update Debug
       if: success()
-      uses: ecampidoglio/cake-action@v1.1.1
+      uses: ecampidoglio/cake-action@v1
       with:
         target: update-debug-plugin
 
     - name: Update Pyro
       if: success()
-      uses: ecampidoglio/cake-action@v1.1.1
+      uses: ecampidoglio/cake-action@v1
       with:
         target: update-pyro-cli
 
     - name: Full Build (default)
       if: success()
-      uses: ecampidoglio/cake-action@v1.1.1
+      uses: ecampidoglio/cake-action@v1
       with:
         target: default
 
@@ -53,7 +53,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
-      uses: ecampidoglio/cake-action@v1.1.1
+      uses: ecampidoglio/cake-action@v1
       with:
         target: npm-semantic-release
 

@@ -1,5 +1,6 @@
-#addin nuget:?package=Cake.Npm&version=0.16.0
+#addin nuget:?package=Cake.Npm&version=2.0.0
 #tool nuget:?package=Microsoft.TestPlatform&version=15.9.0
+#tool nuget:?package=NuGet.CommandLine&version=5.9.1
 
 var target = Argument("target", "default");
 var solution = File("./DarkId.Papyrus.sln");
@@ -114,6 +115,16 @@ Task("npm-semantic-release")
             WorkingDirectory = "src/papyrus-lang-vscode"
         });
     });
+
+Task("npm-semantic-release-preview")
+    .Does(() => {
+        NpmRunScript(new NpmRunScriptSettings()
+        {
+            ScriptName = "semantic-release:preview",
+            WorkingDirectory = "src/papyrus-lang-vscode"
+        });
+    });
+
 
 Task("download-compilers")
     .Does(() => {

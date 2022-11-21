@@ -12,12 +12,11 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
 
-import md5File from 'md5-file/promise';
+import md5File from 'md5-file';
 
 const exists = promisify(fs.exists);
 const copyFile = promisify(fs.copyFile);
 const removeFile = promisify(fs.unlink);
-
 
 export enum DebugSupportInstallState {
     notInstalled,

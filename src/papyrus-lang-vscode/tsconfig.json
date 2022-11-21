@@ -8,7 +8,7 @@
         "lib": ["es6"],
         "sourceMap": true,
         "rootDir": "src",
-        "experimentalDecorators": true
+        "experimentalDecorators": true,
     },
-    "include": ["src/**/*.ts", "./node_modules/vscode/vscode.d.ts", "./node_modules/vscode/lib/*"]
+    "include": ["src/**/*.ts"]
 }
