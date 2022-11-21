@@ -601,18 +601,18 @@
             "semantic-release-vsce",
             {
                 "path": "semantic-release-vsce",
-                "packageVsix": "papyrus-lang-vscode.vsix"
+                "packageVsix": "*.vsix"
             }
         ],
         "publish": [
             "semantic-release-vsce",
             {
                 "path": "@semantic-release/github",
-                "assets": "papyrus-lang-vscode.vsix"
+                "assets": "*.vsix"
             }
         ]
     },
-    "version": "2.0.0",
+    "version": "3.0.0",
     "prettier": {
         "tabWidth": 4,
         "singleQuote": true,
