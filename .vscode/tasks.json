@@ -10,28 +10,19 @@
         "isDefault": true
       },
       "windows": {
-        "command": "powershell",
+        "command": "dotnet",
         "args": [
-          "-ExecutionPolicy",
-          "Unrestricted",
-          "-NoProfile",
-          "-File",
-          "${workspaceFolder}\\build.ps1"
+          "cake"
         ]
       },
-      "command": "./build.sh",
       "problemMatcher": ["$tsc", "$msCompile"]
     },
     {
       "label": "updateBin",
       "windows": {
-        "command": "powershell",
+        "command": "dotnet",
         "args": [
-          "-ExecutionPolicy",
-          "Unrestricted",
-          "-NoProfile",
-          "-File",
-          "${workspaceFolder}\\build.ps1",
+          "cake",
           "--target=\"update-bin\""
         ]
       },
@@ -42,13 +33,9 @@
     {
       "label": "buildExtension",
       "windows": {
-        "command": "powershell",
+        "command": "dotnet",
         "args": [
-          "-ExecutionPolicy",
-          "Unrestricted",
-          "-NoProfile",
-          "-File",
-          "${workspaceFolder}\\build.ps1",
+          "cake",
           "--target=\"build-extension\""
         ]
       },
