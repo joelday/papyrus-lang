@@ -12,8 +12,8 @@ export class LanguageConfigurations {
             },
             brackets: [['{', '}'], ['[', ']'], ['(', ')']],
             indentationRules: {
-                increaseIndentPattern: /^\s*(if|(\S+\s+)?(property\W+\w+(?!.*(auto)))|struct|group|state|event|(\S+\s+)?(function.*\(.*\)(?!.*native))|else|elseif)/i,
-                decreaseIndentPattern: /^\s*(endif|endproperty|endstruct|endgroup|endstate|endevent|endfunction|else|elseif)/i,
+                increaseIndentPattern: /^\s*(if|while|(\S+\s+)?(property\W+\w+(?!.*(auto)))|struct|group|state|event|(\S+\s+)?(function.*\(.*\)(?!.*native))|else|elseif)/i,
+                decreaseIndentPattern: /^\s*(endif|endwhile|endproperty|endstruct|endgroup|endstate|endevent|endfunction|else|elseif)/i,
             },
         });
     }
