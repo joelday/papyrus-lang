@@ -1,0 +1,74 @@
+name: "Build Extension"
+
+on:
+  push:
+   tags-ignore:
+     - "v*"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      PRERELEASE: ${{ github.ref == 'refs/heads/develop' }}
+      RELEASE: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}
+
+    steps:
+      - name: Notify Build Started
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          severity: warn
+          description: |
+            New build [${{ github.workflow }}](https://github.com/joelday/papyrus-lang/actions) \(${{ github.ref }}\)
+            started by ${{ github.actor }}. (**${{ github.repository }}** got **${{ github.event_name }}** for **${{ github.ref }}**)
+          footer: Build Started
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Setup Nuget.exe
+        if: success()
+        uses: warrenbuckley/Setup-Nuget@v1
+
+      - name: Build
+        if: success()
+        uses: ecampidoglio/cake-action@v1
+        with:
+          target: default
+
+      - name: Publish Extension
+        if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
+        uses: ecampidoglio/cake-action@v1
+        with:
+          target: publish
+
+      # Notifications
+      - name: Notify Success
+        if: success()
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          severity: info
+          description: "**Build Succeeded!** ${{ github.ref }} https://github.com/joelday/papyrus-lang/actions"
+          footer: Build Ended (Success)
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+
+      - name: Notify Failure
+        if: failure()
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          severity: error
+          description: "**Build Failed!** ${{ github.ref }}"
+          footer: Build Ended (Error)
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+
+      - name: Notify Cancelled
+        if: cancelled()
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          severity: warn
+          description: "**Build Cancelled!** ${{ github.ref }}"
+          footer: Build Ended (Warning)
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
