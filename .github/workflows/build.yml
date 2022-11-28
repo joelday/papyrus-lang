@@ -55,7 +55,7 @@ jobs:
       - name: Publish Extension
         if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
         uses: ecampidoglio/cake-action@v1
         with:
