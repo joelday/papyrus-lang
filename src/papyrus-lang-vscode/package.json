@@ -547,7 +547,7 @@
     "engines": {
         "vscode": "^1.73.1"
     },
-    "homepage": "https://github.com/joelday/papyrus-lang/tree/master/packages/papyrus-lang-vscode",
+    "homepage": "https://github.com/joelday/papyrus-lang/tree/main/src/papyrus-lang-vscode",
     "icon": "images/icon-small.png",
     "keywords": [
         "Papyrus",
@@ -584,7 +584,7 @@
         "update-changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
         "vscode:prepublish": "npm version %VERSION% && npm run copy-license && npm run update-changelog",
         "publish": "vsce publish && npm run vscode:postpublish",
-        "publish:prerelease": "vsce publish --pre-release papyrus-lang-vscode-%VERSION%-prerelease.vsix && npm run vscode:postpublish",
+        "publish:prerelease": "vsce publish --pre-release papyrus-lang-vscode-prerelease-%VERSION%.vsix && npm run vscode:postpublish",
         "vscode:postpublish": "git add ../../ && release-it -i %VERSION% --ci --no-npm"
     },
     "release-it": {
