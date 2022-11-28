@@ -595,7 +595,7 @@
                 "main",
                 "develop"
             ],
-            "commitMessage": "chore(release): [skip-ci]",
+            "commitMessage": "chore(release): [skip ci]",
             "requireCleanWorkingDir": false,
             "requireUpstream": false,
             "changelog": "conventional-changelog -p angular"
