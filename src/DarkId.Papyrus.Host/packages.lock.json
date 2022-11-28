@@ -326,7 +326,7 @@
           "Microsoft.Extensions.DependencyInjection.Abstractions": "2.2.0"
         }
       },
-      "darkid.papyrus.languageservice.fallout4": {
+      "darkid.papyrus.languageservice.skyrim": {
         "type": "Project",
         "dependencies": {
           "DarkId.Papyrus.Common": "1.0.0",
@@ -341,10 +341,10 @@
           "ReflectionMagic": "4.0.0"
         }
       },
-      "darkid.papyrus.server.fallout4": {
+      "darkid.papyrus.server.skyrim": {
         "type": "Project",
         "dependencies": {
-          "DarkId.Papyrus.LanguageService.Fallout4": "1.0.0",
+          "DarkId.Papyrus.LanguageService.Skyrim": "1.0.0",
           "Microsoft.Extensions.DependencyInjection": "2.2.0",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "2.2.0",
           "OmniSharp.Extensions.LanguageProtocol": "0.10.0",
