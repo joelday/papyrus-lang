@@ -1,5 +1,0 @@
-{
-  "devDependencies": {
-    "@release-it/conventional-changelog": "^5.1.1"
-  }
-}
