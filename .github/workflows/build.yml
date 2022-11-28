@@ -16,7 +16,6 @@ jobs:
     steps:
       - name: Notify Build Started
         uses: rjstone/discord-webhook-notify@v1
-        if: ${{ secrets.DISCORD_WEBHOOK != '' }}
         with:
           severity: warn
           description: |
@@ -73,7 +72,7 @@ jobs:
 
       # Notifications
       - name: Notify Success
-        if: success() && ${{ secrets.DISCORD_WEBHOOK != '' }}
+        if: success()
         uses: rjstone/discord-webhook-notify@v1
         with:
           severity: info
@@ -82,7 +81,7 @@ jobs:
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
 
       - name: Notify Failure
-        if: failure() && ${{ secrets.DISCORD_WEBHOOK != '' }}
+        if: failure()
         uses: rjstone/discord-webhook-notify@v1
         with:
           severity: error
@@ -91,7 +90,7 @@ jobs:
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
 
       - name: Notify Cancelled
-        if: cancelled() && ${{ secrets.DISCORD_WEBHOOK != '' }}
+        if: cancelled()
         uses: rjstone/discord-webhook-notify@v1
         with:
           severity: warn
