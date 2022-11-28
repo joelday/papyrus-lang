@@ -234,23 +234,23 @@
       "darkid.papyrus.common": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Extensions.DependencyInjection": "[2.2.0, )",
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "[2.2.0, )"
+          "Microsoft.Extensions.DependencyInjection": "2.2.0",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "2.2.0"
         }
       },
-      "darkid.papyrus.languageservice.fallout4": {
+      "darkid.papyrus.languageservice.skyrim": {
         "type": "Project",
         "dependencies": {
-          "DarkId.Papyrus.Common": "[1.0.0, )",
-          "Lib.Harmony": "[1.2.0.1, )",
-          "Microsoft.Extensions.Configuration": "[2.2.0, )",
-          "Microsoft.Extensions.Configuration.Ini": "[2.2.0, )",
-          "Microsoft.Extensions.DependencyInjection": "[2.2.0, )",
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "[2.2.0, )",
-          "Microsoft.Extensions.Logging": "[2.2.0, )",
-          "Microsoft.Extensions.Logging.Abstractions": "[2.2.0, )",
-          "Microsoft.Extensions.Options.ConfigurationExtensions": "[2.2.0, )",
-          "ReflectionMagic": "[4.0.0, )"
+          "DarkId.Papyrus.Common": "1.0.0",
+          "Lib.Harmony": "1.2.0.1",
+          "Microsoft.Extensions.Configuration": "2.2.0",
+          "Microsoft.Extensions.Configuration.Ini": "2.2.0",
+          "Microsoft.Extensions.DependencyInjection": "2.2.0",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "2.2.0",
+          "Microsoft.Extensions.Logging": "2.2.0",
+          "Microsoft.Extensions.Logging.Abstractions": "2.2.0",
+          "Microsoft.Extensions.Options.ConfigurationExtensions": "2.2.0",
+          "ReflectionMagic": "4.0.0"
         }
       }
     }

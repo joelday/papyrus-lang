@@ -322,33 +322,33 @@
       "darkid.papyrus.common": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Extensions.DependencyInjection": "[2.2.0, )",
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "[2.2.0, )"
+          "Microsoft.Extensions.DependencyInjection": "2.2.0",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "2.2.0"
         }
       },
-      "darkid.papyrus.languageservice.skyrim": {
+      "darkid.papyrus.languageservice.fallout4": {
         "type": "Project",
         "dependencies": {
-          "DarkId.Papyrus.Common": "[1.0.0, )",
-          "Lib.Harmony": "[1.2.0.1, )",
-          "Microsoft.Extensions.Configuration": "[2.2.0, )",
-          "Microsoft.Extensions.Configuration.Ini": "[2.2.0, )",
-          "Microsoft.Extensions.DependencyInjection": "[2.2.0, )",
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "[2.2.0, )",
-          "Microsoft.Extensions.Logging": "[2.2.0, )",
-          "Microsoft.Extensions.Logging.Abstractions": "[2.2.0, )",
-          "Microsoft.Extensions.Options.ConfigurationExtensions": "[2.2.0, )",
-          "ReflectionMagic": "[4.0.0, )"
+          "DarkId.Papyrus.Common": "1.0.0",
+          "Lib.Harmony": "1.2.0.1",
+          "Microsoft.Extensions.Configuration": "2.2.0",
+          "Microsoft.Extensions.Configuration.Ini": "2.2.0",
+          "Microsoft.Extensions.DependencyInjection": "2.2.0",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "2.2.0",
+          "Microsoft.Extensions.Logging": "2.2.0",
+          "Microsoft.Extensions.Logging.Abstractions": "2.2.0",
+          "Microsoft.Extensions.Options.ConfigurationExtensions": "2.2.0",
+          "ReflectionMagic": "4.0.0"
         }
       },
-      "darkid.papyrus.server.skyrim": {
+      "darkid.papyrus.server.fallout4": {
         "type": "Project",
         "dependencies": {
-          "DarkId.Papyrus.LanguageService.Skyrim": "[1.0.0, )",
-          "Microsoft.Extensions.DependencyInjection": "[2.2.0, )",
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "[2.2.0, )",
-          "OmniSharp.Extensions.LanguageProtocol": "[0.10.0, )",
-          "OmniSharp.Extensions.LanguageServer": "[0.10.0, )"
+          "DarkId.Papyrus.LanguageService.Fallout4": "1.0.0",
+          "Microsoft.Extensions.DependencyInjection": "2.2.0",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "2.2.0",
+          "OmniSharp.Extensions.LanguageProtocol": "0.10.0",
+          "OmniSharp.Extensions.LanguageServer": "0.10.0"
         }
       }
     },

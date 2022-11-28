@@ -1,3 +1,7 @@
+## [2.23.3](https://github.com/joelday/papyrus-lang/compare/v2.23.2...v2.23.3) (2022-11-28)
+
+
+
 ## [2.23.1](https://github.com/joelday/papyrus-lang/compare/v2.23.0...v2.23.1) (2020-11-05)
 
 
