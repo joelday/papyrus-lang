@@ -30,6 +30,20 @@ jobs:
           git config user.name "${GITHUB_ACTOR}"
           git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
 
+      - uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - uses: actions/cache@v3
+        with:
+          path: tools
+          key: ${{ runner.os }}-dotnet-tools-${{ hashFiles('build.cake', '.config/dotnet-tools.json') }}
+          restore-keys: |
+            ${{ runner.os }}-dotnet-tools-
+
       - name: Setup Nuget.exe
         if: success()
         uses: nuget/setup-nuget@v1
