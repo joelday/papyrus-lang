@@ -105,20 +105,6 @@ foreach (var scriptName in new string[]
         .Does(() => NpmScript(scriptName));
 }
 
-Task("npm-version")
-    .Does(() =>
-    {
-        NpmVersion(new NpmVersionSettings()
-        {
-            WorkingDirectory = "./src/papyrus-lang-vscode",
-            ArgumentCustomization = args => args
-                .Append(currentVersion.SemVer)
-                .Append("--allow-same-version")
-                .Append("--no-git-tag-version")
-                .Append("--no-commit-hooks")
-        });
-    });
-
 Task("npm-install")
     .Does(() => {
         NpmInstall(new NpmInstallSettings()
@@ -150,6 +136,10 @@ Task("npm-publish")
         {
             ScriptName = isPrerelease ? "publish" : "publish:prerelease",
             WorkingDirectory = "src/papyrus-lang-vscode",
+            EnvironmentVariables = new Dictionary<string, string>()
+            {
+                { "VERSION", currentVersion.MajorMinorPatch }
+            }
         });
     });
 
@@ -186,15 +176,17 @@ Task("build")
 Task("test")
     .Does(() =>
     {
-        VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Fallout4/DarkId.Papyrus.Test.Fallout4.dll", new VSTestSettings()
+        var falloutTestTask = System.Threading.Tasks.Task.Run(() => VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Fallout4/DarkId.Papyrus.Test.Fallout4.dll", new VSTestSettings()
         {
             ToolPath = Context.Tools.Resolve("vstest.console.exe")
-        });
+        }));
 
-        VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Skyrim/DarkId.Papyrus.Test.Skyrim.dll", new VSTestSettings()
+        var skyrimTestTask = System.Threading.Tasks.Task.Run(() => VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Skyrim/DarkId.Papyrus.Test.Skyrim.dll", new VSTestSettings()
         {
             ToolPath = Context.Tools.Resolve("vstest.console.exe")
-        });
+        }));
+
+        System.Threading.Tasks.Task.WaitAll(falloutTestTask, skyrimTestTask);
     });
 
 Task("clean")
@@ -216,11 +208,6 @@ void BuildDefaultTask()
         .IsDependentOn("build")
         .IsDependentOn("test");
 
-    if (isRelease)
-    {
-        builder.IsDependentOn("npm-version");
-    }
-
     if (isCIBuild)
     {
         builder.IsDependentOn("npm-ci");
@@ -230,14 +217,14 @@ void BuildDefaultTask()
         builder.IsDependentOn("npm-install");
     }
 
-    builder.IsDependentOn("npm-build")
+    builder
+        .IsDependentOn("npm-clean")
+        .IsDependentOn("npm-build")
         .IsDependentOn("npm-copy-bin")
-        .IsDependentOn("npm-copy-debug-bin")
-        .IsDependentOn("npm-clean");
+        .IsDependentOn("npm-copy-debug-bin");
 }
 
 Task("publish")
-    .IsDependentOn("npm-changelog:update")
     .IsDependentOn("npm-publish");
 
 Task("update-bin")

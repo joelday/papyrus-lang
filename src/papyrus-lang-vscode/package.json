@@ -540,11 +540,12 @@
         "webpack-cli": "^5.0.0",
         "cpr": "^3.0.1",
         "vsce": "^2.14.0",
-        "conventional-changelog-cli": "^2.2.2"
+        "conventional-changelog-cli": "^2.2.2",
+        "release-it": "^15.5.0"
     },
     "displayName": "Papyrus",
     "engines": {
-        "vscode": "^1.31.1"
+        "vscode": "^1.73.1"
     },
     "homepage": "https://github.com/joelday/papyrus-lang/tree/master/packages/papyrus-lang-vscode",
     "icon": "images/icon-small.png",
@@ -578,10 +579,32 @@
         "clean": "rimraf dist",
         "compile": "webpack --mode development",
         "compile:release": "webpack --mode production",
-        "package": "vsce package",
-        "publish": "vsce publish && git push --tags",
-        "publish:prerelease": "vsce publish --prerelease && git push --tags",
-        "changelog:update": "conventional-changelog -p angular -i CHANGELOG.md -s && git add CHANGELOG.md"
+        "update-version": "node version %VERSION%",
+        "update-version:prerelease": "node version %VERSION%-prerelease",
+        "copy-license": "cpr ../LICENSE ./LICENSE -o",
+        "update-changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
+        "prepublish:release": "npm run update-version && npm run update-changelog",
+        "prepublish:prerelease": "npm run update-version:prerelease && npm run copy-license && npm run update-changelog",
+        "publish": "npm run prepublish:release && vsce publish %VERSION% --pre-release && npm run postpublish:release",
+        "publish:prerelease": "npm run npm-version:prerelease && vsce publish %VERSION% --pre-release -o papyrus-lang-vscode-%VERSION%-prerelease.vsix && npm run postpublish:prerelease",
+        "postpublish:release": "git add ../../ && release-it -i %VERSION% --ci --no-npm",
+        "postpublish:prerelease": "git add ../../ && release-it -i %VERSION%-prerelease --ci --no-npm"
+    },
+    "release-it": {
+        "git": {
+            "requireBranch": [
+                "main",
+                "develop"
+            ],
+            "commitMessage": "chore: release [skip-ci]",
+            "requireCleanWorkingDir": false
+        },
+        "github": {
+            "release": true,
+            "assets": [
+                "*.vsix"
+            ]
+        }
     },
     "version": "0.0.0",
     "prettier": {
