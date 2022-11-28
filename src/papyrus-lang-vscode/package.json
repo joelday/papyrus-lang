@@ -582,7 +582,6 @@
         "clean": "rimraf dist",
         "compile": "webpack --mode development",
         "compile:release": "webpack --mode production",
-        "update-version": "npm version %VERSION%",
         "copy-license": "cpr ../../LICENSE ./LICENSE -o",
         "update-changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
         "vscode:prepublish": "npm version %VERSION% && npm run copy-license && npm run update-changelog",
