@@ -135,7 +135,7 @@ Task("npm-publish")
     .Does(() => {
         NpmRunScript(new NpmRunScriptSettings()
         {
-            ScriptName = isPrerelease ? "publish" : "publish:prerelease",
+            ScriptName = isPrerelease ? "publish:prerelease" : "publish",
             WorkingDirectory = "src/papyrus-lang-vscode",
             EnvironmentVariables = new Dictionary<string, string>()
             {
