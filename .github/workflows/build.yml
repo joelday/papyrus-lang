@@ -31,8 +31,8 @@ jobs:
       
       - name: git config
         run: |
-          git config user.name "%GITHUB_ACTOR%"
-          git config user.email "%GITHUB_ACTOR%@users.noreply.github.com"
+          git config user.name "Cicero"
+          git config user.email "that-annoying-poser-jester-guy@users.noreply.github.com"
 
       - name: Cache nuget packages
         uses: actions/cache@v3

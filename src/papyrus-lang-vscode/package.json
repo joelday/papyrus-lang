@@ -585,8 +585,8 @@
         "copy-license": "cpr ../../LICENSE ./LICENSE -o",
         "update-changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
         "vscode:prepublish": "npm version %VERSION% && npm run copy-license && npm run update-changelog",
-        "publish": "vsce publish --skip-duplicate && npm run postpublish",
-        "publish:prerelease": "vsce publish --pre-release --skip-duplicate && npm run postpublish",
+        "publish": "vsce package && vsce publish --skip-duplicate && npm run postpublish",
+        "publish:prerelease": "vsce package -o papyrus-lang-vscode-%VERSION%-prerelease.vsix --pre-release && vsce publish --pre-release --skip-duplicate && npm run postpublish",
         "postpublish": "git add ../../ && release-it -i %VERSION% --ci --no-npm"
     },
     "release-it": {
@@ -597,7 +597,8 @@
             ],
             "commitMessage": "chore(release): [skip-ci]",
             "requireCleanWorkingDir": false,
-            "requireUpstream": false
+            "requireUpstream": false,
+            "changelog": "conventional-changelog -p angular"
         },
         "github": {
             "release": true,
