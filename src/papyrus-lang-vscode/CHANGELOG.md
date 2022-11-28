@@ -1,3 +1,12 @@
+## [2.23.5](https://github.com/joelday/papyrus-lang/compare/v2.23.4...v2.23.5) (2022-11-28)
+
+
+### Bug Fixes
+
+* CI github config. CHANGELOG.md and Release body should be the same and conventional only. Fixing package assets for releases. ([5869145](https://github.com/joelday/papyrus-lang/commit/586914511f6c7d884557dd4631d6269b23e89c1b))
+
+
+
 ## [2.23.4](https://github.com/joelday/papyrus-lang/compare/v2.23.3...v2.23.4) (2022-11-28)
 
 

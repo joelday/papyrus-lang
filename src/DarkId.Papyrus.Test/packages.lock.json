@@ -234,7 +234,7 @@
           "Microsoft.Extensions.DependencyInjection.Abstractions": "2.2.0"
         }
       },
-      "darkid.papyrus.languageservice.fallout4": {
+      "darkid.papyrus.languageservice.skyrim": {
         "type": "Project",
         "dependencies": {
           "DarkId.Papyrus.Common": "1.0.0",
