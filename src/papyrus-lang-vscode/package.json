@@ -573,6 +573,9 @@
         "type": "git",
         "url": "https://github.com/joelday/papyrus-lang"
     },
+    "sponsor": {
+        "url": "https://github.com/sponsors/joelday"
+    },
     "scripts": {
         "copy-bin": "rimraf ./bin && cpr ../DarkId.Papyrus.Host/bin/ ./bin/ -o",
         "copy-debug-bin": "rimraf ./debug-bin && cpr ../DarkId.Papyrus.DebugAdapterProxy/bin/ ./debug-bin/ -o",
@@ -583,9 +586,9 @@
         "copy-license": "cpr ../../LICENSE ./LICENSE -o",
         "update-changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
         "vscode:prepublish": "npm version %VERSION% && npm run copy-license && npm run update-changelog",
-        "publish": "vsce publish && npm run vscode:postpublish",
-        "publish:prerelease": "vsce publish --pre-release papyrus-lang-vscode-prerelease-%VERSION%.vsix && npm run vscode:postpublish",
-        "vscode:postpublish": "git add ../../ && release-it -i %VERSION% --ci --no-npm"
+        "publish": "vsce publish && npm run postpublish",
+        "publish:prerelease": "vsce publish --pre-release && npm run postpublish",
+        "postpublish": "git add ../../ && release-it -i %VERSION% --ci --no-npm"
     },
     "release-it": {
         "git": {
@@ -593,7 +596,7 @@
                 "main",
                 "develop"
             ],
-            "commitMessage": "chore: release [skip-ci]",
+            "commitMessage": "chore(release): [skip-ci]",
             "requireCleanWorkingDir": false,
             "requireUpstream": false
         },
