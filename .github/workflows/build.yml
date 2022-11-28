@@ -58,7 +58,7 @@ jobs:
         if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
+          VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
         uses: ecampidoglio/cake-action@v1
         with:
           target: publish
