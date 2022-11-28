@@ -3,6 +3,7 @@
 #tool nuget:?package=NuGet.CommandLine&version=5.9.1
 #addin nuget:?package=Octokit&version=4.0.2
 #addin nuget:?package=Cake.Git&version=2.0.0
+#tool nuget:?package=GitVersion.CommandLine
 
 var isCIBuild = EnvironmentVariable("CI") == "true";
 var isRelease = isCIBuild && EnvironmentVariable("RELEASE") == "true";
