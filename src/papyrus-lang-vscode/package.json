@@ -580,15 +580,12 @@
         "compile": "webpack --mode development",
         "compile:release": "webpack --mode production",
         "update-version": "npm version %VERSION%",
-        "update-version:prerelease": "npm version %VERSION%-prerelease",
         "copy-license": "cpr ../../LICENSE ./LICENSE -o",
         "update-changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
-        "prepublish:release": "npm run update-version && npm run update-changelog && git checkout -- package.json",
-        "prepublish:prerelease": "npm run update-version:prerelease && npm run copy-license && npm run update-changelog && git checkout -- package.json",
-        "publish": "npm run prepublish:release && vsce publish %VERSION% --pre-release && npm run postpublish:release",
-        "publish:prerelease": "npm run prepublish:prerelease && vsce publish %VERSION% --pre-release papyrus-lang-vscode-%VERSION%-prerelease.vsix && npm run postpublish:prerelease",
-        "postpublish:release": "git add ../../ && release-it -i %VERSION% --ci --no-npm",
-        "postpublish:prerelease": "git add ../../ && release-it -i %VERSION%-prerelease --ci --no-npm"
+        "vscode:prepublish": "npm version %VERSION% && npm run copy-license && npm run update-changelog",
+        "publish": "vsce publish && npm run vscode:postpublish",
+        "publish:prerelease": "vsce publish --pre-release papyrus-lang-vscode-%VERSION%-prerelease.vsix && npm run vscode:postpublish",
+        "vscode:postpublish": "git add ../../ && release-it -i %VERSION% --ci --no-npm"
     },
     "release-it": {
         "git": {
