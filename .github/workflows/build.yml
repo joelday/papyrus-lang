@@ -32,7 +32,7 @@ jobs:
 
       - name: Setup Nuget.exe
         if: success()
-        uses: warrenbuckley/Setup-Nuget@v1
+        uses: nuget/setup-nuget@v1
 
       - name: Build
         if: success()
