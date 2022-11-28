@@ -23,10 +23,11 @@
     <StartupObject />
     <DefineConstants>TRACE;SKYRIM</DefineConstants>
     <RootNamespace>DarkId.Papyrus.DebugAdapterProxy</RootNamespace>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
-  
+
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
-  
+
   <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.3.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="2.2.0" />
@@ -34,7 +35,7 @@
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
     <PackageReference Include="WebSocketSharp-netstandard" Version="1.0.1" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <ProjectReference Include="..\DarkId.Papyrus.Common\DarkId.Papyrus.Common.csproj" />
     <ProjectReference Include="..\DarkId.Papyrus.LanguageService\DarkId.Papyrus.LanguageService.Skyrim.csproj" />

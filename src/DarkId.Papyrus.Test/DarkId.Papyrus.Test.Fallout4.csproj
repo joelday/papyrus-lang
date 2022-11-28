@@ -13,8 +13,9 @@
     <OutputPath>bin\$(Configuration)\$(TargetFramework)\$(MSBuildProjectName)</OutputPath>
     <DefaultItemExcludes>$(DefaultItemExcludes);obj\**</DefaultItemExcludes>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
-  
+
   <PropertyGroup>
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
@@ -51,6 +52,6 @@
     <ProjectReference Include="..\DarkId.Papyrus.Common\DarkId.Papyrus.Common.csproj" />
     <ProjectReference Include="..\DarkId.Papyrus.LanguageService\DarkId.Papyrus.LanguageService.Fallout4.csproj" />
   </ItemGroup>
-  
+
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 </Project>
