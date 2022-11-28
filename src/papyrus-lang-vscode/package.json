@@ -586,7 +586,7 @@
         "prepublish:release": "npm run update-version && npm run update-changelog",
         "prepublish:prerelease": "npm run update-version:prerelease && npm run copy-license && npm run update-changelog",
         "publish": "npm run prepublish:release && vsce publish %VERSION% --pre-release && npm run postpublish:release",
-        "publish:prerelease": "npm run npm-version:prerelease && vsce publish %VERSION% --pre-release -o papyrus-lang-vscode-%VERSION%-prerelease.vsix && npm run postpublish:prerelease",
+        "publish:prerelease": "npm run prepublish:prerelease && vsce publish %VERSION% --pre-release -o papyrus-lang-vscode-%VERSION%-prerelease.vsix && npm run postpublish:prerelease",
         "postpublish:release": "git add ../../ && release-it -i %VERSION% --ci --no-npm",
         "postpublish:prerelease": "git add ../../ && release-it -i %VERSION%-prerelease --ci --no-npm"
     },
