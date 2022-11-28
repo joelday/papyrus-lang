@@ -597,7 +597,8 @@
                 "develop"
             ],
             "commitMessage": "chore: release [skip-ci]",
-            "requireCleanWorkingDir": false
+            "requireCleanWorkingDir": false,
+            "requireUpstream": false
         },
         "github": {
             "release": true,

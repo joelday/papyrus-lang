@@ -1,6 +1,9 @@
 name: "Build"
 
-on: push
+on:
+  push:
+   tags-ignore:
+     - "v*"
 
 jobs:
   build:
@@ -8,6 +11,7 @@ jobs:
     env:
       PRERELEASE: ${{ github.ref == 'refs/heads/develop' }}
       RELEASE: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}
+      CAKE_SETTINGS_ENABLESCRIPTCACHE: true
 
     steps:
       - name: Notify Build Started
@@ -30,14 +34,16 @@ jobs:
           git config user.name "%GITHUB_ACTOR%"
           git config user.email "%GITHUB_ACTOR%@users.noreply.github.com"
 
-      - uses: actions/cache@v3
+      - name: Cache nuget packages
+        uses: actions/cache@v3
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
 
-      - uses: actions/cache@v3
+      - name: Cache dotnet tools
+        uses: actions/cache@v3
         with:
           path: tools
           key: ${{ runner.os }}-dotnet-tools-${{ hashFiles('build.cake', '.config/dotnet-tools.json') }}
