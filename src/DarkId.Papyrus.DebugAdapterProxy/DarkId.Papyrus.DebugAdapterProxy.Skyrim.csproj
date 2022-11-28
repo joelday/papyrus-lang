@@ -23,7 +23,6 @@
     <StartupObject />
     <DefineConstants>TRACE;SKYRIM</DefineConstants>
     <RootNamespace>DarkId.Papyrus.DebugAdapterProxy</RootNamespace>
-    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
