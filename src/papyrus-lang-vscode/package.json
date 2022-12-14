@@ -607,7 +607,7 @@
             ]
         }
     },
-    "version": "2.23.11",
+    "version": "2.23.12",
     "prettier": {
         "tabWidth": 4,
         "singleQuote": true,
