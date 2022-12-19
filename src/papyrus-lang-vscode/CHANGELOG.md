@@ -1,3 +1,12 @@
+# [2.24.0](https://github.com/joelday/papyrus-lang/compare/v2.23.1...v2.24.0) (2022-12-19)
+
+
+### Bug Fixes
+
+* Pyro version update ([f3b8bea](https://github.com/joelday/papyrus-lang/commit/f3b8bea39dcc9c142c123d8d505f1b445cb7dce8)), closes [#161](https://github.com/joelday/papyrus-lang/issues/161) [#156](https://github.com/joelday/papyrus-lang/issues/156) [#158](https://github.com/joelday/papyrus-lang/issues/158)
+
+
+
 ## [2.23.12](https://github.com/joelday/papyrus-lang/compare/v2.23.11...v2.23.12) (2022-12-14)
 
 
