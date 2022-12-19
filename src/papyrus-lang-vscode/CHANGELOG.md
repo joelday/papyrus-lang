@@ -1,3 +1,48 @@
+## [2.23.12](https://github.com/joelday/papyrus-lang/compare/v2.23.11...v2.23.12) (2022-12-14)
+
+
+
+## [2.23.11](https://github.com/joelday/papyrus-lang/compare/v2.23.10...v2.23.11) (2022-11-28)
+
+
+
+## [2.23.10](https://github.com/joelday/papyrus-lang/compare/v2.23.9...v2.23.10) (2022-11-28)
+
+
+
+## [2.23.9](https://github.com/joelday/papyrus-lang/compare/v2.23.8...v2.23.9) (2022-11-28)
+
+
+
+## [2.23.8](https://github.com/joelday/papyrus-lang/compare/v2.23.7...v2.23.8) (2022-11-28)
+
+
+
+## [2.23.7](https://github.com/joelday/papyrus-lang/compare/v2.23.6...v2.23.7) (2022-11-28)
+
+
+
+## [2.23.6](https://github.com/joelday/papyrus-lang/compare/v2.23.5...v2.23.6) (2022-11-28)
+
+
+
+## [2.23.5](https://github.com/joelday/papyrus-lang/compare/v2.23.4...v2.23.5) (2022-11-28)
+
+
+### Bug Fixes
+
+* CI github config. CHANGELOG.md and Release body should be the same and conventional only. Fixing package assets for releases. ([5869145](https://github.com/joelday/papyrus-lang/commit/586914511f6c7d884557dd4631d6269b23e89c1b))
+
+
+
+## [2.23.4](https://github.com/joelday/papyrus-lang/compare/v2.23.3...v2.23.4) (2022-11-28)
+
+
+
+## [2.23.3](https://github.com/joelday/papyrus-lang/compare/v2.23.2...v2.23.3) (2022-11-28)
+
+
+
 ## [2.23.1](https://github.com/joelday/papyrus-lang/compare/v2.23.0...v2.23.1) (2020-11-05)
 
 

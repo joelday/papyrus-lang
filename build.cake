@@ -1,89 +1,124 @@
-#addin nuget:?package=Cake.Npm&version=0.16.0
+#addin nuget:?package=Cake.Npm&version=2.0.0
 #tool nuget:?package=Microsoft.TestPlatform&version=15.9.0
+#tool nuget:?package=NuGet.CommandLine&version=5.9.1
+#addin nuget:?package=Octokit&version=4.0.2
+#addin nuget:?package=Cake.Git&version=2.0.0
+#tool nuget:?package=GitVersion.CommandLine
+
+var isCIBuild = EnvironmentVariable("CI") == "true";
+var isRelease = isCIBuild && EnvironmentVariable("RELEASE") == "true";
+var isPrerelease = isRelease && EnvironmentVariable("PRERELEASE") == "true";
 
 var target = Argument("target", "default");
 var solution = File("./DarkId.Papyrus.sln");
+var forceDownloads = HasArgument("force-downloads");
 
 var pluginFileDirectory = Directory("src/papyrus-lang-vscode/debug-plugin/");
 var pyroCliDirectory = Directory("src/papyrus-lang-vscode/pyro/");
+var currentVersion = GitVersion();
 
-var isCIBuild = EnvironmentVariable("APPVEYOR") == "true";
-
-public void DownloadAndUnzip(string address, DirectoryPath outputPath, DirectoryPath existsPath)
+public bool ShouldContinueWithDownload(DirectoryPath path)
 {
-    if (DirectoryExists(existsPath))
+    if (DirectoryExists(path))
     {
-        return;
+        if (forceDownloads)
+        {
+            DeleteDirectory(path, new DeleteDirectorySettings { Recursive = true, Force = true });
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
-    var filePath = DownloadFile(address);
-    Unzip(filePath, outputPath);
+    return true;
 }
 
 public void UpdateDebugPlugin()
 {
-    if (DirectoryExists(pluginFileDirectory))
+    if (!ShouldContinueWithDownload(pluginFileDirectory))
     {
-        DeleteDirectory(pluginFileDirectory, new DeleteDirectorySettings()
-        {
-            Recursive = true,
-            Force = true
-        });
+        return;
     }
+
     var pluginDllZip = DownloadFile("https://github.com/joelday/papyrus-debug-server/releases/latest/download/papyrus-debug-server.zip");
     Unzip(pluginDllZip, pluginFileDirectory);
-    Information("Debug plugin update complete.");
 
+    Information("Debug plugin update complete.");
 }
 
 public void UpdatePyroCli()
 {
-    if (DirectoryExists(pyroCliDirectory))
+    if (!ShouldContinueWithDownload(pyroCliDirectory))
     {
-        DeleteDirectory(pyroCliDirectory, new DeleteDirectorySettings()
-        {
-            Recursive = true,
-            Force = true
-        });
+        return;
     }
-    var pyroCliZip = DownloadFile("https://github.com/fireundubh/pyro/releases/download/1574827307/pyro-master-1574827307.zip");
-    Unzip(pyroCliZip, pyroCliDirectory + Directory(".."));
-    MoveDirectory((pyroCliDirectory + Directory("../pyro-master-1574827307")), pyroCliDirectory);
-    Information("Pyro update complete.");
+
+    var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("Papyrus-Lang-CI"));
+
+    client.Repository.Release.GetAll("fireundubh", "pyro").ContinueWith((task) =>
+    {
+        var latestRelease = task.Result.First();
+
+        Information("Found latest release: " + latestRelease.Name);
+
+        var latestReleaseAsset = latestRelease.Assets.First();
+        var downloadUrl = latestReleaseAsset.BrowserDownloadUrl;
+
+        var pyroCliZip = DownloadFile(downloadUrl);
+        Unzip(pyroCliZip, pyroCliDirectory);
+
+        Information("Pyro update complete.");
+    }).Wait();
+}
+
+public void DownloadCompilers() {
+    if (!ShouldContinueWithDownload(Directory("dependencies/compilers")))
+    {
+        return;
+    }
+
+    var filePath = DownloadFile("https://www.dropbox.com/s/vkoffvsdhru7p1c/papyrus-compilers.zip?dl=1");
+    Unzip(filePath, "./dependencies");
+}
+
+public void NpmScript(string scriptName)
+{
+    var settings = new NpmRunScriptSettings()
+    {
+        ScriptName = scriptName,
+        WorkingDirectory = "./src/papyrus-lang-vscode"
+    };
+
+    NpmRunScript(settings);
+}
+
+foreach (var scriptName in new string[]
+    {
+        "copy-bin",
+        "copy-debug-bin",
+        "clean",
+        "changelog:update"
+    })
+{
+    Task($"npm-{scriptName}")
+        .Does(() => NpmScript(scriptName));
 }
 
 Task("npm-install")
     .Does(() => {
         NpmInstall(new NpmInstallSettings()
         {
-            WorkingDirectory = "src/papyrus-lang-vscode"
+            WorkingDirectory = "src/papyrus-lang-vscode",
         });
     });
 
-Task("npm-clean")
+Task("npm-ci")
     .Does(() => {
-        NpmRunScript(new NpmRunScriptSettings()
+        NpmCi(new NpmCiSettings()
         {
-            ScriptName = "clean",
-            WorkingDirectory = "src/papyrus-lang-vscode"
-        });
-    });
-
-Task("npm-copy-bin")
-    .Does(() => {
-        NpmRunScript(new NpmRunScriptSettings()
-        {
-            ScriptName = "copy-bin",
-            WorkingDirectory = "src/papyrus-lang-vscode"
-        });
-    });
-
-Task("npm-copy-debug-bin")
-    .Does(() => {
-        NpmRunScript(new NpmRunScriptSettings()
-        {
-            ScriptName = "copy-debug-bin",
-            WorkingDirectory = "src/papyrus-lang-vscode"
+            WorkingDirectory = "src/papyrus-lang-vscode",
         });
     });
 
@@ -92,32 +127,36 @@ Task("npm-build")
         NpmRunScript(new NpmRunScriptSettings()
         {
             ScriptName = isCIBuild ? "compile:release" : "compile",
-            WorkingDirectory = "src/papyrus-lang-vscode"
+            WorkingDirectory = "src/papyrus-lang-vscode",
         });
     });
 
-Task("update-debug-plugin")
-    .Does(() => {
-        UpdateDebugPlugin();
-    });
-
-Task("update-pyro-cli")
-    .Does(() => {
-        UpdatePyroCli();
-    });
-
-Task("npm-semantic-release")
+Task("npm-publish")
     .Does(() => {
         NpmRunScript(new NpmRunScriptSettings()
         {
-            ScriptName = "semantic-release",
-            WorkingDirectory = "src/papyrus-lang-vscode"
+            ScriptName = isPrerelease ? "publish:prerelease" : "publish",
+            WorkingDirectory = "src/papyrus-lang-vscode",
+            EnvironmentVariables = new Dictionary<string, string>()
+            {
+                { "VERSION", currentVersion.MajorMinorPatch }
+            }
         });
     });
 
 Task("download-compilers")
     .Does(() => {
-        DownloadAndUnzip("https://www.dropbox.com/s/vkoffvsdhru7p1c/papyrus-compilers.zip?dl=1", "./dependencies", "./dependencies/compilers");
+        DownloadCompilers();
+    });
+
+Task("download-debug-plugin")
+    .Does(() => {
+        UpdateDebugPlugin();
+    });
+
+Task("download-pyro-cli")
+    .Does(() => {
+        UpdatePyroCli();
     });
 
 Task("restore")
@@ -130,6 +169,7 @@ Task("build")
     {
         MSBuild(solution, new MSBuildSettings()
         {
+            AssemblyVersion = currentVersion.AssemblySemVer,
             Verbosity = Verbosity.Minimal
         });
     });
@@ -137,33 +177,56 @@ Task("build")
 Task("test")
     .Does(() =>
     {
-        VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Fallout4/DarkId.Papyrus.Test.Fallout4.dll", new VSTestSettings()
+        var falloutTestTask = System.Threading.Tasks.Task.Run(() => VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Fallout4/DarkId.Papyrus.Test.Fallout4.dll", new VSTestSettings()
         {
             ToolPath = Context.Tools.Resolve("vstest.console.exe")
-        });
+        }));
 
-        VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Skyrim/DarkId.Papyrus.Test.Skyrim.dll", new VSTestSettings()
+        var skyrimTestTask = System.Threading.Tasks.Task.Run(() => VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Skyrim/DarkId.Papyrus.Test.Skyrim.dll", new VSTestSettings()
         {
             ToolPath = Context.Tools.Resolve("vstest.console.exe")
-        });
+        }));
+
+        System.Threading.Tasks.Task.WaitAll(falloutTestTask, skyrimTestTask);
     });
 
 Task("clean")
     .Does(() => {
         CleanDirectories("./src/*/bin");
+        CleanDirectories("./src/*/bin-debug");
+        CleanDirectories("./src/*/obj");
     });
 
-Task("default")
-    .IsDependentOn("clean")
-    .IsDependentOn("download-compilers")
-    .IsDependentOn("restore")
-    .IsDependentOn("build")
-    .IsDependentOn("test")
-    .IsDependentOn("npm-install")
-    .IsDependentOn("npm-clean")
-    .IsDependentOn("npm-copy-bin")
-    .IsDependentOn("npm-copy-debug-bin")
-    .IsDependentOn("npm-build");
+void BuildDefaultTask()
+{
+    var builder = Task("default");
+
+    builder.IsDependentOn("clean")
+        .IsDependentOn("download-compilers")
+        .IsDependentOn("download-debug-plugin")
+        .IsDependentOn("download-pyro-cli")
+        .IsDependentOn("restore")
+        .IsDependentOn("build")
+        .IsDependentOn("test");
+
+    if (isCIBuild)
+    {
+        builder.IsDependentOn("npm-ci");
+    }
+    else
+    {
+        builder.IsDependentOn("npm-install");
+    }
+
+    builder
+        .IsDependentOn("npm-clean")
+        .IsDependentOn("npm-build")
+        .IsDependentOn("npm-copy-bin")
+        .IsDependentOn("npm-copy-debug-bin");
+}
+
+Task("publish")
+    .IsDependentOn("npm-publish");
 
 Task("update-bin")
     .IsDependentOn("build")
@@ -180,4 +243,5 @@ Task("build-test")
     .IsDependentOn("build")
     .IsDependentOn("test");
 
+BuildDefaultTask();
 RunTarget(target);

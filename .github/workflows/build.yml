@@ -1,0 +1,62 @@
+name: "Build"
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      PRERELEASE: ${{ github.ref == 'refs/heads/develop' }}
+      RELEASE: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}
+      CAKE_SETTINGS_ENABLESCRIPTCACHE: true
+
+    steps:
+      - name: Checkout
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN != '' && secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+      
+      - name: git config
+        run: |
+          git config user.name "Cicero[bot]"
+          git config user.email "that-annoying-poser-jester-guy@users.noreply.github.com"
+
+      - name: Cache nuget packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('src/*/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Cache dotnet tools
+        uses: actions/cache@v3
+        with:
+          path: tools
+          key: ${{ runner.os }}-dotnet-tools-${{ hashFiles('build.cake', '.config/dotnet-tools.json') }}
+          restore-keys: |
+            ${{ runner.os }}-dotnet-tools-
+
+      - name: Setup Nuget.exe
+        if: success()
+        uses: nuget/setup-nuget@v1
+
+      - name: Build
+        if: success()
+        uses: ecampidoglio/cake-action@v1
+        with:
+          target: default
+
+      - name: Publish Extension
+        if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
+        uses: ecampidoglio/cake-action@v1
+        with:
+          target: publish

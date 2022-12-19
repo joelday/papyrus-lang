@@ -4,7 +4,7 @@
   </PropertyGroup>
 
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
-  
+
   <PropertyGroup>
     <TargetFramework>net461</TargetFramework>
     <PlatformTarget>x86</PlatformTarget>
@@ -49,12 +49,12 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="2.2.0" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <ProjectReference Include="..\DarkId.Papyrus.Common\DarkId.Papyrus.Common.csproj" />
     <ProjectReference Include="..\DarkId.Papyrus.LanguageService\DarkId.Papyrus.LanguageService.Skyrim.csproj" />
   </ItemGroup>
-  
+
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 
 </Project>

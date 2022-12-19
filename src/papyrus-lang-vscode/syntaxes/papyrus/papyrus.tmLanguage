@@ -11,9 +11,9 @@
     <key>firstLineMatch</key>
     <string>(?i)^scriptname</string>
     <key>foldingStartMarker</key>
-    <string>(?i)^\s*(if|property|struct|group|state|event|(\S+\s+)?function)</string>
+    <string>(?i)^\s*(if|while|property|struct|group|state|event|(\S+\s+)?function)</string>
     <key>foldingStopMarker</key>
-    <string>(?i)^\s*(endif|endproperty|endstruct|endgroup|endstate|endevent|endfunction)</string>
+    <string>(?i)^\s*(endif|endwhile|endproperty|endstruct|endgroup|endstate|endevent|endfunction)</string>
     <key>name</key>
     <string>papyrus</string>
     <key>patterns</key>
