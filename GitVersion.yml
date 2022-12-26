@@ -3,7 +3,6 @@ branches:
   main:
     increment: Minor
   release:
-    label: 'preview'
     increment: Patch
 ignore:
   sha: []
