@@ -2,7 +2,7 @@ mode: ContinuousDeployment
 branches:
   main:
     increment: Minor
-  develop:
+  preview:
     increment: Patch
 ignore:
   sha: []
