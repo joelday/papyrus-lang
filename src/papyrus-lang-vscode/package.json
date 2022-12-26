@@ -600,9 +600,6 @@
             "requireUpstream": false,
             "changelog": "conventional-changelog -p angular"
         },
-        "hooks": {
-            "after:git:release": "git fetch && git checkout develop && git merge v%VERSION% && git push origin develop"
-        },
         "github": {
             "release": true,
             "assets": [
