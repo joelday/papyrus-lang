@@ -9,13 +9,13 @@ jobs:
   build:
     runs-on: windows-latest
     env:
-      PRERELEASE: ${{ github.ref == 'refs/heads/preview' }}
-      RELEASE: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/preview' }}
+      PRERELEASE: ${{ github.ref == 'refs/heads/release' }}
+      RELEASE: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release' }}
       CAKE_SETTINGS_ENABLESCRIPTCACHE: true
 
     steps:
       - name: Checkout
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/preview')
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release')
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
@@ -53,7 +53,7 @@ jobs:
           target: default
 
       - name: Publish Extension
-        if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/preview')
+        if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release')
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           VSCE_PAT: ${{ secrets.VSCE_TOKEN }}

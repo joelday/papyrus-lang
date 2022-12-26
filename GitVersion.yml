@@ -2,7 +2,8 @@ mode: ContinuousDeployment
 branches:
   main:
     increment: Minor
-  preview:
+  release:
+    label: 'preview'
     increment: Patch
 ignore:
   sha: []
