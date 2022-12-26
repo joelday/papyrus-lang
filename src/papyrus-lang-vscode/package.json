@@ -587,7 +587,7 @@
         "prepublish-extension": "npm version %VERSION% && npm run copy-license && npm run update-changelog",
         "publish": "npm run prepublish-extension && vsce package && vsce publish --skip-duplicate && npm run postpublish:release",
         "publish:prerelease": "npm run prepublish-extension && vsce package -o papyrus-lang-vscode-%VERSION%-prerelease.vsix --pre-release && vsce publish --pre-release --skip-duplicate && npm run postpublish:release",
-        "postpublish:release": "git add CHANGELOG.md && release-it -i %VERSION% --ci --no-npm"
+        "postpublish:release": "git reset -- package.json package-lock.json && git checkout -- package.json package-lock.json && git add CHANGELOG.md && release-it -i %VERSION% --ci --no-npm"
     },
     "release-it": {
         "git": {
@@ -601,7 +601,7 @@
             "changelog": "conventional-changelog -p angular"
         },
         "hooks": {
-            "after:git:release": "git fetch && git checkout develop && git merge %VERSION% && git push origin develop"
+            "after:git:release": "git fetch && git checkout develop && git merge v%VERSION% && git push origin develop"
         },
         "github": {
             "release": true,
@@ -610,7 +610,7 @@
             ]
         }
     },
-    "version": "2.25.0",
+    "version": "0.0.0",
     "prettier": {
         "tabWidth": 4,
         "singleQuote": true,
