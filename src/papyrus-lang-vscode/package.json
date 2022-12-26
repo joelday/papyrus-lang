@@ -610,7 +610,7 @@
             ]
         }
     },
-    "version": "0.0.0",
+    "version": "2.25.0",
     "prettier": {
         "tabWidth": 4,
         "singleQuote": true,
