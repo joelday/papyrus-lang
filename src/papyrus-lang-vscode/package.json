@@ -591,6 +591,9 @@
         "semantic-release": "semantic-release"
     },
     "release": {
+        "branches": [
+            "main"
+        ],
         "repositoryUrl": "https://github.com/joelday/papyrus-lang.git",
         "plugins": [
             "@semantic-release/commit-analyzer",
