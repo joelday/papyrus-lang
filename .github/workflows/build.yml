@@ -9,8 +9,6 @@ jobs:
   build:
     runs-on: windows-latest
     env:
-      PRERELEASE: ${{ github.ref == 'refs/heads/release' }}
-      RELEASE: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release' }}
       CAKE_SETTINGS_ENABLESCRIPTCACHE: true
 
     steps:
@@ -19,12 +17,6 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN != '' && secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
-      
-      - name: git config
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release')
-        run: |
-          git config user.name "Cicero[bot]"
-          git config user.email "that-annoying-poser-jester-guy@users.noreply.github.com"
 
       - name: Cache nuget packages
         uses: actions/cache@v3
@@ -53,7 +45,7 @@ jobs:
           target: default
 
       - name: Publish Extension
-        if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release')
+        if: success() && (github.ref == 'refs/heads/main')
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           VSCE_PAT: ${{ secrets.VSCE_TOKEN }}

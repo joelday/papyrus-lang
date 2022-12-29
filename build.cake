@@ -3,7 +3,7 @@
 #tool nuget:?package=NuGet.CommandLine&version=5.9.1
 #addin nuget:?package=Octokit&version=4.0.2
 #addin nuget:?package=Cake.Git&version=2.0.0
-#tool nuget:?package=GitVersion.CommandLine
+// tool nuget:?package=GitVersion.CommandLine
 
 var isCIBuild = EnvironmentVariable("CI") == "true";
 var isRelease = isCIBuild && EnvironmentVariable("RELEASE") == "true";
@@ -15,7 +15,7 @@ var forceDownloads = HasArgument("force-downloads");
 
 var pluginFileDirectory = Directory("src/papyrus-lang-vscode/debug-plugin/");
 var pyroCliDirectory = Directory("src/papyrus-lang-vscode/pyro/");
-var currentVersion = GitVersion();
+// var currentVersion = GitVersion();
 
 public bool ShouldContinueWithDownload(DirectoryPath path)
 {
@@ -94,12 +94,12 @@ public void NpmScript(string scriptName)
     NpmRunScript(settings);
 }
 
+// TODO: Temporarily leaving the dynamic stuff until redoing versioning and preview release work.
 foreach (var scriptName in new string[]
     {
         "copy-bin",
         "copy-debug-bin",
-        "clean",
-        "changelog:update"
+        "clean"
     })
 {
     Task($"npm-{scriptName}")
@@ -126,7 +126,7 @@ Task("npm-build")
     .Does(() => {
         NpmRunScript(new NpmRunScriptSettings()
         {
-            ScriptName = isCIBuild ? "compile:release" : "compile",
+            ScriptName = "compile",
             WorkingDirectory = "src/papyrus-lang-vscode",
         });
     });
@@ -135,12 +135,8 @@ Task("npm-publish")
     .Does(() => {
         NpmRunScript(new NpmRunScriptSettings()
         {
-            ScriptName = isPrerelease ? "publish:prerelease" : "publish",
-            WorkingDirectory = "src/papyrus-lang-vscode",
-            EnvironmentVariables = new Dictionary<string, string>()
-            {
-                { "VERSION", currentVersion.MajorMinorPatch }
-            }
+            ScriptName = "semantic-release",
+            WorkingDirectory = "src/papyrus-lang-vscode"
         });
     });
 
@@ -169,7 +165,7 @@ Task("build")
     {
         MSBuild(solution, new MSBuildSettings()
         {
-            AssemblyVersion = currentVersion.AssemblySemVer,
+            // AssemblyVersion = currentVersion.AssemblySemVer,
             Verbosity = Verbosity.Minimal
         });
     });
