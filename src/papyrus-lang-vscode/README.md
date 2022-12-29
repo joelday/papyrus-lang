@@ -9,8 +9,6 @@
 </h1>
 <hr/>
 
-[![](https://vsmarketplacebadge.apphb.com/version-short/joelday.papyrus-lang-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=joelday.papyrus-lang-vscode) [![Discord](https://img.shields.io/discord/558746231665328139.svg?color=%23738ADB)](https://discord.gg/E4dWujQ)
-
 🔗 [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=joelday.papyrus-lang-vscode)
 📖 [User Manual](https://github.com/joelday/papyrus-lang/wiki)
 ⚙️ [Source](./)

@@ -550,7 +550,7 @@
     },
     "displayName": "Papyrus",
     "engines": {
-        "vscode": "^1.73.1"
+        "vscode": "^1.74.0"
     },
     "homepage": "https://github.com/joelday/papyrus-lang/tree/main/src/papyrus-lang-vscode",
     "icon": "images/icon-small.png",
@@ -571,7 +571,7 @@
         }
     ],
     "name": "papyrus-lang-vscode",
-    "preview": false,
+    "preview": true,
     "private": true,
     "publisher": "joelday",
     "repository": {
@@ -613,6 +613,13 @@
             {
                 "path": "semantic-release-vsce",
                 "packageVsix": "papyrus-lang-vscode.vsix"
+            }
+        ],
+        "publish": [
+            "semantic-release-vsce",
+            {
+                "path": "@semantic-release/github",
+                "assets": "papyrus-lang-vscode.vsix"
             }
         ]
     },
