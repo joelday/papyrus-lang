@@ -8,6 +8,7 @@
 var isCIBuild = EnvironmentVariable("CI") == "true";
 var isRelease = isCIBuild && EnvironmentVariable("RELEASE") == "true";
 var isPrerelease = isRelease && EnvironmentVariable("PRERELEASE") == "true";
+var githubToken = EnvironmentVariable("CI") == "true" ? EnvironmentVariable("GH_TOKEN") : null;
 
 var target = Argument("target", "default");
 var solution = File("./DarkId.Papyrus.sln");
@@ -56,6 +57,10 @@ public void UpdatePyroCli()
     }
 
     var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("Papyrus-Lang-CI"));
+    if (githubToken != null)
+    {
+        client.Credentials = new Octokit.Credentials(githubToken);
+    }
 
     client.Repository.Release.GetAll("fireundubh", "pyro").ContinueWith((task) =>
     {
