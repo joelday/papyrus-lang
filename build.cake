@@ -56,26 +56,32 @@ public void UpdatePyroCli()
         return;
     }
 
-    var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("Papyrus-Lang-CI"));
-    if (githubToken != null)
-    {
-        client.Credentials = new Octokit.Credentials(githubToken);
-    }
+    // TODO: Switch back to using Octokit after the rate limit expires (unauthenticated or not.)
+    var pyroCliZip = DownloadFile("https://github.com/fireundubh/pyro/releases/download/1656807840/pyro-master-1656807840.zip");
+    Unzip(pyroCliZip, pyroCliDirectory);
 
-    client.Repository.Release.GetAll("fireundubh", "pyro").ContinueWith((task) =>
-    {
-        var latestRelease = task.Result.First();
+    Information("Pyro update complete.");
 
-        Information("Found latest release: " + latestRelease.Name);
+    // var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("Papyrus-Lang-CI"));
+    // if (githubToken != null)
+    // {
+    //     client.Credentials = new Octokit.Credentials(githubToken);
+    // }
 
-        var latestReleaseAsset = latestRelease.Assets.First();
-        var downloadUrl = latestReleaseAsset.BrowserDownloadUrl;
+    // client.Repository.Release.GetAll("fireundubh", "pyro").ContinueWith((task) =>
+    // {
+    //     var latestRelease = task.Result.First();
 
-        var pyroCliZip = DownloadFile(downloadUrl);
-        Unzip(pyroCliZip, pyroCliDirectory);
+    //     Information("Found latest release: " + latestRelease.Name);
 
-        Information("Pyro update complete.");
-    }).Wait();
+    //     var latestReleaseAsset = latestRelease.Assets.First();
+    //     var downloadUrl = latestReleaseAsset.BrowserDownloadUrl;
+
+    //     var pyroCliZip = DownloadFile(downloadUrl);
+    //     Unzip(pyroCliZip, pyroCliDirectory);
+
+    //     Information("Pyro update complete.");
+    // }).Wait();
 }
 
 public void DownloadCompilers() {
