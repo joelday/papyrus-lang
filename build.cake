@@ -43,7 +43,8 @@ public void UpdateDebugPlugin()
         return;
     }
 
-    var pluginDllZip = DownloadFile("https://github.com/joelday/papyrus-debug-server/releases/download/1.57.0-beta1/papyrus-debug-server.zip");
+    var pluginDllZip = DownloadFile("https://github.com/joelday/papyrus-debug-server/releases/latest/download/papyrus-debug-server.zip");
+    // var pluginDllZip = DownloadFile("https://github.com/joelday/papyrus-debug-server/releases/download/1.57.0-beta1/papyrus-debug-server.zip");
     Unzip(pluginDllZip, pluginFileDirectory);
 
     Information("Debug plugin update complete.");
