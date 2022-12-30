@@ -1,3 +1,10 @@
+## [3.0.1](https://github.com/joelday/papyrus-lang/compare/v3.0.0...v3.0.1) (2022-12-30)
+
+
+### Bug Fixes
+
+* revert debugger due to inadvertant non-preview release. ([01a6406](https://github.com/joelday/papyrus-lang/commit/01a640606eb256ecce350f7b4038421fe0a3b08a))
+
 # [3.0.0](https://github.com/joelday/papyrus-lang/compare/v2.25.0...v3.0.0) (2022-12-30)
 
 
