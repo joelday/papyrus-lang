@@ -1,3 +1,13 @@
+# [3.0.0](https://github.com/joelday/papyrus-lang/compare/v2.25.0...v3.0.0) (2022-12-30)
+
+
+* chore!: annoying conventional commit thing ([321ad7d](https://github.com/joelday/papyrus-lang/commit/321ad7daff68fe84d7be6c36295b937c27331b24))
+
+
+### BREAKING CHANGES
+
+* See previous commit message
+
 # [2.24.0](https://github.com/joelday/papyrus-lang/compare/v2.23.1...v2.24.0) (2022-12-19)
 
 ### Bug Fixes
