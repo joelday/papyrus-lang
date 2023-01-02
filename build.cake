@@ -114,7 +114,9 @@ Task("get-version")
         {
             ScriptName = "generate-version-number",
             WorkingDirectory = "src/papyrus-lang-vscode",
-            StandardOutputAction = (line) => {
+            StandardOutputAction = (line) =>
+            {
+                Information("version stdout: " + line);
                 version = line;
             }
         });
