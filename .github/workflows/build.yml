@@ -43,12 +43,17 @@ jobs:
         uses: ecampidoglio/cake-action@v1
         with:
           target: default
+        env:
+          RELEASE: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/prerelease' }}
+          PRERELEASE: ${{ github.ref == 'refs/heads/prerelease' }}
 
       - name: Publish Extension
-        if: success() && (github.ref == 'refs/heads/main')
+        if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/prerelease')
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
+          RELEASE: true
+          PRERELEASE: ${{ github.ref == 'refs/heads/prerelease' }}
         uses: ecampidoglio/cake-action@v1
         with:
           target: publish
