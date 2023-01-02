@@ -249,7 +249,9 @@ void BuildDefaultTask()
 
     if (isRelease)
     {
-        builder.IsDependentOn("get-version");
+        builder
+            .IsDependentOn("npm-ci")
+            .IsDependentOn("get-version");
     }
 
     builder.IsDependentOn("clean")
