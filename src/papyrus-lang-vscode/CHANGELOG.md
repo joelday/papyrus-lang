@@ -1,3 +1,10 @@
+# [3.1.0-prerelease.1](https://github.com/joelday/papyrus-lang/compare/v3.0.1...v3.1.0-prerelease.1) (2023-01-02)
+
+
+### Features
+
+* test ([9b75be0](https://github.com/joelday/papyrus-lang/commit/9b75be0b75f9e63332135ca6a6b74c890ea12099))
+
 ## [3.0.1](https://github.com/joelday/papyrus-lang/compare/v3.0.0...v3.0.1) (2022-12-30)
 
 
