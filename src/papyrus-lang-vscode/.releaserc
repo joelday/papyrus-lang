@@ -22,13 +22,13 @@
         "@semantic-release/git",
         {
             "path": "@semantic-release/exec",
-            "cmd": "vsce package --no-git-tag-version --no-update-package-json --githubBranch %BRANCH_NAME% %PRERELEASE_FLAG% --pre-release --out papyrus-lang-vscode.vsix %VERSION%"
+            "cmd": "vsce package --no-git-tag-version --no-update-package-json --githubBranch %BRANCH_NAME% %PRERELEASE_FLAG% --out papyrus-lang-vscode.vsix %VERSION%"
         }
     ],
     "publish": [
         {
             "path": "@semantic-release/exec",
-            "cmd": "vsce publish --skip-duplicate --packagePath papyrus-lang-vscode.vsix %PRERELEASE_FLAG% --pre-release"
+            "cmd": "vsce publish --skip-duplicate --packagePath papyrus-lang-vscode.vsix %PRERELEASE_FLAG%"
         },
         {
             "path": "@semantic-release/github",

@@ -46,7 +46,7 @@ public void UpdateDebugPlugin()
     }
 
     // TODO: Move debug server to the monorepo.
-    var pluginDllZip = isPrerelease ?
+    var pluginDllZip = isPrerelease || !isCIBuild ?
         DownloadFile("https://github.com/joelday/papyrus-debug-server/releases/download/1.57.0-beta1/papyrus-debug-server.zip") :
         DownloadFile("https://github.com/joelday/papyrus-debug-server/releases/latest/download/papyrus-debug-server.zip");
 
