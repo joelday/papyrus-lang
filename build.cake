@@ -139,7 +139,7 @@ Task("get-version")
 
         Information("Using default version: 0.0.0");
         version = "0.0.0";
-    });
+    }).IsDependentOn("npm-install");
 
 Task("npm-install")
     .Does(() => {
