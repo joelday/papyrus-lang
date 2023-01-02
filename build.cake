@@ -262,7 +262,7 @@ void BuildDefaultTask()
         .IsDependentOn("build")
         .IsDependentOn("test");
 
-    if (isCIBuild)
+    if (isCIBuild && !builder.Task.Dependencies.Any(d => d.Name == "npm-ci"))
     {
         builder.IsDependentOn("npm-ci");
     }
