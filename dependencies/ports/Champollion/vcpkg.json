@@ -1,0 +1,29 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/master/docs/vcpkg.schema.json",
+  "name": "champollion",
+  "version-semver": "1.1.0",
+  "port-version": 0,
+  "description": "Papyrus Script Decompiler.",
+  "homepage": "https://github.com/Orvid/Champollion",
+  "license": "LGPL-3.0-only",
+  "supports": "windows & x64",
+  "dependencies": [    
+    {
+    "name": "vcpkg-cmake",
+    "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ],
+  "features": {
+    "standalone": {
+      "description": "Build as a standalone program",
+      "dependencies": [
+        "boost-program-options"
+      ]
+    }
+  },
+  "default-features": []
+}

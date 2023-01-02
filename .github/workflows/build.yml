@@ -17,6 +17,9 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
+          
+      - name: run-vcpkg
+        uses: lukka/run-vcpkg@v10.7
 
       - name: Cache nuget packages
         uses: actions/cache@v3
