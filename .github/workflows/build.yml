@@ -34,6 +34,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-dotnet-tools-
 
+      - name: Cache NPM
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('src/**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
       - name: Setup Nuget.exe
         if: success()
         uses: nuget/setup-nuget@v1

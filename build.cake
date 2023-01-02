@@ -110,6 +110,8 @@ Task("get-version")
     .Does(() => {
         Information("Getting version from semantic-release...");
 
+        var done = false;
+
         NpmRunScript(new NpmRunScriptSettings()
         {
             ScriptName = "generate-version-number",
@@ -117,6 +119,13 @@ Task("get-version")
             StandardOutputAction = (line) =>
             {
                 Information("version stdout: " + line);
+
+                if (done || !System.Version.TryParse(line, out var _))
+                {
+                    return;
+                }
+
+                done = true;
                 version = line;
             }
         });
