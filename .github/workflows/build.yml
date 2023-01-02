@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN != '' && secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Cache nuget packages
         uses: actions/cache@v3
@@ -38,22 +38,13 @@ jobs:
         if: success()
         uses: nuget/setup-nuget@v1
 
-      - name: Build
+      - name: Build and Publish
         if: success()
         uses: ecampidoglio/cake-action@v1
         with:
           target: default
         env:
-          RELEASE: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/prerelease' }}
-          PRERELEASE: ${{ github.ref == 'refs/heads/prerelease' }}
-
-      - name: Publish Extension
-        if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/prerelease')
-        env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
-          RELEASE: true
+          RELEASE: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/prerelease' }}
           PRERELEASE: ${{ github.ref == 'refs/heads/prerelease' }}
-        uses: ecampidoglio/cake-action@v1
-        with:
-          target: publish

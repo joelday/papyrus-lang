@@ -9,8 +9,6 @@ var isCIBuild = EnvironmentVariable("CI") == "true";
 var isRelease = isCIBuild && EnvironmentVariable("RELEASE") == "true";
 var isPrerelease = isRelease && EnvironmentVariable("PRERELEASE") == "true";
 var githubToken = EnvironmentVariable("CI") == "true" ? EnvironmentVariable("GH_TOKEN") ?? EnvironmentVariable("GITHUB_TOKEN") : null;
-
-// Gets the branch name by parsing the GITHUB_REF environment variable.
 var branchName = EnvironmentVariable("CI") == "true" ? EnvironmentVariable("GITHUB_REF").Replace("refs/heads/", "") : null;
 
 var target = Argument("target", "default");
@@ -20,7 +18,7 @@ var forceDownloads = HasArgument("force-downloads");
 var pluginFileDirectory = Directory("src/papyrus-lang-vscode/debug-plugin/");
 var pyroCliDirectory = Directory("src/papyrus-lang-vscode/pyro/");
 
-var version = EnvironmentVariable("VERSION");
+var version = "0.0.0";
 
 public bool ShouldContinueWithDownload(DirectoryPath path)
 {
@@ -110,49 +108,28 @@ public void NpmScript(string scriptName)
 // As much as the idea of a task with side effects grosses me out, meh...
 Task("get-version")
     .Does(() => {
-        if (!string.IsNullOrEmpty(version))
+        Information("Getting version from semantic-release...");
+
+        NpmRunScript(new NpmRunScriptSettings()
         {
-            // This is implicitly the case because the version is set when declared.
-            Information("Using VERSION envrionment variable: " + version);
-            return;
-        }
-
-        if (isCIBuild)
-        {
-            Information("Determining version from semantic-release...");
-
-            NpmRunScript(new NpmRunScriptSettings()
-            {
-                ScriptName = "generate-version-number",
-                WorkingDirectory = "src/papyrus-lang-vscode",
-                StandardOutputAction = (line) => {
-                    version = line;
-                }
-            });
-
-            // TODO: Not sure if this actually propagates to the build environment until I try it.
-            EnvironmentVariable("VERSION", version);
-            Information("Version determined: " + version);
-            
-            return;
-        }
-
-        Information("Using default version: 0.0.0");
-        version = "0.0.0";
-    }).IsDependentOn("npm-install");
+            ScriptName = "generate-version-number",
+            WorkingDirectory = "src/papyrus-lang-vscode",
+            StandardOutputAction = (line) => {
+                version = line;
+            }
+        });
+    });
 
 Task("npm-install")
     .Does(() => {
-        if (isCIBuild)
+        NpmInstall(new NpmInstallSettings()
         {
-            NpmCi(new NpmCiSettings()
-            {
-                WorkingDirectory = "src/papyrus-lang-vscode",
-            });
+            WorkingDirectory = "src/papyrus-lang-vscode",
+        });
+    });
 
-            return;
-        }
-        
+Task("npm-ci")
+    .Does(() => {
         NpmCi(new NpmCiSettings()
         {
             WorkingDirectory = "src/papyrus-lang-vscode",
@@ -204,12 +181,11 @@ Task("npm-publish")
             EnvironmentVariables = 
             {
                 { "PRERELEASE_FLAG", isPrerelease ? "--pre-release" : null },
-                // TODO: Is this even necessary?
                 { "VERSION", version },
                 { "BRANCH_NAME", branchName }
             }
         });
-    }).IsDependentOn("get-version");
+    });
 
 Task("download-compilers")
     .Does(() => {
@@ -242,7 +218,7 @@ Task("build")
             AssemblyVersion = assemblyVersion,
             Verbosity = Verbosity.Minimal
         });
-    }).IsDependentOn("get-version");
+    });
 
 Task("test")
     .Does(() =>
@@ -271,21 +247,39 @@ void BuildDefaultTask()
 {
     var builder = Task("default");
 
+    if (isRelease)
+    {
+        builder.IsDependentOn("get-version");
+    }
+
     builder.IsDependentOn("clean")
         .IsDependentOn("download-compilers")
         .IsDependentOn("download-debug-plugin")
         .IsDependentOn("download-pyro-cli")
         .IsDependentOn("restore")
         .IsDependentOn("build")
-        .IsDependentOn("test")
+        .IsDependentOn("test");
+
+    if (isCIBuild)
+    {
+        builder.IsDependentOn("npm-ci");
+    }
+    else
+    {
+        builder.IsDependentOn("npm-install");
+    }
+
+    builder
         .IsDependentOn("npm-clean")
         .IsDependentOn("npm-build")
         .IsDependentOn("npm-copy-bin")
         .IsDependentOn("npm-copy-debug-bin");
-}
 
-Task("publish")
-    .IsDependentOn("npm-publish");
+    if (isRelease)
+    {
+        builder.IsDependentOn("npm-publish");
+    }
+}
 
 Task("update-bin")
     .IsDependentOn("build")

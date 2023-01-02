@@ -36,7 +36,6 @@ export async function main() {
     process.stdout.write(await getBuildVersion());
 }
 
-
 main().catch((e) => {
     console.error(e);
     process.exit(1);
