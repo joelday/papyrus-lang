@@ -143,14 +143,16 @@ Task("get-version")
 
 Task("npm-install")
     .Does(() => {
-        NpmInstall(new NpmInstallSettings()
+        if (isCIBuild)
         {
-            WorkingDirectory = "src/papyrus-lang-vscode",
-        });
-    });
+            NpmCi(new NpmCiSettings()
+            {
+                WorkingDirectory = "src/papyrus-lang-vscode",
+            });
 
-Task("npm-ci")
-    .Does(() => {
+            return;
+        }
+        
         NpmCi(new NpmCiSettings()
         {
             WorkingDirectory = "src/papyrus-lang-vscode",
@@ -275,18 +277,7 @@ void BuildDefaultTask()
         .IsDependentOn("download-pyro-cli")
         .IsDependentOn("restore")
         .IsDependentOn("build")
-        .IsDependentOn("test");
-
-    if (isCIBuild)
-    {
-        builder.IsDependentOn("npm-ci");
-    }
-    else
-    {
-        builder.IsDependentOn("npm-install");
-    }
-
-    builder
+        .IsDependentOn("test")
         .IsDependentOn("npm-clean")
         .IsDependentOn("npm-build")
         .IsDependentOn("npm-copy-bin")
