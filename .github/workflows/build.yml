@@ -24,7 +24,7 @@ jobs:
         uses: lukka/run-vcpkg@v10
         with:
           vcpkgDirectory: 'vcpkg'
-          vcpkgGitCommitId: '2022.11.14'
+          vcpkgGitCommitId: '6f7ffeb18f99796233b958aaaf14ec7bd4fb64b2'
           vcpkgJsonGlob: 'vcpkg.json'
 
       - name: Cache nuget packages
