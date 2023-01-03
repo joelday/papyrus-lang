@@ -12,53 +12,69 @@ jobs:
       CAKE_SETTINGS_ENABLESCRIPTCACHE: true
 
     steps:
+      - name: git credentials
+        uses: oleksiyrudenko/gha-git-credentials@v2-latest
+        with:
+          token: '${{ secrets.GH_TOKEN }}'
+          global: true
+          
       - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
-
-      - name: Restore artifacts, or setup vcpkg (do not install any package)
-        uses: lukka/run-vcpkg@v10
-        with:
-          vcpkgDirectory: 'vcpkg'
-          vcpkgGitCommitId: 'f9bea5d58186dc14e7e33132e43b52222147f51e'
-          vcpkgJsonGlob: 'vcpkg.json'
-
-      - name: vcpkg integrate
+      # clone the repo the same way actions/checkout does, but in the C drive
+        working-directory: c:/
         run: |
-          vcpkg\vcpkg.exe integrate install
+          git clone --depth 1 --branch ${{ github.ref }} ${{ github.server_url }}/${{ github.repository }} repo
+
+      - name: Setup vcpkg
+        working-directory: c:/repo
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          cd vcpkg
+          bootstrap-vcpkg.bat
+          vcpkg.exe integrate install
+
+      - name: Cache vcpkg packages
+        uses: actions/cache@v3
+        with:
+          path: c:/${{ github.repository }}/vcpkg_installed
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('c:/repo/vcpkg.json') }}
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-
 
       - name: Cache nuget packages
         uses: actions/cache@v3
         with:
           path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('src/*/*.csproj') }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('c:/repo/src/*/*.csproj') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
 
       - name: Cache dotnet tools
         uses: actions/cache@v3
         with:
-          path: tools
-          key: ${{ runner.os }}-dotnet-tools-${{ hashFiles('build.cake', '.config/dotnet-tools.json') }}
+          path: c:/repo/tools
+          key: ${{ runner.os }}-dotnet-tools-${{ hashFiles('build.cake', 'c:/repo/.config/dotnet-tools.json') }}
           restore-keys: |
             ${{ runner.os }}-dotnet-tools-
+
+      - name: Restore dotnet tools
+        working-directory: c:/repo
+        run: |
+          dotnet tool restore
 
       - uses: actions/setup-node@v3
         with:
           node-version: 18
           cache: 'npm'
-          cache-dependency-path: src/papyrus-lang-vscode/package-lock.json
+          cache-dependency-path: c:/repo/src/papyrus-lang-vscode/package-lock.json
 
       - name: Setup Nuget.exe
         uses: nuget/setup-nuget@v1
 
       - name: Build and Publish
         if: success()
-        uses: ecampidoglio/cake-action@v1
-        with:
-          target: default
+        working-directory: c:/repo
+        run: |
+          dotnet cake
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
