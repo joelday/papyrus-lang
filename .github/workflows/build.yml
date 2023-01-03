@@ -27,6 +27,10 @@ jobs:
           vcpkgGitCommitId: '6f7ffeb18f99796233b958aaaf14ec7bd4fb64b2'
           vcpkgJsonGlob: 'vcpkg.json'
 
+      - name: vcpkg integrate
+        run: |
+          vcpkg\vcpkg.exe integrate install
+
       - name: Cache nuget packages
         uses: actions/cache@v3
         with:
@@ -50,14 +54,7 @@ jobs:
           cache-dependency-path: src/papyrus-lang-vscode/package-lock.json
 
       - name: Setup Nuget.exe
-        if: success()
         uses: nuget/setup-nuget@v1
-
-      - name: Build native dependencies
-        uses: lukka/run-cmake@v10
-        with:
-          configurePreset: 'ninja-multi-vcpkg'
-          buildPreset: 'ninja-multi-vcpkg'
 
       - name: Build and Publish
         if: success()
