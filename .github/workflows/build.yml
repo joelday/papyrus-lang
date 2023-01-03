@@ -21,8 +21,8 @@ jobs:
       - name: Get clone info
         id: branch
         run: |
-          echo BRANCH_NAME=${${{ github.ref }}#refs/heads/} >> $GITHUB_ENV |
-          echo CLONE_URL=${{ github.server_url }}/${{ github.repository }}.git >> $GITHUB_ENV
+          echo "BRANCH_NAME=${${{ github.ref }}#refs/heads/}" >> $GITHUB_ENV |
+          echo "CLONE_URL=${{ github.server_url }}/${{ github.repository }}.git" >> $GITHUB_ENV
 
       - name: Checkout
         working-directory: c:/
