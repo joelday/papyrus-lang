@@ -62,6 +62,8 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
 
         const bundledPluginPath = await this._pathResolver.getDebugPluginBundledPath(game);
         // If the debugger plugin isn't bundled, we'll assume this is in-development.
+        // TODO: Figure out if this is how it should still be done. Can figure that out once we start doing release
+        // builds.
         if (!(await exists(bundledPluginPath))) {
             return DebugSupportInstallState.installed;
         }
