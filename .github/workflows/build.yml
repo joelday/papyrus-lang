@@ -17,12 +17,17 @@ jobs:
         with:
           token: '${{ secrets.GH_TOKEN }}'
           global: true
-          
+      
+      - name: Get branch info
+        id: branch_info
+        run: |
+          echo "::set-output name=branch::$(echo ${GITHUB_REF#refs/heads/})" |
+          echo "::set-output name=clone_url::$(echo ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git)"
+
       - name: Checkout
-      # clone the repo the same way actions/checkout does, but in the C drive
         working-directory: c:/
         run: |
-          git clone --depth 1 --branch ${{ github.ref }} ${{ github.server_url }}/${{ github.repository }} repo
+          git clone --single-branch --branch ${{ steps.branch_info.outputs.branch }} ${{ steps.branch_info.outputs.clone_url }} repo
 
       - name: Setup vcpkg
         working-directory: c:/repo
