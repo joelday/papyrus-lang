@@ -63,8 +63,19 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18
-          cache: 'npm'
-          cache-dependency-path: c:/repo/src/papyrus-lang-vscode/package-lock.json
+
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        shell: pwsh
+        run: echo "dir=$(npm config get cache)" >> ${env:GITHUB_OUTPUT}
+
+      - name: Cache npm packages
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-npm-${{ hashFiles('c:/repo/src/papyrus-lang-vscode/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
 
       - name: Setup Nuget.exe
         uses: nuget/setup-nuget@v1
