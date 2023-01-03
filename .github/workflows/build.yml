@@ -18,20 +18,10 @@ jobs:
           token: '${{ secrets.GH_TOKEN }}'
           global: true
 
-      - name: Get branch name
-        id: branch
-        run: |
-          echo "BRANCH_NAME=${${{ github.ref }}#refs/heads/}" >> $GITHUB_OUTPUT
-          
-      - name: Get clone url
-        id: clone_url
-        run: |
-          echo "CLONE_URL=${{ github.server_url }}/${{ github.repository }}.git" >> $GITHUB_OUTPUT
-
       - name: Checkout
         working-directory: c:/
         run: |
-          git clone --single-branch --branch ${{ steps.branch.outputs.BRANCH_NAME }} ${{ steps.clone_url.outputs.BRANCH_NAME }} repo
+          git clone --single-branch --branch ${${{ github.ref }}#refs/heads/} ${{ github.server_url }}/${{ github.repository }}.git repo
 
       - name: Setup vcpkg
         working-directory: c:/repo
