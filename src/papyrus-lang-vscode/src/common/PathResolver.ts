@@ -81,14 +81,14 @@ export class PathResolver implements IPathResolver {
     public async getLanguageToolPath(game: PapyrusGame): Promise<string> {
         const toolGameName = getToolGameName(game);
         return this._asExtensionAbsolutePath(
-            `./bin/Debug/net461/DarkId.Papyrus.Host.${toolGameName}/DarkId.Papyrus.Host.${toolGameName}.exe`
+            `./bin/Debug/net472/DarkId.Papyrus.Host.${toolGameName}/DarkId.Papyrus.Host.${toolGameName}.exe`
         );
     }
 
     public async getDebugToolPath(game: PapyrusGame): Promise<string> {
         const toolGameName = getToolGameName(game);
         return this._asExtensionAbsolutePath(
-            `./debug-bin/Debug/net461/DarkId.Papyrus.DebugAdapterProxy.${toolGameName}/`
+            `./debug-bin/Debug/net472/DarkId.Papyrus.DebugAdapterProxy.${toolGameName}/`
             + `DarkId.Papyrus.DebugAdapterProxy.${toolGameName}.exe`
         );
     }

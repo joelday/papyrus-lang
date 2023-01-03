@@ -12,7 +12,10 @@ var githubToken = EnvironmentVariable("CI") == "true" ? EnvironmentVariable("GH_
 var branchName = EnvironmentVariable("CI") == "true" ? EnvironmentVariable("GITHUB_REF").Replace("refs/heads/", "") : null;
 
 var target = Argument("target", "default");
+
 var solution = File("./DarkId.Papyrus.sln");
+var debuggerSolution = File("./DarkId.Papyrus.DebugServer.sln");
+
 var forceDownloads = HasArgument("force-downloads");
 
 var pluginFileDirectory = Directory("src/papyrus-lang-vscode/debug-plugin/");
@@ -224,6 +227,11 @@ Task("build")
         var assemblyVersion = version + ".0";
         Information("Assembly version: " + assemblyVersion);
 
+        MSBuild(debuggerSolution, new MSBuildSettings()
+        {
+            PlatformTarget = PlatformTarget.x64,
+        });
+
         MSBuild(solution, new MSBuildSettings()
         {
             AssemblyVersion = assemblyVersion,
@@ -234,12 +242,12 @@ Task("build")
 Task("test")
     .Does(() =>
     {
-        var falloutTestTask = System.Threading.Tasks.Task.Run(() => VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Fallout4/DarkId.Papyrus.Test.Fallout4.dll", new VSTestSettings()
+        var falloutTestTask = System.Threading.Tasks.Task.Run(() => VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net472/DarkId.Papyrus.Test.Fallout4/DarkId.Papyrus.Test.Fallout4.dll", new VSTestSettings()
         {
             ToolPath = Context.Tools.Resolve("vstest.console.exe")
         }));
 
-        var skyrimTestTask = System.Threading.Tasks.Task.Run(() => VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Skyrim/DarkId.Papyrus.Test.Skyrim.dll", new VSTestSettings()
+        var skyrimTestTask = System.Threading.Tasks.Task.Run(() => VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net472/DarkId.Papyrus.Test.Skyrim/DarkId.Papyrus.Test.Skyrim.dll", new VSTestSettings()
         {
             ToolPath = Context.Tools.Resolve("vstest.console.exe")
         }));

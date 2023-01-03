@@ -333,3 +333,5 @@ ASALocalRun/
 tools
 
 send.ps1
+
+vcpkg_installed
