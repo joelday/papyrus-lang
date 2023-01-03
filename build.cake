@@ -200,6 +200,8 @@ Task("copy-debug-plugin")
     .Does(() => {
         try
         {
+            CreateDirectory("./src/papyrus-lang-vscode/debug-plugin");
+
             CopyFileToDirectory(
                 "src/DarkId.Papyrus.DebugServer/bin/DarkId.Papyrus.DebugServer.Skyrim/x64/Debug/DarkId.Papyrus.DebugServer.Skyrim.dll",
                 "./src/papyrus-lang-vscode/debug-plugin");

@@ -94,5 +94,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
-          RELEASE: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/prerelease' }}
-          PRERELEASE: ${{ github.ref == 'refs/heads/prerelease' }}
+          # TODO: Rename this stuff for clarity once release build artifacts are being created
+          # TODO: Cleanup workflows for various event types in general
+          RELEASE: ${{( github.ref == 'refs/heads/main' || github.ref == 'refs/heads/prerelease') && github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}
+          PRERELEASE: ${{ github.ref == 'refs/heads/prerelease' && github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}
