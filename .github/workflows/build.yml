@@ -24,7 +24,7 @@ jobs:
           git clone --single-branch --branch $("${{ github.ref }}".Replace('refs/heads/', '')) ${{ github.server_url }}/${{ github.repository }}.git repo
 
       - name: Setup vcpkg
-        working-directory: c:/repo
+        working-directory: c:/
         run: |
           git clone https://github.com/microsoft/vcpkg.git
           cd vcpkg
@@ -79,6 +79,12 @@ jobs:
 
       - name: Setup Nuget.exe
         uses: nuget/setup-nuget@v1
+
+      - name: Install vcpkg packages
+        working-directory: c:/repo
+        run: |
+          ../vcpkg/vcpkg.exe install --x-wait-for-lock --triplet x64-windows-static --x-install-root=c:/repo/vcpkg_installed/skyrim --x-feature=skyrim
+          ../vcpkg/vcpkg.exe install --x-wait-for-lock --triplet x64-windows-static --x-install-root=c:/repo/vcpkg_installed/fallout4 --x-feature=fallout4
 
       - name: Build and Publish
         if: success()
