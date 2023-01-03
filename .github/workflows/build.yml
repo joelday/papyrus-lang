@@ -21,9 +21,8 @@ jobs:
       - name: Checkout
         working-directory: c:/
         run: |
-          $branchName = ${{ github.ref }}.Replace('refs/heads/', '') |
+          $branchName = "${{ github.ref }}".Replace('refs/heads/', '') |
           git clone --single-branch --branch $branchName ${{ github.server_url }}/${{ github.repository }}.git repo
-
 
       - name: Setup vcpkg
         working-directory: c:/repo
