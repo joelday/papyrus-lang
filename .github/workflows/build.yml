@@ -18,13 +18,12 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
 
-      - name: Cache vcpkg
-        uses: actions/cache@v3
+      - uses: lukka/get-cmake@latest
+
+      - name: Restore artifacts, or setup vcpkg (do not install any package)
+        uses: lukka/run-vcpkg@v10
         with:
-          path: vcpkg_installed
-          key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}
-          restore-keys: |
-            ${{ runner.os }}-vcpkg-
+          vcpkgJsonGlob: 'vcpkg.json'
 
       - name: Cache nuget packages
         uses: actions/cache@v3
