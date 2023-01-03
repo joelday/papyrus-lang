@@ -18,20 +18,16 @@ jobs:
           token: '${{ secrets.GH_TOKEN }}'
           global: true
       
-      - name: Get branch info
+      - name: Get clone info
         id: branch
         run: |
-          echo "::set-output name=branch::$(echo ${GITHUB_REF#refs/heads/})"
-
-      - name: Get clone url
-        id: clone_url
-        run: |
-          echo "::set-output name=clone_url::$(echo ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git)"
+          echo BRANCH_NAME=${GITHUB_REF#refs/heads/} >> $GITHUB_ENV |
+          echo CLONE_URL=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git >> $GITHUB_ENV
 
       - name: Checkout
         working-directory: c:/
         run: |
-          git clone --single-branch --branch ${{ steps.branch.outputs.branch }} ${{ steps.clone_url.outputs.clone_url }} repo
+          git clone --single-branch --branch ${{ env.BRANCH_NAME }} ${{ env.CLONE_URL }} repo
 
       - name: Setup vcpkg
         working-directory: c:/repo
