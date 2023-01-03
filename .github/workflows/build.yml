@@ -53,6 +53,12 @@ jobs:
         if: success()
         uses: nuget/setup-nuget@v1
 
+      - name: Build native dependencies
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: 'ninja-multi-vcpkg'
+          buildPreset: 'ninja-multi-vcpkg'
+
       - name: Build and Publish
         if: success()
         uses: ecampidoglio/cake-action@v1
