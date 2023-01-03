@@ -21,13 +21,16 @@ jobs:
       - name: Get clone info
         id: branch
         run: |
-          echo "BRANCH_NAME=${${{ github.ref }}}#refs/heads/}" >> $GITHUB_ENV |
-          echo "CLONE_URL=${{ github.server_url }}/${{ github.repository }}.git" >> $GITHUB_ENV
+          echo BRANCH_NAME=${${{ github.ref }}#refs/heads/} >> $GITHUB_ENV |
+          echo CLONE_URL=${{ github.server_url }}/${{ github.repository }}.git >> $GITHUB_ENV
 
       - name: Checkout
         working-directory: c:/
+        env:
+          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+          CLONE_URL: ${{ env.CLONE_URL }}
         run: |
-          git clone --single-branch --branch ${{ env.BRANCH_NAME }} ${{ env.CLONE_URL }} repo
+          git clone --single-branch --branch $BRANCH_NAME $CLONE_URL repo
 
       - name: Setup vcpkg
         working-directory: c:/repo
