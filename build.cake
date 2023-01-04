@@ -12,7 +12,10 @@ var githubToken = EnvironmentVariable("CI") == "true" ? EnvironmentVariable("GH_
 var branchName = EnvironmentVariable("CI") == "true" ? EnvironmentVariable("GITHUB_REF").Replace("refs/heads/", "") : null;
 
 var target = Argument("target", "default");
+
 var solution = File("./DarkId.Papyrus.sln");
+var debuggerSolution = File("./DarkId.Papyrus.DebugServer.sln");
+
 var forceDownloads = HasArgument("force-downloads");
 
 var pluginFileDirectory = Directory("src/papyrus-lang-vscode/debug-plugin/");
@@ -36,23 +39,6 @@ public bool ShouldContinueWithDownload(DirectoryPath path)
     }
 
     return true;
-}
-
-public void UpdateDebugPlugin()
-{
-    if (!ShouldContinueWithDownload(pluginFileDirectory))
-    {
-        return;
-    }
-
-    // TODO: Move debug server to the monorepo.
-    var pluginDllZip = isPrerelease || !isCIBuild ?
-        DownloadFile("https://github.com/joelday/papyrus-debug-server/releases/download/1.57.0-beta1/papyrus-debug-server.zip") :
-        DownloadFile("https://github.com/joelday/papyrus-debug-server/releases/latest/download/papyrus-debug-server.zip");
-
-    Unzip(pluginDllZip, pluginFileDirectory);
-
-    Information("Debug plugin update complete.");
 }
 
 public void UpdatePyroCli()
@@ -108,6 +94,13 @@ public void NpmScript(string scriptName)
 // As much as the idea of a task with side effects grosses me out, meh...
 Task("get-version")
     .Does(() => {
+        if (isPrerelease)
+        {
+            // Set version to a YYYY.MMDD.HHMM formatted string.
+            version = DateTime.UtcNow.ToString("yyyy.MMdd.HHmm");
+            return;
+        }
+        
         Information("Getting version from semantic-release...");
 
         var done = false;
@@ -203,9 +196,29 @@ Task("download-compilers")
         DownloadCompilers();
     });
 
-Task("download-debug-plugin")
+Task("copy-debug-plugin")
     .Does(() => {
-        UpdateDebugPlugin();
+        try
+        {
+            CreateDirectory("./src/papyrus-lang-vscode/debug-plugin");
+
+            CopyFileToDirectory(
+                "src/DarkId.Papyrus.DebugServer/bin/DarkId.Papyrus.DebugServer.Skyrim/x64/Debug/DarkId.Papyrus.DebugServer.Skyrim.dll",
+                "./src/papyrus-lang-vscode/debug-plugin");
+
+            CopyFileToDirectory(
+                "src/DarkId.Papyrus.DebugServer/bin/DarkId.Papyrus.DebugServer.Fallout4/x64/Debug/DarkId.Papyrus.DebugServer.Fallout4.dll",
+                "./src/papyrus-lang-vscode/debug-plugin");
+        }
+        catch (Exception)
+        {
+            // Making this non-fatal during local development.
+
+            if (isCIBuild)
+            {
+                throw;
+            }
+        }
     });
 
 Task("download-pyro-cli")
@@ -218,12 +231,24 @@ Task("restore")
         NuGetRestore(solution);
     });
 
+Task("build-debugger")
+    .Does(() => {
+        // TODO: How do we set the version on these? Does AssemblyVersion work?
+        // TODO: Do release builds when running CI.
+
+        MSBuild(debuggerSolution, new MSBuildSettings()
+        {
+            PlatformTarget = PlatformTarget.x64,
+        });
+    });
+
 Task("build")
     .Does(() =>
     {
         var assemblyVersion = version + ".0";
         Information("Assembly version: " + assemblyVersion);
 
+        // TODO: Do release builds when running CI.
         MSBuild(solution, new MSBuildSettings()
         {
             AssemblyVersion = assemblyVersion,
@@ -234,12 +259,12 @@ Task("build")
 Task("test")
     .Does(() =>
     {
-        var falloutTestTask = System.Threading.Tasks.Task.Run(() => VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Fallout4/DarkId.Papyrus.Test.Fallout4.dll", new VSTestSettings()
+        var falloutTestTask = System.Threading.Tasks.Task.Run(() => VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net472/DarkId.Papyrus.Test.Fallout4/DarkId.Papyrus.Test.Fallout4.dll", new VSTestSettings()
         {
             ToolPath = Context.Tools.Resolve("vstest.console.exe")
         }));
 
-        var skyrimTestTask = System.Threading.Tasks.Task.Run(() => VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Skyrim/DarkId.Papyrus.Test.Skyrim.dll", new VSTestSettings()
+        var skyrimTestTask = System.Threading.Tasks.Task.Run(() => VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net472/DarkId.Papyrus.Test.Skyrim/DarkId.Papyrus.Test.Skyrim.dll", new VSTestSettings()
         {
             ToolPath = Context.Tools.Resolve("vstest.console.exe")
         }));
@@ -258,22 +283,7 @@ void BuildDefaultTask()
 {
     var builder = Task("default");
 
-    if (isRelease)
-    {
-        builder
-            .IsDependentOn("npm-ci")
-            .IsDependentOn("get-version");
-    }
-
-    builder.IsDependentOn("clean")
-        .IsDependentOn("download-compilers")
-        .IsDependentOn("download-debug-plugin")
-        .IsDependentOn("download-pyro-cli")
-        .IsDependentOn("restore")
-        .IsDependentOn("build")
-        .IsDependentOn("test");
-
-    if (isCIBuild && !builder.Task.Dependencies.Any(d => d.Name == "npm-ci"))
+    if (isCIBuild)
     {
         builder.IsDependentOn("npm-ci");
     }
@@ -281,6 +291,21 @@ void BuildDefaultTask()
     {
         builder.IsDependentOn("npm-install");
     }
+
+    if (isRelease)
+    {
+        builder
+            .IsDependentOn("get-version");
+    }
+
+    builder.IsDependentOn("clean")
+        .IsDependentOn("download-compilers")
+        .IsDependentOn("download-pyro-cli")
+        .IsDependentOn("restore")
+        .IsDependentOn("build-debugger")
+        .IsDependentOn("copy-debug-plugin")
+        .IsDependentOn("build")
+        .IsDependentOn("test");
 
     builder
         .IsDependentOn("npm-clean")
@@ -294,15 +319,22 @@ void BuildDefaultTask()
     }
 }
 
+// TODO: Clean up local development tasks. Should add additional arguments to control what gets built.
+// TODO: Document how to use the tasks in the new CONTRIBUTING.md file.
+// TODO: Task to copy the debug plugin to the correct location for testing without relying on the extension to figure it
+// out/do it.
+
 Task("update-bin")
     .IsDependentOn("build")
     .IsDependentOn("npm-copy-bin")
-    .IsDependentOn("npm-copy-debug-bin");
+    .IsDependentOn("npm-copy-debug-bin")
+    .IsDependentOn("copy-debug-plugin");
 
 Task("build-extension")
     .IsDependentOn("npm-clean")
     .IsDependentOn("npm-copy-bin")
     .IsDependentOn("npm-copy-debug-bin")
+    .IsDependentOn("copy-debug-plugin")
     .IsDependentOn("npm-build");
 
 Task("build-test")

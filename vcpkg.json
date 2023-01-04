@@ -1,0 +1,58 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/master/docs/vcpkg.schema.json",
+  "name": "papyrus-debug-server",
+  "version-semver": "3.5.3",
+  "port-version": 0,
+  "description": "Websocket based debug adapter protocol xSE plugin for live Papyrus debugging support.",
+  "homepage": "https://github.com/joelday/papyrus-lang",
+  "license": "MIT",
+  "supports": "windows & x64",
+  "dependencies": [
+    "nlohmann-json",
+    "champollion",
+    "eventpp",
+    "websocketpp",
+    "xbyak"
+  ],
+  "features": {
+    "skyrim": {
+      "description": "Add deps for Skyrim",
+      "dependencies": [
+        "commonlibsse-ng"
+      ]
+    },
+    "fallout4": {
+      "description": "Add deps for Fallout 4",
+      "dependencies": [
+        "commonlibf4"
+      ]
+    }
+  },
+  "overrides": [
+    {
+      "name": "nlohmann-json",
+      "version": "3.7.0"
+    },
+    {
+      "name": "eventpp",
+      "version": "0.1.2"
+    },
+    {
+      "name": "websocketpp",
+      "version": "0.8.2"
+    },
+    {
+      "name": "commonlibsse-ng",
+      "version": "3.6.0"
+    },
+    {
+      "name": "commonlibf4",
+      "version-string": "2022-12-24"
+    },
+    {
+      "name": "f4se",
+      "version": "0.6.23"
+    }
+  ],
+  "builtin-baseline": "4cb4a5c5ddcb9de0c83c85837ee6974c8333f032"
+}

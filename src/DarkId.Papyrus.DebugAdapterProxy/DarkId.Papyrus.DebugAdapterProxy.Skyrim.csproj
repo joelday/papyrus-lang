@@ -6,7 +6,7 @@
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
 
   <PropertyGroup>
-    <TargetFramework>net461</TargetFramework>
+    <TargetFramework>net472</TargetFramework>
     <PlatformTarget>x86</PlatformTarget>
     <Configurations>Debug</Configurations>
     <OutputPath>bin\$(Configuration)\$(TargetFramework)\$(MSBuildProjectName)</OutputPath>
@@ -37,6 +37,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DarkId.Papyrus.Common\DarkId.Papyrus.Common.csproj" />
-    <ProjectReference Include="..\DarkId.Papyrus.LanguageService\DarkId.Papyrus.LanguageService.Skyrim.csproj" />
+    <ProjectReference
+      Include="..\DarkId.Papyrus.LanguageService\DarkId.Papyrus.LanguageService.Skyrim.csproj" />
   </ItemGroup>
 </Project>
