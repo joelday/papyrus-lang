@@ -96,8 +96,14 @@ Task("get-version")
     .Does(() => {
         if (isPrerelease)
         {
-            // Set version to a YYYY.MMDD.HHMM formatted string.
-            version = DateTime.UtcNow.ToString("yyyy.MMdd.HHmm");
+            // Generate a correctly sortable and valid semver based on the current date and time.
+            var now = DateTime.UtcNow;
+            var secondOfDay = (((now.Hour * 60) + now.Minute) * 60) + now.Second;
+            
+            // Adding 200 due to the previous incorrect versioning scheme that, while invalid, may still be sorted by
+            // something (VS marketplace, maybe? Don't really feel like finding out.)
+            version = $"{now.Year}.{now.DayOfYear + 200}.{secondOfDay}";
+            
             return;
         }
         
