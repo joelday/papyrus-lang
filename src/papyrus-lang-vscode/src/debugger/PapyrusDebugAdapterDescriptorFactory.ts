@@ -25,6 +25,7 @@ import { IPathResolver } from '../common/PathResolver';
 import { IDebugSupportInstallService, DebugSupportInstallState } from './DebugSupportInstallService';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
 import { showGameDisabledMessage, showGameMissingMessage } from '../features/commands/InstallDebugSupportCommand';
+import { inject, injectable } from 'inversify';
 
 const noopExecutable = new DebugAdapterExecutable('node', ['-e', '""']);
 
@@ -42,6 +43,7 @@ function getDefaultPortForGame(game: PapyrusGame) {
     return game === PapyrusGame.fallout4 ? 2077 : 43201;
 }
 
+@injectable()
 export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
     private readonly _languageClientManager: ILanguageClientManager;
     private readonly _creationKitInfoProvider: ICreationKitInfoProvider;
@@ -51,11 +53,11 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
     private readonly _registration: Disposable;
 
     constructor(
-        @ILanguageClientManager languageClientManager: ILanguageClientManager,
-        @ICreationKitInfoProvider creationKitInfoProvider: ICreationKitInfoProvider,
-        @IExtensionConfigProvider configProvider: IExtensionConfigProvider,
-        @IPathResolver pathResolver: IPathResolver,
-        @IDebugSupportInstallService debugSupportInstaller: IDebugSupportInstallService
+        @inject(ILanguageClientManager) languageClientManager: ILanguageClientManager,
+        @inject(ICreationKitInfoProvider) creationKitInfoProvider: ICreationKitInfoProvider,
+        @inject(IExtensionConfigProvider) configProvider: IExtensionConfigProvider,
+        @inject(IPathResolver) pathResolver: IPathResolver,
+        @inject(IDebugSupportInstallService) debugSupportInstaller: IDebugSupportInstallService
     ) {
         this._languageClientManager = languageClientManager;
         this._creationKitInfoProvider = creationKitInfoProvider;

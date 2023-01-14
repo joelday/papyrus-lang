@@ -2,11 +2,13 @@ import { EditorCommandBase } from '../../common/vscode/commands/EditorCommandBas
 import { TextEditor, env, Uri, window } from 'vscode';
 import { ILanguageClientManager } from '../../server/LanguageClientManager';
 import { PapyrusGame } from '../../PapyrusGame';
+import { inject, injectable } from 'inversify';
 
+@injectable()
 export class SearchCreationKitWikiCommand extends EditorCommandBase {
     private readonly _languageClientManager: ILanguageClientManager;
 
-    constructor(@ILanguageClientManager languageClientManager: ILanguageClientManager) {
+    constructor(@inject(ILanguageClientManager) languageClientManager: ILanguageClientManager) {
         super('papyrus.searchCreationKitWiki');
 
         this._languageClientManager = languageClientManager;

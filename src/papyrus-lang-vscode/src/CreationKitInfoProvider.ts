@@ -1,4 +1,4 @@
-import { createDecorator } from 'decoration-ioc';
+import { interfaces, inject, injectable } from 'inversify';
 import { PapyrusGame, getGames } from './PapyrusGame';
 import { IExtensionConfigProvider } from './ExtensionConfigProvider';
 import { Observable, combineLatest } from 'rxjs';
@@ -68,12 +68,13 @@ export interface ICreationKitInfoProvider {
     readonly infos: ReadonlyMap<PapyrusGame, Observable<ICreationKitInfo>>;
 }
 
+@injectable()
 export class CreationKitInfoProvider {
     private readonly _infos: Map<PapyrusGame, Observable<ICreationKitInfo>>;
 
     constructor(
-        @IExtensionConfigProvider infoProvider: IExtensionConfigProvider,
-        @IPathResolver pathResolver: IPathResolver
+        @inject(IExtensionConfigProvider) infoProvider: IExtensionConfigProvider,
+        @inject(IPathResolver) pathResolver: IPathResolver
     ) {
         const createInfoObservable = (game: PapyrusGame) => {
             const gameConfig = infoProvider.config.pipe(map((config) => config[game]));
@@ -170,4 +171,4 @@ export class CreationKitInfoProvider {
     }
 }
 
-export const ICreationKitInfoProvider = createDecorator<ICreationKitInfoProvider>('creationKitInfoProvider');
+export const ICreationKitInfoProvider: interfaces.ServiceIdentifier<ICreationKitInfoProvider> = Symbol('creationKitInfoProvider');

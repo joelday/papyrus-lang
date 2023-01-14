@@ -1,6 +1,8 @@
+import { injectable } from 'inversify';
 import { Uri, commands, window } from 'vscode';
 import { CommandBase } from '../../common/vscode/commands/CommandBase';
 
+@injectable()
 export class ViewAssemblyCommand extends CommandBase<[Uri]> {
     constructor() {
         super('papyrus.viewAssembly');

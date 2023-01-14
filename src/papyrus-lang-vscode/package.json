@@ -515,7 +515,7 @@
     "dependencies": {
         "@semantic-release/exec": "^6.0.3",
         "@types/semantic-release": "^17.2.4",
-        "decoration-ioc": "^2.1.0",
+        "reflect-metadata": "^0.1.13",
         "deepmerge": "^4.2.2",
         "fast-deep-equal": "^3.1.3",
         "ini": "^3.0.1",

@@ -1,4 +1,4 @@
-import { createDecorator } from 'decoration-ioc';
+import { injectable, interfaces } from 'inversify';
 import { workspace, Disposable } from 'vscode';
 import { eventToValueObservable } from './common/vscode/reactive/Events';
 import { Observable } from 'rxjs';
@@ -25,6 +25,7 @@ function getPapyrusConfig() {
     return workspace.getConfiguration().get<IExtensionConfig>('papyrus');
 }
 
+@injectable()
 export class ExtensionConfigProvider implements IExtensionConfigProvider {
     private readonly _config = eventToValueObservable(
         workspace.onDidChangeConfiguration,
@@ -39,4 +40,4 @@ export class ExtensionConfigProvider implements IExtensionConfigProvider {
     dispose() { }
 }
 
-export const IExtensionConfigProvider = createDecorator<IExtensionConfigProvider>('extensionConfigProvider');
+export const IExtensionConfigProvider: interfaces.ServiceIdentifier<IExtensionConfigProvider> = Symbol('extensionConfigProvider');

@@ -3,6 +3,7 @@ import { window, ProgressLocation } from 'vscode';
 import { PapyrusGame, getDisplayNameForGame } from '../../PapyrusGame';
 import { GameCommandBase } from './GameCommandBase';
 import { getGameIsRunning, waitWhile } from '../../Utilities';
+import { inject, injectable } from 'inversify';
 
 export function showGameDisabledMessage(game: PapyrusGame) {
     window.showErrorMessage(
@@ -18,10 +19,11 @@ export function showGameMissingMessage(game: PapyrusGame) {
     );
 }
 
+@injectable()
 export class InstallDebugSupportCommand extends GameCommandBase {
     private readonly _installer: IDebugSupportInstallService;
 
-    constructor(@IDebugSupportInstallService installer: IDebugSupportInstallService) {
+    constructor(@inject(IDebugSupportInstallService) installer: IDebugSupportInstallService) {
         super('installDebuggerSupport', [PapyrusGame.fallout4, PapyrusGame.skyrimSpecialEdition]);
 
         this._installer = installer;

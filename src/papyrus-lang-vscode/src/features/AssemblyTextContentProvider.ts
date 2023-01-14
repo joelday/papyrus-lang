@@ -1,11 +1,13 @@
+import { inject, injectable } from 'inversify';
 import { TextDocumentContentProvider, Uri, CancellationToken, Disposable, workspace, window } from 'vscode';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
 
+@injectable()
 export class AssemblyTextContentProvider implements TextDocumentContentProvider {
     private readonly _languageClientManager: ILanguageClientManager;
     private readonly _registration: Disposable;
 
-    constructor(@ILanguageClientManager languageClientManager: ILanguageClientManager) {
+    constructor(@inject(ILanguageClientManager) languageClientManager: ILanguageClientManager) {
         this._languageClientManager = languageClientManager;
 
         this._registration = workspace.registerTextDocumentContentProvider('papyrus-assembly', this);

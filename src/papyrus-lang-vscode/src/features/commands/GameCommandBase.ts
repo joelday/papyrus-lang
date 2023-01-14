@@ -1,11 +1,13 @@
+import { injectable, unmanaged } from 'inversify';
 import { commands, Disposable } from 'vscode';
 import { PapyrusGame, getGames } from '../../PapyrusGame';
 
+@injectable()
 export abstract class GameCommandBase<TArgs extends any[] = void[], TResult = void> implements Disposable {
     private readonly _name: string;
     private readonly _registrations: Disposable[];
 
-    constructor(name: string, supportedGames: PapyrusGame[] = getGames()) {
+    constructor(@unmanaged() name: string, @unmanaged() supportedGames: PapyrusGame[] = getGames()) {
         this._name = name;
 
         this._registrations = supportedGames.map((game) =>

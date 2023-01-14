@@ -7,8 +7,9 @@ import { CancellationToken, Disposable } from 'vscode-jsonrpc';
 import { IPyroTaskDefinition, TaskOf, PyroGameToPapyrusGame } from './PyroTaskDefinition';
 import { PapyrusGame, getWorkspaceGameFromProjects, getWorkspaceGame } from '../PapyrusGame';
 import { IPathResolver, PathResolver, pathToOsPath } from '../common/PathResolver';
+import { inject, injectable } from 'inversify';
 
-
+@injectable()
 export class PyroTaskProvider implements TaskProvider, Disposable {
     private readonly _taskProviderHandle: Disposable;
     private readonly _pathResolver: IPathResolver;
@@ -19,7 +20,7 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
     private _workspaceGame: PapyrusGame;
 
     constructor(
-        @IPathResolver pathResolver: PathResolver
+        @inject(IPathResolver) pathResolver: PathResolver
     ) {
         this._pathResolver = pathResolver;
 

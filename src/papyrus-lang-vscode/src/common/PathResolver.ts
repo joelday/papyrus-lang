@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { createDecorator } from 'decoration-ioc';
+import { inject, injectable, interfaces } from 'inversify';
 import { take } from 'rxjs/operators';
 import winreg from 'winreg';
 import { promisify } from 'util';
@@ -31,14 +31,14 @@ export interface IPathResolver {
     getDebugPluginInstallPath(game: PapyrusGame, legacy?: boolean): Promise<string>;
 }
 
-
+@injectable()
 export class PathResolver implements IPathResolver {
     private readonly _configProvider: IExtensionConfigProvider;
     private readonly _context: ExtensionContext;
 
     constructor(
-        @IExtensionConfigProvider configProvider: IExtensionConfigProvider,
-        @IExtensionContext context: ExtensionContext
+        @inject(IExtensionConfigProvider) configProvider: IExtensionConfigProvider,
+        @inject(IExtensionContext) context: ExtensionContext
     ) {
         this._configProvider = configProvider;
         this._context = context;
@@ -141,7 +141,7 @@ export class PathResolver implements IPathResolver {
     dispose() { }
 }
 
-export const IPathResolver = createDecorator<IPathResolver>('pathResolver');
+export const IPathResolver: interfaces.ServiceIdentifier<IPathResolver> = Symbol('pathResolver');
 
 
 /************************************************************************* */

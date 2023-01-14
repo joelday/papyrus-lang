@@ -9,6 +9,7 @@ import { DocumentScriptInfo } from './messages/DocumentScriptInfo';
 import { shareReplay, take, map, switchMap } from 'rxjs/operators';
 import { getDefaultFlagsFileNameForGame, IPathResolver } from '../common/PathResolver';
 import { ProjectInfos } from './messages/ProjectInfos';
+import { inject } from 'inversify';
 
 export enum ClientHostStatus {
     none,
@@ -54,7 +55,7 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
         game: PapyrusGame,
         config: IGameConfig,
         creationKitInfo: ICreationKitInfo,
-        @IPathResolver pathResolver: IPathResolver
+        @inject(IPathResolver) pathResolver: IPathResolver
     ) {
         this._game = game;
         this._config = config;

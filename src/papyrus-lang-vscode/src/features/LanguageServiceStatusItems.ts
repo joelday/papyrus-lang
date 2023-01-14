@@ -8,6 +8,7 @@ import { eventToValueObservable } from '../common/vscode/reactive/Events';
 import { asyncDisposable } from '../common/Reactive';
 import { ShowOutputChannelCommand } from './commands/ShowOutputChannelCommand';
 import { LocateOrDisableGameCommand } from './commands/LocateOrDisableGameCommand';
+import { inject, injectable } from 'inversify';
 
 class StatusBarItemController implements Disposable {
     private readonly _statusBarItem: StatusBarItem;
@@ -85,10 +86,9 @@ class StatusBarItemController implements Disposable {
                         this._statusBarItem.tooltip = `${fullName} language service starting...`;
                         break;
                     case ClientHostStatus.running:
-                        this._statusBarItem.text = `${displayName} ${
-                            activeDocumentScriptInfo && activeDocumentScriptInfo.identifiers.length > 0
-                                ? '$(verified)'
-                                : '$(check)'
+                        this._statusBarItem.text = `${displayName} ${activeDocumentScriptInfo && activeDocumentScriptInfo.identifiers.length > 0
+                            ? '$(verified)'
+                            : '$(check)'
                             }`;
                         this._statusBarItem.tooltip = `${fullName} language service running.`;
                         break;
@@ -120,11 +120,12 @@ class StatusBarItemController implements Disposable {
     }
 }
 
+@injectable()
 export class LanguageServiceStatusItems implements Disposable {
     private readonly _languageClientManager: ILanguageClientManager;
     private readonly _statusItems: Map<PapyrusGame, StatusBarItemController>;
 
-    constructor(@ILanguageClientManager languageClientManager: ILanguageClientManager) {
+    constructor(@inject(ILanguageClientManager) languageClientManager: ILanguageClientManager) {
         this._languageClientManager = languageClientManager;
 
         this._statusItems = new Map([

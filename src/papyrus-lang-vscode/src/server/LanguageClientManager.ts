@@ -1,4 +1,4 @@
-import { createDecorator } from 'decoration-ioc';
+import { inject, injectable, interfaces } from 'inversify';
 import { ILanguageClient } from './LanguageClient';
 import { PapyrusGame, getGames } from '../PapyrusGame';
 import { Observable, Subscription, combineLatest } from 'rxjs';
@@ -18,15 +18,16 @@ export interface ILanguageClientManager extends Disposable {
     getLanguageClient(game: PapyrusGame): Promise<ILanguageClient>;
 }
 
+@injectable()
 export class LanguageClientManager implements Disposable, ILanguageClientManager {
     private readonly _clients: ReadonlyMap<PapyrusGame, Observable<ILanguageClientHost>>;
 
     private readonly _clientSubscriptions: Subscription[];
 
     constructor(
-        @IExtensionConfigProvider configProvider: IExtensionConfigProvider,
-        @ICreationKitInfoProvider infoProvider: ICreationKitInfoProvider,
-        @IPathResolver pathResolver: IPathResolver
+        @inject(IExtensionConfigProvider) configProvider: IExtensionConfigProvider,
+        @inject(ICreationKitInfoProvider) infoProvider: ICreationKitInfoProvider,
+        @inject(IPathResolver) pathResolver: IPathResolver
     ) {
         const createClientObservable = (game: PapyrusGame) => {
             return combineLatest(
@@ -106,4 +107,4 @@ export class LanguageClientManager implements Disposable, ILanguageClientManager
     }
 }
 
-export const ILanguageClientManager = createDecorator<ILanguageClientManager>('languageClientManager');
+export const ILanguageClientManager: interfaces.ServiceIdentifier<ILanguageClientManager> = Symbol('languageClientManager');

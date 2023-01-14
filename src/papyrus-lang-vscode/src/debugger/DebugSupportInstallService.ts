@@ -1,4 +1,4 @@
-import { createDecorator } from 'decoration-ioc';
+import { inject, injectable, interfaces } from 'inversify';
 import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
 import { CancellationToken, CancellationTokenSource } from 'vscode';
 import { take } from 'rxjs/operators';
@@ -32,15 +32,16 @@ export interface IDebugSupportInstallService {
     installPlugin(game: PapyrusGame, cancellationToken?: CancellationToken): Promise<boolean>;
 }
 
+@injectable()
 export class DebugSupportInstallService implements IDebugSupportInstallService {
     private readonly _configProvider: IExtensionConfigProvider;
     private readonly _languageClientManager: ILanguageClientManager;
     private readonly _pathResolver: IPathResolver;
 
     constructor(
-        @ILanguageClientManager languageClientManager: ILanguageClientManager,
-        @IExtensionConfigProvider configProvider: IExtensionConfigProvider,
-        @IPathResolver pathResolver: IPathResolver
+        @inject(ILanguageClientManager) languageClientManager: ILanguageClientManager,
+        @inject(IExtensionConfigProvider) configProvider: IExtensionConfigProvider,
+        @inject(IPathResolver) pathResolver: IPathResolver
     ) {
         this._languageClientManager = languageClientManager;
         this._configProvider = configProvider;
@@ -114,4 +115,4 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
     }
 }
 
-export const IDebugSupportInstallService = createDecorator<IDebugSupportInstallService>('debugSupportInstallService');
+export const IDebugSupportInstallService: interfaces.ServiceIdentifier<IDebugSupportInstallService> = Symbol('debugSupportInstallService');
