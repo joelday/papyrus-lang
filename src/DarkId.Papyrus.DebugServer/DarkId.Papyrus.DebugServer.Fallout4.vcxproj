@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0"
+  xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -16,6 +17,10 @@
     <RootNamespace>DarkId::Papyrus::DebugServer</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <VersionMajor Condition="$(VersionMajor) == ''">0</VersionMajor>
+    <VersionMinor Condition="$(VersionMinor) == ''">0</VersionMinor>
+    <VersionPatch Condition="$(VersionPatch) == ''">0</VersionPatch>
+    <VersionBuild Condition="$(VersionBuild) == ''">0</VersionBuild>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -33,10 +38,14 @@
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props"
+      Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')"
+      Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props"
+      Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')"
+      Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
@@ -59,7 +68,8 @@
     <IntDir>$(ProjectDir)obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup>
-    <FalloutInstallPath>$(registry:HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Bethesda Softworks\Fallout4@installed path)</FalloutInstallPath>
+    <FalloutInstallPath>$(registry:HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Bethesda
+      Softworks\Fallout4@installed path)</FalloutInstallPath>
     <F4SEPluginPath Condition="$(FalloutInstallPath) != ''">$(FalloutInstallPath)Data\F4SE\Plugins</F4SEPluginPath>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
@@ -81,7 +91,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;FALLOUT;SPDLOG_COMPILED_LIB;SPDLOG_FMT_EXTERNAL;F4SE_SUPPORT_XBYAK;_DEBUG;_WINDOWS;_USRDLL;DARKID_PAPYRUS_DEBUGSERVER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>
+        WIN32;FALLOUT;SPDLOG_COMPILED_LIB;SPDLOG_FMT_EXTERNAL;F4SE_SUPPORT_XBYAK;_DEBUG;_WINDOWS;_USRDLL;DARKID_PAPYRUS_DEBUGSERVER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
@@ -104,7 +115,8 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pdsPCH.h</PrecompiledHeaderFile>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\..\dependencies;$(ProjectDir)..\..\dependencies\MetaStuff\include;$(VcpkgInstalledDir)\$(VcpkgTriplet)\include\Champollion;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+        $(ProjectDir);$(ProjectDir)..\..\dependencies;$(ProjectDir)..\..\dependencies\MetaStuff\include;$(VcpkgInstalledDir)\$(VcpkgTriplet)\include\Champollion;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -129,14 +141,15 @@
       </Message>
     </PostBuildEvent>
     <ResourceCompile>
-      <PreprocessorDefinitions>FALLOUT</PreprocessorDefinitions>
+      <PreprocessorDefinitions>FALLOUT;DIDPDS_VERSION_MAJOR=$(VersionMajor);DIDPDS_VERSION_MINOR=$(VersionMinor);DIDPDS_VERSION_PATCH=$(VersionPatch);DIDPDS_VERSION_BUILD=$(VersionBuild);</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;FALLOUT;SPDLOG_COMPILED_LIB;SPDLOG_FMT_EXTERNAL;F4SE_SUPPORT_XBYAK;NDEBUG;_WINDOWS;_USRDLL;DARKID_PAPYRUS_DEBUGSERVER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>
+        WIN32;FALLOUT;SPDLOG_COMPILED_LIB;SPDLOG_FMT_EXTERNAL;F4SE_SUPPORT_XBYAK;NDEBUG;_WINDOWS;_USRDLL;DARKID_PAPYRUS_DEBUGSERVER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <WarningLevel>Level3</WarningLevel>
@@ -157,7 +170,8 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pdsPCH.h</PrecompiledHeaderFile>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\..\dependencies;$(ProjectDir)..\..\dependencies\MetaStuff\include;$(VcpkgInstalledDir)\$(VcpkgTriplet)\include\Champollion;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+        $(ProjectDir);$(ProjectDir)..\..\dependencies;$(ProjectDir)..\..\dependencies\MetaStuff\include;$(VcpkgInstalledDir)\$(VcpkgTriplet)\include\Champollion;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -180,7 +194,7 @@
       </Command>
     </PostBuildEvent>
     <ResourceCompile>
-      <PreprocessorDefinitions>FALLOUT</PreprocessorDefinitions>
+      <PreprocessorDefinitions>FALLOUT;DIDPDS_VERSION_MAJOR=$(VersionMajor);DIDPDS_VERSION_MINOR=$(VersionMinor);DIDPDS_VERSION_PATCH=$(VersionPatch);DIDPDS_VERSION_BUILD=$(VersionBuild);</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>

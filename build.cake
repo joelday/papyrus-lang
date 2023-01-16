@@ -208,12 +208,14 @@ Task("copy-debug-plugin")
         {
             CreateDirectory("./src/papyrus-lang-vscode/debug-plugin");
 
+            var configuration = isRelease ? "Release" : "Debug";
+
             CopyFileToDirectory(
-                "src/DarkId.Papyrus.DebugServer/bin/DarkId.Papyrus.DebugServer.Skyrim/x64/Debug/DarkId.Papyrus.DebugServer.Skyrim.dll",
+                $"src/DarkId.Papyrus.DebugServer/bin/DarkId.Papyrus.DebugServer.Skyrim/x64/{configuration}/DarkId.Papyrus.DebugServer.Skyrim.dll",
                 "./src/papyrus-lang-vscode/debug-plugin");
 
             CopyFileToDirectory(
-                "src/DarkId.Papyrus.DebugServer/bin/DarkId.Papyrus.DebugServer.Fallout4/x64/Debug/DarkId.Papyrus.DebugServer.Fallout4.dll",
+                $"src/DarkId.Papyrus.DebugServer/bin/DarkId.Papyrus.DebugServer.Fallout4/x64/{configuration}/DarkId.Papyrus.DebugServer.Fallout4.dll",
                 "./src/papyrus-lang-vscode/debug-plugin");
         }
         catch (Exception)
@@ -239,13 +241,24 @@ Task("restore")
 
 Task("build-debugger")
     .Does(() => {
-        // TODO: How do we set the version on these? Does AssemblyVersion work?
-        // TODO: Do release builds when running CI.
+        var parsedVersion = System.Version.Parse(version);
+
+        var patch = parsedVersion.Build & 0xFFFF0000;
+        var build = parsedVersion.Build & 0x0000FFFF;
 
         MSBuild(debuggerSolution, new MSBuildSettings()
         {
             PlatformTarget = PlatformTarget.x64,
+            Configuration = isRelease ? "Release" : "Debug",
+            Properties = 
+            {
+                { "VersionMajor", new List<string>(){ parsedVersion.Major.ToString() } },
+                { "VersionMinor", new List<string>(){ parsedVersion.Minor.ToString() } },
+                { "VersionPatch", new List<string>(){ patch.ToString() } },
+                { "VersionBuild", new List<string>(){ build.ToString() } },
+            }
         });
+
     });
 
 Task("build")
