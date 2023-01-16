@@ -1,12 +1,14 @@
+import { injectable } from 'inversify';
 import * as vs from 'vscode';
 
 import { TreeDataNode } from './TreeDataNode';
 
+@injectable()
 export abstract class TreeDataProviderBase
     implements vs.TreeDataProvider<TreeDataNode>, vs.Disposable {
 
     private readonly _disposables: vs.Disposable[] = [];
-    private readonly _onDidChangeTreeDataEventEmitter = new vs.EventEmitter<TreeDataNode>();
+    private readonly _onDidChangeTreeDataEventEmitter = new vs.EventEmitter<TreeDataNode | undefined>();
 
     get onDidChangeTreeData() {
         return this._onDidChangeTreeDataEventEmitter.event;

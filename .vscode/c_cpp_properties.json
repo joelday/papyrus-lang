@@ -1,0 +1,55 @@
+{
+    "configurations": [
+        {
+            "name": "Skyrim",
+            "includePath": [
+                "${workspaceFolder}/dependencies/MetaStuff/include",
+                "${workspaceFolder}/dependencies",
+                "${workspaceFolder}/src/DarkId.Papyrus.DebugServer",
+                "${workspaceFolder}/vcpkg_installed/skyrim/x64-windows-static/include"
+            ],
+            "defines": [
+                "WIN32",
+                "SKYRIM",
+                "_DEBUG",
+                "_WINDOWS",
+                "_USRDLL",
+                "DARKID_PAPYRUS_DEBUGSERVER_EXPORTS",
+                "SKSE_SUPPORT_XBYAK"
+            ],
+            "forcedInclude": ["pdsPCH.h"],
+            "windowsSdkVersion": "10.0.18362.0",
+            "compilerPath": "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.34.31933/bin/Hostx64/x64/cl.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++20",
+            "intelliSenseMode": "msvc-x64"
+        },
+        {
+            "name": "Fallout",
+            "includePath": [
+                "${workspaceFolder}/dependencies/MetaStuff/include",
+                "${workspaceFolder}/dependencies",
+                "${workspaceFolder}/src/DarkId.Papyrus.DebugServer",
+                "${workspaceFolder}/vcpkg_installed/fallout4/x64-windows-static/include"
+            ],
+            "defines": [
+                "WIN32",
+                "FALLOUT",
+                "_DEBUG",
+                "_WINDOWS",
+                "_USRDLL",
+                "DARKID_PAPYRUS_DEBUGSERVER_EXPORTS",
+                "F4SE_SUPPORT_XBYAK"
+            ],
+            "forcedInclude": [
+                "${workspaceFolder}/src/DarkId.Papyrus.DebugServer/pdsPCH.h"
+            ],
+            "windowsSdkVersion": "10.0.18362.0",
+            "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.22.27905/bin/Hostx64/x64/cl.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++20",
+            "intelliSenseMode": "windows-msvc-x64"
+        }
+    ],
+    "version": 4
+}

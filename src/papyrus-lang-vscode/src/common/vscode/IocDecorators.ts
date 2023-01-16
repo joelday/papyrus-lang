@@ -1,4 +1,4 @@
-import { createDecorator } from 'decoration-ioc';
+import { interfaces } from 'inversify';
 import { ExtensionContext } from 'vscode';
 
-export const IExtensionContext = createDecorator<ExtensionContext>('extensionContext');
+export const IExtensionContext: interfaces.ServiceIdentifier<ExtensionContext> = Symbol('extensionContext');

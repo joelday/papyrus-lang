@@ -8,11 +8,17 @@ import { CancellationTokenSource } from 'vscode';
 import { PapyrusGame } from './PapyrusGame';
 import { getExecutableNameForGame } from './common/PathResolver';
 
+import {
+    isNativeError,
+} from "util/types";
+
+import {
+    getSystemErrorMap
+} from "util";
 
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
 const exists = promisify(fs.exists);
-
 
 export function* flatten<T>(arrs: T[][]): IterableIterator<T> {
     for (const arr of arrs) {
@@ -45,13 +51,13 @@ export function inDevelopmentEnvironment() {
     return process.execArgv.some((arg) => arg.startsWith('--inspect-brk'));
 }
 
-export function toCommandLineArgs(obj: Object): string[] {
-    return [].concat(
+export function toCommandLineArgs(obj: any): string[] {
+    return ([] as string[]).concat(
         ...Object.keys(obj).map((key) => {
             const value = obj[key];
 
             if (typeof value === 'undefined' || value === null) {
-                return [];
+                return [] as string[];
             }
 
             return [
@@ -69,6 +75,16 @@ export async function mkdirIfNeeded(pathname: string) {
     mkDirByPathSync(pathname);
 }
 
+export function isNodeError(obj: unknown): obj is NodeJS.ErrnoException {
+    if (isNativeError(obj)) {
+        if ((obj as NodeJS.ErrnoException).errno !== undefined && getSystemErrorMap().has((obj as NodeJS.ErrnoException)!.errno!)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // Apparently recursive mkdir doesn't want to work on windows.
 // Copied this from https://stackoverflow.com/questions/31645738/how-to-create-full-path-with-nodes-fs-mkdirsync
 export function mkDirByPathSync(targetDir: string, { isRelativeToScript = false } = {}) {
@@ -81,18 +97,20 @@ export function mkDirByPathSync(targetDir: string, { isRelativeToScript = false 
         try {
             fs.mkdirSync(curDir);
         } catch (err) {
-            if (err.code === 'EEXIST') { // curDir already exists!
-                return curDir;
-            }
+            if (isNodeError(err)) {
+                if (err.code === 'EEXIST') { // curDir already exists!
+                    return curDir;
+                }
 
-            // To avoid `EISDIR` error on Mac and `EACCES`-->`ENOENT` and `EPERM` on Windows.
-            if (err.code === 'ENOENT') { // Throw the original parentDir error on curDir `ENOENT` failure.
-                throw new Error(`EACCES: permission denied, mkdir '${parentDir}'`);
-            }
+                // To avoid `EISDIR` error on Mac and `EACCES`-->`ENOENT` and `EPERM` on Windows.
+                if (err.code === 'ENOENT') { // Throw the original parentDir error on curDir `ENOENT` failure.
+                    throw new Error(`EACCES: permission denied, mkdir '${parentDir}'`);
+                }
 
-            const caughtErr = ['EACCES', 'EPERM', 'EISDIR'].indexOf(err.code) > -1;
-            if (!caughtErr || caughtErr && curDir === path.resolve(targetDir)) {
-                throw err; // Throw if it's just the last created dir.
+                const caughtErr = !err.code || ['EACCES', 'EPERM', 'EISDIR'].indexOf(err.code) > -1;
+                if (!caughtErr || caughtErr && curDir === path.resolve(targetDir)) {
+                    throw err; // Throw if it's just the last created dir.
+                }
             }
         }
 

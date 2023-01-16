@@ -9,28 +9,34 @@ import { copyAndFillTemplate, mkDirByPathSync } from '../../Utilities';
 import * as path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
+import { inject, injectable } from 'inversify';
 
 const exists = promisify(fs.exists);
 const mkdir = promisify(fs.mkdir);
 const copyFile = promisify(fs.copyFile);
 //const removeFile = promisify(fs.unlink);
 
-
+@injectable()
 export class GenerateProjectCommand extends GameCommandBase<[string]> {
     private readonly _context: ExtensionContext;
     private readonly _pathResolver: IPathResolver;
 
     constructor(
-        @IExtensionContext context: ExtensionContext,
-        @IPathResolver pathResolver: IPathResolver,
+        @inject(IExtensionContext) context: ExtensionContext,
+        @inject(IPathResolver) pathResolver: IPathResolver,
     ) {
         super("generateProject"); // pass additional args for execute() and onExecute() here
         this._context = context;
         this._pathResolver = pathResolver;
     }
 
-    protected async onExecute(game: PapyrusGame, ...args: [string]) {
+    protected async onExecute(game: PapyrusGame, ...args: [string | undefined]) {
         const installPath = await this._pathResolver.getInstallPath(game);
+
+        if (!installPath) {
+            window.showErrorMessage("Could not find the game installation path.");
+            return;
+        }
 
         const defaultProjectSubdir = {
             'fallout4': "Data",
@@ -49,6 +55,7 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
         if (game === PapyrusGame.fallout4) {
             args[0] = undefined;
         }
+
         let projectFolderUri: Uri = args[0] ? Uri.parse(args[0]) : Uri.file(path.join(installPath, defaultProjectSubdir[game]));
 
         console.log("Default projectFolderUri = " + projectFolderUri.fsPath);

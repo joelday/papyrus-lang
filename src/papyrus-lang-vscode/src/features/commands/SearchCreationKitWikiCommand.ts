@@ -2,11 +2,13 @@ import { EditorCommandBase } from '../../common/vscode/commands/EditorCommandBas
 import { TextEditor, env, Uri, window } from 'vscode';
 import { ILanguageClientManager } from '../../server/LanguageClientManager';
 import { PapyrusGame } from '../../PapyrusGame';
+import { inject, injectable } from 'inversify';
 
+@injectable()
 export class SearchCreationKitWikiCommand extends EditorCommandBase {
     private readonly _languageClientManager: ILanguageClientManager;
 
-    constructor(@ILanguageClientManager languageClientManager: ILanguageClientManager) {
+    constructor(@inject(ILanguageClientManager) languageClientManager: ILanguageClientManager) {
         super('papyrus.searchCreationKitWiki');
 
         this._languageClientManager = languageClientManager;
@@ -20,7 +22,7 @@ export class SearchCreationKitWikiCommand extends EditorCommandBase {
         }
 
         const range = selection.isEmpty ? document.getWordRangeAtPosition(selection.start) : selection;
-        if (range.isEmpty) {
+        if (!range || range.isEmpty) {
             return;
         }
 
@@ -32,7 +34,7 @@ export class SearchCreationKitWikiCommand extends EditorCommandBase {
         const activeClients = await this._languageClientManager.getActiveLanguageClients();
         const documentInfos = await Promise.all(activeClients.map((c) => c.getDocumentScriptStatus(editor.document)));
 
-        const firstActiveDocument = documentInfos.find((docInfo) => !docInfo.documentIsUnresolved);
+        const firstActiveDocument = documentInfos.find((docInfo) => !docInfo?.documentIsUnresolved);
         if (!firstActiveDocument) {
             window.showErrorMessage(
                 'Failed to open Creation Kit search page because this script is currently unresolved.'

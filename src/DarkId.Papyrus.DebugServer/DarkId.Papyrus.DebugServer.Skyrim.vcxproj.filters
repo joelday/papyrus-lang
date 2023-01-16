@@ -1,0 +1,133 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Protocol">
+      <UniqueIdentifier>{9e986540-246c-4e15-958c-7bb549b5f3b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="State">
+      <UniqueIdentifier>{02bc61c1-7d7e-4690-b52c-c752888ad94e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="protocol\cputil.cpp">
+      <Filter>Protocol</Filter>
+    </ClCompile>
+    <ClCompile Include="DebugServer.cpp" />
+    <ClCompile Include="DebugServerSession.cpp" />
+    <ClCompile Include="Pex.cpp" />
+    <ClCompile Include="PexCache.cpp" />
+    <ClCompile Include="RuntimeEvents.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="PapyrusDebugger.cpp" />
+    <ClCompile Include="protocol\vscodeprotocol.cpp">
+      <Filter>Protocol</Filter>
+    </ClCompile>
+    <ClCompile Include="BreakpointManager.cpp" />
+    <ClCompile Include="DebugExecutionManager.cpp" />
+    <ClCompile Include="IdMap.cpp" />
+    <ClCompile Include="IdProvider.cpp" />
+    <ClCompile Include="IdHandleBase.cpp" />
+    <ClCompile Include="GameInterfaces.cpp" />
+    <ClCompile Include="ArrayStateNode.cpp">
+      <Filter>State</Filter>
+    </ClCompile>
+    <ClCompile Include="LocalScopeStateNode.cpp">
+      <Filter>State</Filter>
+    </ClCompile>
+    <ClCompile Include="StackFrameStateNode.cpp">
+      <Filter>State</Filter>
+    </ClCompile>
+    <ClCompile Include="StackStateNode.cpp">
+      <Filter>State</Filter>
+    </ClCompile>
+    <ClCompile Include="StateNodeBase.cpp">
+      <Filter>State</Filter>
+    </ClCompile>
+    <ClCompile Include="ValueStateNode.cpp">
+      <Filter>State</Filter>
+    </ClCompile>
+    <ClCompile Include="RuntimeState.cpp">
+      <Filter>State</Filter>
+    </ClCompile>
+    <ClCompile Include="ObjectStateNode.cpp">
+      <Filter>State</Filter>
+    </ClCompile>
+    <ClCompile Include="MetaNode.cpp">
+      <Filter>State</Filter>
+    </ClCompile>
+    <ClCompile Include="FormTypeMacros.cpp">
+      <Filter>State</Filter>
+    </ClCompile>
+    <ClCompile Include="pdsPCH.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="version.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="protocol\cputil.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="protocol\debugger.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="protocol\protocol.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="protocol\torelease.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="protocol\vscodeprotocol.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="Websocket.h" />
+    <ClInclude Include="DebugServer.h" />
+    <ClInclude Include="DebugServerSession.h" />
+    <ClInclude Include="PapyrusDebugger.h" />
+    <ClInclude Include="Pex.h" />
+    <ClInclude Include="PexCache.h" />
+    <ClInclude Include="RuntimeEvents.h" />
+    <ClInclude Include="version.h" />
+    <ClInclude Include="BreakpointManager.h" />
+    <ClInclude Include="Utilities.h" />
+    <ClInclude Include="DebugExecutionManager.h" />
+    <ClInclude Include="IdMap.h" />
+    <ClInclude Include="IdProvider.h" />
+    <ClInclude Include="IdHandleBase.h" />
+    <ClInclude Include="GameInterfaces.h" />
+    <ClInclude Include="ArrayStateNode.h">
+      <Filter>State</Filter>
+    </ClInclude>
+    <ClInclude Include="LocalScopeStateNode.h">
+      <Filter>State</Filter>
+    </ClInclude>
+    <ClInclude Include="StackFrameStateNode.h">
+      <Filter>State</Filter>
+    </ClInclude>
+    <ClInclude Include="StackStateNode.h">
+      <Filter>State</Filter>
+    </ClInclude>
+    <ClInclude Include="StateNodeBase.h">
+      <Filter>State</Filter>
+    </ClInclude>
+    <ClInclude Include="ValueStateNode.h">
+      <Filter>State</Filter>
+    </ClInclude>
+    <ClInclude Include="RuntimeState.h">
+      <Filter>State</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectStateNode.h">
+      <Filter>State</Filter>
+    </ClInclude>
+    <ClInclude Include="FormMetadata.h">
+      <Filter>State</Filter>
+    </ClInclude>
+    <ClInclude Include="MetaNode.h">
+      <Filter>State</Filter>
+    </ClInclude>
+    <ClInclude Include="FormTypeMacros.h">
+      <Filter>State</Filter>
+    </ClInclude>
+    <ClInclude Include="PDError.h" />
+    <ClInclude Include="pdsPCH.h" />
+  </ItemGroup>
+</Project>

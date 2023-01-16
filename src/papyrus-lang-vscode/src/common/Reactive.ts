@@ -3,13 +3,13 @@ import { Disposable } from 'vscode';
 import { switchMap, distinctUntilChanged, shareReplay } from 'rxjs/operators';
 
 export class UnsubscribableDisposableProxy<T extends Disposable> {
-    private _disposable: T;
+    private _disposable: T | undefined;
 
     get disposable() {
         return this._disposable;
     }
 
-    set disposable(disposable: T) {
+    set disposable(disposable: T | undefined) {
         this._disposable = disposable;
     }
 
@@ -29,9 +29,9 @@ export function asyncDisposable<T, R extends Disposable>(
             switchMap((value: T) =>
                 using<R>(
                     () => new UnsubscribableDisposableProxy<R>(),
-                    (proxy: UnsubscribableDisposableProxy<R>) => {
+                    (proxy) => {
                         const instance = factory(value);
-                        proxy.disposable = instance;
+                        (proxy as UnsubscribableDisposableProxy<R>).disposable = instance;
 
                         return concat(
                             from([instance]),
