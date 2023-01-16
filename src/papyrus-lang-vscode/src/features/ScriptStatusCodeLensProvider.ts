@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
-import { ClientHostStatus } from '../server/LanguageClientHost';
+import { ClientHostStatus, IScriptDocumentStatus } from '../server/LanguageClientHost';
 import {
     CodeLens,
     Range,
@@ -15,18 +15,20 @@ import {
 } from 'vscode';
 import { mergeMap, distinctUntilChanged } from 'rxjs/operators';
 import { Unsubscribable } from 'rxjs';
+import { inject, injectable } from 'inversify';
 
 function createZeroLens() {
     return new CodeLens(new Range(new Position(0, 0), new Position(0, 0)));
 }
 
+@injectable()
 export class ScriptStatusCodeLensProvider implements CodeLensProvider, Disposable {
     private readonly _languageClientManager: ILanguageClientManager;
     private readonly _codeLensProviderHandle: Disposable;
     private readonly _onDidChangeCodeLenses: EventEmitter<void>;
     private readonly _languageServerSubscriptions: Unsubscribable[];
 
-    constructor(@ILanguageClientManager languageClientManager: ILanguageClientManager) {
+    constructor(@inject(ILanguageClientManager) languageClientManager: ILanguageClientManager) {
         this._languageClientManager = languageClientManager;
 
         // Any server status changes need to trigger the code lenses to refresh.
@@ -67,7 +69,7 @@ export class ScriptStatusCodeLensProvider implements CodeLensProvider, Disposabl
 
         const documentInfos = (await Promise.all(
             activeClients.map((client) => client.getDocumentScriptStatus(document))
-        )).filter((documentInfo) => documentInfo !== null);
+        )).filter((documentInfo) => documentInfo !== null) as IScriptDocumentStatus[];
 
         if (cancellationToken.isCancellationRequested) {
             return [];

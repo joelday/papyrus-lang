@@ -7,23 +7,27 @@ import { CancellationToken, Disposable } from 'vscode-jsonrpc';
 import { IPyroTaskDefinition, TaskOf, PyroGameToPapyrusGame } from './PyroTaskDefinition';
 import { PapyrusGame, getWorkspaceGameFromProjects, getWorkspaceGame } from '../PapyrusGame';
 import { IPathResolver, PathResolver, pathToOsPath } from '../common/PathResolver';
+import { inject, injectable } from 'inversify';
 
-
+@injectable()
 export class PyroTaskProvider implements TaskProvider, Disposable {
     private readonly _taskProviderHandle: Disposable;
     private readonly _pathResolver: IPathResolver;
     private _taskCachePromise: Promise<Task[]> | undefined = undefined;
-    private readonly _projPattern: GlobPattern;
-    private readonly _fileWatcher: FileSystemWatcher;
+    private readonly _projPattern!: GlobPattern;
+    private readonly _fileWatcher!: FileSystemWatcher;
     private readonly _source: string = "pyro";
-    private _workspaceGame: PapyrusGame;
+    private _workspaceGame!: PapyrusGame;
 
     constructor(
-        @IPathResolver pathResolver: PathResolver
+        @inject(IPathResolver) pathResolver: PathResolver
     ) {
         this._pathResolver = pathResolver;
 
         this._taskProviderHandle = tasks.registerTaskProvider('pyro', this);
+
+        // BUG: So... since this is instantiated only once and at extension start up time, if you open a Papyrus script
+        // before opening a workspace, you're fucked until you restart VSCode.
 
         if (!workspace.workspaceFolders) {
             return;
@@ -38,8 +42,8 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
     }
 
     public provideTasks(token?: CancellationToken): Promise<Task[]> {
-        if (token.isCancellationRequested) {
-            return null;
+        if (token?.isCancellationRequested) {
+            return Promise.resolve([]);
         }
         if (!this._taskCachePromise) {
             this._taskCachePromise = this.getPyroTasks(token);
@@ -48,8 +52,8 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
     }
 
     async getPyroTasks(token?: CancellationToken): Promise<Task[]> {
-        if (token.isCancellationRequested) {
-            return null;
+        if (token?.isCancellationRequested) {
+            return [];
         }
 
         // search for all .PPJ files in workspace
@@ -75,10 +79,15 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
 
         // provide a build task for each one found
         for (let uri of ppjFiles) {
+            const installPath = await this._pathResolver.getInstallPath(game);
+            if (!installPath) {
+                continue;
+            }
+
             let taskDef: IPyroTaskDefinition = {
                 type: this._source,
                 projectFile: workspace.asRelativePath(uri),
-                gamePath: await this._pathResolver.getInstallPath(game)
+                gamePath: installPath
             };
             tasks.push(await this.createTaskForDefinition(taskDef));
         }
@@ -87,8 +96,8 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
     }
 
     async resolveTask(task: TaskOf<IPyroTaskDefinition>, token?: CancellationToken): Promise<Task | undefined> {
-        if (token.isCancellationRequested) {
-            return null;
+        if (token?.isCancellationRequested) {
+            return;
         }
         let definition = task.definition;
         if (definition === undefined) {
@@ -150,7 +159,9 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
         if (taskDef.game) {
             argv.push('--game-type');
             argv.push(taskDef.game);
-            game = PyroGameToPapyrusGame[game];
+
+            // TODO: Who knows how many bugs this change will fix...
+            game = PyroGameToPapyrusGame[taskDef.game] as unknown as PapyrusGame;
         } else {
             game = this._workspaceGame;
         }
@@ -158,8 +169,13 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
             argv.push('--game-path');
             argv.push(taskDef.gamePath);
         } else {
+            const installPath = await this._pathResolver.getInstallPath(game);
+            if (!installPath) {
+                throw new Error("Could not find game install path.");
+            }
+
             argv.push('--game-path');
-            argv.push(await this._pathResolver.getInstallPath(game));
+            argv.push(installPath);
         }
         if (taskDef.registryPath) {
             argv.push('--registry-path');

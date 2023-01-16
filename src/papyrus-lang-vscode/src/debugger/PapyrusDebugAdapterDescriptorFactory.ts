@@ -25,6 +25,7 @@ import { IPathResolver } from '../common/PathResolver';
 import { IDebugSupportInstallService, DebugSupportInstallState } from './DebugSupportInstallService';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
 import { showGameDisabledMessage, showGameMissingMessage } from '../features/commands/InstallDebugSupportCommand';
+import { inject, injectable } from 'inversify';
 
 const noopExecutable = new DebugAdapterExecutable('node', ['-e', '""']);
 
@@ -42,6 +43,7 @@ function getDefaultPortForGame(game: PapyrusGame) {
     return game === PapyrusGame.fallout4 ? 2077 : 43201;
 }
 
+@injectable()
 export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
     private readonly _languageClientManager: ILanguageClientManager;
     private readonly _creationKitInfoProvider: ICreationKitInfoProvider;
@@ -51,11 +53,11 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
     private readonly _registration: Disposable;
 
     constructor(
-        @ILanguageClientManager languageClientManager: ILanguageClientManager,
-        @ICreationKitInfoProvider creationKitInfoProvider: ICreationKitInfoProvider,
-        @IExtensionConfigProvider configProvider: IExtensionConfigProvider,
-        @IPathResolver pathResolver: IPathResolver,
-        @IDebugSupportInstallService debugSupportInstaller: IDebugSupportInstallService
+        @inject(ILanguageClientManager) languageClientManager: ILanguageClientManager,
+        @inject(ICreationKitInfoProvider) creationKitInfoProvider: ICreationKitInfoProvider,
+        @inject(IExtensionConfigProvider) configProvider: IExtensionConfigProvider,
+        @inject(IPathResolver) pathResolver: IPathResolver,
+        @inject(IDebugSupportInstallService) debugSupportInstaller: IDebugSupportInstallService
     ) {
         this._languageClientManager = languageClientManager;
         this._creationKitInfoProvider = creationKitInfoProvider;
@@ -163,18 +165,24 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
 
         const config = (await this._configProvider.config.pipe(take(1)).toPromise())[game];
         const creationKitInfo = await this._creationKitInfoProvider.infos
-            .get(game)
+            .get(game)!
             .pipe(take(1))
             .toPromise();
+
+        if (!creationKitInfo.resolvedInstallPath) {
+            throw new Error(
+                `Creation Kit install path for ${getDisplayNameForGame(game)} is not configured.`
+            );
+        }
 
         const toolArguments: IDebugToolArguments = {
             port: session.configuration.port || getDefaultPortForGame(game),
             projectPath: session.configuration.projectPath,
             creationKitInstallPath: creationKitInfo.resolvedInstallPath,
             relativeIniPaths: config.creationKitIniFiles,
-            defaultScriptSourceFolder: creationKitInfo.config.Papyrus.sScriptSourceFolder,
-            defaultAdditionalImports: creationKitInfo.config.Papyrus.sAdditionalImports,
-            clientProcessId: Number.parseInt(process.env.VSCODE_PID),
+            defaultScriptSourceFolder: creationKitInfo.config.Papyrus?.sScriptSourceFolder,
+            defaultAdditionalImports: creationKitInfo.config.Papyrus?.sAdditionalImports,
+            clientProcessId: Number.parseInt(process.env.VSCODE_PID!),
         };
 
         const toolPath = await this._pathResolver.getDebugToolPath(game);
@@ -182,7 +190,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
 
         const outputChannel = (await this._languageClientManager.getLanguageClientHost(session.configuration.game))
             .outputChannel;
-        outputChannel.appendLine(
+        outputChannel?.appendLine(
             `Debug session: Launching debug adapter client: ${toolPath} ${commandLineArgs.join(' ')}`
         );
 

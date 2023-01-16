@@ -1,5 +1,6 @@
+import "reflect-metadata";
+
 import { Disposable, extensions, ExtensionContext } from 'vscode';
-import { ServiceCollection, IInstantiationService, InstantiationService, Descriptor } from 'decoration-ioc';
 import { extensionQualifiedId, GlobalState } from './common/constants';
 import { IExtensionContext } from './common/vscode/IocDecorators';
 import { IExtensionConfigProvider, ExtensionConfigProvider } from './ExtensionConfigProvider';
@@ -7,7 +8,6 @@ import { IPathResolver, PathResolver } from './common/PathResolver';
 import { LanguageClientManager, ILanguageClientManager } from './server/LanguageClientManager';
 import { LanguageServiceStatusItems } from './features/LanguageServiceStatusItems';
 import { LanguageConfigurations } from './features/LanguageConfigurations';
-import { getInstance } from './common/Ioc';
 import { PyroTaskProvider } from './features/PyroTaskProvider';
 import { ICreationKitInfoProvider, CreationKitInfoProvider } from './CreationKitInfoProvider';
 import { ScriptStatusCodeLensProvider } from './features/ScriptStatusCodeLensProvider';
@@ -25,10 +25,10 @@ import { ViewAssemblyCommand } from './features/commands/ViewAssemblyCommand';
 import { GenerateProjectCommand } from './features/commands/GenerateProjectCommand';
 import { showWelcome } from './features/WelcomeHandler';
 import { ShowWelcomeCommand } from './features/commands/ShowWelcomeCommand';
+import { Container } from 'inversify';
 
 class PapyrusExtension implements Disposable {
-    private readonly _serviceCollection: ServiceCollection;
-    private readonly _instantiationService: IInstantiationService;
+    private readonly _serviceContainer: Container;
     private readonly _configProvider: IExtensionConfigProvider;
     private readonly _clientManager: ILanguageClientManager;
     private readonly _statusItems: LanguageServiceStatusItems;
@@ -57,48 +57,44 @@ class PapyrusExtension implements Disposable {
 
         this._languageConfigurations = new LanguageConfigurations();
 
-        this._serviceCollection = new ServiceCollection(
-            [IExtensionContext, context],
-            [IExtensionConfigProvider, new Descriptor(ExtensionConfigProvider)],
-            [IPathResolver, new Descriptor(PathResolver)],
-            [ICreationKitInfoProvider, new Descriptor(CreationKitInfoProvider)],
-            [ILanguageClientManager, new Descriptor(LanguageClientManager)],
-            [IDebugSupportInstallService, new Descriptor(DebugSupportInstallService)],
+        this._serviceContainer = new Container(
+            {
+                defaultScope: 'Singleton',
+            }
         );
 
-        this._instantiationService = new InstantiationService(this._serviceCollection);
+        this._serviceContainer.bind(IExtensionContext).toConstantValue(context);
+        this._serviceContainer.bind(IExtensionConfigProvider).to(ExtensionConfigProvider);
+        this._serviceContainer.bind(IPathResolver).to(PathResolver);
+        this._serviceContainer.bind(ICreationKitInfoProvider).to(CreationKitInfoProvider);
+        this._serviceContainer.bind(ILanguageClientManager).to(LanguageClientManager);
+        this._serviceContainer.bind(IDebugSupportInstallService).to(DebugSupportInstallService);
 
-        this._configProvider = getInstance(this._serviceCollection, IExtensionConfigProvider);
-        this._clientManager = getInstance(this._serviceCollection, ILanguageClientManager);
-        this._statusItems = this._instantiationService.createInstance(LanguageServiceStatusItems);
+        this._configProvider = this._serviceContainer.get(IExtensionConfigProvider);
+        this._clientManager = this._serviceContainer.get(ILanguageClientManager);
 
-        this._pyroProvider = this._instantiationService.createInstance(PyroTaskProvider);
+        this._statusItems = this._serviceContainer.resolve(LanguageServiceStatusItems);
+        this._pyroProvider = this._serviceContainer.resolve(PyroTaskProvider);
+        this._scriptStatusCodeLensProvider = this._serviceContainer.resolve(ScriptStatusCodeLensProvider);
+        this._searchWikiCommand = this._serviceContainer.resolve(SearchCreationKitWikiCommand);
+        this._debugConfigurationProvider = this._serviceContainer.resolve(PapyrusDebugConfigurationProvider);
+        this._debugAdapterDescriptorFactory = this._serviceContainer.resolve(PapyrusDebugAdapterDescriptorFactory);
+        this._installDebugSupportCommand = this._serviceContainer.resolve(InstallDebugSupportCommand);
 
-        this._scriptStatusCodeLensProvider = this._instantiationService.createInstance(ScriptStatusCodeLensProvider);
-        this._searchWikiCommand = this._instantiationService.createInstance(SearchCreationKitWikiCommand);
-
-        this._debugConfigurationProvider = this._instantiationService.createInstance(PapyrusDebugConfigurationProvider);
-        this._debugAdapterDescriptorFactory = this._instantiationService.createInstance(
-            PapyrusDebugAdapterDescriptorFactory
-        );
-
-        this._installDebugSupportCommand = this._instantiationService.createInstance(InstallDebugSupportCommand);
         this._debugAdapterTrackerFactory = new PapyrusDebugAdapterTrackerFactory();
 
         this._attachCommand = new AttachDebuggerCommand();
 
-        this._projectsTreeDataProvider = this._instantiationService.createInstance(ProjectsTreeDataProvider);
+        this._projectsTreeDataProvider = this._serviceContainer.resolve(ProjectsTreeDataProvider);
         this._projectsView = new ProjectsView(this._projectsTreeDataProvider);
 
-        this._assemblyTextContentProvider = this._instantiationService.createInstance(AssemblyTextContentProvider);
-        this._viewAssemblyCommand = this._instantiationService.createInstance(ViewAssemblyCommand);
+        this._assemblyTextContentProvider = this._serviceContainer.resolve(AssemblyTextContentProvider);
+        this._viewAssemblyCommand = this._serviceContainer.resolve(ViewAssemblyCommand);
 
-        this._generateProjectCommand = this._instantiationService.createInstance(GenerateProjectCommand);
+        this._generateProjectCommand = this._serviceContainer.resolve(GenerateProjectCommand);
 
-        this._showWelcomeCommand = this._instantiationService.createInstance(ShowWelcomeCommand);
+        this._showWelcomeCommand = this._serviceContainer.resolve(ShowWelcomeCommand);
 
-        // Show the getting started document if there's no previous version (new install)
-        // At some point we might want a "what's new" so I included both version numbers.
         void showWelcome(papyrusVersion, previousVersion);
         context.globalState.update(GlobalState.PapyrusVersion, papyrusVersion);
     }

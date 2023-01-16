@@ -13,6 +13,7 @@ import {
 import { PapyrusGame, getShortDisplayNameForGame } from '../../PapyrusGame';
 import { flatten } from '../../Utilities';
 import { IExtensionContext } from '../../common/vscode/IocDecorators';
+import { inject, injectable } from 'inversify';
 
 export class GameTreeDataNode implements TreeDataNode {
     private readonly _context: ExtensionContext;
@@ -25,7 +26,7 @@ export class GameTreeDataNode implements TreeDataNode {
         this._projects = projects;
     }
 
-    async getParent(): Promise<TreeDataNode> {
+    async getParent(): Promise<TreeDataNode | null> {
         return null;
     }
 
@@ -170,6 +171,7 @@ export class ProjectScriptTreeDataNode implements TreeDataNode {
     }
 }
 
+@injectable()
 export class ProjectsTreeDataProvider extends TreeDataProviderBase {
     private readonly _languageClientManager: ILanguageClientManager;
     private readonly _context: ExtensionContext;
@@ -177,8 +179,8 @@ export class ProjectsTreeDataProvider extends TreeDataProviderBase {
     private readonly _projectInfosObservables: [PapyrusGame, Observable<ProjectInfos>][];
 
     constructor(
-        @ILanguageClientManager languageClientManager: ILanguageClientManager,
-        @IExtensionContext context: ExtensionContext
+        @inject(ILanguageClientManager) languageClientManager: ILanguageClientManager,
+        @inject(IExtensionContext) context: ExtensionContext
     ) {
         super();
 
