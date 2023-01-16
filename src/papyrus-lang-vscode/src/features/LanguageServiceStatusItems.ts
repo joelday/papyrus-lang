@@ -1,7 +1,7 @@
 import { ILanguageClientManager } from '../server/LanguageClientManager';
-import { StatusBarItem, Disposable, window, StatusBarAlignment } from 'vscode';
+import { StatusBarItem, Disposable, window, StatusBarAlignment, TextEditor } from 'vscode';
 import { PapyrusGame, getGames, getShortDisplayNameForGame, getDisplayNameForGame } from '../PapyrusGame';
-import { Observable, Unsubscribable, combineLatest } from 'rxjs';
+import { Observable, Unsubscribable, combineLatest as combineLatest, ObservableInput, ObservedValueOf } from 'rxjs';
 import { ILanguageClientHost, ClientHostStatus } from '../server/LanguageClientHost';
 import { mergeMap, shareReplay } from 'rxjs/operators';
 import { eventToValueObservable } from '../common/vscode/reactive/Events';
@@ -9,6 +9,10 @@ import { asyncDisposable } from '../common/Reactive';
 import { ShowOutputChannelCommand } from './commands/ShowOutputChannelCommand';
 import { LocateOrDisableGameCommand } from './commands/LocateOrDisableGameCommand';
 import { inject, injectable } from 'inversify';
+import { DocumentScriptInfo } from '../server/messages/DocumentScriptInfo';
+
+declare function combineLatest_<O1 extends ObservableInput<any>, O2 extends ObservableInput<any>, O3 extends ObservableInput<any>, O4 extends ObservableInput<any>, O5 extends ObservableInput<any>, O6 extends ObservableInput<any>, O7 extends ObservableInput<any>>(...sources: [O1, O2, O3, O4, O5, O6, O7]): Observable<[ObservedValueOf<O1>, ObservedValueOf<O2>, ObservedValueOf<O3>, ObservedValueOf<O4>, ObservedValueOf<O5>, ObservedValueOf<O6>, ObservedValueOf<O7>]>;
+declare type ExtendedCombineLatestSignature = typeof combineLatest_;
 
 class StatusBarItemController implements Disposable {
     private readonly _statusBarItem: StatusBarItem;
@@ -20,7 +24,7 @@ class StatusBarItemController implements Disposable {
 
         this._locateOrDisableCommand = new LocateOrDisableGameCommand(game);
 
-        const activeEditor = eventToValueObservable(window.onDidChangeActiveTextEditor, () => window.activeTextEditor);
+        const activeEditor = eventToValueObservable(window.onDidChangeActiveTextEditor, () => window.activeTextEditor, undefined, true);
 
         const visibleEditors = eventToValueObservable(window.onDidChangeVisibleTextEditors, () => window.visibleTextEditors);
 
@@ -41,7 +45,7 @@ class StatusBarItemController implements Disposable {
                     activeEditor &&
                     activeEditor.document.languageId === 'papyrus'
                 ) {
-                    return await host.client.requestScriptInfo(activeEditor.document.uri.toString());
+                    return await host.client?.requestScriptInfo(activeEditor.document.uri.toString()) || null;
                 }
 
                 return null;
@@ -53,7 +57,16 @@ class StatusBarItemController implements Disposable {
             asyncDisposable((host) => new ShowOutputChannelCommand(game, () => host.outputChannel))
         );
 
-        this._hostSubscription = combineLatest(
+        // TODO: Need to update RxJS, combineLatest here doesn't have enough overloads to support the typings here.
+        this._hostSubscription = (combineLatest as ExtendedCombineLatestSignature)<
+            Observable<ILanguageClientHost>,
+            Observable<ClientHostStatus>,
+            Observable<string | null>,
+            Observable<TextEditor | undefined>,
+            Observable<readonly TextEditor[]>,
+            Observable<ShowOutputChannelCommand>,
+            Observable<DocumentScriptInfo | null>
+        >(
             languageClientHost,
             hostStatus,
             hostError,
@@ -72,7 +85,7 @@ class StatusBarItemController implements Disposable {
                     return;
                 }
 
-                const displayName = getShortDisplayNameForGame(host.game);
+                const shortName = getShortDisplayNameForGame(host.game);
                 const fullName = getDisplayNameForGame(host.game);
 
                 this._statusBarItem.command = showOutputChannelCommand.name;
@@ -82,28 +95,27 @@ class StatusBarItemController implements Disposable {
                         this._statusBarItem.hide();
                         return;
                     case ClientHostStatus.starting:
-                        this._statusBarItem.text = `${displayName} $(sync)`;
+                        this._statusBarItem.text = `${shortName} $(sync)`;
                         this._statusBarItem.tooltip = `${fullName} language service starting...`;
                         break;
                     case ClientHostStatus.running:
-                        this._statusBarItem.text = `${displayName} ${activeDocumentScriptInfo && activeDocumentScriptInfo.identifiers.length > 0
-                            ? '$(verified)'
-                            : '$(check)'
-                            }`;
-                        this._statusBarItem.tooltip = `${fullName} language service running.`;
+                        const hasActiveDocument = activeDocumentScriptInfo && activeDocumentScriptInfo.identifiers.length > 0;
+
+                        this._statusBarItem.text = `${shortName} $(check)` + (hasActiveDocument ? ` $(file-code)` : ``);
+                        this._statusBarItem.tooltip = `${fullName} language service is running${hasActiveDocument ? ` and has active scripts.` : `.`}`;
                         break;
                     case ClientHostStatus.missing:
-                        this._statusBarItem.text = `${displayName} $(alert)`;
+                        this._statusBarItem.text = `${shortName} $(alert)`;
                         this._statusBarItem.tooltip = `Unable to locate ${fullName}. Click for more options...`;
                         this._statusBarItem.command = this._locateOrDisableCommand.name;
                         break;
                     case ClientHostStatus.compilerMissing:
-                        this._statusBarItem.text = `${displayName} $(alert)`;
+                        this._statusBarItem.text = `${shortName} $(alert)`;
                         this._statusBarItem.tooltip = `Unable to locate the Papyrus compiler. Make sure that the game install path is correct, Creation Kit has been installed and that, if specified in an ini file, sCompilerFolder is also correct.`;
                         this._statusBarItem.command = this._locateOrDisableCommand.name;
                         break;
                     case ClientHostStatus.error:
-                        this._statusBarItem.text = `${displayName} $(stop)`;
+                        this._statusBarItem.text = `${shortName} $(stop)`;
                         this._statusBarItem.tooltip = `Unexpected error while starting ${fullName} language service.`;
                         break;
                 }
@@ -135,7 +147,7 @@ export class LanguageServiceStatusItems implements Disposable {
                     (game, index) =>
                         [
                             game,
-                            new StatusBarItemController(game, this._languageClientManager.clients.get(game), index),
+                            new StatusBarItemController(game, this._languageClientManager.clients.get(game)!, index),
                         ] as [PapyrusGame, StatusBarItemController]
                 ),
         ]);

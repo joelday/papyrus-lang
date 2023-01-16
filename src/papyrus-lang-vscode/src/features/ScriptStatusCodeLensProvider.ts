@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
-import { ClientHostStatus } from '../server/LanguageClientHost';
+import { ClientHostStatus, IScriptDocumentStatus } from '../server/LanguageClientHost';
 import {
     CodeLens,
     Range,
@@ -69,7 +69,7 @@ export class ScriptStatusCodeLensProvider implements CodeLensProvider, Disposabl
 
         const documentInfos = (await Promise.all(
             activeClients.map((client) => client.getDocumentScriptStatus(document))
-        )).filter((documentInfo) => documentInfo !== null);
+        )).filter((documentInfo) => documentInfo !== null) as IScriptDocumentStatus[];
 
         if (cancellationToken.isCancellationRequested) {
             return [];

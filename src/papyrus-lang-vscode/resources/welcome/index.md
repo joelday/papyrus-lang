@@ -77,14 +77,14 @@ Now all you need to do is launch the game and start up the debugger again. Break
 
 At this point all features are supported for all games _except_ debugging is not supported for Skyrim LE.
 
-| Feature                                                                                 | Skyrim LE | Skyrim SE | Fallout 4 |
-| --------------------------------------------------------------------------------------- | --------- | --------- | --------- |
-| [Language Definition](https://github.com/joelday/papyrus-lang/wiki/Language-Definition) | Yes       | Yes       | Yes       |
-| [Static Analysis](https://github.com/joelday/papyrus-lang/wiki/Static-Analysis)         | Yes       | Yes       | Yes       |
-| [IntelliSense](https://github.com/joelday/papyrus-lang/wiki/IntelliSense)               | Yes       | Yes       | Yes       |
-| [Refactoring](https://github.com/joelday/papyrus-lang/wiki/Refactoring)                 | Yes       | Yes       | Yes       |
-| [Compilation](https://github.com/joelday/papyrus-lang/wiki/Compilation)                 | Yes       | Yes       | Yes       |
-| [Debugging](https://github.com/joelday/papyrus-lang/wiki/Debugging)                     | No        | Yes       | Yes       |
+| Feature                                                                                 | Skyrim LE | Skyrim SE/AE | Fallout 4 |
+| --------------------------------------------------------------------------------------- | --------- | ------------ | --------- |
+| [Language Definition](https://github.com/joelday/papyrus-lang/wiki/Language-Definition) | Yes       | Yes          | Yes       |
+| [Static Analysis](https://github.com/joelday/papyrus-lang/wiki/Static-Analysis)         | Yes       | Yes          | Yes       |
+| [IntelliSense](https://github.com/joelday/papyrus-lang/wiki/IntelliSense)               | Yes       | Yes          | Yes       |
+| [Refactoring](https://github.com/joelday/papyrus-lang/wiki/Refactoring)                 | Yes       | Yes          | Yes       |
+| [Compilation](https://github.com/joelday/papyrus-lang/wiki/Compilation)                 | Yes       | Yes          | Yes       |
+| [Debugging](https://github.com/joelday/papyrus-lang/wiki/Debugging)                     | No        | Yes          | Yes       |
 
 ## Further Resources
 

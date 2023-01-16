@@ -90,7 +90,7 @@
                         }
                     },
                     {
-                        "label": "Papyrus: Skyrim Special Edition",
+                        "label": "Papyrus: Skyrim Special Edition/Anniversary Edition",
                         "body": {
                             "name": "Skyrim",
                             "type": "papyrus",
@@ -99,9 +99,9 @@
                         }
                     },
                     {
-                        "label": "Papyrus: Skyrim Special Edition (with .ppj)",
+                        "label": "Papyrus: Skyrim Special Editio/Anniversary Editionn (with .ppj)",
                         "body": {
-                            "name": "Skyrim Special Edition Project",
+                            "name": "Skyrim Special Edition/Anniversary Edition Project",
                             "type": "papyrus",
                             "request": "attach",
                             "game": "skyrimSpecialEdition",
@@ -240,7 +240,7 @@
                 "papyrus.skyrim.enabled": {
                     "default": true,
                     "type": "boolean",
-                    "description": "Enable support for Skyrim LE (\"Oldrim\"). This is not for Skyrim Special Edition!"
+                    "description": "Enable support for Skyrim LE (\"Oldrim\"). This is not for Skyrim Special Edition/Anniversary Edition!"
                 },
                 "papyrus.skyrim.creationKitIniFiles": {
                     "default": [
@@ -260,7 +260,7 @@
                 "papyrus.skyrimSpecialEdition.enabled": {
                     "default": true,
                     "type": "boolean",
-                    "markdownDescription": "Enable support for **Skyrim Special Edition**. Use the [Generate Project Files](command:papyrus.skyrimSpecialEdition.generateProject) command to set up the language server and builds."
+                    "markdownDescription": "Enable support for **Skyrim Special Edition/Anniversary Edition**. Use the [Generate Project Files](command:papyrus.skyrimSpecialEdition.generateProject) command to set up the language server and builds."
                 },
                 "papyrus.skyrimSpecialEdition.creationKitIniFiles": {
                     "default": [
@@ -271,22 +271,22 @@
                     "items": {
                         "type": "string"
                     },
-                    "description": "INI Files for the Skyrim Special Edition version of the Creation Kit."
+                    "description": "INI Files for the Skyrim Special Edition/Anniversary Edition version of the Creation Kit."
                 },
                 "papyrus.skyrimSpecialEdition.installPath": {
                     "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition\\",
                     "type": "string",
-                    "description": "Pathname of the directory where Skyrim Special Edition is installed."
+                    "description": "Pathname of the directory where Skyrim Special Edition/Anniversary Edition is installed."
                 },
                 "papyrus.skyrimSpecialEdition.ignoreDebuggerVersion": {
                     "default": false,
                     "type": "boolean",
-                    "description": "Allow using old version of the debugger script extender plugin with Skyrim Special Edition."
+                    "description": "Allow using old version of the debugger script extender plugin with Skyrim Special Edition/Anniversary Edition."
                 },
                 "papyrus.skyrimSpecialEdition.modDirectoryPath": {
                     "default": "",
                     "type": "string",
-                    "description": "If you want to use a mod manager to manage the debugger plugin as a mod, set this to the path of the directory where installed mods for Skyrim SE are kept. Otherwise it will be installed in the game directory."
+                    "description": "If you want to use a mod manager to manage the debugger plugin as a mod, set this to the path of the directory where installed mods for Skyrim SE/AE are kept. Otherwise it will be installed in the game directory."
                 }
             },
             "title": "Papyrus",
@@ -369,12 +369,12 @@
             {
                 "category": "Papyrus",
                 "command": "papyrus.skyrimSpecialEdition.installDebuggerSupport",
-                "title": "Install Papyrus debugging support for Skyrim Special Edition"
+                "title": "Install Papyrus debugging support for Skyrim Special Edition/Anniversary Edition"
             },
             {
                 "category": "Debug",
                 "command": "papyrus.skyrimSpecialEdition.attachDebugger",
-                "title": "Attach to Skyrim Special Edition"
+                "title": "Attach to Skyrim Special Edition/Anniversary Edition"
             },
             {
                 "category": "Papyrus",
@@ -384,7 +384,7 @@
             {
                 "category": "Papyrus",
                 "command": "papyrus.skyrimSpecialEdition.generateProject",
-                "title": "Generate Skyrim Special Edition Project Files"
+                "title": "Generate Skyrim Special Edition/Anniversary Edition Project Files"
             },
             {
                 "category": "Papyrus",
@@ -515,14 +515,15 @@
     "dependencies": {
         "@semantic-release/exec": "^6.0.3",
         "@types/semantic-release": "^17.2.4",
-        "reflect-metadata": "^0.1.13",
         "deepmerge": "^4.2.2",
         "fast-deep-equal": "^3.1.3",
         "ini": "^3.0.1",
         "inversify": "^6.0.1",
         "md5-file": "^5.0.0",
         "ps-list": "^6.3.0",
+        "reflect-metadata": "^0.1.13",
         "rxjs": "^6.6.7",
+        "semver": "^7.3.8",
         "vscode-debugprotocol": "^1.37.0",
         "vscode-languageclient": "^5.2.1",
         "winreg": "^1.2.4",
@@ -535,6 +536,7 @@
         "@types/ini": "^1.3.31",
         "@types/mocha": "^10.0.1",
         "@types/node": "^18.11.18",
+        "@types/semver": "^7.3.13",
         "@types/vscode": "^1.74.0",
         "@types/winreg": "^1.2.31",
         "@vscode/test-electron": "2.2.0",

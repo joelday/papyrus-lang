@@ -26,7 +26,7 @@ export class GameTreeDataNode implements TreeDataNode {
         this._projects = projects;
     }
 
-    async getParent(): Promise<TreeDataNode> {
+    async getParent(): Promise<TreeDataNode | null> {
         return null;
     }
 

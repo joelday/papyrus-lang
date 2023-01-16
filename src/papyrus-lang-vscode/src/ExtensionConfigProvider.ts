@@ -2,6 +2,7 @@ import { injectable, interfaces } from 'inversify';
 import { workspace, Disposable } from 'vscode';
 import { eventToValueObservable } from './common/vscode/reactive/Events';
 import { Observable } from 'rxjs';
+import { filter } from 'rxjs/operators';
 
 export interface IGameConfig {
     readonly enabled: boolean;
@@ -30,7 +31,7 @@ export class ExtensionConfigProvider implements IExtensionConfigProvider {
     private readonly _config = eventToValueObservable(
         workspace.onDidChangeConfiguration,
         () => getPapyrusConfig(),
-        (e) => (e.affectsConfiguration('papyrus') ? getPapyrusConfig() : undefined)
+        (e) => (e.affectsConfiguration('papyrus') ? getPapyrusConfig() : undefined),
     );
 
     get config() {

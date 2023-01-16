@@ -3,7 +3,7 @@ import { Disposable, ExtensionContext, OutputChannel, window, TextDocument } fro
 import { LanguageClient, ILanguageClient, IToolArguments } from './LanguageClient';
 import { PapyrusGame, getShortDisplayNameForGame } from '../PapyrusGame';
 import { IGameConfig } from '../ExtensionConfigProvider';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Observable, BehaviorSubject, observable, of } from 'rxjs';
 import { ICreationKitInfo } from '../CreationKitInfoProvider';
 import { DocumentScriptInfo } from './messages/DocumentScriptInfo';
 import { shareReplay, take, map, switchMap } from 'rxjs/operators';
@@ -24,11 +24,11 @@ export enum ClientHostStatus {
 export interface ILanguageClientHost {
     readonly game: PapyrusGame;
     readonly status: Observable<ClientHostStatus>;
-    readonly client: ILanguageClient;
-    readonly error: Observable<string>;
-    readonly outputChannel: OutputChannel;
-    readonly projectInfos: Observable<ProjectInfos>;
-    getDocumentScriptStatus(document: TextDocument): Promise<IScriptDocumentStatus>;
+    readonly client: ILanguageClient | null;
+    readonly error: Observable<string | null>;
+    readonly outputChannel: OutputChannel | null;
+    readonly projectInfos: Observable<ProjectInfos | null>;
+    getDocumentScriptStatus(document: TextDocument): Promise<IScriptDocumentStatus | null>;
 }
 
 export interface IScriptDocumentStatus {
@@ -43,13 +43,13 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
     private readonly _config: IGameConfig;
     private readonly _creationKitInfo: ICreationKitInfo;
     private readonly _pathResolver: IPathResolver;
-    private _outputChannel: OutputChannel;
-    private _client: LanguageClient;
+    private _outputChannel: OutputChannel | null = null;
+    private _client: LanguageClient | null = null;
 
-    private _projectInfos: Observable<ProjectInfos>;
+    private _projectInfos: Observable<ProjectInfos | null>;
 
     private readonly _status = new BehaviorSubject(ClientHostStatus.none);
-    private readonly _error = new BehaviorSubject(null);
+    private readonly _error = new BehaviorSubject<string | null>(null);
 
     constructor(
         game: PapyrusGame,
@@ -65,10 +65,11 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
         this._projectInfos = this._status.pipe(
             switchMap((status) => {
                 if (status !== ClientHostStatus.running) {
-                    return Promise.resolve(null);
+                    return of(null);
                 }
 
-                return this._client.projectsUpdated;
+                // Since we're in ClientHostStatus.running, then this._client is defined.
+                return this._client!.projectsUpdated;
             }),
             switchMap(() => (this._client ? this._client.requestProjectInfos() : Promise.resolve(null)))
         );
@@ -129,8 +130,8 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
                 relativeIniPaths: this._config.creationKitIniFiles,
                 flagsFileName: getDefaultFlagsFileNameForGame(this._game),
                 ambientProjectName: 'Creation Kit',
-                defaultScriptSourceFolder: this._creationKitInfo.config.Papyrus.sScriptSourceFolder,
-                defaultAdditionalImports: this._creationKitInfo.config.Papyrus.sAdditionalImports,
+                defaultScriptSourceFolder: this._creationKitInfo.config.Papyrus?.sScriptSourceFolder,
+                defaultAdditionalImports: this._creationKitInfo.config.Papyrus?.sAdditionalImports,
             };
 
             this._outputChannel.appendLine(`Creating Language Client instance with options:`);
@@ -147,9 +148,11 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
             this._status.next(ClientHostStatus.starting);
             await this._client.start();
             this._status.next(ClientHostStatus.running);
-        } catch (error) {
+        } catch (err) {
+            const error = err instanceof Error ? err : new Error((err as any).toString());
+
             this._outputChannel.appendLine(`Error on language service pre-start: ${error.toString()}`);
-            if (error instanceof Error) {
+            if (error.stack) {
                 this._outputChannel.appendLine(error.stack);
             }
 
@@ -158,12 +161,20 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
         }
     }
 
-    async getDocumentScriptStatus(document: TextDocument): Promise<IScriptDocumentStatus> {
+    async getDocumentScriptStatus(document: TextDocument): Promise<IScriptDocumentStatus | null> {
+        if (!this._client) {
+            return null
+        }
+
         if ((await this._status.pipe(take(1)).toPromise()) !== ClientHostStatus.running) {
             return null;
         }
 
         const scriptInfo = await this._client.requestScriptInfo(document.uri.toString());
+
+        if (!scriptInfo) {
+            return null;
+        }
 
         const documentIsUnresolved = scriptInfo.identifiers.length === 0;
         const documentIsOverridden =

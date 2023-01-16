@@ -69,15 +69,8 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
             return DebugSupportInstallState.installed;
         }
 
-        // For clarity and consistency, the plugin is being renamed to end with Fallout4.dll
-        // This handles the case where the old version is installed.
-        const legacyInstalledPluginPath = await this._pathResolver.getDebugPluginInstallPath(game, true);
-        if (game === PapyrusGame.fallout4 && (await exists(legacyInstalledPluginPath))) {
-            return DebugSupportInstallState.incorrectVersion;
-        }
-
         const installedPluginPath = await this._pathResolver.getDebugPluginInstallPath(game, false);
-        if (!(await exists(installedPluginPath))) {
+        if (!installedPluginPath || !(await exists(installedPluginPath))) {
             return DebugSupportInstallState.notInstalled;
         }
 
@@ -96,13 +89,11 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
     }
 
     async installPlugin(game: PapyrusGame, cancellationToken = new CancellationTokenSource().token): Promise<boolean> {
-        // Remove the legacy dll if it exists.
-        const legacyInstalledPluginPath = await this._pathResolver.getDebugPluginInstallPath(game, true);
-        if (game === PapyrusGame.fallout4 && (await exists(legacyInstalledPluginPath))) {
-            await removeFile(legacyInstalledPluginPath);
+        const pluginInstallPath = await this._pathResolver.getDebugPluginInstallPath(game, false);
+        if (!pluginInstallPath) {
+            return false;
         }
 
-        const pluginInstallPath = await this._pathResolver.getDebugPluginInstallPath(game, false);
         const bundledPluginPath = await this._pathResolver.getDebugPluginBundledPath(game);
 
         if (cancellationToken.isCancellationRequested) {
@@ -111,6 +102,7 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
 
         await mkdirIfNeeded(path.dirname(pluginInstallPath));
         await copyFile(bundledPluginPath, pluginInstallPath);
+
         return true;
     }
 }

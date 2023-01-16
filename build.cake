@@ -337,10 +337,6 @@ Task("update-bin")
     .IsDependentOn("copy-debug-plugin");
 
 Task("build-extension")
-    .IsDependentOn("npm-clean")
-    .IsDependentOn("npm-copy-bin")
-    .IsDependentOn("npm-copy-debug-bin")
-    .IsDependentOn("copy-debug-plugin")
     .IsDependentOn("npm-build");
 
 Task("build-test")

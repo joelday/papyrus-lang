@@ -30,8 +30,13 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
         this._pathResolver = pathResolver;
     }
 
-    protected async onExecute(game: PapyrusGame, ...args: [string]) {
+    protected async onExecute(game: PapyrusGame, ...args: [string | undefined]) {
         const installPath = await this._pathResolver.getInstallPath(game);
+
+        if (!installPath) {
+            window.showErrorMessage("Could not find the game installation path.");
+            return;
+        }
 
         const defaultProjectSubdir = {
             'fallout4': "Data",
@@ -50,6 +55,7 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
         if (game === PapyrusGame.fallout4) {
             args[0] = undefined;
         }
+
         let projectFolderUri: Uri = args[0] ? Uri.parse(args[0]) : Uri.file(path.join(installPath, defaultProjectSubdir[game]));
 
         console.log("Default projectFolderUri = " + projectFolderUri.fsPath);

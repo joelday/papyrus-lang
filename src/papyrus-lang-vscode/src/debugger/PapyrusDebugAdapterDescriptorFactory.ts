@@ -165,18 +165,24 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
 
         const config = (await this._configProvider.config.pipe(take(1)).toPromise())[game];
         const creationKitInfo = await this._creationKitInfoProvider.infos
-            .get(game)
+            .get(game)!
             .pipe(take(1))
             .toPromise();
+
+        if (!creationKitInfo.resolvedInstallPath) {
+            throw new Error(
+                `Creation Kit install path for ${getDisplayNameForGame(game)} is not configured.`
+            );
+        }
 
         const toolArguments: IDebugToolArguments = {
             port: session.configuration.port || getDefaultPortForGame(game),
             projectPath: session.configuration.projectPath,
             creationKitInstallPath: creationKitInfo.resolvedInstallPath,
             relativeIniPaths: config.creationKitIniFiles,
-            defaultScriptSourceFolder: creationKitInfo.config.Papyrus.sScriptSourceFolder,
-            defaultAdditionalImports: creationKitInfo.config.Papyrus.sAdditionalImports,
-            clientProcessId: Number.parseInt(process.env.VSCODE_PID),
+            defaultScriptSourceFolder: creationKitInfo.config.Papyrus?.sScriptSourceFolder,
+            defaultAdditionalImports: creationKitInfo.config.Papyrus?.sAdditionalImports,
+            clientProcessId: Number.parseInt(process.env.VSCODE_PID!),
         };
 
         const toolPath = await this._pathResolver.getDebugToolPath(game);
@@ -184,7 +190,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
 
         const outputChannel = (await this._languageClientManager.getLanguageClientHost(session.configuration.game))
             .outputChannel;
-        outputChannel.appendLine(
+        outputChannel?.appendLine(
             `Debug session: Launching debug adapter client: ${toolPath} ${commandLineArgs.join(' ')}`
         );
 

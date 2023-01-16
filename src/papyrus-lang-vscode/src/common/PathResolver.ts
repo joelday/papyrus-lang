@@ -26,9 +26,9 @@ export interface IPathResolver {
     getResourceDir(): Promise<string>;
     getWelcomeFile(): Promise<string>;
     // External paths
-    getInstallPath(game: PapyrusGame): Promise<string>;
-    getModDirectoryPath(game: PapyrusGame): Promise<string>;
-    getDebugPluginInstallPath(game: PapyrusGame, legacy?: boolean): Promise<string>;
+    getInstallPath(game: PapyrusGame): Promise<string | null>;
+    getModDirectoryPath(game: PapyrusGame): Promise<string | null>;
+    getDebugPluginInstallPath(game: PapyrusGame, legacy?: boolean): Promise<string | null>;
 }
 
 @injectable()
@@ -42,10 +42,6 @@ export class PathResolver implements IPathResolver {
     ) {
         this._configProvider = configProvider;
         this._context = context;
-    }
-
-    private async _getExtensionConfig(): Promise<IExtensionConfig> {
-        return this._configProvider.config.pipe(take(1)).toPromise();
     }
 
     private async _getGameConfig(game: PapyrusGame): Promise<IGameConfig> {
@@ -113,21 +109,29 @@ export class PathResolver implements IPathResolver {
     /*** External paths (ones that are not "ours")                             */
     /************************************************************************* */
 
-    public async getInstallPath(game: PapyrusGame): Promise<string> {
-        return resolveInstallPath(game, (await this._getGameConfig(game)).installPath, this._context);
+    public async getInstallPath(game: PapyrusGame): Promise<string | null> {
+        const config = await this._getGameConfig(game);
+
+        return resolveInstallPath(game, config.installPath, this._context);
     }
 
-    public async getDebugPluginInstallPath(game: PapyrusGame, legacy?: boolean): Promise<string> {
-        const config = await this._getGameConfig(game);
-        if (config.modDirectoryPath) {
+    public async getDebugPluginInstallPath(game: PapyrusGame, legacy?: boolean): Promise<string | null> {
+        const modDirectoryPath = await this.getModDirectoryPath(game);
+
+        if (modDirectoryPath) {
             return path.join(
-                await this.getModDirectoryPath(game), "Papyrus Debug Extension",
+                modDirectoryPath, "Papyrus Debug Extension",
                 await this._getModMgrExtenderPluginPath(game),
                 getPluginDllName(game, legacy)
             );
         } else {
+            const installPath = await this.getInstallPath(game);
+            if (!installPath) {
+                return null;
+            }
+
             return path.join(
-                await this.getInstallPath(game),
+                installPath,
                 await this._getExtenderPluginPath(game),
                 getPluginDllName(game, legacy)
             );
@@ -135,7 +139,12 @@ export class PathResolver implements IPathResolver {
     }
 
     public async getModDirectoryPath(game: PapyrusGame) {
-        return (await this._getGameConfig(game)).modDirectoryPath;
+        const config = await this._getGameConfig(game);
+        if (!config) {
+            return null;
+        }
+
+        return config.modDirectoryPath;
     }
 
     dispose() { }
@@ -202,7 +211,7 @@ export async function resolveInstallPath(
     game: PapyrusGame,
     installPath: string,
     context: ExtensionContext
-): Promise<string> {
+): Promise<string | null> {
     if (await exists(installPath)) {
         return installPath;
     }
@@ -239,9 +248,9 @@ const executableNames = new Map([
 ]);
 
 export function getExecutableNameForGame(game: PapyrusGame) {
-    return executableNames.get(game);
+    return executableNames.get(game)!;
 }
 
-export function pathToOsPath(pathname) {
-    return path.format(path.parse(pathname));
+export function pathToOsPath(pathName: string) {
+    return path.format(path.parse(pathName));
 }

@@ -29,10 +29,10 @@ export interface IToolArguments {
 export interface ILanguageClient {
     readonly projectsUpdated: Observable<void>;
 
-    requestProjectInfos(): Thenable<ProjectInfos>;
-    requestScriptInfo(uri: string): Thenable<DocumentScriptInfo>;
-    requestSyntaxTree(uri: string): Thenable<DocumentSyntaxTree>;
-    requestAssembly(uri: string): Thenable<DocumentAssembly>;
+    requestProjectInfos(): Thenable<ProjectInfos | null>;
+    requestScriptInfo(uri: string): Thenable<DocumentScriptInfo | null>;
+    requestSyntaxTree(uri: string): Thenable<DocumentSyntaxTree | null>;
+    requestAssembly(uri: string): Thenable<DocumentAssembly | null>;
 }
 
 const projectsUpdatedNotificationType = {
@@ -43,9 +43,9 @@ export class LanguageClient implements ILanguageClient {
     private readonly _client: BaseClient;
     private readonly _fsWatcher: FileSystemWatcher;
     private readonly _outputChannel: OutputChannel;
-    private _isDisposed: boolean;
+    private _isDisposed: boolean = false;
 
-    private readonly _projectsUpdated = new BehaviorSubject<void>(null);
+    private readonly _projectsUpdated = new BehaviorSubject<void>(undefined);
 
     get projectsUpdated(): Observable<void> {
         return this._projectsUpdated;
@@ -83,7 +83,7 @@ export class LanguageClient implements ILanguageClient {
             await this._client.onReady();
 
             this._client.onNotification(projectsUpdatedNotificationType.type, () => {
-                this._projectsUpdated.next(null);
+                this._projectsUpdated.next(undefined);
             });
 
             this._outputChannel.appendLine('Language service started.');
@@ -104,7 +104,7 @@ export class LanguageClient implements ILanguageClient {
         }
     }
 
-    requestProjectInfos(): Thenable<ProjectInfos> {
+    requestProjectInfos(): Thenable<ProjectInfos | null> {
         try {
             return this._client.sendRequest(projectInfosRequestType.type, {});
         } catch (_) {
@@ -114,19 +114,19 @@ export class LanguageClient implements ILanguageClient {
         }
     }
 
-    requestAssembly(uri: string): Thenable<DocumentAssembly> {
+    requestAssembly(uri: string): Thenable<DocumentAssembly | null> {
         return this._client.sendRequest(documentAssemblyRequestType.type, {
             textDocument: TextDocumentIdentifier.create(uri),
         });
     }
 
-    requestScriptInfo(uri: string): Thenable<DocumentScriptInfo> {
+    requestScriptInfo(uri: string): Thenable<DocumentScriptInfo | null> {
         return this._client.sendRequest(documentScriptInfoRequestType.type, {
             textDocument: TextDocumentIdentifier.create(uri),
         });
     }
 
-    requestSyntaxTree(uri: string): Thenable<DocumentSyntaxTree> {
+    requestSyntaxTree(uri: string): Thenable<DocumentSyntaxTree | null> {
         return this._client.sendRequest(documentSyntaxTreeRequestType.type, {
             textDocument: TextDocumentIdentifier.create(uri),
         });

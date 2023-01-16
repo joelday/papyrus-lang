@@ -18,7 +18,7 @@ export class AssemblyTextContentProvider implements TextDocumentContentProvider 
         const activeClients = await this._languageClientManager.getActiveLanguageClients(cancellationToken);
 
         const assemblyResults = await Promise.all(
-            activeClients.map((c) => c.client.requestAssembly(scriptUri.toString()))
+            activeClients.map((c) => c.client?.requestAssembly(scriptUri.toString()))
         );
         const firstValidResult = assemblyResults.find((a) => !!a && !!a.assembly);
 

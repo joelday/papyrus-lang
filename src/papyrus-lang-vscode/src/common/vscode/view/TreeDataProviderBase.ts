@@ -8,7 +8,7 @@ export abstract class TreeDataProviderBase
     implements vs.TreeDataProvider<TreeDataNode>, vs.Disposable {
 
     private readonly _disposables: vs.Disposable[] = [];
-    private readonly _onDidChangeTreeDataEventEmitter = new vs.EventEmitter<TreeDataNode>();
+    private readonly _onDidChangeTreeDataEventEmitter = new vs.EventEmitter<TreeDataNode | undefined>();
 
     get onDidChangeTreeData() {
         return this._onDidChangeTreeDataEventEmitter.event;

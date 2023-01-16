@@ -22,7 +22,7 @@ export class SearchCreationKitWikiCommand extends EditorCommandBase {
         }
 
         const range = selection.isEmpty ? document.getWordRangeAtPosition(selection.start) : selection;
-        if (range.isEmpty) {
+        if (!range || range.isEmpty) {
             return;
         }
 
@@ -34,7 +34,7 @@ export class SearchCreationKitWikiCommand extends EditorCommandBase {
         const activeClients = await this._languageClientManager.getActiveLanguageClients();
         const documentInfos = await Promise.all(activeClients.map((c) => c.getDocumentScriptStatus(editor.document)));
 
-        const firstActiveDocument = documentInfos.find((docInfo) => !docInfo.documentIsUnresolved);
+        const firstActiveDocument = documentInfos.find((docInfo) => !docInfo?.documentIsUnresolved);
         if (!firstActiveDocument) {
             window.showErrorMessage(
                 'Failed to open Creation Kit search page because this script is currently unresolved.'

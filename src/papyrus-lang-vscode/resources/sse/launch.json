@@ -3,7 +3,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Skyrim SE",
+            "name": "Skyrim SE/AE",
             "type": "papyrus",
             "request": "attach",
             "game": "skyrimSpecialEdition"

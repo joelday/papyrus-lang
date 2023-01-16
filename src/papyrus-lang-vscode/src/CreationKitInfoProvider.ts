@@ -15,8 +15,8 @@ const readFile = promisify(fs.readFile);
 const exists = promisify(fs.exists);
 
 export interface ICreationKitInfo {
-    resolvedInstallPath: string;
-    resolvedCompilerPath: string;
+    resolvedInstallPath: string | null;
+    resolvedCompilerPath: string | null;
     config: ICreationKitConfig;
 }
 
@@ -111,7 +111,7 @@ export class CreationKitInfoProvider {
             );
 
             const parsedInis = iniTexts.pipe(
-                map((iniTexts) => iniTexts.filter((iniText) => iniText !== null).map((iniText) => ini.parse(iniText)))
+                map((iniTexts) => iniTexts.filter((iniText) => iniText !== null).map((iniText) => ini.parse(iniText!)))
             );
 
             const mergedIni = parsedInis.pipe(
@@ -133,7 +133,7 @@ export class CreationKitInfoProvider {
 
             return combineLatest(resolvedInstallPath, mergedIni).pipe(
                 mergeMap(async ([resolvedInstallPath, mergedIni]) => {
-                    const compilerPath = resolvedInstallPath
+                    const compilerPath = resolvedInstallPath && mergedIni.Papyrus?.sCompilerFolder
                         ? path.resolve(resolvedInstallPath, mergedIni.Papyrus.sCompilerFolder)
                         : null;
 
@@ -141,7 +141,7 @@ export class CreationKitInfoProvider {
                         compilerPath && (await exists(compilerPath))
                             ? compilerPath
                             : inDevelopmentEnvironment() && game !== PapyrusGame.skyrim
-                                ? path.resolve(resolvedInstallPath, getDevelopmentCompilerFolderForGame(game))
+                                ? path.resolve(resolvedInstallPath!, getDevelopmentCompilerFolderForGame(game))
                                 : null;
 
                     return {
@@ -149,7 +149,7 @@ export class CreationKitInfoProvider {
                         resolvedCompilerPath:
                             inDevelopmentEnvironment() &&
                                 game !== PapyrusGame.skyrim &&
-                                !(await exists(resolvedCompilerPath))
+                                (!resolvedCompilerPath || !(await exists(resolvedCompilerPath)))
                                 ? null
                                 : resolvedCompilerPath,
                         config: mergedIni,
