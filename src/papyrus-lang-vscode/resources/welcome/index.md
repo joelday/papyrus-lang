@@ -7,7 +7,7 @@
 ### It is now necessary to install the Address Library mods for debugging to work!
 
 -   Skyrim: https://www.nexusmods.com/skyrimspecialedition/mods/32444
--   Fallout 4: https://www.nexusmods.com/fallout4/mods/46068
+-   Fallout 4: https://www.nexusmods.com/fallout4/mods/47327
 
 Future versions of the extension will assist in locating and installing these mods as a part of the debugger setup process.
 
