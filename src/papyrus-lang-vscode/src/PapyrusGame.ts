@@ -18,7 +18,7 @@ export enum PapyrusGame {
 const displayNames = new Map([
     [PapyrusGame.fallout4, 'Fallout 4'],
     [PapyrusGame.skyrim, 'Skyrim'],
-    [PapyrusGame.skyrimSpecialEdition, 'Skyrim Special Edition'],
+    [PapyrusGame.skyrimSpecialEdition, 'Skyrim Special Edition/Anniversary Edition'],
 ]);
 
 export function getDisplayNameForGame(game: PapyrusGame) {
@@ -28,7 +28,7 @@ export function getDisplayNameForGame(game: PapyrusGame) {
 const shortDisplayNames = new Map([
     [PapyrusGame.fallout4, 'Fallout 4'],
     [PapyrusGame.skyrim, 'Skyrim'],
-    [PapyrusGame.skyrimSpecialEdition, 'Skyrim SE'],
+    [PapyrusGame.skyrimSpecialEdition, 'Skyrim SE/AE'],
 ]);
 
 const scriptExtenderNames = new Map([[PapyrusGame.fallout4, 'F4SE'], [PapyrusGame.skyrimSpecialEdition, 'SKSE']]);
@@ -43,41 +43,50 @@ const scriptExtenderUrls = new Map([
 ]);
 
 export function getScriptExtenderUrl(game: PapyrusGame) {
-    return scriptExtenderUrls.get(game);
+    return scriptExtenderUrls.get(game)!;
 }
 
-export function getShortDisplayNameForGame(game: PapyrusGame) {
-    return shortDisplayNames.get(game);
+export function getShortDisplayNameForGame(game: PapyrusGame): string {
+    return shortDisplayNames.get(game)!;
 }
 
 export function getGames(): PapyrusGame[] {
-    return Object.keys(PapyrusGame).map((k) => PapyrusGame[k]);
+    return (Object.keys(PapyrusGame) as (keyof typeof PapyrusGame)[]).map((k) => PapyrusGame[k]);
 }
 
 export async function getWorkspaceGameFromProjects(ppjFiles: Uri[]): Promise<PapyrusGame | undefined> {
-    let game: string = undefined;
+    let game: string | undefined = undefined;
     if (!ppjFiles) {
         return undefined;
     }
+
     for (let ppjFile of ppjFiles) {
         game = await getWorkspaceGameFromProjectFile(ppjFile.fsPath);
         if (game) {
             break;
         }
     }
-    if (!game) {
+
+    if (!game || !PyroGameToPapyrusGame[game as keyof typeof PyroGameToPapyrusGame]) {
         return undefined;
     }
-    return PyroGameToPapyrusGame[game];
+
+    return PyroGameToPapyrusGame[game as keyof typeof PyroGameToPapyrusGame] as unknown as PapyrusGame;
 }
 
 export async function getWorkspaceGameFromProjectFile(projectFile: string): Promise<PapyrusGame | undefined> {
-    let xml = await readFile(projectFile, { encoding: 'utf-8' });
-    let results = xml2js(xml, { compact: true, trim: true });
+    const xml = await readFile(projectFile, { encoding: 'utf-8' });
+    // TODO: Annoying type cast here:
+    const results = xml2js(xml, { compact: true, trim: true }) as Record<string, any>;
+
     return results['PapyrusProject']['_attributes']['Game'];
 }
 
 export async function getWorkspaceGame(): Promise<PapyrusGame | undefined> {
+    if (!workspace.workspaceFolders) {
+        return undefined;
+    }
+
     const ppjFiles: Uri[] = await workspace.findFiles(new RelativePattern(workspace.workspaceFolders[0], "**/*.ppj"));
     return getWorkspaceGameFromProjects(ppjFiles);
 }

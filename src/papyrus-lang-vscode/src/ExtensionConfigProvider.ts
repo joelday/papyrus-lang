@@ -1,7 +1,8 @@
-import { createDecorator } from 'decoration-ioc';
+import { injectable, interfaces } from 'inversify';
 import { workspace, Disposable } from 'vscode';
 import { eventToValueObservable } from './common/vscode/reactive/Events';
 import { Observable } from 'rxjs';
+import { filter } from 'rxjs/operators';
 
 export interface IGameConfig {
     readonly enabled: boolean;
@@ -25,11 +26,12 @@ function getPapyrusConfig() {
     return workspace.getConfiguration().get<IExtensionConfig>('papyrus');
 }
 
+@injectable()
 export class ExtensionConfigProvider implements IExtensionConfigProvider {
     private readonly _config = eventToValueObservable(
         workspace.onDidChangeConfiguration,
         () => getPapyrusConfig(),
-        (e) => (e.affectsConfiguration('papyrus') ? getPapyrusConfig() : undefined)
+        (e) => (e.affectsConfiguration('papyrus') ? getPapyrusConfig() : undefined),
     );
 
     get config() {
@@ -39,4 +41,4 @@ export class ExtensionConfigProvider implements IExtensionConfigProvider {
     dispose() { }
 }
 
-export const IExtensionConfigProvider = createDecorator<IExtensionConfigProvider>('extensionConfigProvider');
+export const IExtensionConfigProvider: interfaces.ServiceIdentifier<IExtensionConfigProvider> = Symbol('extensionConfigProvider');

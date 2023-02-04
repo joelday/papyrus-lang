@@ -8,15 +8,20 @@
 var isCIBuild = EnvironmentVariable("CI") == "true";
 var isRelease = isCIBuild && EnvironmentVariable("RELEASE") == "true";
 var isPrerelease = isRelease && EnvironmentVariable("PRERELEASE") == "true";
-var githubToken = EnvironmentVariable("CI") == "true" ? EnvironmentVariable("GH_TOKEN") : null;
+var githubToken = EnvironmentVariable("CI") == "true" ? EnvironmentVariable("GH_TOKEN") ?? EnvironmentVariable("GITHUB_TOKEN") : null;
+var branchName = EnvironmentVariable("CI") == "true" ? EnvironmentVariable("GITHUB_REF").Replace("refs/heads/", "") : null;
 
 var target = Argument("target", "default");
+
 var solution = File("./DarkId.Papyrus.sln");
+var debuggerSolution = File("./DarkId.Papyrus.DebugServer.sln");
+
 var forceDownloads = HasArgument("force-downloads");
 
 var pluginFileDirectory = Directory("src/papyrus-lang-vscode/debug-plugin/");
 var pyroCliDirectory = Directory("src/papyrus-lang-vscode/pyro/");
-// var currentVersion = GitVersion();
+
+var version = "0.0.0";
 
 public bool ShouldContinueWithDownload(DirectoryPath path)
 {
@@ -36,20 +41,6 @@ public bool ShouldContinueWithDownload(DirectoryPath path)
     return true;
 }
 
-public void UpdateDebugPlugin()
-{
-    if (!ShouldContinueWithDownload(pluginFileDirectory))
-    {
-        return;
-    }
-
-    var pluginDllZip = DownloadFile("https://github.com/joelday/papyrus-debug-server/releases/latest/download/papyrus-debug-server.zip");
-    // var pluginDllZip = DownloadFile("https://github.com/joelday/papyrus-debug-server/releases/download/1.57.0-beta1/papyrus-debug-server.zip");
-    Unzip(pluginDllZip, pluginFileDirectory);
-
-    Information("Debug plugin update complete.");
-}
-
 public void UpdatePyroCli()
 {
     if (!ShouldContinueWithDownload(pyroCliDirectory))
@@ -57,32 +48,26 @@ public void UpdatePyroCli()
         return;
     }
 
-    // TODO: Switch back to using Octokit after the rate limit expires (unauthenticated or not.)
-    var pyroCliZip = DownloadFile("https://github.com/fireundubh/pyro/releases/download/1656807840/pyro-master-1656807840.zip");
-    Unzip(pyroCliZip, pyroCliDirectory);
+    var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("Papyrus-Lang-CI"));
+    if (githubToken != null)
+    {
+        client.Credentials = new Octokit.Credentials(githubToken);
+    }
 
-    Information("Pyro update complete.");
+    client.Repository.Release.GetAll("fireundubh", "pyro").ContinueWith((task) =>
+    {
+        var latestRelease = task.Result.First();
 
-    // var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("Papyrus-Lang-CI"));
-    // if (githubToken != null)
-    // {
-    //     client.Credentials = new Octokit.Credentials(githubToken);
-    // }
+        Information("Found latest release: " + latestRelease.Name);
 
-    // client.Repository.Release.GetAll("fireundubh", "pyro").ContinueWith((task) =>
-    // {
-    //     var latestRelease = task.Result.First();
+        var latestReleaseAsset = latestRelease.Assets.First();
+        var downloadUrl = latestReleaseAsset.BrowserDownloadUrl;
 
-    //     Information("Found latest release: " + latestRelease.Name);
+        var pyroCliZip = DownloadFile(downloadUrl);
+        Unzip(pyroCliZip, pyroCliDirectory);
 
-    //     var latestReleaseAsset = latestRelease.Assets.First();
-    //     var downloadUrl = latestReleaseAsset.BrowserDownloadUrl;
-
-    //     var pyroCliZip = DownloadFile(downloadUrl);
-    //     Unzip(pyroCliZip, pyroCliDirectory);
-
-    //     Information("Pyro update complete.");
-    // }).Wait();
+        Information("Pyro update complete.");
+    }).Wait();
 }
 
 public void DownloadCompilers() {
@@ -106,17 +91,44 @@ public void NpmScript(string scriptName)
     NpmRunScript(settings);
 }
 
-// TODO: Temporarily leaving the dynamic stuff until redoing versioning and preview release work.
-foreach (var scriptName in new string[]
-    {
-        "copy-bin",
-        "copy-debug-bin",
-        "clean"
-    })
-{
-    Task($"npm-{scriptName}")
-        .Does(() => NpmScript(scriptName));
-}
+// As much as the idea of a task with side effects grosses me out, meh...
+Task("get-version")
+    .Does(() => {
+        if (isPrerelease)
+        {
+            // Generate a correctly sortable and valid semver based on the current date and time.
+            var now = DateTime.UtcNow;
+            var secondOfDay = (((now.Hour * 60) + now.Minute) * 60) + now.Second;
+            
+            // Adding 200 due to the previous incorrect versioning scheme that, while invalid, may still be sorted by
+            // something (VS marketplace, maybe? Don't really feel like finding out.)
+            version = $"{now.Year}.{now.DayOfYear + 200}.{secondOfDay}";
+            
+            return;
+        }
+        
+        Information("Getting version from semantic-release...");
+
+        var done = false;
+
+        NpmRunScript(new NpmRunScriptSettings()
+        {
+            ScriptName = "generate-version-number",
+            WorkingDirectory = "src/papyrus-lang-vscode",
+            StandardOutputAction = (line) =>
+            {
+                Information("version stdout: " + line);
+
+                if (done || !System.Version.TryParse(line, out var _))
+                {
+                    return;
+                }
+
+                done = true;
+                version = line;
+            }
+        });
+    });
 
 Task("npm-install")
     .Does(() => {
@@ -134,11 +146,38 @@ Task("npm-ci")
         });
     });
 
+Task("npm-copy-bin")
+    .Does(() => {
+        NpmRunScript(new NpmRunScriptSettings()
+        {
+            ScriptName = "copy-bin",
+            WorkingDirectory = "src/papyrus-lang-vscode",
+        });
+    });
+
+Task("npm-copy-debug-bin")
+    .Does(() => {
+        NpmRunScript(new NpmRunScriptSettings()
+        {
+            ScriptName = "copy-debug-bin",
+            WorkingDirectory = "src/papyrus-lang-vscode",
+        });
+    });
+
+Task("npm-clean")
+    .Does(() => {
+        NpmRunScript(new NpmRunScriptSettings()
+        {
+            ScriptName = "clean",
+            WorkingDirectory = "src/papyrus-lang-vscode",
+        });
+    });
+
 Task("npm-build")
     .Does(() => {
         NpmRunScript(new NpmRunScriptSettings()
         {
-            ScriptName = "compile",
+            ScriptName = isRelease ? "compile:release" : "compile",
             WorkingDirectory = "src/papyrus-lang-vscode",
         });
     });
@@ -148,7 +187,13 @@ Task("npm-publish")
         NpmRunScript(new NpmRunScriptSettings()
         {
             ScriptName = "semantic-release",
-            WorkingDirectory = "src/papyrus-lang-vscode"
+            WorkingDirectory = "src/papyrus-lang-vscode",
+            EnvironmentVariables = 
+            {
+                { "PRERELEASE_FLAG", isPrerelease ? "--pre-release" : null },
+                { "VERSION", version },
+                { "BRANCH_NAME", branchName }
+            }
         });
     });
 
@@ -157,9 +202,31 @@ Task("download-compilers")
         DownloadCompilers();
     });
 
-Task("download-debug-plugin")
+Task("copy-debug-plugin")
     .Does(() => {
-        UpdateDebugPlugin();
+        try
+        {
+            CreateDirectory("./src/papyrus-lang-vscode/debug-plugin");
+
+            var configuration = isRelease ? "Release" : "Debug";
+
+            CopyFileToDirectory(
+                $"src/DarkId.Papyrus.DebugServer/bin/DarkId.Papyrus.DebugServer.Skyrim/x64/{configuration}/DarkId.Papyrus.DebugServer.Skyrim.dll",
+                "./src/papyrus-lang-vscode/debug-plugin");
+
+            CopyFileToDirectory(
+                $"src/DarkId.Papyrus.DebugServer/bin/DarkId.Papyrus.DebugServer.Fallout4/x64/{configuration}/DarkId.Papyrus.DebugServer.Fallout4.dll",
+                "./src/papyrus-lang-vscode/debug-plugin");
+        }
+        catch (Exception)
+        {
+            // Making this non-fatal during local development.
+
+            if (isCIBuild)
+            {
+                throw;
+            }
+        }
     });
 
 Task("download-pyro-cli")
@@ -172,12 +239,38 @@ Task("restore")
         NuGetRestore(solution);
     });
 
+Task("build-debugger")
+    .Does(() => {
+        var parsedVersion = System.Version.Parse(version);
+
+        var patch = parsedVersion.Build & 0xFFFF0000;
+        var build = parsedVersion.Build & 0x0000FFFF;
+
+        MSBuild(debuggerSolution, new MSBuildSettings()
+        {
+            PlatformTarget = PlatformTarget.x64,
+            Configuration = isRelease ? "Release" : "Debug",
+            Properties = 
+            {
+                { "VersionMajor", new List<string>(){ parsedVersion.Major.ToString() } },
+                { "VersionMinor", new List<string>(){ parsedVersion.Minor.ToString() } },
+                { "VersionPatch", new List<string>(){ patch.ToString() } },
+                { "VersionBuild", new List<string>(){ build.ToString() } },
+            }
+        });
+
+    });
+
 Task("build")
     .Does(() =>
     {
+        var assemblyVersion = version + ".0";
+        Information("Assembly version: " + assemblyVersion);
+
+        // TODO: Do release builds when running CI.
         MSBuild(solution, new MSBuildSettings()
         {
-            // AssemblyVersion = currentVersion.AssemblySemVer,
+            AssemblyVersion = assemblyVersion,
             Verbosity = Verbosity.Minimal
         });
     });
@@ -185,12 +278,12 @@ Task("build")
 Task("test")
     .Does(() =>
     {
-        var falloutTestTask = System.Threading.Tasks.Task.Run(() => VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Fallout4/DarkId.Papyrus.Test.Fallout4.dll", new VSTestSettings()
+        var falloutTestTask = System.Threading.Tasks.Task.Run(() => VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net472/DarkId.Papyrus.Test.Fallout4/DarkId.Papyrus.Test.Fallout4.dll", new VSTestSettings()
         {
             ToolPath = Context.Tools.Resolve("vstest.console.exe")
         }));
 
-        var skyrimTestTask = System.Threading.Tasks.Task.Run(() => VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net461/DarkId.Papyrus.Test.Skyrim/DarkId.Papyrus.Test.Skyrim.dll", new VSTestSettings()
+        var skyrimTestTask = System.Threading.Tasks.Task.Run(() => VSTest("./src/DarkId.Papyrus.Test/bin/Debug/net472/DarkId.Papyrus.Test.Skyrim/DarkId.Papyrus.Test.Skyrim.dll", new VSTestSettings()
         {
             ToolPath = Context.Tools.Resolve("vstest.console.exe")
         }));
@@ -209,14 +302,6 @@ void BuildDefaultTask()
 {
     var builder = Task("default");
 
-    builder.IsDependentOn("clean")
-        .IsDependentOn("download-compilers")
-        .IsDependentOn("download-debug-plugin")
-        .IsDependentOn("download-pyro-cli")
-        .IsDependentOn("restore")
-        .IsDependentOn("build")
-        .IsDependentOn("test");
-
     if (isCIBuild)
     {
         builder.IsDependentOn("npm-ci");
@@ -226,25 +311,45 @@ void BuildDefaultTask()
         builder.IsDependentOn("npm-install");
     }
 
+    if (isRelease)
+    {
+        builder
+            .IsDependentOn("get-version");
+    }
+
+    builder.IsDependentOn("clean")
+        .IsDependentOn("download-compilers")
+        .IsDependentOn("download-pyro-cli")
+        .IsDependentOn("restore")
+        .IsDependentOn("build-debugger")
+        .IsDependentOn("copy-debug-plugin")
+        .IsDependentOn("build")
+        .IsDependentOn("test");
+
     builder
         .IsDependentOn("npm-clean")
         .IsDependentOn("npm-build")
         .IsDependentOn("npm-copy-bin")
         .IsDependentOn("npm-copy-debug-bin");
+
+    if (isRelease)
+    {
+        builder.IsDependentOn("npm-publish");
+    }
 }
 
-Task("publish")
-    .IsDependentOn("npm-publish");
+// TODO: Clean up local development tasks. Should add additional arguments to control what gets built.
+// TODO: Document how to use the tasks in the new CONTRIBUTING.md file.
+// TODO: Task to copy the debug plugin to the correct location for testing without relying on the extension to figure it
+// out/do it.
 
 Task("update-bin")
     .IsDependentOn("build")
     .IsDependentOn("npm-copy-bin")
-    .IsDependentOn("npm-copy-debug-bin");
+    .IsDependentOn("npm-copy-debug-bin")
+    .IsDependentOn("copy-debug-plugin");
 
 Task("build-extension")
-    .IsDependentOn("npm-clean")
-    .IsDependentOn("npm-copy-bin")
-    .IsDependentOn("npm-copy-debug-bin")
     .IsDependentOn("npm-build");
 
 Task("build-test")

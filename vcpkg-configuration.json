@@ -1,0 +1,16 @@
+{
+  "registries": [
+    {
+      "kind": "git",
+      "baseline": "ef8d43afe4d26e842de3d034bff1081cb7990f07",
+      "repository": "https://gitlab.com/colorglass/vcpkg-colorglass/",
+      "packages": [
+        "commonlibsse-ng",
+        "script-extender-common"
+      ]
+    }
+  ],
+  "overlay-ports": [
+    "./dependencies/ports"
+  ]
+}

@@ -1,4 +1,4 @@
-import { createDecorator } from 'decoration-ioc';
+import { inject, injectable, interfaces } from 'inversify';
 import { ILanguageClient } from './LanguageClient';
 import { PapyrusGame, getGames } from '../PapyrusGame';
 import { Observable, Subscription, combineLatest } from 'rxjs';
@@ -15,23 +15,24 @@ export interface ILanguageClientManager extends Disposable {
     readonly clients: ReadonlyMap<PapyrusGame, Observable<ILanguageClientHost>>;
     getActiveLanguageClients(cancellationToken?: CancellationToken): Promise<ILanguageClientHost[]>;
     getLanguageClientHost(game: PapyrusGame): Promise<ILanguageClientHost>;
-    getLanguageClient(game: PapyrusGame): Promise<ILanguageClient>;
+    getLanguageClient(game: PapyrusGame): Promise<ILanguageClient | null>;
 }
 
+@injectable()
 export class LanguageClientManager implements Disposable, ILanguageClientManager {
     private readonly _clients: ReadonlyMap<PapyrusGame, Observable<ILanguageClientHost>>;
 
     private readonly _clientSubscriptions: Subscription[];
 
     constructor(
-        @IExtensionConfigProvider configProvider: IExtensionConfigProvider,
-        @ICreationKitInfoProvider infoProvider: ICreationKitInfoProvider,
-        @IPathResolver pathResolver: IPathResolver
+        @inject(IExtensionConfigProvider) configProvider: IExtensionConfigProvider,
+        @inject(ICreationKitInfoProvider) infoProvider: ICreationKitInfoProvider,
+        @inject(IPathResolver) pathResolver: IPathResolver
     ) {
         const createClientObservable = (game: PapyrusGame) => {
             return combineLatest(
                 configProvider.config.pipe(map((config) => config[game])),
-                infoProvider.infos.get(game)
+                infoProvider.infos.get(game)!
             ).pipe(
                 asyncDisposable<[IGameConfig, ICreationKitInfo], LanguageClientHost>(
                     ([gameConfig, creationKitInfo]) =>
@@ -78,17 +79,17 @@ export class LanguageClientManager implements Disposable, ILanguageClientManager
 
                 return client;
             })
-        )).filter((client) => client !== null);
+        )).filter((client) => client !== null) as ILanguageClientHost[];
     }
 
     async getLanguageClientHost(game: PapyrusGame): Promise<ILanguageClientHost> {
         return await this.clients
-            .get(game)
+            .get(game)!
             .pipe(take(1))
             .toPromise();
     }
 
-    async getLanguageClient(game: PapyrusGame): Promise<ILanguageClient> {
+    async getLanguageClient(game: PapyrusGame): Promise<ILanguageClient | null> {
         const clientHost = await this.getLanguageClientHost(game);
 
         const status = await clientHost.status.pipe(take(1)).toPromise();
@@ -106,4 +107,4 @@ export class LanguageClientManager implements Disposable, ILanguageClientManager
     }
 }
 
-export const ILanguageClientManager = createDecorator<ILanguageClientManager>('languageClientManager');
+export const ILanguageClientManager: interfaces.ServiceIdentifier<ILanguageClientManager> = Symbol('languageClientManager');

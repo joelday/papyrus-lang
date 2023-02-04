@@ -1,3 +1,4 @@
+import { injectable } from 'inversify';
 import { DebugConfigurationProvider, CancellationToken, WorkspaceFolder, debug, Disposable } from 'vscode';
 import { PapyrusGame } from '../PapyrusGame';
 import { IPapyrusDebugConfiguration } from './PapyrusDebugSession';
@@ -9,6 +10,7 @@ import { IPapyrusDebugConfiguration } from './PapyrusDebugSession';
 // TODO: Resolve project from whichever that includes the active editor file.
 // TODO: Provide configurations based on .ppj files in current directory.
 
+@injectable()
 export class PapyrusDebugConfigurationProvider implements DebugConfigurationProvider, Disposable {
     private readonly _registration: Disposable;
 

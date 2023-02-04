@@ -12,43 +12,89 @@ jobs:
       CAKE_SETTINGS_ENABLESCRIPTCACHE: true
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: git credentials
+        uses: oleksiyrudenko/gha-git-credentials@v2-latest
         with:
-          fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN != '' && secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+          token: '${{ secrets.GH_TOKEN }}'
+          global: true
+
+      - name: Checkout
+        working-directory: c:/
+        run: |
+          git clone --single-branch --branch $("${{ github.ref }}".Replace('refs/heads/', '')) ${{ github.server_url }}/${{ github.repository }}.git repo
+
+      - name: Setup vcpkg
+        working-directory: c:/
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          cd vcpkg
+          bootstrap-vcpkg.bat
+          vcpkg.exe integrate install
+
+      - name: Cache vcpkg packages
+        uses: actions/cache@v3
+        with:
+          path: c:/repo/vcpkg_installed
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('c:/repo/vcpkg.json') }}
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-
 
       - name: Cache nuget packages
         uses: actions/cache@v3
         with:
           path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('src/*/*.csproj') }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('c:/repo/src/*/*.csproj') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
 
       - name: Cache dotnet tools
         uses: actions/cache@v3
         with:
-          path: tools
-          key: ${{ runner.os }}-dotnet-tools-${{ hashFiles('build.cake', '.config/dotnet-tools.json') }}
+          path: c:/repo/tools
+          key: ${{ runner.os }}-dotnet-tools-${{ hashFiles('build.cake', 'c:/repo/.config/dotnet-tools.json') }}
           restore-keys: |
             ${{ runner.os }}-dotnet-tools-
 
+      - name: Restore dotnet tools
+        working-directory: c:/repo
+        run: |
+          dotnet tool restore
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        shell: pwsh
+        run: echo "dir=$(npm config get cache)" >> ${env:GITHUB_OUTPUT}
+
+      - name: Cache npm packages
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-npm-${{ hashFiles('c:/repo/src/papyrus-lang-vscode/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
       - name: Setup Nuget.exe
-        if: success()
         uses: nuget/setup-nuget@v1
 
-      - name: Build
-        if: success()
-        uses: ecampidoglio/cake-action@v1
-        with:
-          target: default
+      - name: Install vcpkg packages
+        working-directory: c:/repo
+        run: |
+          ../vcpkg/vcpkg.exe install --x-wait-for-lock --triplet x64-windows-static --x-install-root=c:/repo/vcpkg_installed/skyrim --x-feature=skyrim
+          ../vcpkg/vcpkg.exe install --x-wait-for-lock --triplet x64-windows-static --x-install-root=c:/repo/vcpkg_installed/fallout4 --x-feature=fallout4
 
-      - name: Publish Extension
-        if: success() && (github.ref == 'refs/heads/main')
+      - name: Build and Publish
+        if: success()
+        working-directory: c:/repo
+        run: |
+          dotnet cake
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
-        uses: ecampidoglio/cake-action@v1
-        with:
-          target: publish
+          # TODO: Rename this stuff for clarity once release build artifacts are being created
+          # TODO: Cleanup workflows for various event types in general
+          RELEASE: ${{( github.ref == 'refs/heads/main' || github.ref == 'refs/heads/prerelease') && github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}
+          PRERELEASE: ${{ github.ref == 'refs/heads/prerelease' && github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}

@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33110.190
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DarkId.Papyrus.DebugServer.Skyrim", "src\DarkId.Papyrus.DebugServer\DarkId.Papyrus.DebugServer.Skyrim.vcxproj", "{9F44D62A-8A45-4FD3-8142-22A229A8A2F4}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DarkId.Papyrus.DebugServer.Fallout4", "src\DarkId.Papyrus.DebugServer\DarkId.Papyrus.DebugServer.Fallout4.vcxproj", "{69BB4564-BAE0-4D6B-9D36-752C987B1FA6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9F44D62A-8A45-4FD3-8142-22A229A8A2F4}.Debug|x64.ActiveCfg = Debug|x64
+		{9F44D62A-8A45-4FD3-8142-22A229A8A2F4}.Debug|x64.Build.0 = Debug|x64
+		{9F44D62A-8A45-4FD3-8142-22A229A8A2F4}.Debug|x86.ActiveCfg = Debug|x64
+		{9F44D62A-8A45-4FD3-8142-22A229A8A2F4}.Release|x64.ActiveCfg = Release|x64
+		{9F44D62A-8A45-4FD3-8142-22A229A8A2F4}.Release|x64.Build.0 = Release|x64
+		{9F44D62A-8A45-4FD3-8142-22A229A8A2F4}.Release|x86.ActiveCfg = Release|x64
+		{69BB4564-BAE0-4D6B-9D36-752C987B1FA6}.Debug|x64.ActiveCfg = Debug|x64
+		{69BB4564-BAE0-4D6B-9D36-752C987B1FA6}.Debug|x64.Build.0 = Debug|x64
+		{69BB4564-BAE0-4D6B-9D36-752C987B1FA6}.Debug|x86.ActiveCfg = Debug|x64
+		{69BB4564-BAE0-4D6B-9D36-752C987B1FA6}.Release|x64.ActiveCfg = Release|x64
+		{69BB4564-BAE0-4D6B-9D36-752C987B1FA6}.Release|x64.Build.0 = Release|x64
+		{69BB4564-BAE0-4D6B-9D36-752C987B1FA6}.Release|x86.ActiveCfg = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {10021B3F-6663-4F4D-879E-FB9365290403}
+	EndGlobalSection
+EndGlobal

@@ -32,7 +32,7 @@ export class LocateOrDisableGameCommand extends CommandBase {
                 canSelectMany: false,
             });
 
-            if (location.length > 0) {
+            if (location && location.length > 0) {
                 await workspace
                     .getConfiguration('papyrus')
                     .update(`${this._game}.installPath`, location[0].fsPath, true);

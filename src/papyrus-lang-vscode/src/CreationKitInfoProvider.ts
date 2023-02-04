@@ -1,4 +1,4 @@
-import { createDecorator } from 'decoration-ioc';
+import { interfaces, inject, injectable } from 'inversify';
 import { PapyrusGame, getGames } from './PapyrusGame';
 import { IExtensionConfigProvider } from './ExtensionConfigProvider';
 import { Observable, combineLatest } from 'rxjs';
@@ -15,8 +15,8 @@ const readFile = promisify(fs.readFile);
 const exists = promisify(fs.exists);
 
 export interface ICreationKitInfo {
-    resolvedInstallPath: string;
-    resolvedCompilerPath: string;
+    resolvedInstallPath: string | null;
+    resolvedCompilerPath: string | null;
     config: ICreationKitConfig;
 }
 
@@ -68,12 +68,13 @@ export interface ICreationKitInfoProvider {
     readonly infos: ReadonlyMap<PapyrusGame, Observable<ICreationKitInfo>>;
 }
 
+@injectable()
 export class CreationKitInfoProvider {
     private readonly _infos: Map<PapyrusGame, Observable<ICreationKitInfo>>;
 
     constructor(
-        @IExtensionConfigProvider infoProvider: IExtensionConfigProvider,
-        @IPathResolver pathResolver: IPathResolver
+        @inject(IExtensionConfigProvider) infoProvider: IExtensionConfigProvider,
+        @inject(IPathResolver) pathResolver: IPathResolver
     ) {
         const createInfoObservable = (game: PapyrusGame) => {
             const gameConfig = infoProvider.config.pipe(map((config) => config[game]));
@@ -110,7 +111,7 @@ export class CreationKitInfoProvider {
             );
 
             const parsedInis = iniTexts.pipe(
-                map((iniTexts) => iniTexts.filter((iniText) => iniText !== null).map((iniText) => ini.parse(iniText)))
+                map((iniTexts) => iniTexts.filter((iniText) => iniText !== null).map((iniText) => ini.parse(iniText!)))
             );
 
             const mergedIni = parsedInis.pipe(
@@ -132,7 +133,7 @@ export class CreationKitInfoProvider {
 
             return combineLatest(resolvedInstallPath, mergedIni).pipe(
                 mergeMap(async ([resolvedInstallPath, mergedIni]) => {
-                    const compilerPath = resolvedInstallPath
+                    const compilerPath = resolvedInstallPath && mergedIni.Papyrus?.sCompilerFolder
                         ? path.resolve(resolvedInstallPath, mergedIni.Papyrus.sCompilerFolder)
                         : null;
 
@@ -140,7 +141,7 @@ export class CreationKitInfoProvider {
                         compilerPath && (await exists(compilerPath))
                             ? compilerPath
                             : inDevelopmentEnvironment() && game !== PapyrusGame.skyrim
-                                ? path.resolve(resolvedInstallPath, getDevelopmentCompilerFolderForGame(game))
+                                ? path.resolve(resolvedInstallPath!, getDevelopmentCompilerFolderForGame(game))
                                 : null;
 
                     return {
@@ -148,7 +149,7 @@ export class CreationKitInfoProvider {
                         resolvedCompilerPath:
                             inDevelopmentEnvironment() &&
                                 game !== PapyrusGame.skyrim &&
-                                !(await exists(resolvedCompilerPath))
+                                (!resolvedCompilerPath || !(await exists(resolvedCompilerPath)))
                                 ? null
                                 : resolvedCompilerPath,
                         config: mergedIni,
@@ -170,4 +171,4 @@ export class CreationKitInfoProvider {
     }
 }
 
-export const ICreationKitInfoProvider = createDecorator<ICreationKitInfoProvider>('creationKitInfoProvider');
+export const ICreationKitInfoProvider: interfaces.ServiceIdentifier<ICreationKitInfoProvider> = Symbol('creationKitInfoProvider');
