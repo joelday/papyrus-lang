@@ -1,3 +1,16 @@
+# [3.1.0](https://github.com/joelday/papyrus-lang/compare/v3.0.1...v3.1.0) (2023-02-05)
+
+
+### Bug Fixes
+
+* Prerelease versioning scheme produced invalid semvers. ([1801837](https://github.com/joelday/papyrus-lang/commit/180183789c5eec579b41f0584c85c07578798706))
+* Prerelease versioning scheme produced invalid semvers. ([#167](https://github.com/joelday/papyrus-lang/issues/167)) ([236d7a8](https://github.com/joelday/papyrus-lang/commit/236d7a80de53801070afd2b80403cf0aa46d1807))
+
+
+### Features
+
+* test ([9b75be0](https://github.com/joelday/papyrus-lang/commit/9b75be0b75f9e63332135ca6a6b74c890ea12099))
+
 # [3.1.0-prerelease.1](https://github.com/joelday/papyrus-lang/compare/v3.0.1...v3.1.0-prerelease.1) (2023-01-02)
 
 
