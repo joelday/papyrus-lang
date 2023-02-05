@@ -190,7 +190,8 @@ Task("npm-publish")
             WorkingDirectory = "src/papyrus-lang-vscode",
             EnvironmentVariables = 
             {
-                { "PRERELEASE_FLAG", isPrerelease ? "--pre-release" : null },
+                // TODO: Something not terrible.
+                { "PRERELEASE_FLAG", isPrerelease ? "--pre-release" : " " },
                 { "VERSION", version },
                 { "BRANCH_NAME", branchName }
             }

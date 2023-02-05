@@ -1,35 +1,10 @@
 # [3.1.0](https://github.com/joelday/papyrus-lang/compare/v3.0.1...v3.1.0) (2023-02-05)
 
-
-### Bug Fixes
-
-* Prerelease versioning scheme produced invalid semvers. ([1801837](https://github.com/joelday/papyrus-lang/commit/180183789c5eec579b41f0584c85c07578798706))
-* Prerelease versioning scheme produced invalid semvers. ([#167](https://github.com/joelday/papyrus-lang/issues/167)) ([236d7a8](https://github.com/joelday/papyrus-lang/commit/236d7a80de53801070afd2b80403cf0aa46d1807))
-
-
 ### Features
 
-* test ([9b75be0](https://github.com/joelday/papyrus-lang/commit/9b75be0b75f9e63332135ca6a6b74c890ea12099))
+* feat: AE debugging support.
 
 # [3.1.0-prerelease.1](https://github.com/joelday/papyrus-lang/compare/v3.0.1...v3.1.0-prerelease.1) (2023-01-02)
-
-
-### Features
-
-* test ([9b75be0](https://github.com/joelday/papyrus-lang/commit/9b75be0b75f9e63332135ca6a6b74c890ea12099))
-
-## [3.0.1](https://github.com/joelday/papyrus-lang/compare/v3.0.0...v3.0.1) (2022-12-30)
-
-
-### Bug Fixes
-
-* revert debugger due to inadvertant non-preview release. ([01a6406](https://github.com/joelday/papyrus-lang/commit/01a640606eb256ecce350f7b4038421fe0a3b08a))
-
-# [3.0.0](https://github.com/joelday/papyrus-lang/compare/v2.25.0...v3.0.0) (2022-12-30)
-
-
-* chore!: annoying conventional commit thing ([321ad7d](https://github.com/joelday/papyrus-lang/commit/321ad7daff68fe84d7be6c36295b937c27331b24))
-
 
 ### BREAKING CHANGES
 
