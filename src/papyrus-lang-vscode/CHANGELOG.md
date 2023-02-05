@@ -1,3 +1,10 @@
+## [3.1.1](https://github.com/joelday/papyrus-lang/compare/v3.1.0...v3.1.1) (2023-02-05)
+
+
+### Bug Fixes
+
+* Publishing failure due to bad environment variable. ([ebf7b64](https://github.com/joelday/papyrus-lang/commit/ebf7b64855493d9c1604753da858281511c4be5f))
+
 # [3.1.0](https://github.com/joelday/papyrus-lang/compare/v3.0.1...v3.1.0) (2023-02-05)
 
 ### Features
