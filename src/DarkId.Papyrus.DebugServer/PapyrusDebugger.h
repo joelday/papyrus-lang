@@ -8,6 +8,7 @@
 #include "DebugExecutionManager.h"
 #include "IdMap.h"
 #include <forward_list>
+#include <Protocol/struct_extensions.h>
 
 namespace DarkId::Papyrus::DebugServer
 {
@@ -42,7 +43,7 @@ namespace DarkId::Papyrus::DebugServer
 		// dap::Response Disconnect(DisconnectAction action = DisconnectDefault)  { return dap::DisconnectResponse(); }
 
 		int GetLastStoppedThreadId()  { return 0; }
-
+		dap::ResponseOrError<dap::AttachResponse> Attach(const dap::PDSAttachRequest& request);
 		dap::ResponseOrError<dap::ContinueResponse> Continue(const dap::ContinueRequest& request) ;
 		dap::ResponseOrError<dap::PauseResponse> Pause(const dap::PauseRequest& request) ;
 		dap::ResponseOrError<dap::ThreadsResponse> GetThreads(const dap::ThreadsRequest& request) ;
@@ -62,9 +63,10 @@ namespace DarkId::Papyrus::DebugServer
 		// dap::Response SetVariableByExpression(const dap::SetBreakpointsRequest& request)  { return 0; }
 		// void InsertExceptionBreakpoint(const std::string& name, dap::Breakpoint& breakpoint)  { }
 		// int GetNamedVariables(uint64_t variablesReference) ;
-
+	//	void bind(const std::shared_ptr<dap::Session>& session);
 	private:
 		bool m_closed = false;
+
 		std::atomic<uint64_t> msg_counter = 0;
 		std::shared_ptr<IdProvider> m_idProvider;
 
@@ -73,7 +75,9 @@ namespace DarkId::Papyrus::DebugServer
 		std::shared_ptr<BreakpointManager> m_breakpointManager;
 		std::shared_ptr<RuntimeState> m_runtimeState;
 		std::shared_ptr<DebugExecutionManager> m_executionManager;
-
+		std::vector<std::string> m_sourceFiles;
+		std::string m_projectPath;
+		std::string m_modDirectory;
 		std::mutex m_instructionMutex;
 
 		RuntimeEvents::CreateStackEventHandle m_createStackEventHandle;
@@ -81,7 +85,7 @@ namespace DarkId::Papyrus::DebugServer
 		RuntimeEvents::InstructionExecutionEventHandle m_instructionExecutionEventHandle;
 		// RuntimeEvents::InitScriptEventHandle m_initScriptEventHandle;
 		RuntimeEvents::LogEventHandle m_logEventHandle;
-
+		
 		void RegisterSessionHandlers();
 
 		// void InitScriptEvent(RE::TESInitScriptEvent* initEvent);

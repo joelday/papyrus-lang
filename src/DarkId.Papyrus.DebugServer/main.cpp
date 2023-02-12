@@ -79,6 +79,7 @@ extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
 	return v;
 }();
 #endif
+#define _PAUSE_ON_START 1
 
 extern "C"
 {
@@ -130,7 +131,6 @@ extern "C"
 			InitializeLog();
 		}
 		logger::info("Papyrus Debug Server loaded");
-
  #if _DEBUG && _PAUSE_ON_START
  		logger::info("Waiting for debugger to attach...");
 

@@ -63,7 +63,14 @@ void dap::WebsocketReaderWriter::close() {
     std::unique_lock<std::mutex> lock(readMutex);
     std::unique_lock<std::mutex> lock2(writeMutex);
     if (isOpen()) {
-        con->close(websocketpp::close::status::normal, "Closed by debugger");
+        if (con) {
+            try {
+                con->close(websocketpp::close::status::normal, "Closed by debugger");
+            }
+            catch (...) {
+
+            }
+        }
     }
     ready = true;
     cv.notify_all();

@@ -19,7 +19,7 @@ namespace DarkId::Papyrus::DebugServer
 		}
 		const auto sourceReference = m_pexCache->GetScriptReference(scriptName.c_str());
 		source.sourceReference = sourceReference;
-		
+
 #if _DEBUG_DUMP_PEX
 		std::string dir = logger::log_directory().value_or("").string();
 		if (dir.empty()) {

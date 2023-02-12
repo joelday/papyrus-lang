@@ -208,6 +208,7 @@
     <ClCompile Include="PapyrusDebugger.cpp" />
     <ClCompile Include="Pex.cpp" />
     <ClCompile Include="PexCache.cpp" />
+    <ClCompile Include="Protocol\struct_extensions.cpp" />
     <ClCompile Include="Protocol\websocket_reader_writer.cpp" />
     <ClCompile Include="Protocol\websocket_server.cpp" />
     <ClCompile Include="RuntimeEvents.cpp" />
@@ -242,6 +243,7 @@
     <ClInclude Include="Pex.h" />
     <ClInclude Include="PexCache.h" />
     <ClInclude Include="protocol\debugger.h" />
+    <ClInclude Include="Protocol\struct_extensions.h" />
     <ClInclude Include="Protocol\websocket_impl.h" />
     <ClInclude Include="Protocol\websocket_reader_writer.h" />
     <ClInclude Include="Protocol\websocket_server.h" />

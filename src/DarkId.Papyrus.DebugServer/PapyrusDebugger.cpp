@@ -51,13 +51,44 @@ namespace DarkId::Papyrus::DebugServer
 				std::bind(&PapyrusDebugger::InstructionExecution, this, std::placeholders::_1, std::placeholders::_2));
 
 		// m_initScriptEventHandle = RuntimeEvents::SubscribeToInitScript(std::bind(&PapyrusDebugger::InitScriptEvent, this, std::placeholders::_1));
-
 		m_logEventHandle =
 			RuntimeEvents::SubscribeToLog(std::bind(&PapyrusDebugger::EventLogged, this, std::placeholders::_1));
-		
+		RegisterSessionHandlers();
+
 	}
 
 	void PapyrusDebugger::RegisterSessionHandlers(){
+		// The Initialize request is the first message sent from the client and
+		// the response reports debugger capabilities.
+		// https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Initialize
+		m_session->registerHandler([](const dap::InitializeRequest& request) {
+			dap::InitializeResponse response;
+			response.supportsConfigurationDoneRequest = true;
+			response.supportsLoadedSourcesRequest = true;
+			return response;
+		});
+		//sess->onError()
+		m_session->registerSentHandler(
+			[&](const dap::ResponseOrError<dap::InitializeResponse>&) {
+				m_session->send(dap::InitializedEvent());
+		});
+
+		// Client is done configuring.
+		m_session->registerHandler([&](const dap::ConfigurationDoneRequest&) {
+			return dap::ConfigurationDoneResponse{};
+		});
+
+		// The Disconnect request is made by the client before it disconnects
+		// from the server.
+		// https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Disconnect
+		m_session->registerHandler([&](const dap::DisconnectRequest&) {
+			// Client wants to disconnect.
+			return dap::DisconnectResponse{};
+		});
+
+		m_session->registerHandler([&](const dap::PDSAttachRequest& request) {
+			return Attach(request);
+		});
 		m_session->registerHandler([&](const dap::PauseRequest& request) {
 			return Pause(request);
 		});
@@ -120,14 +151,11 @@ namespace DarkId::Papyrus::DebugServer
 		dap::OutputEvent output;
 		output.category = "console";
 #if SKYRIM
-		const auto message = std::string(logEvent->errorMsg);
-		output.output = message + "\r\n";
+		output.output = std::string(logEvent->errorMsg) + "\r\n";
 #elif FALLOUT
 		RE::BSFixedString message;
 		logEvent->errorMsg.GetErrorMsg(message);
-		const auto msg = std::string(message.c_str());
-		const auto ownerModule = std::string(logEvent->ownerModule.c_str());
-		output.output = ownerModule + " - " + msg + "\r\n";
+		output.output = std::format("{} - {}\r\n", logEvent->ownerModule.c_str(), message.c_str());
 #endif
 		m_session->send(output);
 	}
@@ -214,16 +242,23 @@ namespace DarkId::Papyrus::DebugServer
 
 		m_executionManager->Close();
 	}
+	dap::ResponseOrError<dap::AttachResponse> PapyrusDebugger::Attach(const dap::PDSAttachRequest& request)
+	{
+		m_projectPath = request.projectPath.value("");
+		m_modDirectory = request.modDirectory.value("");
+		m_sourceFiles = request.sourceFiles.value(std::vector<std::string>());
+		return dap::AttachResponse();
+	}
 	dap::ResponseOrError<dap::ContinueResponse> PapyrusDebugger::Continue(const dap::ContinueRequest& request)
 	{
 		if (m_executionManager->Continue())
-			dap::ContinueResponse();
+			return dap::ContinueResponse();
 		return dap::Error("Could not Continue");
 	}
 	dap::ResponseOrError<dap::PauseResponse> PapyrusDebugger::Pause(const dap::PauseRequest& request)
 	{
 		if (m_executionManager->Pause())
-			dap::PauseResponse();
+			return dap::PauseResponse();
 		return dap::Error("Could not Pause");
 	}
 	dap::ResponseOrError<dap::ThreadsResponse> PapyrusDebugger::GetThreads(const dap::ThreadsRequest& request)
@@ -266,7 +301,6 @@ namespace DarkId::Papyrus::DebugServer
 	}
 	dap::ResponseOrError<dap::SetBreakpointsResponse> PapyrusDebugger::SetBreakpoints(const dap::SetBreakpointsRequest& request)
 	{
-		dap::SetBreakpointsResponse response;
 		dap::Source source = request.source;
 		return m_breakpointManager->SetBreakpoints(source, request.breakpoints.value(std::vector<dap::SourceBreakpoint>()));
 	}
@@ -311,21 +345,21 @@ namespace DarkId::Papyrus::DebugServer
 	{
 		// TODO: Support `granularity` and `target`
 		if (m_executionManager->Step(request.threadId, STEP_IN)) {
-			dap::StepInResponse();
+			return dap::StepInResponse();
 		}
 		return dap::Error("Could not StepIn");
 	}
 	dap::ResponseOrError<dap::StepOutResponse> PapyrusDebugger::StepOut(const dap::StepOutRequest& request)
 	{
 		if (m_executionManager->Step(request.threadId, STEP_OUT)) {
-			dap::StepOutResponse();
+			return dap::StepOutResponse();
 		}
 		return dap::Error("Could not StepOut");
 	}
 	dap::ResponseOrError<dap::NextResponse> PapyrusDebugger::Next(const dap::NextRequest& request)
 	{
 		if (m_executionManager->Step(request.threadId, STEP_OVER)) {
-			dap::NextResponse();
+			return dap::NextResponse();
 		}
 		return dap::Error("Could not Next");
 	}
@@ -359,6 +393,7 @@ namespace DarkId::Papyrus::DebugServer
 
 		return response;
 	}
+
 	dap::ResponseOrError<dap::VariablesResponse> PapyrusDebugger::GetVariables(const dap::VariablesRequest& request)
 	{
 		dap::VariablesResponse response;

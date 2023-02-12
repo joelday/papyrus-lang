@@ -1,16 +1,21 @@
 #include "websocket_server.h"
 #include <thread>
-
+#include <memory>
 
 namespace dap
 {
   namespace net
-  { 
-    bool WebsocketServer::start(int p_port,
-                         const OnConnect& onConnect,
-                         const OnError& onError)
+  {
+
+    WebsocketServer::WebsocketServer()
     {
-      port = port;
+    }
+
+    bool WebsocketServer::start(int p_port,
+                        const OnConnect& onConnect,
+                        const OnError& onError)
+    {
+      port = p_port;
       std::unique_lock<std::mutex> lock(mutex);
       stopWithLock();
       connectCallback = onConnect;
@@ -24,7 +29,7 @@ namespace dap
     void WebsocketServer::HandleOpen(websocketpp::connection_hdl hdl)
     {
       std::shared_ptr<connection> con = m_server.get_con_from_hdl(hdl);
-      if (con != m_server.get_con_from_hdl(m_connectionHandle))
+      if (!m_connectionHandle.expired() && con != m_server.get_con_from_hdl(m_connectionHandle))
       {
         m_server.close(m_connectionHandle, websocketpp::close::status::normal, "Connection closed by new session.");
         if (rw) {
@@ -32,13 +37,13 @@ namespace dap
         }
       }
       m_connectionHandle = hdl;
-      rw = std::unique_ptr<WebsocketReaderWriter>( new dap::WebsocketReaderWriter(con) );
-      connectCallback(std::move(rw));
+      rw = std::shared_ptr<WebsocketReaderWriter>( new dap::WebsocketReaderWriter(con) );
+      connectCallback(rw);
     }
 
     void WebsocketServer::HandleClose(websocketpp::connection_hdl hdl)
     {
-      if (m_server.get_con_from_hdl(hdl) != m_server.get_con_from_hdl(m_connectionHandle))
+      if (m_connectionHandle.expired() || m_server.get_con_from_hdl(hdl) != m_server.get_con_from_hdl(m_connectionHandle))
       {
         return;
       }
@@ -85,12 +90,32 @@ namespace dap
       std::unique_lock<std::mutex> lock(mutex);
       stopWithLock();
     }
+
     void WebsocketServer::stopWithLock() {
       if (!stopped.exchange(true)) {
         // this will trigger HandleClose for us
-        m_server.close(m_connectionHandle, websocketpp::close::status::normal, "Connection closed by debugger.");
-        m_server.stop();
-        thread.join();
+        if (m_server.is_listening()) {
+            try 
+            {
+                m_server.close(m_connectionHandle, websocketpp::close::status::normal, "Connection closed by debugger.");
+                m_server.stop();
+            }
+            catch (websocketpp::exception const& e)
+            {
+                if (errorHandler) {
+                    errorHandler(e.what());
+                }
+            }
+            catch (...)
+            {
+                if (errorHandler) {
+                    errorHandler("other_exception");
+                }
+            }
+        }
+        if (thread.joinable()) {
+            thread.join();
+        }
       }
     }
   }

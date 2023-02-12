@@ -23,7 +23,8 @@ namespace net {
   std::mutex mutex;
   std::thread thread;
   std::atomic<bool> stopped;
-  std::unique_ptr<WebsocketReaderWriter> rw;
+  std::shared_ptr<WebsocketReaderWriter> rw;
+
   OnConnect connectCallback;
   OnError errorHandler;
   server m_server;
@@ -32,7 +33,7 @@ public:
   using OnError = std::function<void(const char*)>;
   using OnConnect = std::function<void(const std::shared_ptr<ReaderWriter>&)>;
 
-  WebsocketServer(){};
+  WebsocketServer();
   virtual ~WebsocketServer() { stop(); };
 
   // start() begins listening for connections on the given port.

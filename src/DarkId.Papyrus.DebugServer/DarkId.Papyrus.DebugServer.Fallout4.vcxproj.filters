@@ -58,6 +58,9 @@
     <ClCompile Include="Protocol\websocket_reader_writer.cpp">
       <Filter>Protocol</Filter>
     </ClCompile>
+    <ClCompile Include="Protocol\struct_extensions.cpp">
+      <Filter>Protocol</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="version.rc" />
@@ -120,6 +123,9 @@
       <Filter>Protocol</Filter>
     </ClInclude>
     <ClInclude Include="Protocol\websocket_impl.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="Protocol\struct_extensions.h">
       <Filter>Protocol</Filter>
     </ClInclude>
   </ItemGroup>
