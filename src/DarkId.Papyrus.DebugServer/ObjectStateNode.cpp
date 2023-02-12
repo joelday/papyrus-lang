@@ -19,7 +19,7 @@ namespace DarkId::Papyrus::DebugServer
 		}
 	}
 
-	bool ObjectStateNode::SerializeToProtocol(Variable& variable)
+	bool ObjectStateNode::SerializeToProtocol(dap::Variable& variable)
 	{
 		variable.variablesReference = m_value ? GetId() : 0;
 		
@@ -42,7 +42,7 @@ namespace DarkId::Papyrus::DebugServer
 			}
 			else
 			{
-				variable.value = variable.type;
+				variable.value = m_class->GetName();
 			}
 		}
 		else

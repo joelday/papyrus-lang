@@ -8,7 +8,7 @@ namespace DarkId::Papyrus::DebugServer
 	{
 	}
 
-	bool ValueStateNode::SerializeToProtocol(Variable& variable)
+	bool ValueStateNode::SerializeToProtocol(dap::Variable& variable)
 	{
 		variable.name = m_name;
 		#if SKYRIM

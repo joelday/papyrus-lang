@@ -12,7 +12,8 @@
     "champollion",
     "eventpp",
     "websocketpp",
-    "xbyak"
+    "xbyak",
+    "cppdap"
   ],
   "features": {
     "skyrim": {
@@ -31,7 +32,7 @@
   "overrides": [
     {
       "name": "nlohmann-json",
-      "version": "3.7.0"
+      "version": "3.11.2"
     },
     {
       "name": "eventpp",

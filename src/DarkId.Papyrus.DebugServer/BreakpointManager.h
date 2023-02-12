@@ -1,12 +1,12 @@
 #pragma once
 #include <map>
 #include <set>
-#include "Protocol/protocol.h"
+#include <dap/protocol.h>
+#include <dap/session.h>
 
 #include "GameInterfaces.h"
 
 #include "PexCache.h"
-#include "PDError.h"
 
 namespace DarkId::Papyrus::DebugServer
 {
@@ -21,7 +21,7 @@ namespace DarkId::Papyrus::DebugServer
 		{
 		}
 
-		PDError SetBreakpoints(Source& source, const std::vector<SourceBreakpoint>& srcBreakpoints, std::vector<Breakpoint>& breakpoints);
+		dap::ResponseOrError<dap::SetBreakpointsResponse> SetBreakpoints(dap::Source& source, const std::vector<dap::SourceBreakpoint>& srcBreakpoints);
 		bool GetExecutionIsAtValidBreakpoint(RE::BSScript::Internal::CodeTasklet* tasklet);
 	};
 }

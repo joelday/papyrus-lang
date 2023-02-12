@@ -12,11 +12,11 @@ namespace DarkId::Papyrus::DebugServer
 
 	}
 
-	bool StackFrameStateNode::SerializeToProtocol(StackFrame& stackFrame, PexCache* pexCache) const
+	bool StackFrameStateNode::SerializeToProtocol(dap::StackFrame& stackFrame, PexCache* pexCache) const
 	{
-		stackFrame = StackFrame(GetId());
+		stackFrame = dap::StackFrame(GetId());
 
-		Source source;
+		dap::Source source;
 		std::string ScriptName = NormalizeScriptName(m_stackFrame->owningObjectType->GetName());
 		// TODO: ignoring this for now, just for debugging reference
 		std::string srcFileName = m_stackFrame->owningFunction->GetSourceFilename().c_str();

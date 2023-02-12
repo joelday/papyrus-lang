@@ -5,8 +5,8 @@
 #include <functional>
 #include <algorithm>
 #include <string>
-#include <Champollion/Decompiler/PscCoder.hpp>
-#include <Champollion/Decompiler/StreamWriter.hpp>
+#include <Decompiler/PscCoder.hpp>
+#include <Decompiler/StreamWriter.hpp>
 
 namespace DarkId::Papyrus::DebugServer
 {
@@ -24,7 +24,7 @@ namespace DarkId::Papyrus::DebugServer
 
 	int PexCache::GetScriptReference(const char* scriptName) const
 	{
-		const std::hash<std::string> hasher;
+		const std::hash<std::string> hasher{};
 
 		std::string name = NormalizeScriptName(scriptName);
 		std::transform(name.begin(), name.end(), name.begin(), ::tolower);
@@ -69,7 +69,7 @@ namespace DarkId::Papyrus::DebugServer
 		return true;
 	}
 
-	bool PexCache::GetSourceData(const char* scriptName, Source& data)
+	bool PexCache::GetSourceData(const char* scriptName, dap::Source& data)
 	{
 		const auto sourceReference = GetScriptReference(scriptName);
 
@@ -84,8 +84,9 @@ namespace DarkId::Papyrus::DebugServer
 		if (headerSrcName.empty()) {
 			headerSrcName = ScriptNameToPSCPath(normname);
 		}
-		data = Source(normname, headerSrcName, sourceReference);
-
+		data.name = normname;
+		data.path = headerSrcName;
+		data.sourceReference = sourceReference;
 		return true;
 	}
 }

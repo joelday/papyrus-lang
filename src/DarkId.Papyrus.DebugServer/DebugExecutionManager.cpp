@@ -1,4 +1,5 @@
 #include "DebugExecutionManager.h"
+#include <thread>
 
 namespace DarkId::Papyrus::DebugServer
 {
@@ -15,7 +16,7 @@ namespace DarkId::Papyrus::DebugServer
 		
 		const auto func = tasklet->topFrame->owningFunction;
 		auto shouldSendPause = false;
-		StopReason stopReason = StopReason::StopPause;
+		dap::StoppedEvent event;
 		
 		if (m_state == DebuggerState::kPaused)
 		{
@@ -25,12 +26,14 @@ namespace DarkId::Papyrus::DebugServer
 		if (m_state != DebuggerState::kPaused && m_breakpointManager->GetExecutionIsAtValidBreakpoint(tasklet))
 		{
 			m_state = DebuggerState::kPaused;
-			m_protocol->EmitStoppedEvent(StoppedEvent(StopReason::StopBreakpoint, tasklet->stack->stackID));
+			event.reason = "breakpoint";
+			event.threadId = tasklet->stack->stackID;
+			m_session->send(event);
 		}
 
 		if (m_state == DebuggerState::kStepping && !RuntimeState::GetStack(m_currentStepStackId))
 		{
-			m_protocol->EmitContinuedEvent(ContinuedEvent());
+			m_session->send(dap::ContinuedEvent());
 			m_currentStepStackId = 0;
 			m_currentStepStackFrame = nullptr;
 			
@@ -46,7 +49,7 @@ namespace DarkId::Papyrus::DebugServer
 
 				if (!currentFrames.empty())
 				{
-					auto stepFrameIndex = -1;
+					ptrdiff_t stepFrameIndex = -1;
 					const auto stepFrameIter = std::find(currentFrames.begin(), currentFrames.end(), m_currentStepStackFrame);
 
 					if (stepFrameIter != currentFrames.end())
@@ -56,23 +59,23 @@ namespace DarkId::Papyrus::DebugServer
 
 					switch (m_currentStepType)
 					{
-					case Debugger::StepType::STEP_IN:
+					case StepType::STEP_IN:
 						shouldSendPause = true;
-						stopReason = StopReason::StopStep;
+						event.reason = "step";
 						break;
-					case Debugger::StepType::STEP_OUT:
+					case StepType::STEP_OUT:
 						// If the stack exists, but the original frame is gone, we know we're in a previous frame now.
 						if (stepFrameIndex == -1)
 						{
 							shouldSendPause = true;
-							stopReason = StopReason::StopStep;
+							event.reason = "step";
 						}
 						break;
-					case Debugger::StepType::STEP_OVER:
+					case StepType::STEP_OVER:
 						if (stepFrameIndex <= 0)
 						{
 							shouldSendPause = true;
-							stopReason = StopReason::StopStep;
+							event.reason = "step";
 						}
 						break;
 					}
@@ -85,12 +88,14 @@ namespace DarkId::Papyrus::DebugServer
 			m_state = DebuggerState::kPaused;
 			m_currentStepStackId = 0;
 			m_currentStepStackFrame = nullptr;
-			m_protocol->EmitStoppedEvent(StoppedEvent(stopReason, tasklet->stack->stackID));
+			event.threadId = tasklet->stack->stackID;
+			m_session->send(event);
 		}
 
 		while (m_state == DebuggerState::kPaused && !m_closed)
 		{
-			Sleep(100);
+			using namespace std::chrono_literals;
+			std::this_thread::sleep_for(100ms);
 		}
 
 	}
@@ -104,7 +109,7 @@ namespace DarkId::Papyrus::DebugServer
 	bool DebugExecutionManager::Continue()
 	{
 		m_state = DebuggerState::kRunning;
-		m_protocol->EmitContinuedEvent(ContinuedEvent());
+		m_session->send(dap::ContinuedEvent());
 
 		return true;
 	}
@@ -120,7 +125,7 @@ namespace DarkId::Papyrus::DebugServer
 		return true;
 	}
 
-	bool DebugExecutionManager::Step(uint32_t stackId, const Debugger::StepType stepType)
+	bool DebugExecutionManager::Step(uint32_t stackId, const StepType stepType)
 	{
 		if (m_state != DebuggerState::kPaused)
 		{

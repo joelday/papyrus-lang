@@ -2,10 +2,11 @@
 
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
-
+#include <websocketpp/connection.hpp>
 #include <websocketpp/common/connection_hdl.hpp>
 
 typedef websocketpp::server<websocketpp::config::asio> server;
+typedef websocketpp::connection<websocketpp::config::asio> connection;
 
 using websocketpp::lib::placeholders::_1;
 using websocketpp::lib::placeholders::_2;

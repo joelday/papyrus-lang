@@ -2,7 +2,7 @@
 
 #include "GameInterfaces.h"
 
-#include "Protocol/protocol.h"
+#include <dap/protocol.h>
 
 namespace DarkId::Papyrus::DebugServer
 {
@@ -22,13 +22,13 @@ namespace DarkId::Papyrus::DebugServer
 	class IProtocolVariableSerializable
 	{
 	public:
-		virtual bool SerializeToProtocol(Variable& variable) = 0;
+		virtual bool SerializeToProtocol(dap::Variable& variable) = 0;
 	};
 
 	class IProtocolScopeSerializable
 	{
 	public:
-		virtual bool SerializeToProtocol(Scope& scope) = 0;
+		virtual bool SerializeToProtocol(dap::Scope& scope) = 0;
 	};
 
 	class IStructuredState

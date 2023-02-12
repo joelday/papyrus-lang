@@ -6,7 +6,9 @@
                 "${workspaceFolder}/dependencies/MetaStuff/include",
                 "${workspaceFolder}/dependencies",
                 "${workspaceFolder}/src/DarkId.Papyrus.DebugServer",
-                "${workspaceFolder}/vcpkg_installed/skyrim/x64-windows-static/include"
+                "${workspaceFolder}/src/DarkId.Papyrus.DebugServer/Protocol",
+                "${workspaceFolder}/vcpkg_installed/skyrim/x64-windows-static/include",
+                "${workspaceFolder}/vcpkg_installed/skyrim/x64-windows-static/include/Champollion"
             ],
             "defines": [
                 "WIN32",
@@ -30,7 +32,9 @@
                 "${workspaceFolder}/dependencies/MetaStuff/include",
                 "${workspaceFolder}/dependencies",
                 "${workspaceFolder}/src/DarkId.Papyrus.DebugServer",
-                "${workspaceFolder}/vcpkg_installed/fallout4/x64-windows-static/include"
+                "${workspaceFolder}/src/DarkId.Papyrus.DebugServer/Protocol",
+                "${workspaceFolder}/vcpkg_installed/fallout4/x64-windows-static/include",
+                "${workspaceFolder}/vcpkg_installed/skyrim/x64-windows-static/include/Champollion"
             ],
             "defines": [
                 "WIN32",

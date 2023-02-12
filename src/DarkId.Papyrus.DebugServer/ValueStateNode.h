@@ -2,7 +2,7 @@
 
 #include "GameInterfaces.h"
 
-#include "Protocol/protocol.h"
+#include <dap/protocol.h>
 #include "StateNodeBase.h"
 
 namespace DarkId::Papyrus::DebugServer
@@ -14,6 +14,6 @@ namespace DarkId::Papyrus::DebugServer
 
 	public:
 		ValueStateNode(std::string name, const RE::BSScript::Variable* variable);
-		bool SerializeToProtocol(Variable& variable) override;
+		bool SerializeToProtocol(dap::Variable& variable) override;
 	};
 }

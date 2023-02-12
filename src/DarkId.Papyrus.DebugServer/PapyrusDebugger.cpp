@@ -2,6 +2,8 @@
 
 #include <functional>
 #include <string>
+#include <dap/protocol.h>
+#include <dap/session.h>
 
 #include "Utilities.h"
 #include "GameInterfaces.h"
@@ -26,10 +28,9 @@ namespace RE{
 
 namespace DarkId::Papyrus::DebugServer
 {
-	PapyrusDebugger::PapyrusDebugger(Protocol* protocol)
+	PapyrusDebugger::PapyrusDebugger(const std::shared_ptr<dap::Session>& session):
+		m_session(session)
 	{
-		m_protocol = protocol;
-
 		m_pexCache = std::make_shared<PexCache>();
 
 		m_breakpointManager = std::make_shared<BreakpointManager>(m_pexCache.get());
@@ -37,7 +38,7 @@ namespace DarkId::Papyrus::DebugServer
 		m_idProvider = std::make_shared<IdProvider>();
 		m_runtimeState = std::make_shared<RuntimeState>(m_idProvider);
 
-		m_executionManager = std::make_shared<DebugExecutionManager>(m_protocol, m_runtimeState.get(), m_breakpointManager.get());
+		m_executionManager = std::make_shared<DebugExecutionManager>(m_session, m_runtimeState.get(), m_breakpointManager.get());
 
 		m_createStackEventHandle =
 			RuntimeEvents::SubscribeToCreateStack(std::bind(&PapyrusDebugger::StackCreated, this, std::placeholders::_1));
@@ -53,12 +54,53 @@ namespace DarkId::Papyrus::DebugServer
 
 		m_logEventHandle =
 			RuntimeEvents::SubscribeToLog(std::bind(&PapyrusDebugger::EventLogged, this, std::placeholders::_1));
+		
 	}
 
-	//void PapyrusDebugger::InitScriptEvent(RE::TESInitScriptEvent* initEvent)
-	//{
-	//}
-
+	void PapyrusDebugger::RegisterSessionHandlers(){
+		m_session->registerHandler([&](const dap::PauseRequest& request) {
+			return Pause(request);
+		});
+		m_session->registerHandler([&](const dap::ContinueRequest& request) {
+			return Continue(request);
+		});
+		m_session->registerHandler([&](const dap::PauseRequest& request) {
+			return Pause(request);
+		});
+		m_session->registerHandler([&](const dap::ThreadsRequest& request) {
+			return GetThreads(request);
+		});
+		m_session->registerHandler([&](const dap::SetBreakpointsRequest& request) {
+			return SetBreakpoints(request);
+		});
+		m_session->registerHandler([&](const dap::SetFunctionBreakpointsRequest& request) {
+			return SetFunctionBreakpoints(request);
+		});
+		m_session->registerHandler([&](const dap::StackTraceRequest& request) {
+			return GetStackTrace(request);
+		});
+		m_session->registerHandler([&](const dap::StepInRequest& request) {
+			return StepIn(request);
+		});
+		m_session->registerHandler([&](const dap::StepOutRequest& request) {
+			return StepOut(request);
+		});
+		m_session->registerHandler([&](const dap::NextRequest& request) {
+			return Next(request);
+		});
+		m_session->registerHandler([&](const dap::ScopesRequest& request) {
+			return GetScopes(request);
+		});
+		m_session->registerHandler([&](const dap::VariablesRequest& request) {
+			return GetVariables(request);
+		});
+		m_session->registerHandler([&](const dap::SourceRequest& request) {
+			return GetSource(request);
+		});
+		m_session->registerHandler([&](const dap::LoadedSourcesRequest& request) {
+			return GetLoadedSources(request);
+		});
+	}
 	std::string LogSeverityEnumStr(RE::BSScript::ErrorLogger::Severity severity) {
 		if (severity == RE::BSScript::ErrorLogger::Severity::kInfo) {
 			return std::string("INFO");
@@ -75,19 +117,19 @@ namespace DarkId::Papyrus::DebugServer
 	void PapyrusDebugger::EventLogged(const RE::BSScript::LogEvent* logEvent) const
 	{
 		const std::string severity = LogSeverityEnumStr(logEvent->severity);
+		dap::OutputEvent output;
+		output.category = "console";
 #if SKYRIM
 		const auto message = std::string(logEvent->errorMsg);
-		const OutputEvent output(OutputCategory::OutputConsole, severity + " - " + message + "\r\n");
+		output.output = message + "\r\n";
 #elif FALLOUT
 		RE::BSFixedString message;
 		logEvent->errorMsg.GetErrorMsg(message);
 		const auto msg = std::string(message.c_str());
 		const auto ownerModule = std::string(logEvent->ownerModule.c_str());
-		const OutputEvent output(OutputCategory::OutputConsole, ownerModule + " - " + severity + " - " + msg + "\r\n");
+		output.output = ownerModule + " - " + msg + "\r\n";
 #endif
-	
-
-		m_protocol->EmitOutputEvent(output);
+		m_session->send(output);
 	}
 
 
@@ -107,8 +149,10 @@ namespace DarkId::Papyrus::DebugServer
 			{
 				return;
 			}
-
-			m_protocol->EmitThreadEvent(ThreadEvent(ThreadReason::ThreadStarted, stackId));
+			dap::ThreadEvent threadEvent;
+			threadEvent.reason = "started";
+			threadEvent.threadId = stackId;
+			m_session->send(threadEvent);
 			
 			if (stack->top && stack->top->owningFunction)
 			{
@@ -128,8 +172,11 @@ namespace DarkId::Papyrus::DebugServer
 			{
 				return;
 			}
+			dap::ThreadEvent threadEvent;
+			threadEvent.reason = "exited";
+			threadEvent.threadId = stackId;
 
-			m_protocol->EmitThreadEvent(ThreadEvent(ThreadReason::ThreadExited, stackId));
+			m_session->send(threadEvent);
 		});
 	}
 
@@ -142,63 +189,46 @@ namespace DarkId::Papyrus::DebugServer
 	{
 		if (!m_pexCache->HasScript(scriptName))
 		{
-			Source source;
+			dap::Source source;
 			if (!m_pexCache->GetSourceData(scriptName, source))
 			{
 				return;
 			}
-			
-			m_protocol->EmitLoadedSourceEvent(
-				LoadedSourceEvent(LoadedSourceReason::SourceNew, source));
+			dap::LoadedSourceEvent event;
+			event.reason = "new";
+			event.source = source;
+			m_session->send(event);
 		}
 	}
 
-	HRESULT PapyrusDebugger::SetBreakpoints(Source& source, const std::vector<SourceBreakpoint>& srcBreakpoints, std::vector<Breakpoint>& breakpoints)
+
+	PapyrusDebugger::~PapyrusDebugger()
 	{
-		return m_breakpointManager->SetBreakpoints(source, srcBreakpoints, breakpoints);
+		m_closed = true;
+
+		RuntimeEvents::UnsubscribeFromLog(m_logEventHandle);
+		// RuntimeEvents::UnsubscribeFromInitScript(m_initScriptEventHandle);
+		RuntimeEvents::UnsubscribeFromInstructionExecution(m_instructionExecutionEventHandle);
+		RuntimeEvents::UnsubscribeFromCreateStack(m_createStackEventHandle);
+		RuntimeEvents::UnsubscribeFromCleanupStack(m_cleanupStackEventHandle);
+
+		m_executionManager->Close();
 	}
-
-	HRESULT PapyrusDebugger::Initialize()
+	dap::ResponseOrError<dap::ContinueResponse> PapyrusDebugger::Continue(const dap::ContinueRequest& request)
 	{
-		m_protocol->EmitInitializedEvent();
-		return 0;
+		if (m_executionManager->Continue())
+			dap::ContinueResponse();
+		return dap::Error("Could not Continue");
 	}
-
-	HRESULT PapyrusDebugger::Pause()
+	dap::ResponseOrError<dap::PauseResponse> PapyrusDebugger::Pause(const dap::PauseRequest& request)
 	{
-		return m_executionManager->Pause() ? 0 : 1;
+		if (m_executionManager->Pause())
+			dap::PauseResponse();
+		return dap::Error("Could not Pause");
 	}
-
-	HRESULT PapyrusDebugger::Continue()
+	dap::ResponseOrError<dap::ThreadsResponse> PapyrusDebugger::GetThreads(const dap::ThreadsRequest& request)
 	{
-		return m_executionManager->Continue() ? 0 : 1;
-	}
-
-	HRESULT PapyrusDebugger::GetSource(Source& source, std::string& output)
-	{
-		return m_pexCache->GetDecompiledSource(source.name.c_str(), output) ? 0 : 1;
-	}
-
-	HRESULT PapyrusDebugger::GetLoadedSources(std::vector<Source>& sources)
-	{
-		const auto vm = RE::BSScript::Internal::VirtualMachine::GetSingleton();
-		RE::BSSpinLockGuard lock(vm->typeInfoLock);
-
-		for (const auto& script : vm->objectTypeMap)
-		{
-			Source source;
-			std::string scriptName = script.first.c_str();
-			if (m_pexCache->GetSourceData(scriptName.c_str(), source))
-			{
-				sources.push_back(source);
-			}
-		}
-		
-		return 0;
-	}
-
-	HRESULT PapyrusDebugger::GetThreads(std::vector<Thread>& threads)
-	{
+		dap::ThreadsResponse response;
 		const auto vm = RE::BSScript::Internal::VirtualMachine::GetSingleton();
 		RE::BSSpinLockGuard lock(vm->runningStacksLock);
 
@@ -225,23 +255,90 @@ namespace DarkId::Papyrus::DebugServer
 
 			const auto node = dynamic_cast<StackStateNode*>(stateNode.get());
 
-			Thread thread;
+			dap::Thread thread;
 			if (node->SerializeToProtocol(thread))
 			{
-				threads.push_back(thread);
+				response.threads.push_back(thread);
 			}
 		}
 
-		return 0;
+		return response;
+	}
+	dap::ResponseOrError<dap::SetBreakpointsResponse> PapyrusDebugger::SetBreakpoints(const dap::SetBreakpointsRequest& request)
+	{
+		dap::SetBreakpointsResponse response;
+		dap::Source source = request.source;
+		return m_breakpointManager->SetBreakpoints(source, request.breakpoints.value(std::vector<dap::SourceBreakpoint>()));
 	}
 
-	HRESULT PapyrusDebugger::GetScopes(const uint64_t frameId, std::vector<Scope>& scopes)
+	dap::ResponseOrError<dap::SetFunctionBreakpointsResponse> PapyrusDebugger::SetFunctionBreakpoints(const dap::SetFunctionBreakpointsRequest& request)
 	{
+		return dap::Error("unimplemented");
+	}
+	dap::ResponseOrError<dap::StackTraceResponse> PapyrusDebugger::GetStackTrace(const dap::StackTraceRequest& request)
+	{
+		dap::StackTraceResponse response;
+		const auto vm = RE::BSScript::Internal::VirtualMachine::GetSingleton();
+		RE::BSSpinLockGuard lock(vm->runningStacksLock);
+
+		if (request.threadId == -1)
+		{
+			response.totalFrames = 0;
+			return dap::Error("No threadId specified");
+		}
+
+		std::vector<std::shared_ptr<StateNodeBase>> frameNodes;
+		if (!m_runtimeState->ResolveChildrenByParentPath(std::to_string(request.threadId), frameNodes))
+		{
+			return dap::Error("Could not find ThreadId");
+		}
+		auto startFrame = request.startFrame.value(0);
+		auto levels = request.levels.value(frameNodes.size());
+		for (auto frameIndex = startFrame; frameIndex < frameNodes.size() && frameIndex < startFrame + levels; frameIndex++)
+		{
+			const auto node = dynamic_cast<StackFrameStateNode*>(frameNodes.at(frameIndex).get());
+
+			dap::StackFrame frame;
+			if (!node->SerializeToProtocol(frame, m_pexCache.get())) {
+				return dap::Error("Serialization error");
+			}
+
+			response.stackFrames.push_back(frame);
+		}
+		return response;
+	}
+	dap::ResponseOrError<dap::StepInResponse> PapyrusDebugger::StepIn(const dap::StepInRequest& request)
+	{
+		// TODO: Support `granularity` and `target`
+		if (m_executionManager->Step(request.threadId, STEP_IN)) {
+			dap::StepInResponse();
+		}
+		return dap::Error("Could not StepIn");
+	}
+	dap::ResponseOrError<dap::StepOutResponse> PapyrusDebugger::StepOut(const dap::StepOutRequest& request)
+	{
+		if (m_executionManager->Step(request.threadId, STEP_OUT)) {
+			dap::StepOutResponse();
+		}
+		return dap::Error("Could not StepOut");
+	}
+	dap::ResponseOrError<dap::NextResponse> PapyrusDebugger::Next(const dap::NextRequest& request)
+	{
+		if (m_executionManager->Step(request.threadId, STEP_OVER)) {
+			dap::NextResponse();
+		}
+		return dap::Error("Could not Next");
+	}
+	dap::ResponseOrError<dap::ScopesResponse> PapyrusDebugger::GetScopes(const dap::ScopesRequest& request)
+	{
+		dap::ScopesResponse response;
 		const auto vm = RE::BSScript::Internal::VirtualMachine::GetSingleton();
 		RE::BSSpinLockGuard lock(vm->runningStacksLock);
 
 		std::vector<std::shared_ptr<StateNodeBase>> frameScopes;
-		m_runtimeState->ResolveChildrenByParentId(frameId, frameScopes);
+		if (!m_runtimeState->ResolveChildrenByParentId(request.frameId, frameScopes)) {
+			return dap::Error("No scopes for frameId %d", request.frameId);
+		}
 
 		for (const auto& frameScope : frameScopes)
 		{
@@ -250,98 +347,88 @@ namespace DarkId::Papyrus::DebugServer
 			{
 				continue;
 			}
-			
-			Scope scope;
+
+			dap::Scope scope;
 			if (!asScopeSerializable->SerializeToProtocol(scope))
 			{
 				continue;
 			}
-
-			scopes.push_back(scope);
+			
+			response.scopes.push_back(scope);
 		}
 
-		return 0;
+		return response;
 	}
-
-	HRESULT PapyrusDebugger::GetVariables(uint64_t variablesReference, VariablesFilter filter, int start, int count, std::vector<Variable> & variables)
+	dap::ResponseOrError<dap::VariablesResponse> PapyrusDebugger::GetVariables(const dap::VariablesRequest& request)
 	{
+		dap::VariablesResponse response;
+
 		const auto vm = RE::BSScript::Internal::VirtualMachine::GetSingleton();
 		RE::BSSpinLockGuard lock(vm->runningStacksLock);
 
 		std::vector<std::shared_ptr<StateNodeBase>> variableNodes;
-		m_runtimeState->ResolveChildrenByParentId(variablesReference, variableNodes);
+		if (!m_runtimeState->ResolveChildrenByParentId(request.variablesReference, variableNodes)) {
+			return dap::Error("No such variable reference %d", request.variablesReference);
+		}
 
+		// TODO: support `start`, `filter`, parameter
+		int count = 0;
+		int maxCount = request.count.value(variableNodes.size());
 		for (const auto& variableNode : variableNodes)
 		{
+			if (count > maxCount) {
+				break;
+			}
 			auto asVariableSerializable = dynamic_cast<IProtocolVariableSerializable*>(variableNode.get());
 			if (!asVariableSerializable)
 			{
 				continue;
 			}
 
-			Variable variable;
+			dap::Variable variable;
 			if (!asVariableSerializable->SerializeToProtocol(variable))
 			{
 				continue;
 			}
-
-			variables.push_back(variable);
-		}
-
-		return 0;
-	}
-
-	int PapyrusDebugger::GetNamedVariables(uint64_t variablesReference)
-	{
-		// logger::info("Named variables count request: %d", variablesReference);
-		return 0;
-	}
-
-	HRESULT PapyrusDebugger::GetStackTrace(int threadId, int startFrame, int levels, std::vector<StackFrame> & stackFrames, int& totalFrames)
-	{
-		const auto vm = RE::BSScript::Internal::VirtualMachine::GetSingleton();
-		RE::BSSpinLockGuard lock(vm->runningStacksLock);
-
-		if (threadId == -1)
-		{
-			totalFrames = 0;
-			return 0;
-		}
-
-		std::vector<std::shared_ptr<StateNodeBase>> frameNodes;
-		if (!m_runtimeState->ResolveChildrenByParentPath(std::to_string(threadId), frameNodes))
-		{
-			return 0;
-		}
-
-		for (auto frameIndex = startFrame; frameIndex < frameNodes.size() && frameIndex < startFrame + levels; frameIndex++)
-		{
-			const auto node = dynamic_cast<StackFrameStateNode*>(frameNodes.at(frameIndex).get());
 			
-			StackFrame frame;
-			node->SerializeToProtocol(frame, m_pexCache.get());
-
-			stackFrames.push_back(frame);
+			response.variables.push_back(variable);
+			count++;
 		}
 
-		return 1;
+		return response;
 	}
-
-	HRESULT PapyrusDebugger::StepCommand(int threadId, StepType stepType)
+	dap::ResponseOrError<dap::SourceResponse> PapyrusDebugger::GetSource(const dap::SourceRequest& request)
 	{
-		return m_executionManager->Step(threadId, stepType) ? 0 : 1;
+		if (!request.source.has_value() || !request.source.value().name.has_value()) {
+			if (!request.sourceReference) {
+				return dap::Error("No source name or sourceReference");
+			} else {
+				// TODO: Support this?
+				return dap::Error("No source name");
+			}
+		}
+		std::string name = request.source.value().name.value();
+		dap::SourceResponse response;
+		if (m_pexCache->GetDecompiledSource(name.c_str(), response.content)) {
+			return response;
+		}
+		return dap::Error("Could not find source " + name);
 	}
-
-	PapyrusDebugger::~PapyrusDebugger()
+	dap::ResponseOrError<dap::LoadedSourcesResponse> PapyrusDebugger::GetLoadedSources(const dap::LoadedSourcesRequest& request)
 	{
-		m_closed = true;
+		dap::LoadedSourcesResponse response;
+		const auto vm = RE::BSScript::Internal::VirtualMachine::GetSingleton();
+		RE::BSSpinLockGuard lock(vm->typeInfoLock);
 
-		RuntimeEvents::UnsubscribeFromLog(m_logEventHandle);
-		// RuntimeEvents::UnsubscribeFromInitScript(m_initScriptEventHandle);
-		RuntimeEvents::UnsubscribeFromInstructionExecution(m_instructionExecutionEventHandle);
-		RuntimeEvents::UnsubscribeFromCreateStack(m_createStackEventHandle);
-		RuntimeEvents::UnsubscribeFromCleanupStack(m_cleanupStackEventHandle);
-
-		m_executionManager->Close();
+		for (const auto& script : vm->objectTypeMap)
+		{
+			dap::Source source;
+			std::string scriptName = script.first.c_str();
+			if (m_pexCache->GetSourceData(scriptName.c_str(), source))
+			{
+				response.sources.push_back(source);
+			}
+		}
+		return response;
 	}
 }

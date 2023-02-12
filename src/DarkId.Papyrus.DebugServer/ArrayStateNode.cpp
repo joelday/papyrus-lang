@@ -15,7 +15,7 @@ namespace DarkId::Papyrus::DebugServer
 		m_type = &_m_inst_type;
 	}
 
-	bool ArrayStateNode::SerializeToProtocol(Variable& variable)
+	bool ArrayStateNode::SerializeToProtocol(dap::Variable& variable)
 	{
 		variable.variablesReference = m_value ? GetId() : 0;
 		variable.indexedVariables = m_value ? m_value->size() : 0;

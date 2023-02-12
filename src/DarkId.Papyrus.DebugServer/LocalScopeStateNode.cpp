@@ -8,7 +8,7 @@ namespace DarkId::Papyrus::DebugServer
 	{
 	}
 
-	bool LocalScopeStateNode::SerializeToProtocol(Scope& scope)
+	bool LocalScopeStateNode::SerializeToProtocol(dap::Scope& scope)
 	{
 		scope.name = "Local";
 		scope.expensive = false;

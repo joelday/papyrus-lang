@@ -7,15 +7,16 @@
 #endif
 namespace DarkId::Papyrus::DebugServer
 {
-	PDError BreakpointManager::SetBreakpoints(Source& source, const std::vector<SourceBreakpoint>& srcBreakpoints, std::vector<Breakpoint>& breakpoints)
+	dap::ResponseOrError<dap::SetBreakpointsResponse> BreakpointManager::SetBreakpoints(dap::Source& source, const std::vector<dap::SourceBreakpoint>& srcBreakpoints)
 	{
+		dap::SetBreakpointsResponse response;
 		std::set<int> breakpointLines;
-
-		auto scriptName = NormalizeScriptName(source.name);
+		
+		auto scriptName = NormalizeScriptName(source.name.value(""));
 		auto binary = m_pexCache->GetScript(scriptName.c_str());
 		if (!binary) {
-			logger::error("Could not find PEX data for script {}", scriptName);
-		} // Continue on to set the breakpoints as unverified
+			return dap::Error("Could not find PEX data for script %s", scriptName);
+		}
 		const auto sourceReference = m_pexCache->GetScriptReference(scriptName.c_str());
 		source.sourceReference = sourceReference;
 		
@@ -28,11 +29,10 @@ namespace DarkId::Papyrus::DebugServer
 			logger::error("Could not save PEX dump for {}"sv, scriptName);
 		}
 #endif
-		bool hasDebugInfo = binary && binary->getDebugInfo().getFunctionInfos().size() > 0;
-		// only log error if PEX is loaded
-		if (binary && !hasDebugInfo) {
-			logger::error("No debug info in script {}"sv, scriptName);
-		} // Continue on to set the breakpoints as unverified
+		bool hasDebugInfo = binary->getDebugInfo().getFunctionInfos().size() > 0;
+		if (!hasDebugInfo) {
+			return dap::Error("Could not find PEX data for script %s", scriptName);
+		}
 
 		for (const auto& srcBreakpoint : srcBreakpoints)
 		{
@@ -60,22 +60,16 @@ namespace DarkId::Papyrus::DebugServer
 
 			breakpointLines.emplace(srcBreakpoint.line);
 
-			Breakpoint breakpoint;
+			dap::Breakpoint breakpoint;
 			breakpoint.source = source;
 			breakpoint.verified = foundLine;
 			breakpoint.line = srcBreakpoint.line;
 
-			breakpoints.push_back(breakpoint);
+			response.breakpoints.push_back(breakpoint);
 		}
 
 		m_breakpoints[sourceReference] = breakpointLines;
-		if (!binary) {
-			return PDError::NO_PEX_DATA;
-		}
-		else if (!hasDebugInfo) {
-			return PDError::NO_DEBUG_INFO;
-		}
-		return PDError::OK;
+		return response;
 	}
 
 	bool BreakpointManager::GetExecutionIsAtValidBreakpoint(RE::BSScript::Internal::CodeTasklet* tasklet)

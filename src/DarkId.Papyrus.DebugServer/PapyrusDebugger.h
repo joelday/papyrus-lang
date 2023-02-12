@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Protocol/debugger.h"
-
+#include <dap/protocol.h>
+#include <dap/session.h>
 #include "RuntimeEvents.h"
 #include "PexCache.h"
 #include "BreakpointManager.h"
@@ -11,47 +11,64 @@
 
 namespace DarkId::Papyrus::DebugServer
 {
-	class PapyrusDebugger :
-		public Debugger
+	enum DisconnectAction
+	{
+		DisconnectDefault, // Attach -> Detach, Launch -> Terminate
+		DisconnectTerminate,
+		DisconnectDetach
+	};
+
+
+	enum VariablesFilter
+	{
+		VariablesNamed,
+		VariablesIndexed,
+		VariablesBoth
+	};
+	class PapyrusDebugger
 	{
 	public:
-		PapyrusDebugger(Protocol* protocol);
+		PapyrusDebugger(const std::shared_ptr<dap::Session> &session);
 		~PapyrusDebugger();
 
 		bool IsJustMyCode() const { return false; };
 		void SetJustMyCode(bool enable) { };
 
-		HRESULT Initialize() override;
-		HRESULT Attach() override { return 0; };
-		HRESULT Launch(std::string fileExec, std::vector<std::string> execArgs, bool stopAtEntry = false) override { return 0; }
-		HRESULT ConfigurationDone() override { return 0; }
+		//HRESULT Initialize() ;
+		// HRESULT Attach()  { return 0; };
+		// HRESULT Launch(std::string fileExec, std::vector<std::string> execArgs, bool stopAtEntry = false)  { return 0; }
+		// HRESULT ConfigurationDone()  { return 0; }
 
-		HRESULT Disconnect(DisconnectAction action = DisconnectDefault) override { return 0; }
+		// dap::Response Disconnect(DisconnectAction action = DisconnectDefault)  { return dap::DisconnectResponse(); }
 
-		int GetLastStoppedThreadId() override { return 0; }
+		int GetLastStoppedThreadId()  { return 0; }
 
-		HRESULT Continue() override;
-		HRESULT Pause() override;
-		HRESULT GetThreads(std::vector<Thread>& threads) override;
-		HRESULT SetBreakpoints(Source& source, const std::vector<SourceBreakpoint>& srcBreakpoints, std::vector<Breakpoint>& breakpoints) override;
-		HRESULT SetFunctionBreakpoints(const std::vector<FunctionBreakpoint>& funcBreakpoints, std::vector<Breakpoint>& breakpoints) override { return 0; }
-		void InsertExceptionBreakpoint(const std::string& name, Breakpoint& breakpoint) override { }
-		HRESULT GetStackTrace(int threadId, int startFrame, int levels, std::vector<StackFrame>& stackFrames, int& totalFrames) override;
-		HRESULT StepCommand(int threadId, StepType stepType) override;
-		HRESULT GetScopes(uint64_t frameId, std::vector<Scope>& scopes) override;
-		HRESULT GetVariables(uint64_t variablesReference, VariablesFilter filter, int start, int count, std::vector<Variable>& variables) override;
-		int GetNamedVariables(uint64_t variablesReference) override;
-		HRESULT Evaluate(uint64_t frameId, const std::string& expression, Variable& variable, std::string& output) override { return 0; }
-		HRESULT SetVariable(const std::string& name, const std::string& value, uint32_t ref, std::string& output) override { return 0; }
-		HRESULT SetVariableByExpression(uint64_t frameId, const std::string& name, const std::string& value, std::string& output) override { return 0; }
-		HRESULT GetSource(Source& source, std::string& output) override;
-		HRESULT GetLoadedSources(std::vector<Source>& sources) override;
+		dap::ResponseOrError<dap::ContinueResponse> Continue(const dap::ContinueRequest& request) ;
+		dap::ResponseOrError<dap::PauseResponse> Pause(const dap::PauseRequest& request) ;
+		dap::ResponseOrError<dap::ThreadsResponse> GetThreads(const dap::ThreadsRequest& request) ;
+		dap::ResponseOrError<dap::SetBreakpointsResponse> SetBreakpoints(const dap::SetBreakpointsRequest& request) ;
+		dap::ResponseOrError<dap::SetFunctionBreakpointsResponse> SetFunctionBreakpoints(const dap::SetFunctionBreakpointsRequest& request);
+		dap::ResponseOrError<dap::StackTraceResponse> GetStackTrace(const dap::StackTraceRequest& request) ;
+		dap::ResponseOrError<dap::StepInResponse> StepIn(const dap::StepInRequest& request);
+		dap::ResponseOrError<dap::StepOutResponse> StepOut(const dap::StepOutRequest& request);
+		dap::ResponseOrError<dap::NextResponse> Next(const dap::NextRequest& request);
+		dap::ResponseOrError<dap::ScopesResponse> GetScopes(const dap::ScopesRequest& request) ;
+		dap::ResponseOrError<dap::VariablesResponse> GetVariables(const dap::VariablesRequest& request);
+		dap::ResponseOrError<dap::SourceResponse> GetSource(const dap::SourceRequest& request);
+		dap::ResponseOrError<dap::LoadedSourcesResponse> GetLoadedSources(const dap::LoadedSourcesRequest& request);
+
+		// dap::Response Evaluate(const dap::SetBreakpointsRequest& request)  { return 0; }
+		// dap::Response SetVariable(const dap::SetBreakpointsRequest& request)  { return 0; }
+		// dap::Response SetVariableByExpression(const dap::SetBreakpointsRequest& request)  { return 0; }
+		// void InsertExceptionBreakpoint(const std::string& name, dap::Breakpoint& breakpoint)  { }
+		// int GetNamedVariables(uint64_t variablesReference) ;
+
 	private:
 		bool m_closed = false;
-
+		std::atomic<uint64_t> msg_counter = 0;
 		std::shared_ptr<IdProvider> m_idProvider;
 
-		Protocol* m_protocol;
+		std::shared_ptr<dap::Session> m_session;
 		std::shared_ptr<PexCache> m_pexCache;
 		std::shared_ptr<BreakpointManager> m_breakpointManager;
 		std::shared_ptr<RuntimeState> m_runtimeState;
@@ -64,6 +81,8 @@ namespace DarkId::Papyrus::DebugServer
 		RuntimeEvents::InstructionExecutionEventHandle m_instructionExecutionEventHandle;
 		// RuntimeEvents::InitScriptEventHandle m_initScriptEventHandle;
 		RuntimeEvents::LogEventHandle m_logEventHandle;
+
+		void RegisterSessionHandlers();
 
 		// void InitScriptEvent(RE::TESInitScriptEvent* initEvent);
 		void EventLogged(const RE::BSScript::LogEvent* logEvent) const;
