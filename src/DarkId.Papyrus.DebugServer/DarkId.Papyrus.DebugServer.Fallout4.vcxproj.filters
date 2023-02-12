@@ -52,13 +52,13 @@
       <Filter>State</Filter>
     </ClCompile>
     <ClCompile Include="pdsPCH.cpp" />
-    <ClCompile Include="Protocol\websocket_server.cpp">
+    <ClCompile Include="Protocol\struct_extensions.cpp">
       <Filter>Protocol</Filter>
     </ClCompile>
     <ClCompile Include="Protocol\websocket_reader_writer.cpp">
       <Filter>Protocol</Filter>
     </ClCompile>
-    <ClCompile Include="Protocol\struct_extensions.cpp">
+    <ClCompile Include="Protocol\websocket_server.cpp">
       <Filter>Protocol</Filter>
     </ClCompile>
   </ItemGroup>
@@ -66,9 +66,6 @@
     <ResourceCompile Include="version.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="protocol\debugger.h">
-      <Filter>Protocol</Filter>
-    </ClInclude>
     <ClInclude Include="DebugServer.h" />
     <ClInclude Include="PapyrusDebugger.h" />
     <ClInclude Include="Pex.h" />
@@ -116,16 +113,19 @@
       <Filter>State</Filter>
     </ClInclude>
     <ClInclude Include="pdsPCH.h" />
-    <ClInclude Include="Protocol\websocket_reader_writer.h">
+    <ClInclude Include="protocol\debugger.h">
       <Filter>Protocol</Filter>
     </ClInclude>
-    <ClInclude Include="Protocol\websocket_server.h">
+    <ClInclude Include="Protocol\struct_extensions.h">
       <Filter>Protocol</Filter>
     </ClInclude>
     <ClInclude Include="Protocol\websocket_impl.h">
       <Filter>Protocol</Filter>
     </ClInclude>
-    <ClInclude Include="Protocol\struct_extensions.h">
+    <ClInclude Include="Protocol\websocket_reader_writer.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="Protocol\websocket_server.h">
       <Filter>Protocol</Filter>
     </ClInclude>
   </ItemGroup>
