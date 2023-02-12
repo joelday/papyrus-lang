@@ -34,6 +34,7 @@ namespace DarkId::Papyrus::DebugServer
         // After we send the disconnect response, stop the session
         sess->registerSentHandler(
             [&](const dap::ResponseOrError<dap::DisconnectResponse>&) {
+                std::unique_lock<std::mutex> lock(mutex);
                 terminate = true;
                 cv.notify_all();
         });
