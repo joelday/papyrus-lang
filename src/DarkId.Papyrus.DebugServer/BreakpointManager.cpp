@@ -7,18 +7,17 @@
 #endif
 namespace DarkId::Papyrus::DebugServer
 {
-	dap::ResponseOrError<dap::SetBreakpointsResponse> BreakpointManager::SetBreakpoints(dap::Source& source, const std::vector<dap::SourceBreakpoint>& srcBreakpoints)
+	dap::ResponseOrError<dap::SetBreakpointsResponse> BreakpointManager::SetBreakpoints(const dap::Source& src, const std::vector<dap::SourceBreakpoint>& srcBreakpoints)
 	{
 		dap::SetBreakpointsResponse response;
 		std::set<int> breakpointLines;
-		
+		dap::Source source = src;
 		auto scriptName = NormalizeScriptName(source.name.value(""));
 		auto binary = m_pexCache->GetScript(scriptName.c_str());
 		if (!binary) {
 			return dap::Error("Could not find PEX data for script %s", scriptName);
 		}
-		const auto sourceReference = m_pexCache->GetScriptReference(scriptName.c_str());
-		source.sourceReference = sourceReference;
+		source.sourceReference = GetSourceReference(source);
 
 #if _DEBUG_DUMP_PEX
 		std::string dir = logger::log_directory().value_or("").string();
@@ -60,15 +59,14 @@ namespace DarkId::Papyrus::DebugServer
 
 			breakpointLines.emplace(srcBreakpoint.line);
 
-			dap::Breakpoint breakpoint;
-			breakpoint.source = source;
-			breakpoint.verified = foundLine;
-			breakpoint.line = srcBreakpoint.line;
-
-			response.breakpoints.push_back(breakpoint);
+			response.breakpoints.push_back(dap::Breakpoint{
+				.line = srcBreakpoint.line,
+				.source = source,
+				.verified = foundLine,
+				});
 		}
 
-		m_breakpoints[sourceReference] = breakpointLines;
+		m_breakpoints[source.sourceReference.value()] = breakpointLines;
 		return response;
 	}
 	void BreakpointManager::ClearBreakpoints() {
@@ -83,7 +81,7 @@ namespace DarkId::Papyrus::DebugServer
 			return false;
 		}
 		const auto scriptName = tasklet->topFrame->owningObjectType->GetName();
-		const auto sourceReference = m_pexCache->GetScriptReference(scriptName);
+		const auto sourceReference = GetScriptReference(scriptName);
 		
 		if (m_breakpoints.find(sourceReference) != m_breakpoints.end())
 		{

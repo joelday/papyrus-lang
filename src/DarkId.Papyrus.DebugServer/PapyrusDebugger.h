@@ -66,7 +66,6 @@ namespace DarkId::Papyrus::DebugServer
 		dap::ResponseOrError<dap::VariablesResponse> GetVariables(const dap::VariablesRequest& request);
 		dap::ResponseOrError<dap::SourceResponse> GetSource(const dap::SourceRequest& request);
 		dap::ResponseOrError<dap::LoadedSourcesResponse> GetLoadedSources(const dap::LoadedSourcesRequest& request);
-
 		// dap::Response Evaluate(const dap::SetBreakpointsRequest& request)  { return 0; }
 		// dap::Response SetVariable(const dap::SetBreakpointsRequest& request)  { return 0; }
 		// dap::Response SetVariableByExpression(const dap::SetBreakpointsRequest& request)  { return 0; }
@@ -84,7 +83,7 @@ namespace DarkId::Papyrus::DebugServer
 		std::shared_ptr<BreakpointManager> m_breakpointManager;
 		std::shared_ptr<RuntimeState> m_runtimeState;
 		std::shared_ptr<DebugExecutionManager> m_executionManager;
-		std::vector<std::string> m_sourceFiles;
+		std::map<int, dap::Source> m_projectSources;
 		std::string m_projectPath;
 		std::string m_modDirectory;
 		std::mutex m_instructionMutex;

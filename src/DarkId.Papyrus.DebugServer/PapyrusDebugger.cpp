@@ -65,7 +65,6 @@ namespace DarkId::Papyrus::DebugServer
 		m_session = nullptr;
 		m_closed = true;
 
-		m_breakpointManager->ClearBreakpoints();
 		RuntimeEvents::UnsubscribeFromLog(m_logEventHandle);
 		// RuntimeEvents::UnsubscribeFromInitScript(m_initScriptEventHandle);
 		RuntimeEvents::UnsubscribeFromInstructionExecution(m_instructionExecutionEventHandle);
@@ -73,7 +72,12 @@ namespace DarkId::Papyrus::DebugServer
 		RuntimeEvents::UnsubscribeFromCleanupStack(m_cleanupStackEventHandle);
 
 		m_executionManager->Close();
-
+		// clear session data
+		m_modDirectory = "";
+		m_projectPath = "";
+		m_projectSources.clear();
+		m_breakpointManager->ClearBreakpoints();
+		
 	}
 
 	void PapyrusDebugger::RegisterSessionHandlers(){
@@ -282,29 +286,41 @@ namespace DarkId::Papyrus::DebugServer
 
 		m_executionManager->Close();
 	}
+	
 	dap::ResponseOrError<dap::InitializeResponse> PapyrusDebugger::Initialize(const dap::InitializeRequest& request)
 	{
 		return dap::ResponseOrError<dap::InitializeResponse>();
 	}
+
 	dap::ResponseOrError<dap::AttachResponse> PapyrusDebugger::Attach(const dap::PDSAttachRequest& request)
 	{
 		m_projectPath = request.projectPath.value("");
 		m_modDirectory = request.modDirectory.value("");
-		m_sourceFiles = request.sourceFiles.value(std::vector<std::string>());
+		if (!request.restart.has_value())
+		{
+			m_pexCache->Clear();
+		}
+		for (auto src : request.projectSources.value(std::vector<dap::Source>())) {
+			src.sourceReference = GetSourceReference(src);
+			m_projectSources[src.sourceReference.value()] = src;
+		}
 		return dap::AttachResponse();
 	}
+
 	dap::ResponseOrError<dap::ContinueResponse> PapyrusDebugger::Continue(const dap::ContinueRequest& request)
 	{
 		if (m_executionManager->Continue())
 			return dap::ContinueResponse();
 		return dap::Error("Could not Continue");
 	}
+
 	dap::ResponseOrError<dap::PauseResponse> PapyrusDebugger::Pause(const dap::PauseRequest& request)
 	{
 		if (m_executionManager->Pause())
 			return dap::PauseResponse();
 		return dap::Error("Could not Pause");
 	}
+
 	dap::ResponseOrError<dap::ThreadsResponse> PapyrusDebugger::GetThreads(const dap::ThreadsRequest& request)
 	{
 		dap::ThreadsResponse response;
@@ -343,9 +359,22 @@ namespace DarkId::Papyrus::DebugServer
 
 		return response;
 	}
+
+
+
 	dap::ResponseOrError<dap::SetBreakpointsResponse> PapyrusDebugger::SetBreakpoints(const dap::SetBreakpointsRequest& request)
 	{
 		dap::Source source = request.source;
+		auto ref = GetSourceReference(source);
+		if (m_projectSources.find(ref) != m_projectSources.end()) {
+			if (!CompareSourceModifiedTime(request.source, m_projectSources[ref])) {
+				return dap::Error("Script has been modified after load");
+			}
+			source = m_projectSources[ref];
+		}
+		else {
+			source.sourceReference = ref;
+		}
 		return m_breakpointManager->SetBreakpoints(source, request.breakpoints.value(std::vector<dap::SourceBreakpoint>()));
 	}
 
@@ -486,6 +515,7 @@ namespace DarkId::Papyrus::DebugServer
 				return dap::Error("No source name");
 			}
 		}
+		auto ref = GetSourceReference(request.source.value());
 		std::string name = request.source.value().name.value();
 		dap::SourceResponse response;
 		if (m_pexCache->GetDecompiledSource(name.c_str(), response.content)) {
@@ -493,6 +523,7 @@ namespace DarkId::Papyrus::DebugServer
 		}
 		return dap::Error("Could not find source " + name);
 	}
+
 	dap::ResponseOrError<dap::LoadedSourcesResponse> PapyrusDebugger::GetLoadedSources(const dap::LoadedSourcesRequest& request)
 	{
 		dap::LoadedSourcesResponse response;
@@ -505,7 +536,14 @@ namespace DarkId::Papyrus::DebugServer
 			std::string scriptName = script.first.c_str();
 			if (m_pexCache->GetSourceData(scriptName.c_str(), source))
 			{
-				response.sources.push_back(source);
+				auto ref = GetSourceReference(source);
+				// TODO: Get the modified times from the unlinked objects?
+				if (m_projectSources.find(ref) != m_projectSources.end()) {
+					response.sources.push_back(m_projectSources[ref]);
+				}
+				else {
+					response.sources.push_back(source);
+				}
 			}
 		}
 		return response;

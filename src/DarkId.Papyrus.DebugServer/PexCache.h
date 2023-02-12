@@ -16,11 +16,11 @@ namespace DarkId::Papyrus::DebugServer
 
 		bool HasScript(int scriptReference);
 		bool HasScript(const char* scriptName);
-		int GetScriptReference(const char* scriptName) const;
 
 		std::shared_ptr<Pex::Binary> GetScript(const char* scriptName);
 		bool GetDecompiledSource(const char* scriptName, std::string& decompiledSource);
 		bool GetSourceData(const char* scriptName, dap::Source& data);
+		void Clear();
 	private:
 		std::mutex m_scriptsMutex;
 		std::map<int, std::shared_ptr<Pex::Binary>> m_scripts;

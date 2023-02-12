@@ -10,6 +10,6 @@ namespace dap {
         DAP_FIELD(game, "game"),
         DAP_FIELD(projectPath, "projectPath"),
         DAP_FIELD(modDirectory, "modDirectory"),
-        DAP_FIELD(sourceFiles, "sourceFiles")
+        DAP_FIELD(projectSources, "projectSources")
     )
 }

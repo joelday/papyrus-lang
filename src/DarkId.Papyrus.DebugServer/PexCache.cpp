@@ -21,17 +21,7 @@ namespace DarkId::Papyrus::DebugServer
 	{
 		return HasScript(GetScriptReference(scriptName));
 	}
-
-	int PexCache::GetScriptReference(const char* scriptName) const
-	{
-		const std::hash<std::string> hasher{};
-
-		std::string name = NormalizeScriptName(scriptName);
-		std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-
-		return std::abs(XSE::stl::unrestricted_cast<int>(hasher(name))) + 1;
-	}
-
+	
 	std::shared_ptr<Pex::Binary> PexCache::GetScript(const char* scriptName)
 	{
 		std::lock_guard<std::mutex> scriptLock(m_scriptsMutex);
@@ -88,5 +78,9 @@ namespace DarkId::Papyrus::DebugServer
 		data.path = headerSrcName;
 		data.sourceReference = sourceReference;
 		return true;
+	}
+	void PexCache::Clear() {
+		std::lock_guard<std::mutex> scriptLock(m_scriptsMutex);
+		m_scripts.clear();
 	}
 }

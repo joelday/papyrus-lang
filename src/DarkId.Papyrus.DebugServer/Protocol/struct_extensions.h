@@ -15,7 +15,7 @@ namespace dap{
     string game;
     optional<string> projectPath;
     optional<string> modDirectory;
-    optional<array<string>> sourceFiles;
+    optional<array<Source>> projectSources;
   };
   DAP_DECLARE_STRUCT_TYPEINFO(PDSAttachRequest);
 }

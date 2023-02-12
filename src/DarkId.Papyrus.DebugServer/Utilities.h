@@ -4,6 +4,7 @@
 #include <sstream>
 #include <regex>
 #include <boost/algorithm/string/replace.hpp>
+#include <dap/protocol.h>
 
 namespace DarkId::Papyrus::DebugServer
 {
@@ -138,4 +139,39 @@ namespace DarkId::Papyrus::DebugServer
 		return name + ".pex";
 	}
 
+	inline int GetScriptReference(const std::string& scriptName)
+	{
+		constexpr std::hash<std::string> hasher{};
+		std::string name = NormalizeScriptName(scriptName);
+		std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+
+		return std::abs(XSE::stl::unrestricted_cast<int>(hasher(name))) + 1;
+	}
+
+	inline int GetSourceReference(const dap::Source& src) {
+		return src.sourceReference.value(
+			GetScriptReference(
+				src.name.value(
+					std::filesystem::path(src.path.value("")).filename().string() // default if name isn't set
+			)));
+	}
+
+	inline std::string GetSourceModfiedTime(const dap::Source & src) {
+		if (!src.checksums.has_value()) {
+			return "";
+		}
+		for (auto & checksum : src.checksums.value()) {
+			if (checksum.algorithm == "timestamp") {
+				return checksum.checksum;
+			}
+		}
+		return "";
+	}
+
+	inline bool CompareSourceModifiedTime(const dap::Source& src1, const dap::Source& src2) {
+		if (GetSourceModfiedTime(src1) != GetSourceModfiedTime(src2)) {
+			return false;
+		}
+		return true;
+	}
 }
