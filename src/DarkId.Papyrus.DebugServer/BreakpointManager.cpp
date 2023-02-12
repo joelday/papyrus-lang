@@ -40,7 +40,7 @@ namespace DarkId::Papyrus::DebugServer
 
 			if (binary)
 			{
-				for (auto functionInfo : binary->getDebugInfo().getFunctionInfos())
+				for (auto & functionInfo : binary->getDebugInfo().getFunctionInfos())
 				{
 					if (foundLine)
 					{
@@ -71,10 +71,12 @@ namespace DarkId::Papyrus::DebugServer
 		m_breakpoints[sourceReference] = breakpointLines;
 		return response;
 	}
-
+	void BreakpointManager::ClearBreakpoints() {
+		m_breakpoints.clear();
+	}
 	bool BreakpointManager::GetExecutionIsAtValidBreakpoint(RE::BSScript::Internal::CodeTasklet* tasklet)
 	{
-		auto func = tasklet->topFrame->owningFunction;
+		auto & func = tasklet->topFrame->owningFunction;
 
 		if (func->GetIsNative())
 		{
@@ -85,7 +87,7 @@ namespace DarkId::Papyrus::DebugServer
 		
 		if (m_breakpoints.find(sourceReference) != m_breakpoints.end())
 		{
-			auto breakpointLines = m_breakpoints[sourceReference];
+			auto & breakpointLines = m_breakpoints[sourceReference];
 			if (!breakpointLines.empty())
 			{
 				uint32_t currentLine;

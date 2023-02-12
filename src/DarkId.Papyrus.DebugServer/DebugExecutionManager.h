@@ -29,7 +29,7 @@ namespace DarkId::Papyrus::DebugServer
 		};
 
 		std::mutex m_instructionMutex;
-		bool m_closed = false;
+		bool m_closed;
 
 		std::shared_ptr<dap::Session> m_session;
 		RuntimeState* m_runtimeState;
@@ -40,15 +40,16 @@ namespace DarkId::Papyrus::DebugServer
 		StepType m_currentStepType = StepType::STEP_IN;
 		RE::BSScript::StackFrame* m_currentStepStackFrame;
 	public:
-		explicit DebugExecutionManager(std::shared_ptr<dap::Session> session, RuntimeState* runtimeState,
+		explicit DebugExecutionManager(RuntimeState* runtimeState,
 									   BreakpointManager* breakpointManager)
-			: m_session(session), m_runtimeState(runtimeState), m_breakpointManager(breakpointManager),
-			  m_currentStepStackFrame(nullptr)
+			: m_runtimeState(runtimeState), m_breakpointManager(breakpointManager),
+			  m_currentStepStackFrame(nullptr), m_closed(true)
 		{
 		}
 
 		void Close();
 		void HandleInstruction(CodeTasklet* tasklet, CodeTasklet::OpCode opCode);
+		void Open(std::shared_ptr<dap::Session> ses);
 		bool Continue();
 		bool Pause();
 		bool Step(uint32_t stackId, StepType stepType);

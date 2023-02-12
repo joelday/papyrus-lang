@@ -5,7 +5,9 @@
 namespace DarkId::Papyrus::DebugServer
 {
     DebugServer::DebugServer() { 
+        terminate = false;
         restart_thread = std::thread(std::bind(&DebugServer::runRestartThread, this));
+        debugger = std::unique_ptr<PapyrusDebugger>(new PapyrusDebugger());
     }
 
     void DebugServer::runRestartThread() {
@@ -13,7 +15,7 @@ namespace DarkId::Papyrus::DebugServer
             std::unique_lock<std::mutex> lock(mutex);
             cv.wait(lock, [&] { return terminate; });
             terminate = false;
-            debugger = nullptr;
+            debugger->EndSession();
         }
     }
 
@@ -29,12 +31,13 @@ namespace DarkId::Papyrus::DebugServer
         std::shared_ptr<dap::Session> sess;
         sess = dap::Session::create();
         sess->bind(connection);
-        debugger = std::unique_ptr<PapyrusDebugger>( new PapyrusDebugger(sess) );
+        // After we send the disconnect response, stop the session
         sess->registerSentHandler(
             [&](const dap::ResponseOrError<dap::DisconnectResponse>&) {
                 terminate = true;
                 cv.notify_all();
         });
+        debugger->StartSession(sess);
       };
 
 		auto onError = [&](const char* msg) { 

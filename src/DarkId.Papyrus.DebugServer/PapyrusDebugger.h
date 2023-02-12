@@ -2,6 +2,7 @@
 
 #include <dap/protocol.h>
 #include <dap/session.h>
+#include <dap/traits.h>
 #include "RuntimeEvents.h"
 #include "PexCache.h"
 #include "BreakpointManager.h"
@@ -28,13 +29,20 @@ namespace DarkId::Papyrus::DebugServer
 	};
 	class PapyrusDebugger
 	{
-	public:
-		PapyrusDebugger(const std::shared_ptr<dap::Session> &session);
-		~PapyrusDebugger();
+		template <typename T>
+		using IsEvent = dap::traits::EnableIfIsType<dap::Event, T>;
 
+	public:
+		PapyrusDebugger();
+		~PapyrusDebugger();
+		void StartSession(std::shared_ptr<dap::Session> session);
+		void EndSession();
 		bool IsJustMyCode() const { return false; };
 		void SetJustMyCode(bool enable) { };
-
+		template <typename T, typename = IsEvent<T>>
+		void SendEvent(const T& event) const;
+		void LogGameOutput(RE::BSScript::ErrorLogger::Severity severity, const std::string& msg) const;		
+		void Initialize();
 		//HRESULT Initialize() ;
 		// HRESULT Attach()  { return 0; };
 		// HRESULT Launch(std::string fileExec, std::vector<std::string> execArgs, bool stopAtEntry = false)  { return 0; }
@@ -43,6 +51,7 @@ namespace DarkId::Papyrus::DebugServer
 		// dap::Response Disconnect(DisconnectAction action = DisconnectDefault)  { return dap::DisconnectResponse(); }
 
 		int GetLastStoppedThreadId()  { return 0; }
+		dap::ResponseOrError<dap::InitializeResponse> Initialize(const dap::InitializeRequest& request);
 		dap::ResponseOrError<dap::AttachResponse> Attach(const dap::PDSAttachRequest& request);
 		dap::ResponseOrError<dap::ContinueResponse> Continue(const dap::ContinueRequest& request) ;
 		dap::ResponseOrError<dap::PauseResponse> Pause(const dap::PauseRequest& request) ;

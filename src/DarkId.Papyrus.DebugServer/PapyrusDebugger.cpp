@@ -28,8 +28,7 @@ namespace RE{
 
 namespace DarkId::Papyrus::DebugServer
 {
-	PapyrusDebugger::PapyrusDebugger(const std::shared_ptr<dap::Session>& session):
-		m_session(session)
+	PapyrusDebugger::PapyrusDebugger()
 	{
 		m_pexCache = std::make_shared<PexCache>();
 
@@ -38,8 +37,14 @@ namespace DarkId::Papyrus::DebugServer
 		m_idProvider = std::make_shared<IdProvider>();
 		m_runtimeState = std::make_shared<RuntimeState>(m_idProvider);
 
-		m_executionManager = std::make_shared<DebugExecutionManager>(m_session, m_runtimeState.get(), m_breakpointManager.get());
+		m_executionManager = std::make_shared<DebugExecutionManager>(m_runtimeState.get(), m_breakpointManager.get());
 
+	}
+
+	void PapyrusDebugger::StartSession(std::shared_ptr<dap::Session> session) {
+		m_closed = false;
+		m_session = session;
+		m_executionManager->Open(session);
 		m_createStackEventHandle =
 			RuntimeEvents::SubscribeToCreateStack(std::bind(&PapyrusDebugger::StackCreated, this, std::placeholders::_1));
 
@@ -54,6 +59,20 @@ namespace DarkId::Papyrus::DebugServer
 		m_logEventHandle =
 			RuntimeEvents::SubscribeToLog(std::bind(&PapyrusDebugger::EventLogged, this, std::placeholders::_1));
 		RegisterSessionHandlers();
+	}
+	void PapyrusDebugger::EndSession() {
+		m_executionManager->Close();
+		m_session = nullptr;
+		m_closed = true;
+
+		m_breakpointManager->ClearBreakpoints();
+		RuntimeEvents::UnsubscribeFromLog(m_logEventHandle);
+		// RuntimeEvents::UnsubscribeFromInitScript(m_initScriptEventHandle);
+		RuntimeEvents::UnsubscribeFromInstructionExecution(m_instructionExecutionEventHandle);
+		RuntimeEvents::UnsubscribeFromCreateStack(m_createStackEventHandle);
+		RuntimeEvents::UnsubscribeFromCleanupStack(m_cleanupStackEventHandle);
+
+		m_executionManager->Close();
 
 	}
 
@@ -70,7 +89,7 @@ namespace DarkId::Papyrus::DebugServer
 		//sess->onError()
 		m_session->registerSentHandler(
 			[&](const dap::ResponseOrError<dap::InitializeResponse>&) {
-				m_session->send(dap::InitializedEvent());
+				SendEvent(dap::InitializedEvent());
 		});
 
 		// Client is done configuring.
@@ -132,6 +151,13 @@ namespace DarkId::Papyrus::DebugServer
 			return GetLoadedSources(request);
 		});
 	}
+
+	template <typename T, typename>
+	void PapyrusDebugger::SendEvent(const T& event) const{
+		if (m_session)
+			m_session->send(event);
+	}
+
 	std::string LogSeverityEnumStr(RE::BSScript::ErrorLogger::Severity severity) {
 		if (severity == RE::BSScript::ErrorLogger::Severity::kInfo) {
 			return std::string("INFO");
@@ -145,9 +171,25 @@ namespace DarkId::Papyrus::DebugServer
 		return std::string("UNKNOWN_ENUM_LEVEL");
 	}
 
+	// EVENTS
+	void PapyrusDebugger::LogGameOutput(RE::BSScript::ErrorLogger::Severity severity, const std::string &msg) const {
+		constexpr const char* format = "GAME EVENT -- {}";
+		if (severity == RE::BSScript::ErrorLogger::Severity::kInfo) {
+			logger::info(format, msg);
+		}
+		else if (severity == RE::BSScript::ErrorLogger::Severity::kWarning) {
+			logger::warn(format, msg);
+		}
+		else if (severity == RE::BSScript::ErrorLogger::Severity::kError) {
+			logger::error(format, msg);
+		}
+		else if (severity == RE::BSScript::ErrorLogger::Severity::kFatal) {
+			logger::critical(format, msg);
+		}
+	}
+
 	void PapyrusDebugger::EventLogged(const RE::BSScript::LogEvent* logEvent) const
 	{
-		const std::string severity = LogSeverityEnumStr(logEvent->severity);
 		dap::OutputEvent output;
 		output.category = "console";
 #if SKYRIM
@@ -157,9 +199,9 @@ namespace DarkId::Papyrus::DebugServer
 		logEvent->errorMsg.GetErrorMsg(message);
 		output.output = std::format("{} - {}\r\n", logEvent->ownerModule.c_str(), message.c_str());
 #endif
-		m_session->send(output);
+		LogGameOutput(logEvent->severity, output.output);
+		SendEvent(output);
 	}
-
 
 	void PapyrusDebugger::StackCreated(RE::BSTSmartPointer<RE::BSScript::Stack>& stack)
 	{
@@ -177,10 +219,11 @@ namespace DarkId::Papyrus::DebugServer
 			{
 				return;
 			}
-			dap::ThreadEvent threadEvent;
-			threadEvent.reason = "started";
-			threadEvent.threadId = stackId;
-			m_session->send(threadEvent);
+
+			SendEvent(dap::ThreadEvent{
+				.reason = "started",
+				.threadId = stackId
+				});
 			
 			if (stack->top && stack->top->owningFunction)
 			{
@@ -196,15 +239,12 @@ namespace DarkId::Papyrus::DebugServer
 	{
 		XSE::GetTaskInterface()->AddTask([this, stackId]()
 		{
-			if (m_closed)
-			{
-				return;
-			}
-			dap::ThreadEvent threadEvent;
-			threadEvent.reason = "exited";
-			threadEvent.threadId = stackId;
+			if (m_closed) return;
 
-			m_session->send(threadEvent);
+			SendEvent(dap::ThreadEvent{
+				.reason = "exited",
+				.threadId = stackId
+			});
 		});
 	}
 
@@ -222,10 +262,10 @@ namespace DarkId::Papyrus::DebugServer
 			{
 				return;
 			}
-			dap::LoadedSourceEvent event;
-			event.reason = "new";
-			event.source = source;
-			m_session->send(event);
+			SendEvent(dap::LoadedSourceEvent{
+				.reason = "new",
+				.source = source
+				});
 		}
 	}
 
@@ -241,6 +281,10 @@ namespace DarkId::Papyrus::DebugServer
 		RuntimeEvents::UnsubscribeFromCleanupStack(m_cleanupStackEventHandle);
 
 		m_executionManager->Close();
+	}
+	dap::ResponseOrError<dap::InitializeResponse> PapyrusDebugger::Initialize(const dap::InitializeRequest& request)
+	{
+		return dap::ResponseOrError<dap::InitializeResponse>();
 	}
 	dap::ResponseOrError<dap::AttachResponse> PapyrusDebugger::Attach(const dap::PDSAttachRequest& request)
 	{
