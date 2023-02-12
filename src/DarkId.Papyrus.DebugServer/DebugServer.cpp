@@ -45,8 +45,6 @@ namespace DarkId::Papyrus::DebugServer
             logger::error("Server error: %s\n", msg); 
         };
 
-        printf("Session terminated\n");
-        auto thread = std::thread();
 		m_server.start(port, onClientConnected, onError);
 		return true;
 	}
