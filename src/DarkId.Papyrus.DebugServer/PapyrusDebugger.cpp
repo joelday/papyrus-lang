@@ -266,6 +266,11 @@ namespace DarkId::Papyrus::DebugServer
 			{
 				return;
 			}
+			// TODO: Get the modified times from the unlinked objects?
+			auto ref = GetSourceReference(source);
+			if (m_projectSources.find(ref) != m_projectSources.end()) {
+				source = m_projectSources.at(ref);
+			}
 			SendEvent(dap::LoadedSourceEvent{
 				.reason = "new",
 				.source = source
