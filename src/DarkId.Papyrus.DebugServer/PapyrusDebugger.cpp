@@ -108,7 +108,9 @@ namespace DarkId::Papyrus::DebugServer
 			// Client wants to disconnect.
 			return dap::DisconnectResponse{};
 		});
-
+		m_session->registerHandler([&](const dap::PDSLaunchRequest& request) {
+			return Launch(request);
+		});
 		m_session->registerHandler([&](const dap::PDSAttachRequest& request) {
 			return Attach(request);
 		});
@@ -296,6 +298,24 @@ namespace DarkId::Papyrus::DebugServer
 	{
 		return dap::ResponseOrError<dap::InitializeResponse>();
 	}
+
+	dap::ResponseOrError<dap::LaunchResponse> PapyrusDebugger::Launch(const dap::PDSLaunchRequest& request)
+	{
+		auto resp = Attach(dap::PDSAttachRequest{
+			.name = request.name,
+			.type = request.type,
+			.request = request.request,
+			.game = request.game,
+			.projectPath = request.projectPath,
+			.modDirectory = request.modDirectory,
+			.projectSources = request.projectSources
+			});
+		if (resp.error) {
+			return dap::Error(resp.error);
+		}
+		return dap::ResponseOrError<dap::LaunchResponse>();
+	}
+
 
 	dap::ResponseOrError<dap::AttachResponse> PapyrusDebugger::Attach(const dap::PDSAttachRequest& request)
 	{
@@ -551,6 +571,8 @@ namespace DarkId::Papyrus::DebugServer
 				}
 			}
 		}
+		// TODO: Make this check to see if we've loaded any scripts from the project
+		// and if not, emit a message to the user that no project scripts have been loaded
 		return response;
 	}
 }

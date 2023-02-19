@@ -79,7 +79,7 @@ extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
 	return v;
 }();
 #endif
-#define _PAUSE_ON_START 1
+//#define _PAUSE_ON_START 1
 
 extern "C"
 {

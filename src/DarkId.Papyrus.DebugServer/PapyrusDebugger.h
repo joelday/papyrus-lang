@@ -52,6 +52,7 @@ namespace DarkId::Papyrus::DebugServer
 
 		int GetLastStoppedThreadId()  { return 0; }
 		dap::ResponseOrError<dap::InitializeResponse> Initialize(const dap::InitializeRequest& request);
+		dap::ResponseOrError<dap::LaunchResponse> Launch(const dap::PDSLaunchRequest& request);
 		dap::ResponseOrError<dap::AttachResponse> Attach(const dap::PDSAttachRequest& request);
 		dap::ResponseOrError<dap::ContinueResponse> Continue(const dap::ContinueRequest& request) ;
 		dap::ResponseOrError<dap::PauseResponse> Pause(const dap::PauseRequest& request) ;

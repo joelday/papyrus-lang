@@ -30,7 +30,14 @@ namespace DarkId::Papyrus::DebugServer
 #endif
 		bool hasDebugInfo = binary->getDebugInfo().getFunctionInfos().size() > 0;
 		if (!hasDebugInfo) {
-			return dap::Error("Could not find PEX data for script %s", scriptName);
+
+#if FALLOUT
+			const std::string gameName = "Fallout4";
+#else
+			const std::string gameName = "Skyrim"
+#endif
+
+			return dap::Error("No debug data for script %s. Ensure that `bLoadDebugInformation=1` is set under `[Papyrus]` in %s.ini", scriptName, gameName);
 		}
 
 		for (const auto& srcBreakpoint : srcBreakpoints)
