@@ -84,7 +84,7 @@
                 </dict>
                 <dict>
                     <key>match</key>
-                    <string>(?i)(conditional|default|hidden|native|const)</string>
+                    <string>(?i)(?:\s+|(?&lt;=/;))(conditional|default|hidden|native|const)(?=\s|;|$)</string>
                     <key>name</key>
                     <string>keyword.language.script-flag.papyrus</string>
                 </dict>
@@ -335,6 +335,10 @@
             <key>include</key>
             <string>#builtin-funcs</string>
         </dict>
+        <dict>
+            <key>include</key>
+            <string>#newline-escape</string>
+        </dict>
     </array>
     <key>repository</key>
     <dict>
@@ -371,12 +375,33 @@
         </dict>
         <key>quoted-string</key>
         <dict>
+            <key>name</key>
+            <string>string.quoted.double.papyrus</string>
             <key>begin</key>
             <string>&quot;</string>
             <key>end</key>
-            <string>&quot;</string>
+            <string>[&quot;\n]</string>
+            <key>patterns</key>
+            <array>
+              <dict>
+                <key>include</key>
+                <string>#string-character-escape</string>
+              </dict>
+            </array>
+        </dict>
+        <key>string-character-escape</key>
+        <dict>
             <key>name</key>
-            <string>string.quoted.double.papyrus</string>
+            <string>constant.character.escape.papyrus</string>
+            <key>match</key>
+            <string>\\[nt\\&quot;]?</string>
+        </dict>
+        <key>newline-escape</key>
+        <dict>
+            <key>match</key>
+            <string>\\(?=\s*\n)</string>
+            <key>name</key>
+            <string>constant.character.escape.papyrus</string>
         </dict>
         <key>params</key>
         <dict>
@@ -413,6 +438,10 @@
                     </dict>
                     <key>name</key>
                     <string>meta.parameter.papyrus</string>
+                </dict>
+                <dict>
+                    <key>include</key>
+                    <string>#newline-escape</string>
                 </dict>
                 <dict>
                     <key>match</key>
