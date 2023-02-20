@@ -403,8 +403,125 @@
             <key>name</key>
             <string>constant.character.escape.papyrus</string>
         </dict>
-        <key>params</key>
+        <key>parameter-start-comma</key>
         <dict>
+            <key>match</key>
+            <string>,\s*([\w\[\]:]+)\s+(\w+)\b(?:\s*(=))?</string>
+            <key>captures</key>
+            <dict>
+                <key>1</key>
+                <dict>
+                    <key>name</key>
+                    <string>storage.type.variable.papyrus</string>
+                </dict>
+                <key>2</key>
+                <dict>
+                    <key>name</key>
+                    <string>variable.parameter.papyrus</string>
+                </dict>
+                <key>3</key>
+                <dict>
+                    <key>name</key>
+                    <string>keyword.operator.assignment.papyrus</string>
+                </dict>
+            </dict>
+            <key>name</key>
+            <string>meta.parameter.papyrus</string>
+        </dict>
+        <key>parameter-start-pattern</key>
+        <dict>
+            <key>match</key>
+            <string>\G\s*([\w\[\]:]+)\s+(\w+)\b(?:\s*(=))?</string>
+            <key>captures</key>
+            <dict>
+                <key>1</key>
+                <dict>
+                    <key>name</key>
+                    <string>storage.type.variable.papyrus</string>
+                </dict>
+                <key>2</key>
+                <dict>
+                    <key>name</key>
+                    <string>variable.parameter.papyrus</string>
+                </dict>
+                <key>3</key>
+                <dict>
+                    <key>name</key>
+                    <string>keyword.operator.assignment.papyrus</string>
+                </dict>
+            </dict>
+            <key>name</key>
+            <string>meta.parameter.papyrus</string>
+        </dict>
+        <key>parameter-comma-at-start</key>
+        <dict>
+            <key>match</key>
+            <string>\G\s*,</string>
+            <key>name</key>
+            <string>invalid.illegal.function.papyrus</string>
+        </dict>
+        <key>parameter-newline-escape-with-comma</key>
+        <dict>
+            <key>begin</key>
+            <string>,\s*(\\)\s*\n</string>
+            <key>beginCaptures</key>
+            <dict>
+                <key>1</key>
+                <dict>
+                    <key>name</key>
+                    <string>constant.character.escape.papyrus</string>
+                </dict>
+            </dict>
+            <key>end</key>
+            <string>\n|(?=,\s*\\|\\|\))</string>
+            <key>name</key>
+            <string>meta.function.escapedline.comma.papyrus</string>
+            <key>patterns</key>
+            <array>
+                <dict>
+                    <key>include</key>
+                    <string>#parameter-comma-at-start</string>
+                </dict>
+                <dict>
+                    <key>include</key>
+                    <string>#constants</string>
+                </dict>
+                <dict>
+                    <key>include</key>
+                    <string>#quoted-string</string>
+                </dict>
+                <dict>
+                    <key>include</key>
+                    <string>#parameter-start-comma</string>
+                </dict>
+                <dict>
+                    <key>include</key>
+                    <string>#parameter-start-pattern</string>
+                </dict>
+                <dict>
+                    <key>match</key>
+                    <string>[^\s\)]+</string>
+                    <key>name</key>
+                    <string>invalid.illegal.function.papyrus</string>
+                </dict>
+            </array>
+        </dict>
+        <key>parameter-newline-escape-without-comma</key>
+        <dict>
+            <key>begin</key>
+            <string>(\\)\s*\n</string>
+            <key>beginCaptures</key>
+            <dict>
+                <key>1</key>
+                <dict>
+                    <key>name</key>
+                    <string>constant.character.escape.papyrus</string>
+                </dict>
+            </dict>
+            <key>end</key>
+            <string>\n|(?=,\s*\\|\\|\))</string>
+            <key>name</key>
+            <string>meta.function.escapedline.nocomma.papyrus</string>
             <key>patterns</key>
             <array>
                 <dict>
@@ -416,36 +533,52 @@
                     <string>#quoted-string</string>
                 </dict>
                 <dict>
+                    <key>include</key>
+                    <string>#parameter-start-comma</string>
+                </dict>
+                <dict>
                     <key>match</key>
-                    <string>(?:\G\s*|,\s*)([\w\[\]:]+)\s+(\w+)\b(?:\s*(=))?</string>
-                    <key>captures</key>
-                    <dict>
-                        <key>1</key>
-                        <dict>
-                            <key>name</key>
-                            <string>storage.type.variable.papyrus</string>
-                        </dict>
-                        <key>2</key>
-                        <dict>
-                            <key>name</key>
-                            <string>variable.parameter.papyrus</string>
-                        </dict>
-                        <key>3</key>
-                        <dict>
-                            <key>name</key>
-                            <string>keyword.operator.assignment.papyrus</string>
-                        </dict>
-                    </dict>
+                    <string>[^\s\)]+</string>
                     <key>name</key>
-                    <string>meta.parameter.papyrus</string>
+                    <string>invalid.illegal.function.papyrus</string>
+                </dict>
+            </array>
+        </dict>
+        <key>params</key>
+        <dict>
+            <key>patterns</key>
+            <array>
+                <dict>
+                    <key>include</key>
+                    <string>#parameter-comma-at-start</string>
                 </dict>
                 <dict>
                     <key>include</key>
-                    <string>#newline-escape</string>
+                    <string>#constants</string>
+                </dict>
+                <dict>
+                    <key>include</key>
+                    <string>#quoted-string</string>
+                </dict>
+                <dict>
+                    <key>include</key>
+                    <string>#parameter-start-comma</string>
+                </dict>
+                <dict>
+                    <key>include</key>
+                    <string>#parameter-start-pattern</string>
+                </dict>
+                <dict>
+                    <key>include</key>
+                    <string>#parameter-newline-escape-with-comma</string>
+                </dict>
+                <dict>
+                    <key>include</key>
+                    <string>#parameter-newline-escape-without-comma</string>
                 </dict>
                 <dict>
                     <key>match</key>
-                    <string>[^\s\)]+?</string>
+                    <string>^.+|[^\s\)]+?</string>
                     <key>name</key>
                     <string>invalid.illegal.function.papyrus</string>
                 </dict>
