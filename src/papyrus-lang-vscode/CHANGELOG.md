@@ -1,3 +1,10 @@
+# [3.2.0](https://github.com/joelday/papyrus-lang/compare/v3.1.1...v3.2.0) (2023-03-15)
+
+
+### Features
+
+* Support Multi-Line and String Escapes ([#175](https://github.com/joelday/papyrus-lang/issues/175)) ([13fe286](https://github.com/joelday/papyrus-lang/commit/13fe2861912ee26ba45cbec9b873359c82a0dbda))
+
 ## [3.1.1](https://github.com/joelday/papyrus-lang/compare/v3.1.0...v3.1.1) (2023-02-05)
 
 
