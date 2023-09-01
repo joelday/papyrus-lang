@@ -2,7 +2,7 @@
   "registries": [
     {
       "kind": "git",
-      "baseline": "ef8d43afe4d26e842de3d034bff1081cb7990f07",
+      "baseline": "eb2f2bd143b8f7c52b57ef5a822163b56f7be7d6",
       "repository": "https://gitlab.com/colorglass/vcpkg-colorglass/",
       "packages": [
         "commonlibsse-ng",
@@ -11,6 +11,6 @@
     }
   ],
   "overlay-ports": [
-    "./dependencies/ports"
+    "F:\\workspace\\skyrim-mod-workspace\\papyrus-lang\\./dependencies/ports"
   ]
 }

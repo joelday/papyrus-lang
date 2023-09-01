@@ -1,26 +1,26 @@
 {
-    "name": "commonlibf4",
-    "version-string": "2022-12-24",
-    "description": "A reverse engineered resource for developing F4SE plugins for Fallout 4",
-    "homepage": "https://github.com/Ryan-rsm-McKenzie/CommonLibF4",
-    "license": "MIT",
-    "supports": "windows & x64",
-    "port-version": 0,
-    "dependencies": [
-      "args",
-      "boost-stl-interfaces",
-      "catch2",
-      "fmt",
-      "frozen",
-      "nowide",
-      "robin-hood-hashing",
-      "rsm-mmio",
-      "srell",
-      "spdlog",
-      "xbyak",
-      {
-        "name": "vcpkg-cmake-config",
-        "host": true
-      }
-    ]
+  "name": "commonlibf4",
+  "version-string": "2023.1.5",
+  "description": "A reverse engineered resource for developing F4SE plugins for Fallout 4",
+  "homepage": "https://github.com/Ryan-rsm-McKenzie/CommonLibF4",
+  "license": "MIT",
+  "supports": "windows & x64",
+  "port-version": 0,
+  "dependencies": [
+    "args",
+    "boost-stl-interfaces",
+    "catch2",
+    "fmt",
+    "frozen",
+    "nowide",
+    "robin-hood-hashing",
+    "rsm-mmio",
+    "srell",
+    "spdlog",
+    "xbyak",
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ]
 }
