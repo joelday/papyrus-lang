@@ -8,16 +8,6 @@ namespace dap{
   
   // Extended AttachRequest struct for implementation specific parameters
 
-  struct PDSLaunchOrAttach {
-        string name;
-        string type;
-        string request;
-        string game;
-        optional<string> projectPath;
-        optional<string> modDirectory;
-        optional<array<Source>> projectSources;
-  };
-
   struct PDSAttachRequest : public AttachRequest {
     using Response = AttachResponse;
     string name;

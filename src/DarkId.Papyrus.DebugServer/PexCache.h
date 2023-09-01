@@ -15,11 +15,11 @@ namespace DarkId::Papyrus::DebugServer
 		PexCache() = default;
 
 		bool HasScript(int scriptReference);
-		bool HasScript(const char* scriptName);
+		bool HasScript(const std::string & scriptName);
 
-		std::shared_ptr<Pex::Binary> GetScript(const char* scriptName);
-		bool GetDecompiledSource(const char* scriptName, std::string& decompiledSource);
-		bool GetSourceData(const char* scriptName, dap::Source& data);
+		std::shared_ptr<Pex::Binary> GetScript(const std::string & scriptName);
+		bool GetDecompiledSource(const std::string & scriptName, std::string& decompiledSource);
+		bool GetSourceData(const std::string &scriptName, dap::Source& data);
 		void Clear();
 	private:
 		std::mutex m_scriptsMutex;

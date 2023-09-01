@@ -15,7 +15,7 @@
 
 namespace DarkId::Papyrus::DebugServer
 {
-	bool ReadPexResource(const char* scriptName, std::ostream& stream)
+	bool ReadPexResource(const std::string& scriptName, std::ostream& stream)
 	{
 		auto scriptPath = "Scripts/" + ScriptNameToPEXPath(scriptName);
 		RE::BSResourceNiBinaryStream scriptStream(scriptPath);
@@ -33,12 +33,6 @@ namespace DarkId::Papyrus::DebugServer
 		else {
 			// BSResourceNiBinaryStream(scriptPath) doesn't pick up loose PEX files in Fallout, have to use this to do so.
 			auto rescanStream = RE::BSResourceNiBinaryStream::BinaryStreamWithRescan(scriptPath.c_str());
-			//if (!rescanStream->good()) {
-			//	// Creation Club?
-			//	delete rescanStream;
-			//	scriptPath = std::string(NormalizeScriptName(scriptName) + ".pex");
-			//	rescanStream = RE::BSResourceNiBinaryStream::BinaryStreamWithRescan(scriptPath.c_str());
-			//}
 			if (rescanStream->good())
 			{
 				char byte;
@@ -54,7 +48,8 @@ namespace DarkId::Papyrus::DebugServer
 		return good;
 	}
 
-	bool LoadAndDumpPexData(const char* scriptName, std::string outputDir) {
+
+	bool LoadAndDumpPexData(const std::string& scriptName, std::string outputDir) {
 		std::stringstream buffer;
 
 		if (!ReadPexResource(scriptName, buffer))
@@ -78,10 +73,12 @@ namespace DarkId::Papyrus::DebugServer
 			output.put(byte);
 		}
 		output.close();
+		Pex::Binary thing;
+		auto athing = LoadPexData(scriptName, thing);
 		return true;
 	}
 
-	bool LoadPexData(const char* scriptName, Pex::Binary& binary)
+	bool LoadPexData(const std::string& scriptName, Pex::Binary& binary)
 	{
 		std::stringstream buffer;
 

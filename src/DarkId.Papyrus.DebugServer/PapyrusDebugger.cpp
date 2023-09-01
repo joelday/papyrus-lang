@@ -235,8 +235,8 @@ namespace DarkId::Papyrus::DebugServer
 			{
 				// TODO: Not in use, just for debugging reference.
 				auto srcFileName = stack->top->owningFunction->GetSourceFilename().c_str();
-				auto scriptName = NormalizeScriptName(stack->top->owningObjectType->GetName());
-				CheckSourceLoaded(scriptName.c_str());
+				const auto scriptName = NormalizeScriptName(stack->top->owningObjectType->GetName());
+				CheckSourceLoaded(scriptName);
 			}
 		});
 	}
@@ -259,8 +259,7 @@ namespace DarkId::Papyrus::DebugServer
 		m_executionManager->HandleInstruction(tasklet, opcode);
 	}
 
-	void PapyrusDebugger::CheckSourceLoaded(const char* scriptName) const
-	{
+	void PapyrusDebugger::CheckSourceLoaded(const std::string &scriptName) const{
 		if (!m_pexCache->HasScript(scriptName))
 		{
 			dap::Source source;
@@ -327,9 +326,11 @@ namespace DarkId::Papyrus::DebugServer
 		}
 		for (auto src : request.projectSources.value(std::vector<dap::Source>())) {
 			auto ref = GetSourceReference(src);
-			if (ref < 0) { // no source name, we'll ignore it
+			if (ref < 0) { // no source ref or name, we'll ignore it
 				continue;
 			}
+			// Don't set the reference on the source or the debugger will attempt to get the source from us
+			// Just put it in the project sources
 			m_projectSources[ref] = src;
 		}
 		return dap::AttachResponse();
@@ -396,9 +397,14 @@ namespace DarkId::Papyrus::DebugServer
 		auto ref = GetSourceReference(source);
 		if (m_projectSources.find(ref) != m_projectSources.end()) {
 			if (!CompareSourceModifiedTime(request.source, m_projectSources[ref])) {
-				return dap::Error("Script has been modified after load");
+				return dap::Error("Setting Breakpoints failed: script has been modified after load");
 			}
 			source = m_projectSources[ref];
+		} else if (ref > 0){
+			// It's not part of the project's imported sources, they have to get the decompiled source from us,
+			// So we set sourceReference to make the debugger request the source from us
+			// TODO: Enable this when we start loading the project's sources
+			// source.sourceReference = ref;
 		}
 		return m_breakpointManager->SetBreakpoints(source, request.breakpoints.value(std::vector<dap::SourceBreakpoint>()));
 	}
@@ -539,7 +545,7 @@ namespace DarkId::Papyrus::DebugServer
 		}
 		std::string name = request.source.value().name.value();
 		dap::SourceResponse response;
-		if (m_pexCache->GetDecompiledSource(name.c_str(), response.content)) {
+		if (m_pexCache->GetDecompiledSource(name, response.content)) {
 			return response;
 		}
 		return dap::Error("Could not find source " + name);
@@ -555,14 +561,13 @@ namespace DarkId::Papyrus::DebugServer
 		{
 			dap::Source source;
 			std::string scriptName = script.first.c_str();
-			if (m_pexCache->GetSourceData(scriptName.c_str(), source))
+			if (m_pexCache->GetSourceData(scriptName, source))
 			{
 				auto ref = GetSourceReference(source);
 				// TODO: Get the modified times from the unlinked objects?
 				if (m_projectSources.find(ref) != m_projectSources.end()) {
 					response.sources.push_back(m_projectSources[ref]);
-				}
-				else {
+				} else {
 					response.sources.push_back(source);
 				}
 			}

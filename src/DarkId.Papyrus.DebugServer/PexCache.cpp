@@ -13,16 +13,15 @@ namespace DarkId::Papyrus::DebugServer
 	bool PexCache::HasScript(const int scriptReference)
 	{
 		std::lock_guard<std::mutex> scriptLock(m_scriptsMutex);
-		
+
 		return m_scripts.find(scriptReference) != m_scripts.end();
 	}
-
-	bool PexCache::HasScript(const char* scriptName)
+	bool PexCache::HasScript(const std::string& scriptName)
 	{
 		return HasScript(GetScriptReference(scriptName));
 	}
-	
-	std::shared_ptr<Pex::Binary> PexCache::GetScript(const char* scriptName)
+
+	std::shared_ptr<Pex::Binary> PexCache::GetScript(const std::string& scriptName)
 	{
 		std::lock_guard<std::mutex> scriptLock(m_scriptsMutex);
 		uint32_t reference = GetScriptReference(scriptName);
@@ -41,7 +40,7 @@ namespace DarkId::Papyrus::DebugServer
 		return entry != m_scripts.end() ? entry->second : nullptr;
 	}
 
-	bool PexCache::GetDecompiledSource(const char* scriptName, std::string& decompiledSource)
+	bool PexCache::GetDecompiledSource(const std::string& scriptName, std::string& decompiledSource)
 	{
 		const auto binary = this->GetScript(scriptName);
 		if (!binary)
@@ -59,9 +58,9 @@ namespace DarkId::Papyrus::DebugServer
 		return true;
 	}
 
-	bool PexCache::GetSourceData(const char* scriptName, dap::Source& data)
+	bool PexCache::GetSourceData(const std::string& scriptName, dap::Source& data)
 	{
-		const auto sourceReference = GetScriptReference(scriptName);
+		const int sourceReference = GetScriptReference(scriptName);
 
 		auto binary = GetScript(scriptName);
 		if (!binary)
@@ -79,6 +78,7 @@ namespace DarkId::Papyrus::DebugServer
 		data.sourceReference = sourceReference;
 		return true;
 	}
+
 	void PexCache::Clear() {
 		std::lock_guard<std::mutex> scriptLock(m_scriptsMutex);
 		m_scripts.clear();

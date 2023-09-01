@@ -113,26 +113,21 @@ namespace DarkId::Papyrus::DebugServer
 		boost::algorithm::replace_all(name, "\\\\", "/");
 		boost::algorithm::replace_all(name, "/", ":");
 		boost::algorithm::replace_all(name, ".psc", "");
-		ToLower(name);
-		//std::regex_replace(std::regex_replace(std::regex_replace(name, std::regex("\\\\"), "/"), std::regex("\\.psc"), ""), std::regex("/"), ":")
 		return name;
 	}
+
 	inline std::string ScriptNameToPathPrefix(std::string name) {
-		// TODO: We really need to stop relying on the file name in the compiled script header for the source name. This is just for testing.
-		// Most Fallout4 scripts will not be found.
-		// Get it from pyro?
-		//F:\\Games\\fallout_4_mods_folder\\mods\\Auto Loot\\scripts\\Source\\User\\AutoLoot\\dubhAutoLootQuestScript
-		//name = std::regex_replace(name, std::regex("[fF]:\\\\Games\\\\fallout_4_mods_folder\\\\mods\\\\Auto Loot\\\\Scripts\\\\Source\\\\User\\\\"), "");
-		//name = std::regex_replace(name, std::regex("[Gg]:\\\\_F4(\\\\[\\w\\d_]+)?\\\\Art\\\\Raw\\\\Scripts\\\\"), "");
 		boost::algorithm::replace_all(name, ":", "/");
 		return name;
 	}
+
 	inline std::string ScriptNameToPSCPath(std::string name) {
 		name = ScriptNameToPathPrefix(name);
 		boost::algorithm::replace_all(name, ".psc", "");
 		boost::algorithm::replace_all(name, ".pex", "");
 		return name + ".psc";
 	}
+
 	inline std::string ScriptNameToPEXPath(std::string name) {
 		name = ScriptNameToPathPrefix(name);
 		boost::algorithm::replace_all(name, ".psc", "");
@@ -150,7 +145,10 @@ namespace DarkId::Papyrus::DebugServer
 	}
 
 	inline int GetSourceReference(const dap::Source& src) {
-		// Ignore the "sourceReference" field on the src, current vscode versions don't accept or set it
+		// If the source reference <= 0, it's invalid
+		if (src.sourceReference.value(0) > 0) {
+			return static_cast<int>(src.sourceReference.value());
+		}
 		if (!src.name.has_value()) {
 			return -1;
 		}

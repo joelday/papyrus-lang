@@ -75,8 +75,7 @@ namespace DarkId::Papyrus::DebugServer
 		{
 			return false;
 		}
-		const auto scriptName = tasklet->topFrame->owningObjectType->GetName();
-		const auto sourceReference = GetScriptReference(scriptName);
+		const auto sourceReference = GetScriptReference(tasklet->topFrame->owningObjectType->GetName());
 		
 		if (m_breakpoints.find(sourceReference) != m_breakpoints.end())
 		{
