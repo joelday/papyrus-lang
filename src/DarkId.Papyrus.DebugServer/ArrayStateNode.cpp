@@ -112,7 +112,7 @@ namespace DarkId::Papyrus::DebugServer
 			return true;
 		}
 		
-		for (auto i = 0; i < m_value->size(); i++)
+		for (uint32_t i = 0; i < m_value->size(); i++)
 		{
 			names.push_back(std::to_string(i));
 		}
@@ -132,8 +132,7 @@ namespace DarkId::Papyrus::DebugServer
 		{
 			return false;
 		}
-
-		if (elementIndex < 0 || elementIndex > m_value->size() - 1)
+		if (elementIndex < 0 || ((uint32_t)elementIndex) > m_value->size() - 1)
 		{
 			return false;
 		}

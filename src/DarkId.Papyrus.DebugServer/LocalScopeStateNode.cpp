@@ -31,7 +31,7 @@ namespace DarkId::Papyrus::DebugServer
 			names.push_back("self");
 		}
 
-		for (auto i = 0; i < m_stackFrame->owningFunction->GetStackFrameSize(); i++)
+		for (uint32_t i = 0; i < m_stackFrame->owningFunction->GetStackFrameSize(); i++)
 		{
 			RE::BSFixedString varName;
 			m_stackFrame->owningFunction->GetVarNameForStackIndex(i, varName);
@@ -56,7 +56,7 @@ namespace DarkId::Papyrus::DebugServer
 			return true;
 		}
 
-		for (auto i = 0; i < m_stackFrame->owningFunction->GetStackFrameSize(); i++)
+		for (uint32_t i = 0; i < m_stackFrame->owningFunction->GetStackFrameSize(); i++)
 		{
 			RE::BSFixedString varName;
 			m_stackFrame->owningFunction->GetVarNameForStackIndex(i, varName);

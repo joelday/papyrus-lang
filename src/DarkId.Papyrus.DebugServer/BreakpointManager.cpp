@@ -7,17 +7,18 @@
 #endif
 namespace DarkId::Papyrus::DebugServer
 {
-	dap::ResponseOrError<dap::SetBreakpointsResponse> BreakpointManager::SetBreakpoints(const dap::Source& src, const std::vector<dap::SourceBreakpoint>& srcBreakpoints)
+	dap::ResponseOrError<dap::SetBreakpointsResponse> BreakpointManager::SetBreakpoints(const dap::Source& source, const std::vector<dap::SourceBreakpoint>& srcBreakpoints)
 	{
 		dap::SetBreakpointsResponse response;
 		std::set<int> breakpointLines;
-		dap::Source source = src;
 		auto scriptName = NormalizeScriptName(source.name.value(""));
 		auto binary = m_pexCache->GetScript(scriptName.c_str());
 		if (!binary) {
 			return dap::Error("Could not find PEX data for script %s", scriptName);
 		}
-		source.sourceReference = GetSourceReference(source);
+		auto ref = GetSourceReference(source);
+		// don't bother setting this
+		//source.sourceReference = dap::integer(ref);
 
 #if _DEBUG_DUMP_PEX
 		std::string dir = logger::log_directory().value_or("").string();
@@ -42,7 +43,7 @@ namespace DarkId::Papyrus::DebugServer
 		for (const auto& srcBreakpoint : srcBreakpoints)
 		{
 			auto foundLine = false;
-
+			int line = static_cast<int>(srcBreakpoint.line);
 			if (binary)
 			{
 				for (auto & functionInfo : binary->getDebugInfo().getFunctionInfos())
@@ -54,7 +55,7 @@ namespace DarkId::Papyrus::DebugServer
 
 					for (auto lineNumber : functionInfo.getLineNumbers())
 					{
-						if (srcBreakpoint.line == lineNumber)
+						if (line == static_cast<int>(lineNumber))
 						{
 							foundLine = true;
 							break;
@@ -63,16 +64,16 @@ namespace DarkId::Papyrus::DebugServer
 				}
 			}
 
-			breakpointLines.emplace(srcBreakpoint.line);
+			breakpointLines.emplace(line);
 
 			response.breakpoints.push_back(dap::Breakpoint{
-				.line = srcBreakpoint.line,
+				.line = dap::integer(line),
 				.source = source,
 				.verified = foundLine,
 				});
 		}
 
-		m_breakpoints[source.sourceReference.value()] = breakpointLines;
+		m_breakpoints[ref] = breakpointLines;
 		return response;
 	}
 	void BreakpointManager::ClearBreakpoints() {

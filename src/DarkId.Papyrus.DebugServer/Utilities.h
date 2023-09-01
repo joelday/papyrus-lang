@@ -113,6 +113,7 @@ namespace DarkId::Papyrus::DebugServer
 		boost::algorithm::replace_all(name, "\\\\", "/");
 		boost::algorithm::replace_all(name, "/", ":");
 		boost::algorithm::replace_all(name, ".psc", "");
+		ToLower(name);
 		//std::regex_replace(std::regex_replace(std::regex_replace(name, std::regex("\\\\"), "/"), std::regex("\\.psc"), ""), std::regex("/"), ":")
 		return name;
 	}
@@ -145,17 +146,15 @@ namespace DarkId::Papyrus::DebugServer
 		std::string name = NormalizeScriptName(scriptName);
 		std::transform(name.begin(), name.end(), name.begin(), ::tolower);
 
-		return std::abs(XSE::stl::unrestricted_cast<int>(hasher(name))) + 1;
+		return std::abs(static_cast<int>(hasher(name))) + 1;
 	}
 
 	inline int GetSourceReference(const dap::Source& src) {
-		return src.sourceReference.value( // try Source's set sourceReference first
-			GetScriptReference( // if not present, run the hasher on the source's filename
-				src.name.value( 
-					std::filesystem::path(
-						src.path.value("")
-					).filename().string()  // empty string if src.path isn't set
-			))); // will end up returning 0 if path isn't set, which is what we want
+		// Ignore the "sourceReference" field on the src, current vscode versions don't accept or set it
+		if (!src.name.has_value()) {
+			return -1;
+		}
+		return GetScriptReference(src.name.value());
 	}
 
 	inline std::string GetSourceModfiedTime(const dap::Source & src) {

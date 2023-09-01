@@ -42,7 +42,7 @@ namespace DarkId::Papyrus::DebugServer
       };
 
 		auto onError = [&](const char* msg) { 
-            logger::error("Server error: %s\n", msg); 
+            logger::error("Server error: {}\n", msg); 
         };
 
 		m_server.start(port, onClientConnected, onError);
