@@ -8,8 +8,9 @@ namespace DarkId::Papyrus::DebugServer
 	namespace Game_Offset {
 #ifdef SKYRIM
 		// Where the bEnableLogging skyrim.ini setting is stored; this is overwritten when the ini is loaded
-		constexpr auto pPapyrusEnableLogging = RELOCATION_ID(510627, 383715); // 1.5.97: 141DF5AE8,   1.6.640: 141E88DC8
-		constexpr auto pPapyrusEnableTrace = RELOCATION_ID(510667, 383766);   // 1.5.97: 141DF5C60,   1.6.640: 141E88F88
+		constexpr auto pPapyrusEnableLogging = RELOCATION_ID(510627, 383715);        // 1.5.97: 141DF5AE8,   1.6.640: 141E88DC8
+		constexpr auto pPapyrusEnableTrace = RELOCATION_ID(510667, 383766);          // 1.5.97: 141DF5C60,   1.6.640: 141E88F88
+		constexpr auto pPapyrusLoadDebugInformation = RELOCATION_ID(510650, 383743); // 1.5.97: 141DF5BC0,   1.6.640: 141E88EA0
 
 #else // FALLOUT
 		// Where the bEnableLogging fallout4.ini setting is stored; this is overwritten when the ini is loaded
