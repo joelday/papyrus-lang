@@ -22,11 +22,7 @@ namespace DarkId::Papyrus::DebugServer
 		if (pexCache->GetSourceData(ScriptName.c_str(), source))
 		{
 			stackFrame.source = source;
-			#if SKYRIM
-			uint32_t ip = m_stackFrame->instructionPointer;
-			#else // FALLOUT
-			uint32_t ip = m_stackFrame->ip;
-			#endif
+			uint32_t ip = m_stackFrame->STACK_FRAME_IP;
 			uint32_t lineNumber;
 			if (m_stackFrame->owningFunction->TranslateIPToLineNumber(ip, lineNumber))
 			{

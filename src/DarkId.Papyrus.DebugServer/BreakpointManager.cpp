@@ -17,18 +17,6 @@ namespace DarkId::Papyrus::DebugServer
 			return dap::Error("Could not find PEX data for script %s", scriptName);
 		}
 		auto ref = GetSourceReference(source);
-		// don't bother setting this
-		//source.sourceReference = dap::integer(ref);
-
-#if _DEBUG_DUMP_PEX
-		std::string dir = logger::log_directory().value_or("").string();
-		if (dir.empty()) {
-			logger::error("Failed to open log directory, PEX will not be dumped");
-		}
-		else if (!LoadAndDumpPexData(scriptName.c_str(), dir)) {
-			logger::error("Could not save PEX dump for {}"sv, scriptName);
-		}
-#endif
 		bool hasDebugInfo = binary->getDebugInfo().getFunctionInfos().size() > 0;
 		if (!hasDebugInfo) {
 
@@ -96,11 +84,7 @@ namespace DarkId::Papyrus::DebugServer
 			if (!breakpointLines.empty())
 			{
 				uint32_t currentLine;
-				#ifdef SKYRIM
-				bool success = func->TranslateIPToLineNumber(tasklet->topFrame->instructionPointer, currentLine);
-				#else // FAllOUT
-				bool success = func->TranslateIPToLineNumber(tasklet->topFrame->ip, currentLine);
-				#endif
+				bool success = func->TranslateIPToLineNumber(tasklet->topFrame->STACK_FRAME_IP, currentLine);
 				auto found = breakpointLines.find(currentLine);
 				return success && found != breakpointLines.end();
 			}

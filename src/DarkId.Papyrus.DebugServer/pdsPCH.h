@@ -17,6 +17,7 @@ namespace DarkId::Papyrus::DebugServer
   namespace XSE = SKSE;
   namespace logger = SKSE::log;
 }
+#define STACK_FRAME_IP instructionPointer
 namespace XSE = SKSE;
 
 #elif FALLOUT
@@ -36,6 +37,7 @@ namespace DarkId::Papyrus::DebugServer
   namespace XSE = F4SE;
   namespace logger = F4SE::log;
 }
+#define STACK_FRAME_IP ip
 namespace XSE = F4SE;
 #endif
 
