@@ -4,13 +4,8 @@
       "kind": "git",
       "baseline": "eb2f2bd143b8f7c52b57ef5a822163b56f7be7d6",
       "repository": "https://gitlab.com/colorglass/vcpkg-colorglass/",
-      "packages": [
-        "commonlibsse-ng",
-        "script-extender-common"
-      ]
+      "packages": ["script-extender-common"]
     }
   ],
-  "overlay-ports": [
-    "F:\\workspace\\skyrim-mod-workspace\\papyrus-lang\\./dependencies/ports"
-  ]
+  "overlay-ports": ["./dependencies/ports"]
 }
