@@ -67,7 +67,7 @@ namespace DarkId::Papyrus::DebugServer
 	void BreakpointManager::ClearBreakpoints() {
 		m_breakpoints.clear();
 	}
-	bool BreakpointManager::GetExecutionIsAtValidBreakpoint(RE::BSScript::Internal::CodeTasklet* tasklet)
+	bool BreakpointManager::GetExecutionIsAtValidBreakpoint(RE::BSScript::Internal::CodeTasklet* tasklet, uint32_t actualIP)
 	{
 		auto & func = tasklet->topFrame->owningFunction;
 
@@ -83,9 +83,11 @@ namespace DarkId::Papyrus::DebugServer
 			if (!breakpointLines.empty())
 			{
 				uint32_t currentLine;
-				bool success = func->TranslateIPToLineNumber(tasklet->topFrame->STACK_FRAME_IP, currentLine);
-				auto found = breakpointLines.find(currentLine);
-				return success && found != breakpointLines.end();
+				bool success = func->TranslateIPToLineNumber(actualIP, currentLine);
+				if (success && breakpointLines.find(currentLine) != breakpointLines.end()) {
+					return true;
+				}
+				return false;
 			}
 		}
 

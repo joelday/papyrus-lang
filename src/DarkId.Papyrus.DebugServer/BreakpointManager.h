@@ -23,6 +23,6 @@ namespace DarkId::Papyrus::DebugServer
 
 		dap::ResponseOrError<dap::SetBreakpointsResponse> SetBreakpoints(const dap::Source& src, const std::vector<dap::SourceBreakpoint>& srcBreakpoints);
 		void ClearBreakpoints();
-		bool GetExecutionIsAtValidBreakpoint(RE::BSScript::Internal::CodeTasklet* tasklet);
+		bool GetExecutionIsAtValidBreakpoint(RE::BSScript::Internal::CodeTasklet* tasklet, uint32_t actualIP);
 	};
 }

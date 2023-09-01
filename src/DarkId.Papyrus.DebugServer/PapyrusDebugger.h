@@ -100,7 +100,7 @@ namespace DarkId::Papyrus::DebugServer
 		void EventLogged(const RE::BSScript::LogEvent* logEvent) const;
 		void StackCreated(RE::BSTSmartPointer<RE::BSScript::Stack>& stack);
 		void StackCleanedUp(uint32_t stackId);
-		void InstructionExecution(CodeTasklet* tasklet, CodeTasklet::OpCode opCode) const;
+		void InstructionExecution(CodeTasklet* tasklet, uint32_t actualIP) const;
 		void CheckSourceLoaded(const std::string &scriptName) const;
 };
 }

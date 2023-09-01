@@ -48,7 +48,7 @@ namespace DarkId::Papyrus::DebugServer
 		}
 
 		void Close();
-		void HandleInstruction(CodeTasklet* tasklet, CodeTasklet::OpCode opCode);
+		void HandleInstruction(CodeTasklet* tasklet, uint32_t actualIP);
 		void Open(std::shared_ptr<dap::Session> ses);
 		bool Continue();
 		bool Pause();

@@ -259,9 +259,9 @@ namespace DarkId::Papyrus::DebugServer
 		});
 	}
 
-	void PapyrusDebugger::InstructionExecution(CodeTasklet* tasklet, CodeTasklet::OpCode opcode) const
+	void PapyrusDebugger::InstructionExecution(CodeTasklet* tasklet, uint32_t actualIP) const
 	{
-		m_executionManager->HandleInstruction(tasklet, opcode);
+		m_executionManager->HandleInstruction(tasklet, actualIP);
 	}
 
 	void PapyrusDebugger::CheckSourceLoaded(const std::string &scriptName) const{
