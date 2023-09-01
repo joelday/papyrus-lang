@@ -128,5 +128,6 @@
     <ClInclude Include="Protocol\websocket_server.h">
       <Filter>Protocol</Filter>
     </ClInclude>
+    <ClInclude Include="ConfigHooks.h" />
   </ItemGroup>
 </Project>

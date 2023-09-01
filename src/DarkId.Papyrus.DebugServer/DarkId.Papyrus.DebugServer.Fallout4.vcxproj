@@ -51,15 +51,15 @@
     <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
     <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
     <PreLinkEventUseInBuild>false</PreLinkEventUseInBuild>
-    <OutDir>$(ProjectDir)bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(ProjectDir)bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
     <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
     <PreLinkEventUseInBuild>false</PreLinkEventUseInBuild>
-    <OutDir>F:\Games\fallout_4_mods_folder\mods\Papyrus Debug Extension\F4SE\Plugins\</OutDir>
+    <OutDir>$(ProjectDir)bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup>
@@ -233,6 +233,7 @@
     <ClInclude Include="DebugServer.h" />
     <ClInclude Include="FormMetadata.h" />
     <ClInclude Include="GameInterfaces.h" />
+    <ClInclude Include="ConfigHooks.h" />
     <ClInclude Include="IdHandleBase.h" />
     <ClInclude Include="IdMap.h" />
     <ClInclude Include="IdProvider.h" />

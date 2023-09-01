@@ -127,6 +127,7 @@
     <ClInclude Include="StructStateNode.h" />
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="version.h" />
+    <ClInclude Include="ConfigHooks.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="version.rc" />

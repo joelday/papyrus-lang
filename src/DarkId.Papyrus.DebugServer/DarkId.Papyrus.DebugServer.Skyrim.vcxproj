@@ -256,6 +256,7 @@
   <ItemGroup>
     <ClInclude Include="ArrayStateNode.h" />
     <ClInclude Include="BreakpointManager.h" />
+    <ClInclude Include="ConfigHooks.h" />
     <ClInclude Include="DebugExecutionManager.h" />
     <ClInclude Include="DebugServer.h" />
     <ClInclude Include="FormMetadata.h" />

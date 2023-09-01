@@ -1,6 +1,7 @@
 #pragma once
-#if SKYRIM
+
 #define SPDLOG_LEVEL_NAMES { "TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "OFF" }
+#if SKYRIM
 #include <SKSE/Impl/PCH.h>
 #undef GetObject // Have to do this because PCH pulls in spdlog->winbase.h->windows.h->wingdi.h, which redfines GetObject
 #undef GetObjectA
@@ -16,7 +17,7 @@ namespace DarkId::Papyrus::DebugServer
   namespace XSE = SKSE;
   namespace logger = SKSE::log;
 }
-#define DLLEXPORT __declspec(dllexport)
+namespace XSE = SKSE;
 
 #elif FALLOUT
 
@@ -35,6 +36,20 @@ namespace DarkId::Papyrus::DebugServer
   namespace XSE = F4SE;
   namespace logger = F4SE::log;
 }
-#define DLLEXPORT __declspec(dllexport)
-
+namespace XSE = F4SE;
 #endif
+
+namespace stl {
+	using namespace XSE::stl;
+
+	template <class T>
+	void write_thunk_call(std::uintptr_t a_src)
+	{
+		auto& trampoline = XSE::GetTrampoline();
+		XSE::AllocTrampoline(14);
+
+		T::func = trampoline.write_call<5>(a_src, T::thunk);
+	}
+}
+
+#define DLLEXPORT __declspec(dllexport)

@@ -18,21 +18,25 @@ namespace XSE = F4SE;
 #include "version.h"  // VERSION_VERSTRING, VERSION_MAJOR
 
 #include "DebugServer.h"
+#include "ConfigHooks.h"
 #include "RuntimeEvents.h"
 using namespace DarkId::Papyrus::DebugServer;
 
 DebugServer* g_debugServer;
 using namespace std::literals;
 
+#ifdef SKYRIM
+    constexpr auto gameLoaded = SKSE::MessagingInterface::kDataLoaded;
+#else
+    constexpr auto gameLoaded = F4SE::MessagingInterface::kGameLoaded;
+#endif
+
+
 void MessageHandler(XSE::MessagingInterface::Message* msg)
 {
 	switch (msg->type)
 	{
-#if SKYRIM
-	case SKSE::MessagingInterface::kDataLoaded :
-#elif FALLOUT
-	case F4SE::MessagingInterface::kGameLoaded :
-#endif
+		case gameLoaded:
 		{
 			RuntimeEvents::Internal::CommitHooks();
 
@@ -147,6 +151,11 @@ extern "C"
 		logger::info("Initializing plugin...");
 		Init(a_xse);
 		logger::info("Plugin Initialized!");
+
+		// We install this hook before any scripts are loaded to ensure that any script loads are done with LoadDebugInformation enabled.
+		logger::info("Installing EnableLoadDebugInformation hook...");
+		EnableLoadDebugInformation::Install();
+		logger::info("Installing EnableLoadDebugInformation hook installed!");
 #if SKYRIM
 		logger::info("Registering Listener...");
 		if (XSE::GetMessagingInterface()->RegisterListener("SKSE", MessageHandler)){
@@ -158,6 +167,7 @@ extern "C"
 		auto messaging = XSE::GetMessagingInterface();
 		messaging->RegisterListener(MessageHandler);
 #endif 
+		g_debugServer->Listen();
 		return true;
 	}
 };

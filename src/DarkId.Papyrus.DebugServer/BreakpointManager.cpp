@@ -32,12 +32,11 @@ namespace DarkId::Papyrus::DebugServer
 		if (!hasDebugInfo) {
 
 #if FALLOUT
-			const std::string gameName = "Fallout4";
+			const std::string iniName = "fallout4.ini";
 #else
-			const std::string gameName = "Skyrim"
+			const std::string iniName = "skyrim.ini";
 #endif
-
-			return dap::Error("No debug data for script %s. Ensure that `bLoadDebugInformation=1` is set under `[Papyrus]` in %s.ini", scriptName, gameName);
+			return dap::Error("No debug data for script %s. Ensure that `bLoadDebugInformation=1` is set under `[Papyrus]` in %s", scriptName, iniName);
 		}
 
 		for (const auto& srcBreakpoint : srcBreakpoints)

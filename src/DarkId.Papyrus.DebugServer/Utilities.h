@@ -149,11 +149,13 @@ namespace DarkId::Papyrus::DebugServer
 	}
 
 	inline int GetSourceReference(const dap::Source& src) {
-		return src.sourceReference.value(
-			GetScriptReference(
-				src.name.value(
-					std::filesystem::path(src.path.value("")).filename().string() // default if name isn't set
-			)));
+		return src.sourceReference.value( // try Source's set sourceReference first
+			GetScriptReference( // if not present, run the hasher on the source's filename
+				src.name.value( 
+					std::filesystem::path(
+						src.path.value("")
+					).filename().string()  // empty string if src.path isn't set
+			))); // will end up returning 0 if path isn't set, which is what we want
 	}
 
 	inline std::string GetSourceModfiedTime(const dap::Source & src) {
