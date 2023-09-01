@@ -61,6 +61,7 @@
     <ClCompile Include="Protocol\websocket_server.cpp">
       <Filter>Protocol</Filter>
     </ClCompile>
+    <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="version.rc" />
@@ -129,5 +130,6 @@
       <Filter>Protocol</Filter>
     </ClInclude>
     <ClInclude Include="ConfigHooks.h" />
+    <ClInclude Include="Window.h" />
   </ItemGroup>
 </Project>

@@ -62,6 +62,7 @@
     <ClCompile Include="PexCache.cpp" />
     <ClCompile Include="RuntimeEvents.cpp" />
     <ClCompile Include="StructStateNode.cpp" />
+    <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ArrayStateNode.h">
@@ -128,6 +129,7 @@
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="version.h" />
     <ClInclude Include="ConfigHooks.h" />
+    <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="version.rc" />

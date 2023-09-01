@@ -1,5 +1,6 @@
 #include "DebugExecutionManager.h"
 #include <thread>
+#include "Window.h"
 
 namespace DarkId::Papyrus::DebugServer
 {
@@ -71,9 +72,9 @@ namespace DarkId::Papyrus::DebugServer
 				}
 			}
 		}
-
+		
 		if (!pauseReason.empty())
-		{
+		{	
 			m_state = DebuggerState::kPaused;
 			m_currentStepStackId = 0;
 			m_currentStepStackFrame = nullptr;
@@ -83,6 +84,7 @@ namespace DarkId::Papyrus::DebugServer
 					.threadId = tasklet->stack->stackID
 					});
 			}
+			Window::ReleaseFocus();
 		}
 		else if (shouldContinue) {
 			m_state = DebuggerState::kRunning;
@@ -100,6 +102,10 @@ namespace DarkId::Papyrus::DebugServer
 		{
 			using namespace std::chrono_literals;
 			std::this_thread::sleep_for(100ms);
+		}
+		// If we were the thread that paused, regain focus
+		if (!pauseReason.empty()) {
+			Window::RegainFocus();
 		}
 
 	}
