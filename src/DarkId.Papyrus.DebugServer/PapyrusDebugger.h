@@ -94,13 +94,16 @@ namespace DarkId::Papyrus::DebugServer
 		RuntimeEvents::InstructionExecutionEventHandle m_instructionExecutionEventHandle;
 		// RuntimeEvents::InitScriptEventHandle m_initScriptEventHandle;
 		RuntimeEvents::LogEventHandle m_logEventHandle;
+		RuntimeEvents::BreakpointChangedEventHandle m_breakpointChangedEventHandle;
+
 		void RegisterSessionHandlers();
 		dap::Error Error(const std::string &msg);
 		// void InitScriptEvent(RE::TESInitScriptEvent* initEvent);
 		void EventLogged(const RE::BSScript::LogEvent* logEvent) const;
 		void StackCreated(RE::BSTSmartPointer<RE::BSScript::Stack>& stack);
 		void StackCleanedUp(uint32_t stackId);
-		void InstructionExecution(CodeTasklet* tasklet, uint32_t actualIP) const;
+		void InstructionExecution(CodeTasklet* tasklet) const;
 		void CheckSourceLoaded(const std::string &scriptName) const;
+		void BreakpointChanged(const dap::Breakpoint& bpoint, const std::string& reason) const;
 };
 }

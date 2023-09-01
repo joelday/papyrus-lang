@@ -224,6 +224,7 @@
     <ClCompile Include="PapyrusDebugger.cpp" />
     <ClCompile Include="pdsPCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Pex.cpp" />
     <ClCompile Include="PexCache.cpp" />
@@ -252,6 +253,7 @@
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
     </ClCompile>
+    <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ArrayStateNode.h" />
@@ -286,6 +288,7 @@
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="ValueStateNode.h" />
     <ClInclude Include="version.h" />
+    <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="version.rc" />

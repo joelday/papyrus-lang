@@ -17,6 +17,8 @@ namespace DarkId::Papyrus::DebugServer
 		bool HasScript(int scriptReference);
 		bool HasScript(const std::string & scriptName);
 
+		std::shared_ptr<Pex::Binary> GetCachedScript(const int ref);
+
 		std::shared_ptr<Pex::Binary> GetScript(const std::string & scriptName);
 		bool GetDecompiledSource(const std::string & scriptName, std::string& decompiledSource);
 		bool GetSourceData(const std::string &scriptName, dap::Source& data);

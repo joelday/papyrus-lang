@@ -44,13 +44,22 @@ namespace XSE = F4SE;
 namespace stl {
 	using namespace XSE::stl;
 
-	template <class T>
+	template <std::size_t N, class T>
 	void write_thunk_call(std::uintptr_t a_src)
 	{
 		auto& trampoline = XSE::GetTrampoline();
 		XSE::AllocTrampoline(14);
 
-		T::func = trampoline.write_call<5>(a_src, T::thunk);
+		T::func = trampoline.write_call<N>(a_src, T::thunk);
+	}
+
+	template <std::size_t N, class T>
+	void write_thunk_branch(std::uintptr_t a_src)
+	{
+		auto& trampoline = XSE::GetTrampoline();
+		XSE::AllocTrampoline(14);
+
+		T::func = trampoline.write_branch<N>(a_src, T::thunk);
 	}
 }
 

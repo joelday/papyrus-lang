@@ -20,6 +20,11 @@ namespace DarkId::Papyrus::DebugServer
 	{
 		return HasScript(GetScriptReference(scriptName));
 	}
+	
+	std::shared_ptr<Pex::Binary> PexCache::GetCachedScript(const int ref) {
+		const auto entry = m_scripts.find(ref);
+		return entry != m_scripts.end() ? entry->second : nullptr;
+	}
 
 	std::shared_ptr<Pex::Binary> PexCache::GetScript(const std::string& scriptName)
 	{

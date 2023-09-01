@@ -6,7 +6,7 @@ namespace DarkId::Papyrus::DebugServer
 {
 	using namespace RE::BSScript::Internal;
 
-	void DebugExecutionManager::HandleInstruction(CodeTasklet* tasklet, uint32_t actualIP)
+	void DebugExecutionManager::HandleInstruction(CodeTasklet* tasklet)
 	{
 		std::lock_guard<std::mutex> lock(m_instructionMutex);
 
@@ -25,7 +25,7 @@ namespace DarkId::Papyrus::DebugServer
 		{
 			pauseReason = "paused";
 		}
-		else if (m_state != DebuggerState::kPaused && m_breakpointManager->GetExecutionIsAtValidBreakpoint(tasklet, actualIP))
+		else if (m_state != DebuggerState::kPaused && m_breakpointManager->GetExecutionIsAtValidBreakpoint(tasklet))
 		{
 			pauseReason = "breakpoint";
 		}

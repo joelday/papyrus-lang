@@ -101,4 +101,36 @@ namespace DarkId::Papyrus::DebugServer
 		}
 		return true;
 	}
+
+	Pex::Function* GetFunctionData(std::shared_ptr<Pex::Binary> binary, Pex::StringTable::Index objName, Pex::StringTable::Index stateName, Pex::StringTable::Index funcName)
+	{
+		for (auto& object : binary->getObjects()) {
+			if (object.getName() == objName) {
+				for (auto& state : object.getStates()) {
+					if (state.getName() == stateName) {
+						for (auto& function : state.getFunctions()) {
+							if (function.getName() == funcName) {
+								return std::addressof(function);
+							}
+						}
+					}
+				}
+			}
+		}
+		return nullptr;
+	}
+
+	bool OpCodeWillCallOrReturn(Pex::OpCode opcode) {
+		switch (opcode) {
+			case Pex::OpCode::CALLMETHOD:
+			case Pex::OpCode::CALLPARENT:
+			case Pex::OpCode::CALLSTATIC:
+			case Pex::OpCode::RETURN:
+			case Pex::OpCode::PROPGET:
+			case Pex::OpCode::PROPSET:
+				return true;
+			default:
+				return false;
+		}
+	}
 }

@@ -61,7 +61,11 @@ static BOOL is_main_window(HWND handle)
 	 ShowWindow(handle, SW_SHOW);
 	 SetForegroundWindow(handle);
 	 SetFocus(handle);
+     SetActiveWindow(handle);
 #if SKYRIM // Need to reinit mouse since we lost it
+     if (!RE::Main::GetSingleton()->gameActive) {
+         RE::Main::GetSingleton()->SetActive(true);
+     }
      RE::MenuCursor::GetSingleton()->SetCursorVisibility(false);
      auto deviceManager = RE::BSInputDeviceManager::GetSingleton();
      deviceManager->ReinitializeMouse();

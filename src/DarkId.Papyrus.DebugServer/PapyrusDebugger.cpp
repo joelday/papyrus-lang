@@ -53,11 +53,15 @@ namespace DarkId::Papyrus::DebugServer
 
 		m_instructionExecutionEventHandle =
 			RuntimeEvents::SubscribeToInstructionExecution(
-				std::bind(&PapyrusDebugger::InstructionExecution, this, std::placeholders::_1, std::placeholders::_2));
+				std::bind(&PapyrusDebugger::InstructionExecution, this, std::placeholders::_1));
 
 		// m_initScriptEventHandle = RuntimeEvents::SubscribeToInitScript(std::bind(&PapyrusDebugger::InitScriptEvent, this, std::placeholders::_1));
 		m_logEventHandle =
 			RuntimeEvents::SubscribeToLog(std::bind(&PapyrusDebugger::EventLogged, this, std::placeholders::_1));
+
+		m_breakpointChangedEventHandle =
+			RuntimeEvents::SubscribeToBreakpointChanged(std::bind(&PapyrusDebugger::BreakpointChanged, this, std::placeholders::_1, std::placeholders::_2));
+
 		RegisterSessionHandlers();
 	}
 	void PapyrusDebugger::EndSession() {
@@ -70,6 +74,7 @@ namespace DarkId::Papyrus::DebugServer
 		RuntimeEvents::UnsubscribeFromInstructionExecution(m_instructionExecutionEventHandle);
 		RuntimeEvents::UnsubscribeFromCreateStack(m_createStackEventHandle);
 		RuntimeEvents::UnsubscribeFromCleanupStack(m_cleanupStackEventHandle);
+		RuntimeEvents::UnsubscribeFromBreakpointChanged(m_breakpointChangedEventHandle);
 
 		m_executionManager->Close();
 		// clear session data
@@ -80,7 +85,7 @@ namespace DarkId::Papyrus::DebugServer
 		
 	}
 
-	void PapyrusDebugger::RegisterSessionHandlers(){
+	void PapyrusDebugger::RegisterSessionHandlers() {
 		// The Initialize request is the first message sent from the client and
 		// the response reports debugger capabilities.
 		// https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Initialize
@@ -220,7 +225,7 @@ namespace DarkId::Papyrus::DebugServer
 		
 		XSE::GetTaskInterface()->AddTask([this, stackId]()
 		{
-			if (m_closed)
+			if (m_closed || !m_runtimeState)
 			{
 				return;
 			}
@@ -259,9 +264,9 @@ namespace DarkId::Papyrus::DebugServer
 		});
 	}
 
-	void PapyrusDebugger::InstructionExecution(CodeTasklet* tasklet, uint32_t actualIP) const
+	void PapyrusDebugger::InstructionExecution(CodeTasklet* tasklet) const
 	{
-		m_executionManager->HandleInstruction(tasklet, actualIP);
+		m_executionManager->HandleInstruction(tasklet);
 	}
 
 	void PapyrusDebugger::CheckSourceLoaded(const std::string &scriptName) const{
@@ -284,6 +289,15 @@ namespace DarkId::Papyrus::DebugServer
 		}
 	}
 
+	void PapyrusDebugger::BreakpointChanged(const dap::Breakpoint& bpoint, const std::string& reason) const
+	{
+		XSE::GetTaskInterface()->AddTask([this, bpoint, reason]() {
+			SendEvent(dap::BreakpointEvent{
+				.breakpoint = bpoint,
+				.reason = reason
+				});
+		});
+	}
 
 	PapyrusDebugger::~PapyrusDebugger()
 	{
