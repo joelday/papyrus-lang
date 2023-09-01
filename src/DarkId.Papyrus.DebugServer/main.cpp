@@ -63,7 +63,11 @@ bool InitializeLog()
 
 	auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
 	log->set_level(spdlog::level::debug);
+#if _DEBUG
 	log->flush_on(spdlog::level::debug);
+#else
+	log->flush_on(spdlog::level::err);
+#endif
 	spdlog::set_default_logger(std::move(log));
 	spdlog::set_pattern("%H:%M:%S,%e %l %@: %v"s);
 	logger::info("Papyrus Debug Server v{}"sv, DIDPDS_VERSION_SEMVER);
@@ -129,7 +133,8 @@ extern "C"
 #elif FALLOUT
 	DLLEXPORT bool F4SEPlugin_Load(const XSE::LoadInterface* a_xse)
 #endif
-		
+
+//#define _PAUSE_ON_START 1
 	{
 		if (!log_initialized) {
 			InitializeLog();
@@ -167,7 +172,6 @@ extern "C"
 		auto messaging = XSE::GetMessagingInterface();
 		messaging->RegisterListener(MessageHandler);
 #endif 
-		g_debugServer->Listen();
 		return true;
 	}
 };

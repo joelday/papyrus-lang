@@ -27,7 +27,7 @@ namespace net {
 
   OnConnect connectCallback;
   OnError errorHandler;
-  server m_server;
+  std::unique_ptr <server> m_server;
   websocketpp::connection_hdl m_connectionHandle;
 public:
   using OnError = std::function<void(const char*)>;

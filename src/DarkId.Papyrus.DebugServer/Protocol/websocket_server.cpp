@@ -7,7 +7,7 @@ namespace dap
   namespace net
   {
 
-    WebsocketServer::WebsocketServer()
+      WebsocketServer::WebsocketServer() : m_server(nullptr), stopped(true), rw(nullptr)
     {
     }
 
@@ -15,9 +15,11 @@ namespace dap
                         const OnConnect& onConnect,
                         const OnError& onError)
     {
+      if (m_server) {
+          stop();
+      }
+      m_server = std::make_unique<server>();
       port = p_port;
-      std::unique_lock<std::mutex> lock(mutex);
-      stopWithLock();
       connectCallback = onConnect;
       errorHandler = onError;
       
@@ -28,22 +30,22 @@ namespace dap
 
     void WebsocketServer::HandleOpen(websocketpp::connection_hdl hdl)
     {
-      std::shared_ptr<connection> con = m_server.get_con_from_hdl(hdl);
-      if (!m_connectionHandle.expired() && con != m_server.get_con_from_hdl(m_connectionHandle))
+      std::shared_ptr<connection> con = m_server->get_con_from_hdl(hdl);
+      if (!m_connectionHandle.expired() && con != m_server->get_con_from_hdl(m_connectionHandle))
       {
-        m_server.close(m_connectionHandle, websocketpp::close::status::normal, "Connection closed by new session.");
-        if (rw) {
+        m_server->close(m_connectionHandle, websocketpp::close::status::normal, "Connection closed by new session.");
+      }
+      if (rw) {
           rw->close();
-        }
       }
       m_connectionHandle = hdl;
-      rw = std::shared_ptr<WebsocketReaderWriter>( new dap::WebsocketReaderWriter(con) );
+      rw = std::make_shared<WebsocketReaderWriter>(con);
       connectCallback(rw);
     }
 
     void WebsocketServer::HandleClose(websocketpp::connection_hdl hdl)
     {
-      if (m_connectionHandle.expired() || m_server.get_con_from_hdl(hdl) != m_server.get_con_from_hdl(m_connectionHandle))
+      if (m_connectionHandle.expired() || m_server->get_con_from_hdl(hdl) != m_server->get_con_from_hdl(m_connectionHandle))
       {
         return;
       }
@@ -57,19 +59,19 @@ namespace dap
     {
       try
       {
-        m_server.init_asio();
+        m_server->init_asio();
 
-        m_server.set_open_handler(bind(&WebsocketServer::HandleOpen, this, ::_1));
-        m_server.set_close_handler(bind(&WebsocketServer::HandleClose, this, ::_1));
-        m_server.set_max_message_size(1024 * 1024 * 10);
-        m_server.set_max_http_body_size(1024 * 1024 * 10);
+        m_server->set_open_handler(bind(&WebsocketServer::HandleOpen, this, ::_1));
+        m_server->set_close_handler(bind(&WebsocketServer::HandleClose, this, ::_1));
+        m_server->set_max_message_size(1024 * 1024 * 10);
+        m_server->set_max_http_body_size(1024 * 1024 * 10);
 
-        m_server.listen(port);
+        m_server->listen(port);
         // Start the server accept loop
-        m_server.start_accept();
+        m_server->start_accept();
 
         // Start the ASIO io_service run loop
-        m_server.run();
+        m_server->run();
       }
       catch (websocketpp::exception const & e)
       {
@@ -92,13 +94,14 @@ namespace dap
     }
 
     void WebsocketServer::stopWithLock() {
-      if (!stopped.exchange(true)) {
+      if (!stopped) {
+          stopped.exchange(true);
         // this will trigger HandleClose for us
-        if (m_server.is_listening()) {
+        if (m_server && m_server->is_listening()) {
             try 
             {
-                m_server.close(m_connectionHandle, websocketpp::close::status::normal, "Connection closed by debugger.");
-                m_server.stop();
+                m_server->close(m_connectionHandle, websocketpp::close::status::normal, "Connection closed by debugger.");
+                m_server->stop();
             }
             catch (websocketpp::exception const& e)
             {

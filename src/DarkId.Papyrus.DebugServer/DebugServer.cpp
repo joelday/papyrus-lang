@@ -26,6 +26,8 @@ namespace DarkId::Papyrus::DebugServer
   #elif FALLOUT
     int port = 2077;
   #endif 
+      m_server.stop();
+
 	  auto onClientConnected =
       [&](const std::shared_ptr<dap::ReaderWriter>& connection) {
         std::shared_ptr<dap::Session> sess;
