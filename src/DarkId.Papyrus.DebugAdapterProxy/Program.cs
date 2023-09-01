@@ -107,6 +107,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                 })
                 .WithNotParsed((error) =>
                 {
+                    logger.LogError("Could not parse arguments! Adapter will exit...");
                     exitCode = 1;
                 });
 
