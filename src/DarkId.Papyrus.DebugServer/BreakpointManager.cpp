@@ -14,7 +14,7 @@ namespace DarkId::Papyrus::DebugServer
 		auto scriptName = NormalizeScriptName(source.name.value(""));
 		auto binary = m_pexCache->GetScript(scriptName.c_str());
 		if (!binary) {
-			return dap::Error("Could not find PEX data for script %s", scriptName);
+			RETURN_DAP_ERROR(std::format("SetBreakpoints: Could not find PEX data for script {}", scriptName));
 		}
 		auto ref = GetSourceReference(source);
 		bool hasDebugInfo = binary->getDebugInfo().getFunctionInfos().size() > 0;
@@ -25,7 +25,7 @@ namespace DarkId::Papyrus::DebugServer
 #else
 			const std::string iniName = "skyrim.ini";
 #endif
-			return dap::Error("No debug data for script %s. Ensure that `bLoadDebugInformation=1` is set under `[Papyrus]` in %s", scriptName, iniName);
+			RETURN_DAP_ERROR(std::format("SetBreakpoints: No debug data for script {}. Ensure that `bLoadDebugInformation=1` is set under `[Papyrus]` in {}", scriptName, iniName));
 		}
 
 		for (const auto& srcBreakpoint : srcBreakpoints)

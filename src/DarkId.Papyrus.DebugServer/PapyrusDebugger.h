@@ -94,9 +94,8 @@ namespace DarkId::Papyrus::DebugServer
 		RuntimeEvents::InstructionExecutionEventHandle m_instructionExecutionEventHandle;
 		// RuntimeEvents::InitScriptEventHandle m_initScriptEventHandle;
 		RuntimeEvents::LogEventHandle m_logEventHandle;
-		
 		void RegisterSessionHandlers();
-
+		dap::Error Error(const std::string &msg);
 		// void InitScriptEvent(RE::TESInitScriptEvent* initEvent);
 		void EventLogged(const RE::BSScript::LogEvent* logEvent) const;
 		void StackCreated(RE::BSTSmartPointer<RE::BSScript::Stack>& stack);

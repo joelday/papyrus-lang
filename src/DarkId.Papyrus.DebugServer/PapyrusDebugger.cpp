@@ -90,7 +90,9 @@ namespace DarkId::Papyrus::DebugServer
 			response.supportsLoadedSourcesRequest = true;
 			return response;
 		});
-		//sess->onError()
+		m_session->onError([this](const char* msg) {
+			logger::error("{}", msg);
+		});
 		m_session->registerSentHandler(
 			[this](const dap::ResponseOrError<dap::InitializeResponse>&) {
 				SendEvent(dap::InitializedEvent());
@@ -119,9 +121,6 @@ namespace DarkId::Papyrus::DebugServer
 		});
 		m_session->registerHandler([this](const dap::ContinueRequest& request) {
 			return Continue(request);
-		});
-		m_session->registerHandler([this](const dap::PauseRequest& request) {
-			return Pause(request);
 		});
 		m_session->registerHandler([this](const dap::ThreadsRequest& request) {
 			return GetThreads(request);
@@ -156,6 +155,12 @@ namespace DarkId::Papyrus::DebugServer
 		m_session->registerHandler([this](const dap::LoadedSourcesRequest& request) {
 			return GetLoadedSources(request);
 		});
+	}
+
+	dap::Error PapyrusDebugger::Error(const std::string &msg)
+	{
+		logger::error("{}", msg);
+		return dap::Error(msg);
 	}
 
 	template <typename T, typename>
@@ -310,7 +315,7 @@ namespace DarkId::Papyrus::DebugServer
 			.projectSources = request.projectSources
 			});
 		if (resp.error) {
-			return dap::Error(resp.error);
+			RETURN_DAP_ERROR(resp.error.message);
 		}
 		return dap::ResponseOrError<dap::LaunchResponse>();
 	}
@@ -340,14 +345,14 @@ namespace DarkId::Papyrus::DebugServer
 	{
 		if (m_executionManager->Continue())
 			return dap::ContinueResponse();
-		return dap::Error("Could not Continue");
+		RETURN_DAP_ERROR("Could not Continue");
 	}
 
 	dap::ResponseOrError<dap::PauseResponse> PapyrusDebugger::Pause(const dap::PauseRequest& request)
 	{
 		if (m_executionManager->Pause())
 			return dap::PauseResponse();
-		return dap::Error("Could not Pause");
+		RETURN_DAP_ERROR("Could not Pause");
 	}
 
 	dap::ResponseOrError<dap::ThreadsResponse> PapyrusDebugger::GetThreads(const dap::ThreadsRequest& request)
@@ -397,7 +402,7 @@ namespace DarkId::Papyrus::DebugServer
 		auto ref = GetSourceReference(source);
 		if (m_projectSources.find(ref) != m_projectSources.end()) {
 			if (!CompareSourceModifiedTime(request.source, m_projectSources[ref])) {
-				return dap::Error("Setting Breakpoints failed: script has been modified after load");
+				RETURN_DAP_ERROR("Setting Breakpoints failed: script has been modified after load");
 			}
 			source = m_projectSources[ref];
 		} else if (ref > 0){
@@ -406,12 +411,12 @@ namespace DarkId::Papyrus::DebugServer
 			// TODO: Enable this when we start loading the project's sources
 			// source.sourceReference = ref;
 		}
-		return m_breakpointManager->SetBreakpoints(source, request.breakpoints.value(std::vector<dap::SourceBreakpoint>()));
+		return m_breakpointManager->SetBreakpoints(source, request.breakpoints.value(std::vector<dap::SourceBreakpoint>()));;
 	}
 
 	dap::ResponseOrError<dap::SetFunctionBreakpointsResponse> PapyrusDebugger::SetFunctionBreakpoints(const dap::SetFunctionBreakpointsRequest& request)
 	{
-		return dap::Error("unimplemented");
+		RETURN_DAP_ERROR("unimplemented");
 	}
 	dap::ResponseOrError<dap::StackTraceResponse> PapyrusDebugger::GetStackTrace(const dap::StackTraceRequest& request)
 	{
@@ -422,14 +427,14 @@ namespace DarkId::Papyrus::DebugServer
 		if (request.threadId <= -1)
 		{
 			response.totalFrames = 0;
-			return dap::Error("No threadId specified");
+			RETURN_DAP_ERROR("No threadId specified");
 		}
 		auto frameVal = request.startFrame.value(0);
 		auto levelVal = request.levels.value(0);
 		std::vector<std::shared_ptr<StateNodeBase>> frameNodes;
 		if (!m_runtimeState->ResolveChildrenByParentPath(std::to_string(request.threadId), frameNodes))
 		{
-			return dap::Error("Could not find ThreadId");
+			RETURN_DAP_ERROR("Could not find ThreadId");
 		}
 		uint32_t startFrame = static_cast<uint32_t>(frameVal > 0 ? frameVal : dap::integer(0));
 		uint32_t levels = static_cast<uint32_t>(levelVal > 0 ? levelVal : dap::integer(0));
@@ -440,7 +445,7 @@ namespace DarkId::Papyrus::DebugServer
 
 			dap::StackFrame frame;
 			if (!node->SerializeToProtocol(frame, m_pexCache.get())) {
-				return dap::Error("Serialization error");
+				RETURN_DAP_ERROR("Serialization error");
 			}
 
 			response.stackFrames.push_back(frame);
@@ -453,21 +458,21 @@ namespace DarkId::Papyrus::DebugServer
 		if (m_executionManager->Step(static_cast<uint32_t>(request.threadId), STEP_IN)) {
 			return dap::StepInResponse();
 		}
-		return dap::Error("Could not StepIn");
+		RETURN_DAP_ERROR("Could not StepIn");
 	}
 	dap::ResponseOrError<dap::StepOutResponse> PapyrusDebugger::StepOut(const dap::StepOutRequest& request)
 	{
 		if (m_executionManager->Step(static_cast<uint32_t>(request.threadId), STEP_OUT)) {
 			return dap::StepOutResponse();
 		}
-		return dap::Error("Could not StepOut");
+		RETURN_DAP_ERROR("Could not StepOut");
 	}
 	dap::ResponseOrError<dap::NextResponse> PapyrusDebugger::Next(const dap::NextRequest& request)
 	{
 		if (m_executionManager->Step(static_cast<uint32_t>(request.threadId), STEP_OVER)) {
 			return dap::NextResponse();
 		}
-		return dap::Error("Could not Next");
+		RETURN_DAP_ERROR("Could not Next");
 	}
 	dap::ResponseOrError<dap::ScopesResponse> PapyrusDebugger::GetScopes(const dap::ScopesRequest& request)
 	{
@@ -476,8 +481,12 @@ namespace DarkId::Papyrus::DebugServer
 		RE::BSSpinLockGuard lock(vm->runningStacksLock);
 
 		std::vector<std::shared_ptr<StateNodeBase>> frameScopes;
-		if (!m_runtimeState->ResolveChildrenByParentId(static_cast<uint32_t>(request.frameId), frameScopes)) {
-			return dap::Error("No scopes for frameId %d", request.frameId);
+		if (request.frameId < 0) {
+			RETURN_DAP_ERROR(std::format("invalid frameId {}", static_cast<int64_t>(request.frameId)));
+		}
+		auto frameId = static_cast<uint32_t>(request.frameId);
+		if (!m_runtimeState->ResolveChildrenByParentId(frameId, frameScopes)) {
+			RETURN_DAP_ERROR( std::format("No scopes for frameId {}", frameId) );
 		}
 
 		for (const auto& frameScope : frameScopes)
@@ -509,7 +518,7 @@ namespace DarkId::Papyrus::DebugServer
 
 		std::vector<std::shared_ptr<StateNodeBase>> variableNodes;
 		if (!m_runtimeState->ResolveChildrenByParentId(static_cast<uint32_t>(request.variablesReference), variableNodes)) {
-			return dap::Error("No such variable reference %d", request.variablesReference);
+			RETURN_DAP_ERROR(std::format("No such variable reference {}", static_cast<uint32_t>(request.variablesReference)));
 		}
 
 		// TODO: support `start`, `filter`, parameter
@@ -541,14 +550,14 @@ namespace DarkId::Papyrus::DebugServer
 	dap::ResponseOrError<dap::SourceResponse> PapyrusDebugger::GetSource(const dap::SourceRequest& request)
 	{
 		if (!request.source.has_value() || !request.source.value().name.has_value()) {
-			return dap::Error("No source name");
+			RETURN_DAP_ERROR("No source name");
 		}
 		std::string name = request.source.value().name.value();
 		dap::SourceResponse response;
 		if (m_pexCache->GetDecompiledSource(name, response.content)) {
 			return response;
 		}
-		return dap::Error("Could not find source " + name);
+		RETURN_DAP_ERROR("Could not find source " + name);
 	}
 
 	dap::ResponseOrError<dap::LoadedSourcesResponse> PapyrusDebugger::GetLoadedSources(const dap::LoadedSourcesRequest& request)

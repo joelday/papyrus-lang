@@ -8,6 +8,10 @@
 
 namespace DarkId::Papyrus::DebugServer
 {
+#define RETURN_DAP_ERROR(message) \
+	logger::error("{}", message); \
+	return dap::Error(message);
+
 	template<typename... Args>
 	std::string StringFormat(const char* fmt, Args... args)
 	{
