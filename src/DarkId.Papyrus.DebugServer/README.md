@@ -8,8 +8,6 @@ File any issues here: https://github.com/joelday/papyrus-lang/issues
 
 ### Building from Source
 
-NOTE: Fallout 4 doesn't build on this branch currently, only attempt building Skyrim for right now.
-
 Build Requirements:
 
 - [Visual Studio 2022](https://visualstudio.microsoft.com/vs/community/)

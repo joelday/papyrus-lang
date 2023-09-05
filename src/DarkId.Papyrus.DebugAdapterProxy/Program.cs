@@ -16,9 +16,13 @@ using DarkId.Papyrus.Common;
 using DarkId.Papyrus.LanguageService.Projects;
 using DarkId.Papyrus.LanguageService.Configuration.CreationKit;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Debug;
+using Microsoft.Extensions.Logging.Console;
 using Newtonsoft.Json.Linq;
 using System.Runtime.InteropServices;
+
+using logger = Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using System.Threading;
 
 namespace DarkId.Papyrus.DebugAdapterProxy
 {
@@ -61,21 +65,31 @@ namespace DarkId.Papyrus.DebugAdapterProxy
 
         static int Main(string[] args)
         {
-            loggerFactory = new LoggerFactory()
-                .AddDebug(Microsoft.Extensions.Logging.LogLevel.Trace)
-                .AddFile(
-                    Path.Combine(
+          //  Console.WriteLine("Waiting for debugger to attach");
+           // while (!Debugger.IsAttached)
+            //{
+             //   Thread.Sleep(100);
+           // }
+           // Console.WriteLine("Debugger attached");
+
+            var logpath = Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
 #if FALLOUT4
                         "My Games\\Fallout4\\F4SE\\DarkId.Papyrus.DebugAdapterProxy.log"
 #else
                         "My Games\\Skyrim Special Edition\\SKSE\\DarkId.Papyrus.DebugAdapterProxy.log"
 #endif
-                        ),
-                    Microsoft.Extensions.Logging.LogLevel.Trace);
-
+                        );
+            
+            loggerFactory = LoggerFactory.Create(builder => { 
+                builder.AddConsole(i => { 
+                    i.LogToStandardErrorThreshold = Microsoft.Extensions.Logging.LogLevel.Trace; 
+                }); 
+                builder.AddFile(logpath, Microsoft.Extensions.Logging.LogLevel.Trace);
+                builder.AddDebug();
+            });
             logger = loggerFactory.CreateLogger<Program>();
-
+            logger.LogInformation("Debugger adapter started");
             int exitCode = 0;
 
             Parser.Default.ParseArguments<Options>(args)
@@ -93,6 +107,7 @@ namespace DarkId.Papyrus.DebugAdapterProxy
                 })
                 .WithNotParsed((error) =>
                 {
+                    logger.LogError("Could not parse arguments! Adapter will exit...");
                     exitCode = 1;
                 });
 

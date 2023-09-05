@@ -12,7 +12,7 @@ namespace DarkId::Papyrus::DebugServer
 	{
 	}
 
-	bool StackStateNode::SerializeToProtocol(Thread& thread) const
+	bool StackStateNode::SerializeToProtocol(dap::Thread& thread) const
 	{
 		thread.id = m_stackId;
 
@@ -29,9 +29,6 @@ namespace DarkId::Papyrus::DebugServer
 			const auto name = frame->owningObjectType ? frame->owningObjectType->GetName() : "<unknown>";
 			thread.name = StringFormat("%s (%d)", name, thread.id);
 		}
-
-		// TODO: This isn't even in the DAP spec.
-		thread.running = true; // m_state != DebuggerState::kState_Paused;
 
 		return true;
 	}

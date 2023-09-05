@@ -1,10 +1,12 @@
 #include "DebugExecutionManager.h"
+#include <thread>
+#include "Window.h"
 
 namespace DarkId::Papyrus::DebugServer
 {
 	using namespace RE::BSScript::Internal;
 
-	void DebugExecutionManager::HandleInstruction(CodeTasklet* tasklet, CodeTasklet::OpCode opCode)
+	void DebugExecutionManager::HandleInstruction(CodeTasklet* tasklet)
 	{
 		std::lock_guard<std::mutex> lock(m_instructionMutex);
 
@@ -13,31 +15,25 @@ namespace DarkId::Papyrus::DebugServer
 			return;
 		}
 		
-		const auto func = tasklet->topFrame->owningFunction;
-		auto shouldSendPause = false;
-		StopReason stopReason = StopReason::StopPause;
-		
+		const auto & func = tasklet->topFrame->owningFunction;
+		bool shouldContinue = false;
+		bool shouldSendEvent = false;
+		std::string pauseReason = "";
+		DebuggerState new_state = m_state;
+
 		if (m_state == DebuggerState::kPaused)
 		{
-			shouldSendPause = true;
+			pauseReason = "paused";
 		}
-		
-		if (m_state != DebuggerState::kPaused && m_breakpointManager->GetExecutionIsAtValidBreakpoint(tasklet))
+		else if (m_state != DebuggerState::kPaused && m_breakpointManager->GetExecutionIsAtValidBreakpoint(tasklet))
 		{
-			m_state = DebuggerState::kPaused;
-			m_protocol->EmitStoppedEvent(StoppedEvent(StopReason::StopBreakpoint, tasklet->stack->stackID));
+			pauseReason = "breakpoint";
 		}
-
-		if (m_state == DebuggerState::kStepping && !RuntimeState::GetStack(m_currentStepStackId))
+		else if (m_state == DebuggerState::kStepping && !RuntimeState::GetStack(m_currentStepStackId))
 		{
-			m_protocol->EmitContinuedEvent(ContinuedEvent());
-			m_currentStepStackId = 0;
-			m_currentStepStackFrame = nullptr;
-			
-			m_state = DebuggerState::kRunning;
+			shouldContinue = true;
 		}
-		
-		if (m_state == DebuggerState::kStepping && tasklet->stack->stackID == m_currentStepStackId)
+		else if (m_state == DebuggerState::kStepping && tasklet->stack->stackID == m_currentStepStackId)
 		{
 			if (m_currentStepStackFrame)
 			{
@@ -46,7 +42,7 @@ namespace DarkId::Papyrus::DebugServer
 
 				if (!currentFrames.empty())
 				{
-					auto stepFrameIndex = -1;
+					ptrdiff_t stepFrameIndex = -1;
 					const auto stepFrameIter = std::find(currentFrames.begin(), currentFrames.end(), m_currentStepStackFrame);
 
 					if (stepFrameIter != currentFrames.end())
@@ -56,55 +52,82 @@ namespace DarkId::Papyrus::DebugServer
 
 					switch (m_currentStepType)
 					{
-					case Debugger::StepType::STEP_IN:
-						shouldSendPause = true;
-						stopReason = StopReason::StopStep;
+					case StepType::STEP_IN:
+						pauseReason = "step";
 						break;
-					case Debugger::StepType::STEP_OUT:
+					case StepType::STEP_OUT:
 						// If the stack exists, but the original frame is gone, we know we're in a previous frame now.
 						if (stepFrameIndex == -1)
 						{
-							shouldSendPause = true;
-							stopReason = StopReason::StopStep;
+							pauseReason = "step";
 						}
 						break;
-					case Debugger::StepType::STEP_OVER:
+					case StepType::STEP_OVER:
 						if (stepFrameIndex <= 0)
 						{
-							shouldSendPause = true;
-							stopReason = StopReason::StopStep;
+							pauseReason = "step";
 						}
 						break;
 					}
 				}
 			}
 		}
-
-		if (shouldSendPause)
-		{
+		
+		if (!pauseReason.empty())
+		{	
 			m_state = DebuggerState::kPaused;
 			m_currentStepStackId = 0;
 			m_currentStepStackFrame = nullptr;
-			m_protocol->EmitStoppedEvent(StoppedEvent(stopReason, tasklet->stack->stackID));
+			if (m_session) {
+				m_session->send(dap::StoppedEvent{
+					.reason = pauseReason,
+					.threadId = tasklet->stack->stackID
+					});
+			}
+			Window::ReleaseFocus();
+		}
+		else if (shouldContinue) {
+			m_state = DebuggerState::kRunning;
+			m_currentStepStackId = 0;
+			m_currentStepStackFrame = nullptr;
+			if (m_session) {
+				m_session->send(dap::ContinuedEvent{
+				.allThreadsContinued = true,
+				.threadId = tasklet->stack->stackID
+					});
+			}
 		}
 
 		while (m_state == DebuggerState::kPaused && !m_closed)
 		{
-			Sleep(100);
+			using namespace std::chrono_literals;
+			std::this_thread::sleep_for(100ms);
+		}
+		// If we were the thread that paused, regain focus
+		if (!pauseReason.empty()) {
+			Window::RegainFocus();
 		}
 
+	}
+
+	void DebugExecutionManager::Open(std::shared_ptr<dap::Session> ses)
+	{
+		m_closed = false;
+		m_session = ses;
+		std::lock_guard<std::mutex> lock(m_instructionMutex);
 	}
 
 	void DebugExecutionManager::Close()
 	{
 		m_closed = true;
 		std::lock_guard<std::mutex> lock(m_instructionMutex);
+		m_session = nullptr;
 	}
 
 	bool DebugExecutionManager::Continue()
 	{
 		m_state = DebuggerState::kRunning;
-		m_protocol->EmitContinuedEvent(ContinuedEvent());
+		m_session->send(dap::ContinuedEvent());
 
 		return true;
 	}
@@ -120,8 +143,12 @@ namespace DarkId::Papyrus::DebugServer
 		return true;
 	}
 
-	bool DebugExecutionManager::Step(uint32_t stackId, const Debugger::StepType stepType)
+	bool DebugExecutionManager::Step(uint32_t stackId, const StepType stepType)
 	{
+		if (stackId < 0) {
+			return false;
+		}
+
 		if (m_state != DebuggerState::kPaused)
 		{
 			return false;

@@ -15,7 +15,7 @@ namespace DarkId::Papyrus::DebugServer
 		m_type = &_m_inst_type;
 	}
 
-	bool ArrayStateNode::SerializeToProtocol(Variable& variable)
+	bool ArrayStateNode::SerializeToProtocol(dap::Variable& variable)
 	{
 		variable.variablesReference = m_value ? GetId() : 0;
 		variable.indexedVariables = m_value ? m_value->size() : 0;
@@ -112,7 +112,7 @@ namespace DarkId::Papyrus::DebugServer
 			return true;
 		}
 		
-		for (auto i = 0; i < m_value->size(); i++)
+		for (uint32_t i = 0; i < m_value->size(); i++)
 		{
 			names.push_back(std::to_string(i));
 		}
@@ -132,8 +132,7 @@ namespace DarkId::Papyrus::DebugServer
 		{
 			return false;
 		}
-
-		if (elementIndex < 0 || elementIndex > m_value->size() - 1)
+		if (elementIndex < 0 || ((uint32_t)elementIndex) > m_value->size() - 1)
 		{
 			return false;
 		}

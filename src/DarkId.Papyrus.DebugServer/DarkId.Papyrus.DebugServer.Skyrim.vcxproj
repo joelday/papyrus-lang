@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="15.0"
-  xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -38,14 +37,10 @@
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props"
-      Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')"
-      Label="LocalAppDataPlatform" />
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props"
-      Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')"
-      Label="LocalAppDataPlatform" />
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
@@ -202,50 +197,22 @@
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
     </ClCompile>
-    <ClCompile Include="BreakpointManager.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
-    </ClCompile>
-    <ClCompile Include="DebugExecutionManager.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
-    </ClCompile>
-    <ClCompile Include="DebugServer.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
-    </ClCompile>
-    <ClCompile Include="DebugServerSession.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
-    </ClCompile>
+    <ClCompile Include="BreakpointManager.cpp" />
+    <ClCompile Include="DebugExecutionManager.cpp" />
+    <ClCompile Include="DebugServer.cpp" />
     <ClCompile Include="FormTypeMacros.cpp">
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
     </ClCompile>
-    <ClCompile Include="GameInterfaces.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
-    </ClCompile>
-    <ClCompile Include="IdHandleBase.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
-    </ClCompile>
-    <ClCompile Include="IdMap.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
-    </ClCompile>
-    <ClCompile Include="IdProvider.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
-    </ClCompile>
+    <ClCompile Include="GameInterfaces.cpp" />
+    <ClCompile Include="IdHandleBase.cpp" />
+    <ClCompile Include="IdMap.cpp" />
+    <ClCompile Include="IdProvider.cpp" />
     <ClCompile Include="LocalScopeStateNode.cpp">
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
     </ClCompile>
-    <ClCompile Include="main.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
-    </ClCompile>
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="MetaNode.cpp">
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
@@ -254,30 +221,17 @@
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
     </ClCompile>
-    <ClCompile Include="PapyrusDebugger.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
+    <ClCompile Include="PapyrusDebugger.cpp" />
+    <ClCompile Include="pdsPCH.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Pex.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
-    </ClCompile>
-    <ClCompile Include="PexCache.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
-    </ClCompile>
-    <ClCompile Include="protocol\cputil.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
-    </ClCompile>
-    <ClCompile Include="protocol\vscodeprotocol.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
-    </ClCompile>
-    <ClCompile Include="RuntimeEvents.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
-    </ClCompile>
+    <ClCompile Include="Pex.cpp" />
+    <ClCompile Include="PexCache.cpp" />
+    <ClCompile Include="Protocol\struct_extensions.cpp" />
+    <ClCompile Include="Protocol\websocket_reader_writer.cpp" />
+    <ClCompile Include="Protocol\websocket_server.cpp" />
+    <ClCompile Include="RuntimeEvents.cpp" />
     <ClCompile Include="RuntimeState.cpp">
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
@@ -294,28 +248,22 @@
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
     </ClCompile>
-    <ClCompile Include="pdsPCH.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
-    </ClCompile>
+    <ClCompile Include="StructStateNode.cpp" />
     <ClCompile Include="ValueStateNode.cpp">
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="version.rc" />
+    <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ArrayStateNode.h" />
     <ClInclude Include="BreakpointManager.h" />
+    <ClInclude Include="ConfigHooks.h" />
     <ClInclude Include="DebugExecutionManager.h" />
     <ClInclude Include="DebugServer.h" />
-    <ClInclude Include="DebugServerSession.h" />
     <ClInclude Include="FormMetadata.h" />
     <ClInclude Include="FormTypeMacros.h" />
     <ClInclude Include="GameInterfaces.h" />
-    <ClInclude Include="PDError.h" />
     <ClInclude Include="IdHandleBase.h" />
     <ClInclude Include="IdMap.h" />
     <ClInclude Include="IdProvider.h" />
@@ -323,23 +271,27 @@
     <ClInclude Include="MetaNode.h" />
     <ClInclude Include="ObjectStateNode.h" />
     <ClInclude Include="PapyrusDebugger.h" />
+    <ClInclude Include="pdsPCH.h" />
     <ClInclude Include="Pex.h" />
     <ClInclude Include="PexCache.h" />
-    <ClInclude Include="protocol\cputil.h" />
     <ClInclude Include="protocol\debugger.h" />
-    <ClInclude Include="protocol\protocol.h" />
-    <ClInclude Include="protocol\torelease.h" />
-    <ClInclude Include="protocol\vscodeprotocol.h" />
+    <ClInclude Include="Protocol\struct_extensions.h" />
+    <ClInclude Include="Protocol\websocket_impl.h" />
+    <ClInclude Include="Protocol\websocket_reader_writer.h" />
+    <ClInclude Include="Protocol\websocket_server.h" />
     <ClInclude Include="RuntimeEvents.h" />
     <ClInclude Include="RuntimeState.h" />
     <ClInclude Include="StackFrameStateNode.h" />
     <ClInclude Include="StackStateNode.h" />
     <ClInclude Include="StateNodeBase.h" />
-    <ClInclude Include="pdsPCH.h" />
+    <ClInclude Include="StructStateNode.h" />
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="ValueStateNode.h" />
     <ClInclude Include="version.h" />
-    <ClInclude Include="Websocket.h" />
+    <ClInclude Include="Window.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="version.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

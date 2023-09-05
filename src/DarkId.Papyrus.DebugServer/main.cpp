@@ -18,21 +18,25 @@ namespace XSE = F4SE;
 #include "version.h"  // VERSION_VERSTRING, VERSION_MAJOR
 
 #include "DebugServer.h"
+#include "ConfigHooks.h"
 #include "RuntimeEvents.h"
 using namespace DarkId::Papyrus::DebugServer;
 
 DebugServer* g_debugServer;
 using namespace std::literals;
 
+#ifdef SKYRIM
+    constexpr auto gameLoaded = SKSE::MessagingInterface::kDataLoaded;
+#else
+    constexpr auto gameLoaded = F4SE::MessagingInterface::kGameLoaded;
+#endif
+
+
 void MessageHandler(XSE::MessagingInterface::Message* msg)
 {
 	switch (msg->type)
 	{
-#if SKYRIM
-	case SKSE::MessagingInterface::kDataLoaded :
-#elif FALLOUT
-	case F4SE::MessagingInterface::kGameLoaded :
-#endif
+		case gameLoaded:
 		{
 			RuntimeEvents::Internal::CommitHooks();
 
@@ -59,7 +63,11 @@ bool InitializeLog()
 
 	auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
 	log->set_level(spdlog::level::debug);
+#if _DEBUG
 	log->flush_on(spdlog::level::debug);
+#else
+	log->flush_on(spdlog::level::err);
+#endif
 	spdlog::set_default_logger(std::move(log));
 	spdlog::set_pattern("%H:%M:%S,%e %l %@: %v"s);
 	logger::info("Papyrus Debug Server v{}"sv, DIDPDS_VERSION_SEMVER);
@@ -79,6 +87,7 @@ extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
 	return v;
 }();
 #endif
+//#define _PAUSE_ON_START 1
 
 extern "C"
 {
@@ -124,13 +133,13 @@ extern "C"
 #elif FALLOUT
 	DLLEXPORT bool F4SEPlugin_Load(const XSE::LoadInterface* a_xse)
 #endif
-		
+
+//#define _PAUSE_ON_START 1
 	{
 		if (!log_initialized) {
 			InitializeLog();
 		}
 		logger::info("Papyrus Debug Server loaded");
-
  #if _DEBUG && _PAUSE_ON_START
  		logger::info("Waiting for debugger to attach...");
 
@@ -147,6 +156,11 @@ extern "C"
 		logger::info("Initializing plugin...");
 		Init(a_xse);
 		logger::info("Plugin Initialized!");
+
+		// We install this hook before any scripts are loaded to ensure that any script loads are done with LoadDebugInformation enabled.
+		logger::info("Installing EnableLoadDebugInformation hook...");
+		EnableLoadDebugInformation::Install();
+		logger::info("Installing EnableLoadDebugInformation hook installed!");
 #if SKYRIM
 		logger::info("Registering Listener...");
 		if (XSE::GetMessagingInterface()->RegisterListener("SKSE", MessageHandler)){

@@ -2,109 +2,214 @@
 #include <Champollion/Pex/Binary.hpp>
 #include <regex>
 #include "Utilities.h"
-#ifdef _DEBUG_DUMP_PEX
 #include "Pex.h"
-#endif
+#include "ConfigHooks.h"
+#include "RuntimeEvents.h"
+#include "GameInterfaces.h"
+
 namespace DarkId::Papyrus::DebugServer
 {
-	PDError BreakpointManager::SetBreakpoints(Source& source, const std::vector<SourceBreakpoint>& srcBreakpoints, std::vector<Breakpoint>& breakpoints)
-	{
-		std::set<int> breakpointLines;
 
-		auto scriptName = NormalizeScriptName(source.name);
+	int64_t GetBreakpointID(int scriptReference, int lineNumber) {
+		return (((int64_t)scriptReference) << 32) + lineNumber;
+	}
+
+	std::string GetInstructionReference(const Pex::DebugInfo::FunctionInfo& finfo) {
+		return std::format("{}:{}:{}", finfo.getObjectName().asString(), finfo.getStateName().asString(), finfo.getFunctionName().asString());
+	}
+
+	dap::ResponseOrError<dap::SetBreakpointsResponse> BreakpointManager::SetBreakpoints(const dap::Source& source, const std::vector<dap::SourceBreakpoint>& srcBreakpoints)
+	{
+		dap::SetBreakpointsResponse response;
+		std::set<int> breakpointLines;
+		auto scriptName = NormalizeScriptName(source.name.value(""));
 		auto binary = m_pexCache->GetScript(scriptName.c_str());
 		if (!binary) {
-			logger::error("Could not find PEX data for script {}", scriptName);
-		} // Continue on to set the breakpoints as unverified
-		const auto sourceReference = m_pexCache->GetScriptReference(scriptName.c_str());
-		source.sourceReference = sourceReference;
+			RETURN_DAP_ERROR(std::format("SetBreakpoints: Could not find PEX data for script {}", scriptName));
+		}
+		auto ref = GetSourceReference(source);
+		bool hasDebugInfo = binary->getDebugInfo().getFunctionInfos().size() > 0;
 		
-#if _DEBUG_DUMP_PEX
-		std::string dir = logger::log_directory().value_or("").string();
-		if (dir.empty()) {
-			logger::error("Failed to open log directory, PEX will not be dumped");
-		}
-		else if (!LoadAndDumpPexData(scriptName.c_str(), dir)) {
-			logger::error("Could not save PEX dump for {}"sv, scriptName);
-		}
+		if (!hasDebugInfo) {
+#if FALLOUT
+			const std::string iniName = "fallout4.ini";
+#else
+			const std::string iniName = "skyrim.ini";
 #endif
-		bool hasDebugInfo = binary && binary->getDebugInfo().getFunctionInfos().size() > 0;
-		// only log error if PEX is loaded
-		if (binary && !hasDebugInfo) {
-			logger::error("No debug info in script {}"sv, scriptName);
-		} // Continue on to set the breakpoints as unverified
+			RETURN_DAP_ERROR(std::format("SetBreakpoints: No debug data for script {}. Ensure that `bLoadDebugInformation=1` is set under `[Papyrus]` in {}", scriptName, iniName));
+		}
 
+		ScriptBreakpoints info {
+		   .ref = ref,
+		   .source = source,
+		   .modificationTime = binary->getDebugInfo().getModificationTime()
+		};
+		std::map<int, BreakpointInfo> foundBreakpoints;
+		
 		for (const auto& srcBreakpoint : srcBreakpoints)
 		{
 			auto foundLine = false;
-
+			int line = static_cast<int>(srcBreakpoint.line);
+			int instructionNum = -1;
+			int foundFunctionInfoIndex{-1};
+			Pex::DebugInfo::FunctionInfo debugfinfo;
+			int64_t breakpointId = -1;
 			if (binary)
 			{
-				for (auto functionInfo : binary->getDebugInfo().getFunctionInfos())
+				auto& funcInfos = binary->getDebugInfo().getFunctionInfos();
+				for (int j = 0; j < funcInfos.size(); j++)
 				{
 					if (foundLine)
 					{
 						break;
 					}
-
-					for (auto lineNumber : functionInfo.getLineNumbers())
+					for (int i = 0; i < funcInfos[j].getLineNumbers().size(); i++)
 					{
-						if (srcBreakpoint.line == lineNumber)
+						auto lineNumber = funcInfos[j].getLineNumbers()[i];
+						if (line == static_cast<int>(lineNumber))
 						{
 							foundLine = true;
+							instructionNum = i;
+							foundFunctionInfoIndex = j;
+							debugfinfo = funcInfos[j];
 							break;
 						}
 					}
 				}
 			}
+			breakpointId = GetBreakpointID(ref, line);
 
-			breakpointLines.emplace(srcBreakpoint.line);
+			if (foundLine) {
+				auto bpoint = BreakpointInfo{
+					.breakpointId = breakpointId,
+					.instructionNum = instructionNum,
+					.lineNum = line,
+					.debugFuncInfoIndex = foundFunctionInfoIndex
+				};
+				info.breakpoints[instructionNum] = bpoint;
+			}
 
-			Breakpoint breakpoint;
-			breakpoint.source = source;
-			breakpoint.verified = foundLine;
-			breakpoint.line = srcBreakpoint.line;
-
-			breakpoints.push_back(breakpoint);
+			response.breakpoints.push_back( dap::Breakpoint {
+				.id = foundLine ? dap::integer(breakpointId) : dap::optional<dap::integer>(),
+				.instructionReference = foundLine ? GetInstructionReference(debugfinfo) : dap::optional<dap::string>(),
+				.line = dap::integer(line),
+				.offset = foundLine ? dap::integer(instructionNum) : dap::optional<dap::integer>(),
+				.source = source,
+				.verified = foundLine
+				});
 		}
 
-		m_breakpoints[sourceReference] = breakpointLines;
-		if (!binary) {
-			return PDError::NO_PEX_DATA;
+		m_breakpoints[ref] = info;
+		return response;
+	}
+
+	void BreakpointManager::ClearBreakpoints(bool emitChanged) {
+		if (emitChanged) {
+			for (auto & kv : m_breakpoints) {
+				InvalidateAllBreakpointsForScript(kv.first);
+			}
 		}
-		else if (!hasDebugInfo) {
-			return PDError::NO_DEBUG_INFO;
+		m_breakpoints.clear();
+	}
+
+	// TODO: Upstream this
+	uint32_t GetInstructionNumberForOffset(RE::BSScript::ByteCode::PackedInstructionStream* stream, uint32_t IP) {
+		using func_t = decltype(&GetInstructionNumberForOffset);
+		REL::Relocation<func_t> func{ Game_Offset::GetInstructionNumberForOffset };
+		return func(stream, IP);
+	}
+
+	void BreakpointManager::InvalidateAllBreakpointsForScript(int ref) {
+		if (m_breakpoints.find(ref) != m_breakpoints.end())
+		{
+			return;
 		}
-		return PDError::OK;
+		for (auto& KV : m_breakpoints[ref].breakpoints) 
+		{
+			auto bpinfo = KV.second;
+			RuntimeEvents::EmitBreakpointChangedEvent(dap::Breakpoint{
+				.id = bpinfo.breakpointId,
+				.line = bpinfo.lineNum,
+				.source = m_breakpoints[ref].source,
+				.verified = false
+				}, "changed");
+		}
+		m_breakpoints.erase(ref);
 	}
 
 	bool BreakpointManager::GetExecutionIsAtValidBreakpoint(RE::BSScript::Internal::CodeTasklet* tasklet)
 	{
-		auto func = tasklet->topFrame->owningFunction;
-
-		if (func->GetIsNative())
+		auto &_func = tasklet->topFrame->owningFunction;
+		if (!_func || _func->GetIsNative())
 		{
 			return false;
 		}
-		const auto scriptName = tasklet->topFrame->owningObjectType->GetName();
-		const auto sourceReference = m_pexCache->GetScriptReference(scriptName);
+		// only ScriptFunctions are non-native
+		auto func = static_cast<RE::BSScript::Internal::ScriptFunction*>(_func.get());
+		const auto sourceReference = GetScriptReference(tasklet->topFrame->owningObjectType->GetName());
 		
 		if (m_breakpoints.find(sourceReference) != m_breakpoints.end())
 		{
-			auto breakpointLines = m_breakpoints[sourceReference];
-			if (!breakpointLines.empty())
+			auto& scriptBreakpoints = m_breakpoints[sourceReference];
+
+			auto binary = m_pexCache->GetCachedScript(sourceReference);
+			if (!binary || binary->getDebugInfo().getModificationTime() != scriptBreakpoints.modificationTime) {
+				// script was reloaded or removed after placement, remove it
+				InvalidateAllBreakpointsForScript(sourceReference);
+				return false;
+			}
+			if (!scriptBreakpoints.breakpoints.empty())
 			{
-				uint32_t currentLine;
-				#ifdef SKYRIM
-				bool success = func->TranslateIPToLineNumber(tasklet->topFrame->instructionPointer, currentLine);
-				#else // FAllOUT
-				bool success = func->TranslateIPToLineNumber(tasklet->topFrame->ip, currentLine);
-				#endif
-				auto found = breakpointLines.find(currentLine);
-				return success && found != breakpointLines.end();
+				int currentInstruction = -1;
+				auto ip = tasklet->topFrame->STACK_FRAME_IP;
+				currentInstruction = GetInstructionNumberForOffset(&func->instructions, ip);
+				if (currentInstruction != -1 && scriptBreakpoints.breakpoints.find(currentInstruction) != scriptBreakpoints.breakpoints.end()) {
+					return true;
+				}
+				return false;
 			}
 		}
 
 		return false;
+	}
+
+	//TODO: WIP
+	bool BreakpointManager::CheckIfFunctionWillWaitOrExit(RE::BSScript::Internal::CodeTasklet* tasklet) {
+		auto& func = tasklet->topFrame->owningFunction;
+
+		if (func->GetIsNative())
+		{
+			return true;
+		}
+		auto realfunc = dynamic_cast<RE::BSScript::Internal::ScriptFunction*>(func.get());
+
+		int instNum = GetInstructionNumberForOffset(&realfunc->instructions, tasklet->topFrame->STACK_FRAME_IP);
+
+		std::string scriptName(tasklet->topFrame->owningObjectType->GetName());
+		const auto sourceReference = GetScriptReference(scriptName);
+		if (m_breakpoints.find(sourceReference) != m_breakpoints.end())
+		{
+			auto& scriptBreakpoints = m_breakpoints[sourceReference];
+			auto binary = m_pexCache->GetScript(scriptName);
+			if (!binary || binary->getDebugInfo().getModificationTime() != scriptBreakpoints.modificationTime) {
+				return true;
+			}
+			if (scriptBreakpoints.breakpoints.find(instNum) != scriptBreakpoints.breakpoints.end())
+			{
+
+				auto& breakpointInfo = scriptBreakpoints.breakpoints[instNum];
+				auto& debugFuncInfo = binary->getDebugInfo().getFunctionInfos()[breakpointInfo.debugFuncInfoIndex];
+				auto& lineNumbers = debugFuncInfo.getLineNumbers();
+				auto funcData = GetFunctionData(binary, debugFuncInfo.getObjectName(), debugFuncInfo.getStateName(), debugFuncInfo.getFunctionName());
+				auto& instructions = funcData->getInstructions();
+				for (int i = instNum+1; i < instructions.size(); i++) {
+					auto& instruction = instructions[i];
+					auto opcode = instruction.getOpCode();
+					// TODO: The rest of this
+					
+				}
+			}
+		}
+		return true;
 	}
 }

@@ -19,7 +19,7 @@ namespace DarkId::Papyrus::DebugServer
 		}
 	}
 
-	bool ObjectStateNode::SerializeToProtocol(Variable& variable)
+	bool ObjectStateNode::SerializeToProtocol(dap::Variable& variable)
 	{
 		variable.variablesReference = m_value ? GetId() : 0;
 		
@@ -42,7 +42,7 @@ namespace DarkId::Papyrus::DebugServer
 			}
 			else
 			{
-				variable.value = variable.type;
+				variable.value = m_class->GetName();
 			}
 		}
 		else
@@ -118,7 +118,7 @@ namespace DarkId::Papyrus::DebugServer
 		}
 
 		const auto variableIter = m_class->GetVariableIter();
-		for (auto i = 0; i < m_class->GetNumVariables(); i++)
+		for (uint32_t i = 0; i < m_class->GetNumVariables(); i++)
 		{
 			auto variable = variableIter[i];
 			names.push_back(DemangleName(variable.name.c_str()));
@@ -170,7 +170,7 @@ namespace DarkId::Papyrus::DebugServer
 		const auto type = m_value->GetTypeInfo();
 
 		const auto variableIter = type->GetVariableIter();
-		for (auto i = 0; i < type->GetNumVariables(); i++)
+		for (uint32_t i = 0; i < type->GetNumVariables(); i++)
 		{
 			const auto variable = &variableIter[i];
 			const auto demangledName = DemangleName(variable->name.c_str());
