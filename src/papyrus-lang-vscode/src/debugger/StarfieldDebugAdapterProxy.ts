@@ -67,7 +67,7 @@ interface StarfieldCustomValueRequest extends DebugProtocol.Request {
     arguments: StarfieldCustomVariablesArguments // uses same args as variables
 }
 
-interface StarfieldValueResponse extends DebugProtocol.Response {
+interface StarfieldCustomValueResponse extends DebugProtocol.Response {
     body:{
         value: string,
         type: string,
@@ -134,13 +134,7 @@ function getFakeInitializeResponse(seq: number) {
             supportsConditionalBreakpoints: false,
             supportsHitConditionalBreakpoints: false,
             supportsEvaluateForHovers: false,
-            exceptionBreakpointFilters: [
-                // {
-                //     filter: 'Papyrus',
-                //     label: 'Papyrus Exceptions',
-                //     default: false
-                // }
-            ],
+            exceptionBreakpointFilters: [],
             supportsStepBack: false,
             supportsSetVariable: false,
             supportsRestartFrame: false,
@@ -182,10 +176,6 @@ const HEADER_LINESEPARATOR = /\r?\n/;	// allow for non-RFC 2822 conforming line 
 const HEADER_FIELDSEPARATOR = /: */;
 
 export class StarfieldDebugAdapterProxy implements DebugAdapter {
-    private static readonly TWO_CRLF = '\r\n\r\n';
-	private static readonly HEADER_LINESEPARATOR = /\r?\n/;	// allow for non-RFC 2822 conforming line separators
-	private static readonly HEADER_FIELDSEPARATOR = /: */;
-
     private connected = false;
 	private outputStream!: stream.Writable;
     private inputStream!: stream.Readable;
@@ -196,11 +186,10 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
     protected host: string;
     protected readonly _onError = new Emitter<Error>();
     _onDidSendMessage = new EventEmitter<DebugProtocolMessage>()
-
-    // object name to source map
     
+    // object name to source map
     protected objectNameToSourceMap: Map<string, DebugProtocol.Source> = new Map<string, DebugProtocol.Source>();
-    protected PathtoObjectNameMap: Map<string, string> = new Map<string, string>();
+    protected pathtoObjectNameMap: Map<string, string> = new Map<string, string>();
 
 
 
@@ -211,6 +200,136 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
         this.start();
     }
     
+
+    
+    handleVersionEvent(message: StarfieldCustomVersionEvent) {
+        // TODO: Do something with this? not very useful
+        this._onDidSendMessage.fire(message as DebugProtocolMessage);
+    }
+    
+    handleOutputEvent(message: StarfieldCustomOutputEvent) {
+        // The output messages don't have newlines, so just append one.
+        // TODO: something with the rest of the fields?
+        message.body.output += "\n";
+        this._onDidSendMessage.fire(message as DebugProtocolMessage);
+    }
+
+    handleStackTraceResponse(message: StarfieldCustomStackTraceResponse) {
+        // need to convert the source names back to Source objects
+        if (message.body.stackFrames){
+            message.body.stackFrames.forEach((frame: any)=>{
+                if (frame.source){
+                    let source = this.objectNameToSourceMap.get(frame.source)!;
+                    frame.source = source;
+                }
+                frame.moduleId = frame.object;
+            });
+        }
+        this._onDidSendMessage.fire(message as DebugProtocolMessage);
+    }
+    
+    // TODO: this
+    handleValueResponse(message: StarfieldCustomValueResponse) {
+        this._onDidSendMessage.fire(message as DebugProtocolMessage);
+    }
+    
+    // TODO: this
+    handleVariablesResponse(message: StarfieldCustomVariablesResponse) {
+        this._onDidSendMessage.fire(message as DebugProtocolMessage);
+    }
+
+
+    // They set body.breakpoints[].source argument to a string instead of a source object, need to fix this
+    handleSetBreakpointsResponse(message: StarfieldCustomSetBreakpointsResponse): void{
+        if (message.body && message.body.breakpoints){
+            message.body.breakpoints.forEach((breakpoint: any)=>{
+                let source = this.objectNameToSourceMap.get(breakpoint.source)!;
+                breakpoint.source = source;
+            });
+        }
+
+        this._onDidSendMessage.fire(message as DebugProtocolMessage);
+    }
+
+    handleReceivedMessage(message: DebugProtocol.ProtocolMessage): void {
+
+        if (message.type == "response") {
+            const response = message as DebugProtocol.Response;
+            if (response.command == "setBreakpoints") {
+                this.handleSetBreakpointsResponse(response as StarfieldCustomSetBreakpointsResponse);
+                return;
+            } else if (response.command == "variables") {
+                this.handleVariablesResponse(response as StarfieldCustomVariablesResponse);
+                return;
+            } else if (response.command == "value") {
+                this.handleValueResponse(response as StarfieldCustomValueResponse);
+                return;
+            } else if (response.command == "stackTrace") {
+                this.handleStackTraceResponse(response as StarfieldCustomStackTraceResponse);
+                return;
+            }
+        } else if (message.type == "event") {
+            const event = message as DebugProtocol.Event;
+            if (event.event == "output") {
+                this.handleOutputEvent(event as StarfieldCustomOutputEvent);
+                return;
+            } else if (event.event == "version") {
+                this.handleVersionEvent(event as StarfieldCustomVersionEvent);
+                return;
+            }
+        }
+
+        this._onDidSendMessage.fire(message);
+
+    }
+
+
+    // takes in a Source object and returns the papyrus object idnetifier (e.g. "MyMod:MyScript")
+    sourceToObjectName(source: DebugProtocol.Source) {
+        let name = source.name || "";
+        let path = source.path || "";
+
+        let objectName: string = name.split(".")[0];
+
+        // check the object name map path first
+        if (this.pathtoObjectNameMap.has(path)) {
+            objectName = this.pathtoObjectNameMap.get(path)!;
+        } else if (path) {
+            try {
+                // Read the first line of the file to get the script name
+                fs.readFileSync(path, 'utf8').split(/\r?\n/).forEach((line) => {
+                    if (line.trim().toLowerCase().startsWith("scriptname")) {
+                        objectName = line.trim().split(" ")[1];
+                        return;
+                    }
+                });
+            } catch (e) {
+                console.log("Error reading file: " + e);
+            }
+            // set the object name map path
+            this.pathtoObjectNameMap.set(path, objectName);
+        }
+        // set the object name to source map for retrieval later
+        this.objectNameToSourceMap.set(objectName, source);
+        return objectName;
+    }
+
+
+
+    handleSetBreakpointsRequest(message: DebugProtocol.SetBreakpointsRequest): void{
+        let source = message.arguments.source;
+        let objectName: string = this.sourceToObjectName(source);
+
+        let mangled_message = message as any;
+        mangled_message.arguments.source = objectName;
+        this.sendMessage(mangled_message as DebugProtocolMessage);
+    }
+    
+    handleVariablesRequest(message: DebugProtocol.VariablesRequest) {
+        // TODO: SOMETHING?!
+        this.sendMessage(message as DebugProtocolMessage);
+    }
+
     async start() {
         this._socket = net.createConnection(this.port, this.host, () => {
             this.connect(this._socket!, this._socket!);
@@ -234,6 +353,13 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
 
         this._socket.on('error', error => {
             if (this.connected) {
+                this._onDidSendMessage.fire({
+                    type: 'event',
+                    event: 'exited',
+                    body: {
+                        exitCode: 1
+                    }
+                } as DebugProtocolMessage)
                 this._onError.fire(error);
             } else {
                 throw error;
@@ -241,6 +367,7 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
         });
 
     }
+
 	protected connect(readable: stream.Readable, writable: stream.Writable): void {
 
 		this.outputStream = writable;
@@ -289,154 +416,18 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
 		}
 	}
 
-    onDidSendMessage = this._onDidSendMessage.event
-
-    handleReceivedMessage(message: DebugProtocol.ProtocolMessage): void {
-
-        if (message.type == "response") {
-            const response = message as DebugProtocol.Response;
-            if (response.command == "setBreakpoints") {
-                this.handleSetBreakpointsResponse(response as StarfieldCustomSetBreakpointsResponse);
-                return;
-            } else if (response.command == "variables") {
-                this.handleVariablesResponse(response as StarfieldCustomVariablesResponse);
-                return;
-            } else if (response.command == "value") {
-                this.handleValueResponse(response as StarfieldValueResponse);
-                return;
-            } else if (response.command == "stackTrace") {
-                this.handleStackTraceResponse(response as StarfieldCustomStackTraceResponse);
-                return;
-            }
-        } else if (message.type == "event") {
-            const event = message as DebugProtocol.Event;
-            if (event.event == "output") {
-                this.handleOutputEvent(event as StarfieldCustomOutputEvent);
-                return;
-            } else if (event.event == "version") {
-                this.handleVersionEvent(event as StarfieldCustomVersionEvent);
-                return;
-            }
-        }
-
-
-        this._onDidSendMessage.fire(message);
-
-    }
-    
-    handleVersionEvent(message: StarfieldCustomVersionEvent) {
-        // TODO: Do something with this? not very useful
-        this._onDidSendMessage.fire(message as DebugProtocolMessage);
-    }
-    
-    handleOutputEvent(message: StarfieldCustomOutputEvent) {
-        // The output messages don't have newlines, so just append one.
-        // TODO: something with the rest of the fields?
-        message.body.output += "\n";
-        this._onDidSendMessage.fire(message as DebugProtocolMessage);
-    }
-
-    handleStackTraceResponse(message: StarfieldCustomStackTraceResponse) {
-        // need to convert the source names back to Source objects
-        if (message.body.stackFrames){
-            message.body.stackFrames.forEach((frame: any)=>{
-                if (frame.source){
-                    let source = this.objectNameToSourceMap.get(frame.source)!;
-                    frame.source = source;
-                }
-                frame.moduleId = frame.object;
-            });
-        }
-        this._onDidSendMessage.fire(message as DebugProtocolMessage);
-    }
-    
-    // TODO: this
-    handleValueResponse(message: StarfieldValueResponse) {
-        this._onDidSendMessage.fire(message as DebugProtocolMessage);
-    }
-    
-    // TODO: this
-    handleVariablesResponse(message: StarfieldCustomVariablesResponse) {
-        this._onDidSendMessage.fire(message as DebugProtocolMessage);
-    }
-
-
-    // They set body.breakpoints[].source argument to a string instead of a source object, need to fix this
-    handleSetBreakpointsResponse(message: StarfieldCustomSetBreakpointsResponse): void{
-        if (message.body && message.body.breakpoints){
-            message.body.breakpoints.forEach((breakpoint: any)=>{
-                let source = this.objectNameToSourceMap.get(breakpoint.source)!;
-                breakpoint.source = source;
-            });
-        }
-
-        this._onDidSendMessage.fire(message as DebugProtocolMessage);
-    }
-
-
-
-    // takes in a Source object and returns the papyrus object idnetifier (e.g. "MyMod:MyScript")
-    sourceToObjectName(source: DebugProtocol.Source) {
-        let name = source.name || "";
-        let path = source.path || "";
-
-        let objectName: string = name.split(".")[0];
-
-        // check the object name map path first
-        if (this.PathtoObjectNameMap.has(path)) {
-            objectName = this.PathtoObjectNameMap.get(path)!;
-        } else if (path) {
-            try {
-                fs.readFileSync(path, 'utf8').split(/\r?\n/).forEach((line) => {
-                    if (line.trim().toLowerCase().startsWith("scriptname")) {
-                        objectName = line.split(" ")[1];
-                        return;
-                    }
-                });
-            } catch (e) {
-                console.log("Error reading file: " + e);
-            }
-            // set the object name map path
-            this.PathtoObjectNameMap.set(path, objectName);
-        }
-        // set the object name to source map for retrieval later
-        this.objectNameToSourceMap.set(objectName, source);
-        return objectName;
-    }
-
-
-
-    handleSetBreakpointsRequest(message: DebugProtocol.SetBreakpointsRequest): void{
-        let source = message.arguments.source;
-        // this is incredibly stupid, but oh well...
-        // set this name as a backup in case the bottom fails
-        let objectName: string = this.sourceToObjectName(source);
-
-        let mangled_message = message as any;
-        mangled_message.arguments.source = objectName;
-        this.sendMessage(mangled_message as DebugProtocolMessage);
-    }
-    handleVariablesRequest(message: DebugProtocol.VariablesRequest) {
-        // TODO: SOMETHING?!
-        // in the meantime, just send back an error response
-        let response = {
-            type: "response",
-            request_seq: message.seq,
-            success: false,
-            command: message.command,
-            message: "Variables request not supported"
-        } as DebugProtocol.Response
-        this._onDidSendMessage.fire(response as DebugProtocolMessage);
-    }
-
-
+    // Send message to server
     sendMessage(message: DebugProtocolMessage): void {
         const json = JSON.stringify(message);
         this.outputStream.write(`Content-Length: ${Buffer.byteLength(json, 'utf8')}${TWO_CRLF}${json}`, 'utf8');
     }
+    // override Debug Adapter
+    
+    // this is the event that the debug adapter client (i.e. vscode) will listen
+    // to whenever we get a message from the server.
+    onDidSendMessage = this._onDidSendMessage.event
 
-
-
+    // handle message from client to server
     handleMessage (message: DebugProtocolMessage): void {
         let pmessage = message as DebugProtocol.ProtocolMessage
         if (this.outputStream) {
@@ -475,6 +466,9 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
                 // TODO: Need to handle "threads" request that gets sent while attempting to pause 
                 // The server returns an error response because starfield refuses to return any threads before the VM is paused
                 // So no subsequent pause request is sent
+                
+                // TODO: Will need to handle "scope" requests, since starfield doesn't return any scopes
+                // Translate the scopes into root/path in the custom variable requests and save them as a VariableReference?
 
                 // TODO: need to handle "value" request?
 
@@ -483,10 +477,8 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
         }
     }
 
-    
-
     dispose () {
-    this._socket?.destroy();
+        this._socket?.destroy();
     }
     
 
