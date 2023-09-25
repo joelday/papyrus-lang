@@ -1,131 +1,16 @@
-import { DebugAdapter, DebugAdapterInlineImplementation, DebugProtocolMessage, Event, EventEmitter, SourceBreakpoint } from "vscode";
-import { DebugProtocol } from "@vscode/debugprotocol";
+import { DebugAdapter, DebugAdapterInlineImplementation, DebugProtocolMessage, Event, EventEmitter } from "vscode";
+import { DebugProtocol as DAP } from "@vscode/debugprotocol";
 import * as net from 'net';
 import * as stream from "stream";
 import { Emitter } from "vscode-languageclient";
 import * as fs from 'fs'
+import { StarfieldDebugProtocol as SFDAP } from "./StarfieldDebugProtocol";
 
-// Starfield breaks the DAP spec in ways that are not easily fixable, so we have to implement our own proxy
-
-
-// custom Output Event
-interface StarfieldCustomOutputEvent extends DebugProtocol.Event {
-    //event: 'output';
-    body: {
-        channel: string, // no idea what this is
-        isError: boolean,
-        output: string,
-        severity: string, //'warning'|'error'|'info'|'trace'
-    }
-}
-
-// New "Version" event, Doesn't exist in DAP spec
-interface StarfieldCustomVersionEvent extends DebugProtocol.Event {
-    //event: 'version';
-    body: {
-        game: string, // always "Starfield"
-        version: number
-    }
-}
-
-
-interface StarfieldRoot {
-    type: string, // "stackFrame" | "value"
-    threadId?: number,
-    stackFrameIndex?: number,
-    valueType?: string,
-}
-
-interface StarfieldCustomVariablesRequest extends DebugProtocol.Request {
-    //command: "variables",
-    arguments: StarfieldCustomVariablesArguments
-}
-
-
-interface StarfieldCustomVariablesArguments {
-    root: StarfieldRoot,
-    path: string[] // no idea how this is used
-}
-
-interface StarfieldCustomVariable {
-    name: string,
-    value: string,
-    type: string,
-    compound: boolean
-}
-interface StarfieldCustomVariablesResponse extends DebugProtocol.Response {
-    body: {
-        variables: StarfieldCustomVariable[]
-    }
-}
-
-
-
-// Doesn't exist in DAP spec, don't know what this does
-interface StarfieldCustomValueRequest extends DebugProtocol.Request {
-    //command: "value", // Doesn't exist in DAP spec
-    arguments: StarfieldCustomVariablesArguments // uses same args as variables
-}
-
-interface StarfieldCustomValueResponse extends DebugProtocol.Response {
-    body:{
-        value: string,
-        type: string,
-        compound: boolean
-    }
-}
-
-
-// Custom StackFrame response
-
-interface StarfieldCustomStackFrame {
-    name: string,   // name of the stack frame
-    object: string, // No idea what this is
-    source?: string, // NOTE: This is a string, not a Source object; it's the namespaced object name (e.g. "MyMod:MyScript")
-    line?: number,      // line it's currently at
-}
-
-// StackTraceRequest is the same
-
-interface StarfieldCustomStackTraceResponse extends DebugProtocol.Response {
-    body: {
-        stackFrames: StarfieldCustomStackFrame[]
-        // no totalFrames field
-    }
-}
-
-
-// custom set breakpoints handling
-
-interface StarfieldCustomSetBreakpointsArguments {
-    /** string instead of a `Source` object; it's the namespaced object name (e.g. "MyMod:MyScript")  */
-    source: string;
-    /** The code locations of the breakpoints. (Starfield only reads the `line` field from this) */
-    breakpoints?: SourceBreakpoint[];
-}
-
-interface StarfieldCustomSetBreakpointsRequest extends DebugProtocol.Request {
-    //command: "setBreakpoints",
-    arguments: StarfieldCustomSetBreakpointsArguments
-}
-
-interface StarfieldCustomBreakpoint{
-    /** string instead of a `Source` object; it's the namespaced object name (e.g. "MyMod:MyScript")  */
-    source: string;
-    line: number;
-    verified: boolean;
-}
-
-interface StarfieldCustomSetBreakpointsResponse extends DebugProtocol.Response {
-    body: {
-        breakpoints: StarfieldCustomBreakpoint[]
-    }
-}
-
-function getFakeInitializeResponse(seq: number) {
+function getFakeInitializeResponse(reqSeq: number) {
     return {
         type: 'response',
-        request_seq: seq,
+        seq: 0,
+        request_seq: reqSeq,
         success: true,
         command: 'initialize',
         body: {
@@ -168,7 +53,7 @@ function getFakeInitializeResponse(seq: number) {
             supportsSingleThreadExecutionRequests: false,
             completionTriggerCharacters: []
         }
-    } as DebugProtocolMessage
+    } as DAP.InitializeResponse;
 }
 
 const TWO_CRLF = '\r\n\r\n';
@@ -188,7 +73,7 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
     _onDidSendMessage = new EventEmitter<DebugProtocolMessage>()
     
     // object name to source map
-    protected objectNameToSourceMap: Map<string, DebugProtocol.Source> = new Map<string, DebugProtocol.Source>();
+    protected objectNameToSourceMap: Map<string, DAP.Source> = new Map<string, DAP.Source>();
     protected pathtoObjectNameMap: Map<string, string> = new Map<string, string>();
 
 
@@ -202,19 +87,19 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
     
 
     
-    handleVersionEvent(message: StarfieldCustomVersionEvent) {
+    handleVersionEvent(message: SFDAP.VersionEvent) {
         // TODO: Do something with this? not very useful
-        this._onDidSendMessage.fire(message as DebugProtocolMessage);
+        this.sendMessageToClient(message);
     }
     
-    handleOutputEvent(message: StarfieldCustomOutputEvent) {
+    handleOutputEvent(message: SFDAP.OutputEvent) {
         // The output messages don't have newlines, so just append one.
         // TODO: something with the rest of the fields?
         message.body.output += "\n";
-        this._onDidSendMessage.fire(message as DebugProtocolMessage);
+        this.sendMessageToClient(message);
     }
 
-    handleStackTraceResponse(message: StarfieldCustomStackTraceResponse) {
+    handleStackTraceResponse(message: SFDAP.StackTraceResponse) {
         // need to convert the source names back to Source objects
         if (message.body.stackFrames){
             message.body.stackFrames.forEach((frame: any)=>{
@@ -225,22 +110,22 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
                 frame.moduleId = frame.object;
             });
         }
-        this._onDidSendMessage.fire(message as DebugProtocolMessage);
+        this.sendMessageToClient(message);
     }
     
     // TODO: this
-    handleValueResponse(message: StarfieldCustomValueResponse) {
-        this._onDidSendMessage.fire(message as DebugProtocolMessage);
+    handleValueResponse(message: SFDAP.ValueResponse) {
+        this.sendMessageToClient(message);
     }
     
     // TODO: this
-    handleVariablesResponse(message: StarfieldCustomVariablesResponse) {
-        this._onDidSendMessage.fire(message as DebugProtocolMessage);
+    handleVariablesResponse(message: SFDAP.VariablesResponse) {
+        this.sendMessageToClient(message);
     }
 
 
     // They set body.breakpoints[].source argument to a string instead of a source object, need to fix this
-    handleSetBreakpointsResponse(message: StarfieldCustomSetBreakpointsResponse): void{
+    handleSetBreakpointsResponse(message: SFDAP.SetBreakpointsResponse): void{
         if (message.body && message.body.breakpoints){
             message.body.breakpoints.forEach((breakpoint: any)=>{
                 let source = this.objectNameToSourceMap.get(breakpoint.source)!;
@@ -248,44 +133,44 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
             });
         }
 
-        this._onDidSendMessage.fire(message as DebugProtocolMessage);
+        this.sendMessageToClient(message);
     }
 
-    handleReceivedMessage(message: DebugProtocol.ProtocolMessage): void {
+    handleMessageFromServer(message: DAP.ProtocolMessage): void {
 
         if (message.type == "response") {
-            const response = message as DebugProtocol.Response;
+            const response = message as DAP.Response;
             if (response.command == "setBreakpoints") {
-                this.handleSetBreakpointsResponse(response as StarfieldCustomSetBreakpointsResponse);
+                this.handleSetBreakpointsResponse(response as SFDAP.SetBreakpointsResponse);
                 return;
             } else if (response.command == "variables") {
-                this.handleVariablesResponse(response as StarfieldCustomVariablesResponse);
+                this.handleVariablesResponse(response as SFDAP.VariablesResponse);
                 return;
             } else if (response.command == "value") {
-                this.handleValueResponse(response as StarfieldCustomValueResponse);
+                this.handleValueResponse(response as SFDAP.ValueResponse);
                 return;
             } else if (response.command == "stackTrace") {
-                this.handleStackTraceResponse(response as StarfieldCustomStackTraceResponse);
+                this.handleStackTraceResponse(response as SFDAP.StackTraceResponse);
                 return;
             }
         } else if (message.type == "event") {
-            const event = message as DebugProtocol.Event;
+            const event = message as DAP.Event;
             if (event.event == "output") {
-                this.handleOutputEvent(event as StarfieldCustomOutputEvent);
+                this.handleOutputEvent(event as SFDAP.OutputEvent);
                 return;
             } else if (event.event == "version") {
-                this.handleVersionEvent(event as StarfieldCustomVersionEvent);
+                this.handleVersionEvent(event as SFDAP.VersionEvent);
                 return;
             }
         }
 
-        this._onDidSendMessage.fire(message);
+        this.sendMessageToClient(message);
 
     }
 
 
     // takes in a Source object and returns the papyrus object idnetifier (e.g. "MyMod:MyScript")
-    sourceToObjectName(source: DebugProtocol.Source) {
+    sourceToObjectName(source: DAP.Source) {
         let name = source.name || "";
         let path = source.path || "";
 
@@ -316,18 +201,18 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
 
 
 
-    handleSetBreakpointsRequest(message: DebugProtocol.SetBreakpointsRequest): void{
+    handleSetBreakpointsRequest(message: DAP.SetBreakpointsRequest): void{
         let source = message.arguments.source;
         let objectName: string = this.sourceToObjectName(source);
 
         let mangled_message = message as any;
         mangled_message.arguments.source = objectName;
-        this.sendMessage(mangled_message as DebugProtocolMessage);
+        this.sendMessageToServer(mangled_message);
     }
     
-    handleVariablesRequest(message: DebugProtocol.VariablesRequest) {
+    handleVariablesRequest(message: DAP.VariablesRequest) {
         // TODO: SOMETHING?!
-        this.sendMessage(message as DebugProtocolMessage);
+        this.sendMessageToServer(message);
     }
 
     async start() {
@@ -338,13 +223,13 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
         this._socket.on('close', () => {
             if (this.connected) {
                 this.connected = false;
-                this._onDidSendMessage.fire({
+                this.sendMessageToClient({
                     type: 'event',
                     event: 'exited',
                     body: {
                         exitCode: 0
                     }
-                } as DebugProtocolMessage)
+                } as DAP.ExitedEvent)
                 this._onError.fire(new Error('connection closed'));
             } else {
                 throw new Error('connection closed');
@@ -353,13 +238,13 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
 
         this._socket.on('error', error => {
             if (this.connected) {
-                this._onDidSendMessage.fire({
+                this.sendMessageToClient({
                     type: 'event',
                     event: 'exited',
                     body: {
                         exitCode: 1
                     }
-                } as DebugProtocolMessage)
+                } as DAP.ExitedEvent)
                 this._onError.fire(error);
             } else {
                 throw error;
@@ -390,7 +275,7 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
 					this.contentLength = -1;
 					if (message.length > 0) {
 						try {
-                            this.handleReceivedMessage(JSON.parse(message));
+                            this.handleMessageFromServer(JSON.parse(message));
 						} catch (e) {
 							console.error("Received invalid JSON message: ", message, e);
 						}
@@ -416,8 +301,11 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
 		}
 	}
 
+    sendMessageToClient(message: DAP.ProtocolMessage): void {
+        this._onDidSendMessage.fire(message as DebugProtocolMessage);
+    }
     // Send message to server
-    sendMessage(message: DebugProtocolMessage): void {
+    sendMessageToServer(message: SFDAP.ProtocolMessage): void {
         const json = JSON.stringify(message);
         this.outputStream.write(`Content-Length: ${Buffer.byteLength(json, 'utf8')}${TWO_CRLF}${json}`, 'utf8');
     }
@@ -429,16 +317,16 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
 
     // handle message from client to server
     handleMessage (message: DebugProtocolMessage): void {
-        let pmessage = message as DebugProtocol.ProtocolMessage
+        let pmessage = message as DAP.ProtocolMessage
         if (this.outputStream) {
             if (pmessage.type === "request") {
                 // Handling initialize/attach/launch requests that are REQUIRED by the DAP spec to be responded to,
                 // But of course, Starfield doesn't respond to them, so we have to fake it
                 // Or the debugger doesn't think it ever attached.
-                let rmessage = message as DebugProtocol.Request;
+                let rmessage = message as DAP.Request;
                 if (rmessage.command === "initialize"){
                     console.log("SENDING FAKE INITIALIZE RESPONSE BACK")
-                    this._onDidSendMessage.fire(getFakeInitializeResponse(rmessage.seq))
+                    this.sendMessageToClient(getFakeInitializeResponse(rmessage.seq))
                     return; // Don't send message to server
                 } else if (rmessage.command === "attach" || rmessage.command === "launch") {
                     console.log("SENDING FAKE attach/launch RESPONSE BACK")
@@ -447,20 +335,20 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
                         request_seq: rmessage.seq,
                         success: true,
                         command: rmessage.command,
-                    } as DebugProtocol.Response
-                    this._onDidSendMessage.fire(fakealResponse as DebugProtocolMessage)
+                    } as DAP.Response
+                    this.sendMessageToClient(fakealResponse)
                     // Now we've attached/launched, we fire off the intialized event and we're off to the races
                     console.log("SENDING FAKE initialized event BACK")
-                    this._onDidSendMessage.fire({
+                    this.sendMessageToClient({
                         type: 'event',
                         event: 'initialized'
-                    } as DebugProtocolMessage)
+                    }as DAP.InitializedEvent)
                     return; // Don't send message to server
                 } else if (rmessage.command === "setBreakpoints") {
-                    this.handleSetBreakpointsRequest(message as DebugProtocol.SetBreakpointsRequest);
+                    this.handleSetBreakpointsRequest(message as DAP.SetBreakpointsRequest);
                     return;
                 } else if (rmessage.command === "variables") {
-                    this.handleVariablesRequest(message as DebugProtocol.VariablesRequest);
+                    this.handleVariablesRequest(message as DAP.VariablesRequest);
                     return;
                 }
                 // TODO: Need to handle "threads" request that gets sent while attempting to pause 
@@ -473,7 +361,7 @@ export class StarfieldDebugAdapterProxy implements DebugAdapter {
                 // TODO: need to handle "value" request?
 
             }
-            this.sendMessage(message);
+            this.sendMessageToServer(pmessage);
         }
     }
 
