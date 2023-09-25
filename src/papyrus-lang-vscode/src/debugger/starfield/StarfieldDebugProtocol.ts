@@ -28,6 +28,9 @@ interface VersionEvent extends DAP.Event {
     };
 }
 
+type ThreadEvent = DAP.ThreadEvent;
+type StoppedEvent = DAP.StoppedEvent;
+
 interface Root {
     type: string; // "stackFrame" | "value"
     threadId?: number;
@@ -75,10 +78,20 @@ interface ValueResponse extends DAP.Response {
 
 // Custom StackFrame response
 interface StackFrame {
-    name: string; // name of the stack frame
-    object: string; // No idea what this is
-    source?: string; // NOTE: This is a string, not a Source object; it's the namespaced object name (e.g. "MyMod:MyScript")
-    line?: number; // line it's currently at
+    name: string; // The current path of the stack frame; format is in `objectname..function(...)` like `ObjectReference..PlayAnimationAndWait(...)`
+    object: string; // Name of the object; used to look up the source if there is no source field on the stack frame
+    /**
+     * The source path that is in the pex header (i.e. it may not actually map to the source file we have)
+     * If the stackframe is in a native function, this will not be present
+     * 
+     * This is a string, not a Source object
+     */
+    source?: string;
+    /**
+     * The line number of the stack frame
+     * If the stackframe is in a native function, this will not be present
+     */
+    line?: number; 
 }
 
 // StackTraceRequest is the same

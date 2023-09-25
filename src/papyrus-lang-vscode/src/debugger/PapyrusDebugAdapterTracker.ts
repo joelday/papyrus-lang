@@ -49,10 +49,8 @@ export class PapyrusDebugAdapterTracker implements DebugAdapterTracker {
     
     // TODO: Starfield: TURN THIS BACK OFF
     onWillReceiveMessage(message: any) {
-        console.log(`> ${JSON.stringify(message, undefined, 2)}`);
     }
     onDidSendMessage(message: any) {
-        console.log(`< ${JSON.stringify(message, undefined, 2)}`);
     }
 
     onExit(code: number | undefined, signal: string | undefined) {

@@ -11,6 +11,7 @@ import {
     CancellationTokenSource,
     DebugAdapterServer,
     DebugAdapterInlineImplementation,
+    workspace,
 } from 'vscode';
 import {
     PapyrusGame,
@@ -40,7 +41,7 @@ import path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
 import { isMO2ButNotThisOneRunning, isMO2Running, isOurMO2Running, killAllMO2Processes } from './MO2Helpers';
-import { StarfieldDebugAdapterProxy } from './StarfieldDebugAdapterProxy';
+import { StarfieldDebugAdapterProxy } from './starfield/StarfieldDebugAdapterProxy';
 const exists = promisify(fs.exists);
 
 const noopExecutable = new DebugAdapterExecutable('node', ['-e', '""']);
@@ -230,12 +231,27 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
         // Starfield doesnt need the adapter proxy and doesn't support launch right now
         //TODO: Starfield: clean up
         if (game == PapyrusGame.starfield) {
+            // get the workspace folder
+            // TODO: Starfield: Replace this with actual name resolution
+            let workspaceFolder = ""
+            let baseFolder = ""
+            if (workspace.workspaceFolders !== undefined){
+                workspaceFolder = workspace.workspaceFolders[0].uri.fsPath;
+                if (workspace.workspaceFolders.length > 1){
+                    baseFolder = workspace.workspaceFolders[1].uri.fsPath;
+                }
+            }
+            
             session.configuration.noop = false;
             return new DebugAdapterInlineImplementation( 
                 new StarfieldDebugAdapterProxy(
                     session.configuration.port || getDefaultPortForGame(game),
-                    "localhost")
-                    )
+                    "localhost",
+                    true,
+                    workspaceFolder,
+                    baseFolder
+                )
+            )
         }
 
         let launched = DebugLaunchState.success;
