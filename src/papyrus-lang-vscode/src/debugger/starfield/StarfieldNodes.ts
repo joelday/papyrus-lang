@@ -20,6 +20,7 @@ export interface ScopeNode extends DAP.Scope{
     path: string[];
     parentVariableReference: number;
     scopeType: "local" | "self" | "parent" | "objectMember";
+    propName?: string;
     baseForm?: string;
     reflectionInfo?: SFDAP.Root;
 }

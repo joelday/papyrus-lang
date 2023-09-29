@@ -31,7 +31,9 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     private _pendingRequests = new Map<number, (response: DAP.Response) => void>();
     private workspaceFolder :string = "";
     private BaseScriptFolder :string | undefined = undefined;
-    
+    private receivedVersionEvent: boolean = false;
+    private receivedLaunchOrAttachRequest: boolean = false;
+    private sentInitializedEvent: boolean = false;
     // object name to source map
     protected objectNameToSourceMap: Map<string, DAP.Source> = new Map<string, DAP.Source>();
     protected pathtoObjectNameMap: Map<string, string> = new Map<string, string>();
@@ -42,6 +44,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     private _variableMap: Map<number, DAP.Variable> = new Map<number, DAP.Variable>();
     private _variableReferencetoFrameIdMap: Map<number, number> = new Map<number, number>();
     private _variableRefCount = 0;
+    private currentSeq: number = 0;
     constructor(port: number, host:string, startNow: boolean = true, workspaceFolder: string, BaseScriptFolder: string | undefined) {
         super(port, host, startNow);
     }
@@ -157,22 +160,24 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     protected handleMessageFromClient(message: DAP.ProtocolMessage): void {
         this.log(`---CLIENT->PROXY: ${JSON.stringify(message, undefined, 2)}`);
         let pmessage = message as DAP.ProtocolMessage
-        if (this.outputStream) {
-            if (pmessage.type === "request") {
-                this.handleClientRequest(pmessage as DAP.Request);
-            } else {
-                // TODO: handle other message types
-                this.sendMessageToServer(pmessage);
-            }
+        let retries = 0;
+        this.currentSeq = message.seq;
+        if (pmessage.type === "request") {
+            this.handleClientRequest(pmessage as DAP.Request);
         } else {
-            // send a terminated event to the client so they disconnect
-            this.sendMessageToClient(new Event("terminated"));
+            // TODO: handle other message types
+            this.sendMessageToServer(pmessage);
         }
+        
     }
     
     handleVersionEvent(message: SFDAP.VersionEvent) {
-        // TODO: Do something with this? not very useful
-        this.sendMessageToClient(message);
+        this.receivedVersionEvent = true;
+        if (this.receivedLaunchOrAttachRequest && !this.sentInitializedEvent) {
+            this.log("SENDING FAKE initialized event BACK")
+            this.sendMessageToClient(new Event('initialized'))
+            this.sentInitializedEvent = true;
+        }
     }
     
     handleOutputEvent(message: SFDAP.OutputEvent) {
@@ -228,8 +233,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 	}
 
     public sendRequestToServerWithCB(request: SFDAP.Request, timeout: number, cb: (response: SFDAP.Response) => void) : void {
-
-		this.sendMessageToServer(request);
+        this.sendMessageToServer(request);
 		if (cb) {
 			this._pendingRequests.set(request.seq, cb);
             if (timeout > 0) {
@@ -358,10 +362,14 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     private handleLaunchOrAttach(request: DAP.Request) : void {
         this.log("SENDING FAKE attach/launch RESPONSE BACK")
         this.sendMessageToClient(new Response(request))
+        this.receivedLaunchOrAttachRequest = true;
         // Now we've attached/launched, we fire off the intialized event and we're off to the races
-        this.log("SENDING FAKE initialized event BACK")
-        this.sendMessageToClient(new Event('initialized'))
+        if (this.receivedVersionEvent && !this.sentInitializedEvent){
+            this.log("SENDING FAKE initialized event BACK")
+            this.sendMessageToClient(new Event('initialized'))
+            this.sentInitializedEvent = true;
         // Don't send message to server
+        }
 
     }
 	protected handleLaunchRequest(request: DAP.LaunchRequest) : void {
@@ -663,7 +671,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         response.body = {
             scopes: scopes
         }
-        let scopeNodes : ScopeNode[] = [];
+
         for (let scope of scopes){
             let newScope : ScopeNode = {
                 name: scope.name,
@@ -832,16 +840,41 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         }
         if (scope?.reflectionInfo){
             let TypeInfoRoot: SFDAP.Root = scope.reflectionInfo as SFDAP.Root;
-            
-            let valueRequest = <SFDAP.ValueRequest> new Request("value", {
+
+            let newPath = vrpath;
+            if (newPath.length > 0 && newPath[0] == "self"){
+                let frame = this._stackFrameMap.get(frameId);
+                if (frame && frame.moduleId){
+                    newPath = [frame.moduleId.toString()].concat(newPath.slice(1));
+                }
+                if (scope.propName && newPath.at(-1) == scope.name){
+                    newPath[newPath.length - 1] = scope.propName;
+                }
+            }
+            // TODO: REMOVE
+            newPath = [];
+
+            // INTERSTING STUFF WITH NO PATH
+            // NEED TO TRY OUT VALUE REQUEST WITH STACKFRAME ROOT
+            let innervarRequest = <SFDAP.VariablesRequest> new Request("variables", {
                 root: TypeInfoRoot,
-                path: vrpath // TODO: This path is incorrect; maybe it's the script name? Scriptname + property name??
+                path: newPath // TODO: This path is incorrect; maybe it's the script name? Scriptname + property name??
             });
-    
-            this.sendRequestToServerWithCB(valueRequest, 10000, (r)=>{
+            this.sendRequestToServerWithCB(innervarRequest, 10000, (r)=>{
                 // TODO: just for testing to see what we get back
-                this.log("VALUE RESPONSE: ", JSON.stringify(r, undefined, 2));
-            });    
+                this.log("**************INNER VARIABLE RESPONSE: \n", JSON.stringify(r, undefined, 2));
+            });
+            innervarRequest.seq = 0;
+            let valueRequest = <SFDAP.VariablesRequest> new Request("value", {
+                root: TypeInfoRoot,
+                path: newPath // TODO: This path is incorrect; maybe it's the script name? Scriptname + property name??
+            });
+            valueRequest.seq = 1;
+            this.sendRequestToServerWithCB(valueRequest, 10000, (r)=>{
+                // TODO: 
+                this.log("**************VALUE RESPONSE: \n", JSON.stringify(r, undefined, 2));
+            });
+
         }
 
         let sfVarsRequest = <SFDAP.VariablesRequest> new Request("variables", {
@@ -892,6 +925,9 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
                             parentVariableReference: varReference,
                             expensive: false
                         } as ScopeNode
+                        if (newVar.presentationHint && newVar.presentationHint.kind == "property") {
+                            newScope.propName = newVar.name;
+                        }
                     }
                     if (info){
                         if (info.root && !newScope.reflectionInfo) {

@@ -138,6 +138,7 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
         this._socket.on('error', error => {
             if (this.connected) {
                 this.connected = false;
+				this.failed = true;
                 this.sendMessageToClient({
                     type: 'event',
                     event: 'exited',
@@ -170,7 +171,19 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
     // Send message to server
     protected sendMessageToServer(message: DAP.ProtocolMessage): void {
 		this.log(`***PROXY->SERVER ${JSON.stringify(message, undefined, 2)}`);
-
+		if (!this.outputStream){
+			// install an event listener on the socket to wait for `connect`, `close`, or `error`
+			this._socket?.once('connect', () => {
+				this.sendMessageToServer(message);
+			});
+			this._socket?.once('close', () => {
+				this._onError.fire(new Error('connection closed'));
+			});
+			this._socket?.once('error', error => {
+				this._onError.fire(error);
+			});
+			return;
+		}
         if (this.outputStream){
             const json = JSON.stringify(message);
             this.outputStream.write(`Content-Length: ${Buffer.byteLength(json, 'utf8')}${TWO_CRLF}${json}`, 'utf8');    
