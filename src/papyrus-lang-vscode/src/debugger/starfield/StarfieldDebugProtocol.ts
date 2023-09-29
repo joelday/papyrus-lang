@@ -1,4 +1,3 @@
-import { SourceBreakpoint } from "vscode";
 import { DebugProtocol as DAP } from "@vscode/debugprotocol";
 
 // Starfield breaks the DAP spec in ways that are not easily fixable, so we have to implement our own proxy
@@ -31,11 +30,36 @@ interface VersionEvent extends DAP.Event {
 type ThreadEvent = DAP.ThreadEvent;
 type StoppedEvent = DAP.StoppedEvent;
 
-interface Root {
-    type: string; // "stackFrame" | "value"
+interface Root{
+    type: "stackFrame" | "value"
     threadId?: number;
     stackFrameIndex?: number;
-    valueType?: string;
+
+    // the below are only present if type is "value"
+    valueType?: "form" | "alias" | "inventoryItem" | "activeEffect" | "inputEnableLayer";
+
+    // looks like they just left everything in the body...
+    // form
+    formId?: number; // FormId
+    formName?: string; // FormEditorId name
+
+    // alias
+    aliasName?: string; 
+    questName?: string;
+    questFormId?: number;
+
+    // inventoryItem
+    containerFormId?: number;
+    containerName?: string;
+    uniqueId?: number;
+
+    // activeEffect
+    targetName?: string;
+    targetFormId?: number;
+    effectId?: number;
+
+    // inputEnableLayer
+    layerId?: number;
 }
 
 interface VariablesArguments {

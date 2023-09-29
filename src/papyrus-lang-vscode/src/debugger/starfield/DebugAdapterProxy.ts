@@ -2,8 +2,6 @@ import { DebugProtocol as DAP } from "@vscode/debugprotocol";
 import * as net from 'net';
 import * as stream from "stream";
 import * as fs from 'fs'
-import { StarfieldDebugProtocol as SFDAP } from "./StarfieldDebugProtocol";
-import { ProtocolServer } from "@vscode/debugadapter/lib/protocol";
 
 
 interface DebugProtocolMessage {

@@ -4,6 +4,7 @@ import * as path from 'path'
 import { StarfieldDebugProtocol as SFDAP } from "./StarfieldDebugProtocol";
 import { DebugAdapterProxy } from "./DebugAdapterProxy";
 import { Response, Event, Message } from "@vscode/debugadapter/lib/messages";
+import { ScopeNode } from "./StarfieldNodes";
 
 
 export enum ErrorDestination {
@@ -37,14 +38,23 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     private _threads: DAP.Thread[] = [this.DUMMY_THREAD_OBJ];
     private _stackFrameMap: Map<number, DAP.StackFrame> = new Map<number, DAP.StackFrame>();
     private _stackIdToThreadIdMap: Map<number, number> = new Map<number, number>();
-    private _scopeMap: Map<number, DAP.Scope> = new Map<number, any>();
+    private _scopeMap: Map<number, ScopeNode> = new Map<number, any>();
+    private _variableMap: Map<number, DAP.Variable> = new Map<number, DAP.Variable>();
     private _variableReferencetoFrameIdMap: Map<number, number> = new Map<number, number>();
+    private _variableRefCount = 0;
     constructor(port: number, host:string, startNow: boolean = true, workspaceFolder: string, BaseScriptFolder: string | undefined) {
         super(port, host, startNow);
     }
+
+    getVariableRefCount(){
+        this._variableRefCount++;
+        return this._variableRefCount;
+    }
     clearExecutionState(){
+        this._variableRefCount = 0;
         this._stackFrameMap.clear();
         this._scopeMap.clear();
+        this._variableMap.clear();
         this._variableReferencetoFrameIdMap.clear();
         this._stackIdToThreadIdMap.clear();
     }
@@ -477,11 +487,11 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     // We shouldn't get these; if we do, we screwed up somewhere.'
     // In either case, starfield doesn't respond to them
     protected handleSourceRequest(request: DAP.SourceRequest) : void{
-		this.sendErrorResponse(new Response(request), 1014, 'unrecognized request', null, ErrorDestination.User);
+		this.sendErrorResponse(new Response(request), 1014, 'SOURCE REQUEST?!?!?!?!?', null, ErrorDestination.User);
     }
 
 	protected handleThreadsRequest(request: DAP.ThreadsRequest) : void {
-        // Need to handle "threads" request that gets sent while attempting to pause 
+        // Need to handle "threads" request that gets sent while attempting to pause
         // The server returns an error response because starfield refuses to return any threads before the VM is paused
         // So no subsequent pause request is sent
 		this.sendRequestToServerWithCB(request, 10000, (r) => {
@@ -517,26 +527,6 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     protected addStackFrame(threadId: number, frame: DAP.StackFrame) {
         this._stackFrameMap.set(frame.id, frame);
         this._stackIdToThreadIdMap.set(frame.id, threadId);
-    }
-    protected makeScopes(frameId: number){
-        let scopes: DAP.Scope[] = [];
-        let frame = this._stackFrameMap.get(frameId);
-        if (frame){
-            let localScope = {
-                name: "Local",
-                presentationHint: "locals",
-                variablesReference: frameId * 10,
-                expensive: false
-            } as DAP.Scope;
-            scopes.push(localScope);
-            let globalScope = {
-                name: "Global",
-                variablesReference: frameId * 10 + 1,
-                expensive: false
-            } as DAP.Scope;
-            scopes.push(globalScope);
-        }
-        return scopes;
     }
 
     protected findFrameForVariableReference(variableReference: number) : DAP.StackFrame | undefined {
@@ -642,63 +632,225 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         return source;        
     }
 
+    protected addScopeToScopeMap(scope: ScopeNode) {
+        this._scopeMap.set(scope.variablesReference, scope);
+        this._variableReferencetoFrameIdMap.set(scope.variablesReference, scope.frameId);
+    }
+
 	protected handleScopesRequest(request: DAP.ScopesRequest) : void {
         // TODO: Will need to handle "scope" requests, since starfield doesn't respond to them
         // Translate the scopes into root/path in the custom variable requests and save them as a VariableReference?
         // TODO: Handle
-        let scopes = this.makeScopes(request.arguments.frameId);
+        let scopes: DAP.Scope[] = [];
+        let frame = this._stackFrameMap.get(request.arguments.frameId);
+        let objectName = frame?.moduleId || ""
+        if (frame){
+            let localScope = {
+                name: "Local",
+                presentationHint: "locals",
+                variablesReference: this.getVariableRefCount(),
+                expensive: false
+            } as DAP.Scope;
+            scopes.push(localScope);
+            let globalScope = {
+                name: "Self" + (objectName ? (" (" + objectName + ")") : ("")),
+                variablesReference: this.getVariableRefCount(),
+                expensive: false
+            } as DAP.Scope;
+            scopes.push(globalScope);
+        }
         let response = <DAP.ScopesResponse> new Response(request);
         response.body = {
             scopes: scopes
         }
-        for (let scope of scopes as any[]){
-            this._scopeMap.set(scope.variablesReference, scope);
-            this._variableReferencetoFrameIdMap.set(scope.variablesReference, request.arguments.frameId);
+        let scopeNodes : ScopeNode[] = [];
+        for (let scope of scopes){
+            let newScope : ScopeNode = {
+                name: scope.name,
+                presentationHint: scope.presentationHint,
+                variablesReference: scope.variablesReference,
+                threadId: this.getThreadIdFromStackFrameId(request.arguments.frameId) || 0,
+                frameId: request.arguments.frameId,
+                path: scope.name == "Local" ? [] : ["self"],
+                scopeType: scope.name == "Local" ? "local" : "self",
+                parentVariableReference: 0,
+                expensive: scope.expensive
+            }
+            this.addScopeToScopeMap(newScope);
         }
         this.log("SENDING FAKE SCOPES TO CLIENT");
         this.sendMessageToClient(response);
 	}
 
+    protected parseOutReflectionInfo(valueStr: string){
+        /**
+         * Values for compound variables are returned like this:
+         * 
+         * [{FormClass} <{reflection_data}>]
+         * 
+         * the reflection_data is a short string that follows the following formats:
+         *  form:
+         *    %s (%08X)
+         *    <nullptr form> (%08X)
+         * //example: [Armor <Clothes_Miner_UtilitySuit (0001D1E7)>]
+         * 
+         *  topicinfo - doesn't look like you can get this via the debugger
+         *    topic info %08X on <nullptr quest>
+         *    topic info %08X on quest %s (%08X)
+         * 
+         *  alias:
+         *    alias %s on quest %s (%08X)
+         *    alias %s on <nullptr quest> (%08X)
+         *    <nullptr alias> (%hu) on %squest %s (%08X)
+         *    <nullptr alias> (%hu) on <nullptr quest> (%08X)
+         *  example: [mq101playeraliasscript <alias Player on quest MQ101 (00003448)>]
+         * 
+         *  inventoryItem:
+         *    Item %hu in <nullptr container> (%08X)
+         *    Item %hu in container %s (%08X)
+         *  example: [Weapon <Item 21 in container Thing (00000014)>]
+         * 
+         *  activeEffect:
+         *    Active effect %hu on <nullptr actor> (%08X)
+         *    Active effect %hu on %s (%08X)
+         *  example: [MagicEffect <Active effect 1 on Actor (00005251)>]
+         * 
+         *  inputEnableLayer:
+         *    Input enable layer <no name> (%08X)
+         *    Input enable layer %s (%08X)
+         *    Invalid input enable layer (%08X)
+         *  example: [InputEvent <Input enable layer 1 on Player (00000007)>]
+         *  
+         */
+
+        let valueTypes = {};
+        let value = valueStr;      //v yes that space is supposed to be there
+        let re = /\[([\w\d_]+) <(.*)? \(([A-F\d]{8})\)>\]/g;
+        let match = re.exec(valueStr);
+        if (match?.length == 4){
+            let baseForm = match?.[1];
+            let reflectionInfo = match?.[2];
+            let formId = parseInt(match?.[3], 16);
+            
+
+            if (!reflectionInfo || reflectionInfo.length == 0){
+                return {
+                    baseForm: baseForm,
+                    root: {
+                        type: "value",
+                        valueType: "form",
+                        formId: formId
+                    }
+                }
+            }
+            if (reflectionInfo.includes("alias") && reflectionInfo.includes("on quest")){
+                let parts = reflectionInfo.replace("alias ", "").split(" on quest ");
+                return {
+                    baseForm: baseForm,
+                    root: {
+                        type: "value",
+                        valueType: "alias",
+                        aliasName: parts[0],
+                        questName: parts[1],
+                        questFormId: formId
+                    }
+                }
+            } else if (reflectionInfo.startsWith("Item ") && reflectionInfo.includes(" in container ")){
+                let parts = reflectionInfo.replace("Item ", "").split(" in container ");
+                return {
+                    baseForm: baseForm,
+                    root: {
+                        type: "value",
+                        valueType: "inventoryItem",
+                        uniqueId: parseInt(parts[0]),
+                        containerName: parts[1],
+                        containerFormId: formId
+                    }
+                }
+            } else if (reflectionInfo.startsWith("Active effect ")){
+                let parts = reflectionInfo.replace("Active effect ", "").split(" on ");
+                return {
+                    baseForm: baseForm,
+                    root: {
+                        type: "value",
+                        valueType: "activeEffect",
+                        effectId: parseInt(parts[0]),
+                        targetName: parts[1],
+                        targetFormId: formId
+                    }
+                }
+            } else if (reflectionInfo.startsWith("Input enable layer ")){
+                let parts = reflectionInfo.replace("Input enable layer ", "").split(" on ");
+                return {
+                    baseForm: baseForm,
+                    root: {
+                        type: "value",
+                        valueType: "inputEnableLayer",
+                        layerId: formId,
+                    }
+                }
+            } else if (!reflectionInfo.includes(" ")){
+                return {
+                    baseForm: baseForm,
+                    root: {
+                        type: "value",
+                        valueType: "form",
+                        formId: formId,
+                        formName: reflectionInfo
+                    }
+                }
+            } else {
+                return {
+                    baseForm: baseForm,
+                    root: {
+                        type: "value",
+                        valueType: "form",
+                        formId: formId
+                    }
+                }
+            }
+        }
+        return undefined;
+    }
+
 	protected handleVariablesRequest(request: DAP.VariablesRequest) : void {
         let varReference = request.arguments.variablesReference;
         let scope = this.getScopeFromVariableReference(varReference);
-        let stackId = this.getStackIdFromVariableReference(varReference) || -1
-        let frame : any = this.findFrameForVariableReference(varReference);
-        let threadId = this.getThreadIdFromStackFrameId(stackId) || 0;
-        let objectName = frame?.object!;
+        let frameId = scope?.frameId || -1
+        // let frame : any = this.findFrameForVariableReference(varReference);
+        let threadId = scope?.threadId || -1
+        // let objectName = frame?.object!;
         
-        let vrpath: string[] 
+        let vrpath: string[] = scope?.path || []
         // TODO: testing
-        
-        let root: SFDAP.Root;
-        let realStackIndex = (stackId - (threadId * 1000))
-        if (scope?.name == "Local"){
-            vrpath = [frame?.name.replace("(...)").split("..", 2)[1]]
-            root = {
-                type: "stackFrame",
-                threadId: threadId,
-                stackFrameIndex: realStackIndex
-            }
-        } else {
-            // root = {
-            //     type: "value",
-            //     valueType: objectName
-            // }
-            vrpath = ["self"]
-            root = {
-                type: "stackFrame",
-                threadId: threadId,
-                stackFrameIndex: realStackIndex
-            }
-            
+        let stackFrameRoot: SFDAP.Root;
+        let realStackIndex = this.getRealStackIndex(frameId, threadId)
+        stackFrameRoot = {
+            type: "stackFrame",
+            threadId: threadId,
+            stackFrameIndex: realStackIndex,
         }
-        let sfRequest = <SFDAP.VariablesRequest> new Request("variables", {
-            root: root,
+        if (scope?.reflectionInfo){
+            let TypeInfoRoot: SFDAP.Root = scope.reflectionInfo as SFDAP.Root;
+            
+            let valueRequest = <SFDAP.ValueRequest> new Request("value", {
+                root: TypeInfoRoot,
+                path: vrpath // TODO: This path is incorrect; maybe it's the script name? Scriptname + property name??
+            });
+    
+            this.sendRequestToServerWithCB(valueRequest, 10000, (r)=>{
+                // TODO: just for testing to see what we get back
+                this.log("VALUE RESPONSE: ", JSON.stringify(r, undefined, 2));
+            });    
+        }
+
+        let sfVarsRequest = <SFDAP.VariablesRequest> new Request("variables", {
+            root: stackFrameRoot,
             path: vrpath
         });
-        sfRequest.seq = request.seq;       
+        sfVarsRequest.seq = request.seq;       
 
-		this.sendRequestToServerWithCB(sfRequest, 10000, (r)=>{
+		this.sendRequestToServerWithCB(sfVarsRequest, 10000, (r)=>{
             let response = r as SFDAP.VariablesResponse;
             let newResponse = r as DAP.VariablesResponse;
             let newVariables = [];
@@ -707,9 +859,8 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
                     name: oldVar.name,
                     value: oldVar.value,
                     type: oldVar.type,
-                    variablesReference: 0        // TODO: fix this            
+                    variablesReference: oldVar.compound ? this.getVariableRefCount() : 0 // TODO: verify this
                 } as DAP.Variable;
-
                 if (oldVar.name.startsWith("::") && oldVar.name.endsWith("_var")){
                     // strip
                     newVar.name = oldVar.name.substring(2, oldVar.name.length - 4);
@@ -717,12 +868,52 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
                         kind: "property"
                     }
                 }
+                
+                if (oldVar.compound){
+                    let info = this.parseOutReflectionInfo(newVar.value);
+                    // push a new scope
+                    let newScope: ScopeNode | undefined = this.getScopeFromVariableReference(newVar.variablesReference);
+                    if (!newScope){
+                        let _scopeType: "local" | "self" | "parent" | "objectMember" = "objectMember";
+                        if (newVar.name.toLowerCase() == "parent"){
+                            _scopeType = "parent";
+                        } else if (scope?.scopeType == "self"){
+                            _scopeType = "objectMember";
+                        } else {
+                            _scopeType = "local";
+                        }
+                        newScope = {
+                            name: oldVar.name, // Note we need the old variable name here
+                            variablesReference: newVar.variablesReference,
+                            threadId: threadId,
+                            frameId: frameId,
+                            path: vrpath.concat([oldVar.name]),
+                            scopeType: _scopeType,
+                            parentVariableReference: varReference,
+                            expensive: false
+                        } as ScopeNode
+                    }
+                    if (info){
+                        if (info.root && !newScope.reflectionInfo) {
+                            newScope.reflectionInfo = info.root as SFDAP.Root;
+                        }
+                        if (info.baseForm && !newScope.baseForm) {
+                            newScope.baseForm = info.baseForm;
+                        }
+                    }
+                    this._scopeMap.set(newVar.variablesReference, newScope);
+                    this._variableMap.set(newVar.variablesReference, newVar);
+                }
                 newVariables.push(newVar);
             }
             newResponse.body.variables = newVariables;
             this.sendMessageToClient(newResponse);
         })
 	}
+    private getRealStackIndex(stackId: number, threadId: number) {
+        return stackId - (threadId * 1000);
+    }
+
     getStackIdFromVariableReference(varReference: number) {
         return this._variableReferencetoFrameIdMap.get(varReference);
     }
