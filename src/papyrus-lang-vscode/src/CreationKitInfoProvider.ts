@@ -133,23 +133,24 @@ export class CreationKitInfoProvider {
 
             return combineLatest(resolvedInstallPath, mergedIni).pipe(
                 mergeMap(async ([resolvedInstallPath, mergedIni]) => {
-                    const compilerPath = resolvedInstallPath && mergedIni.Papyrus?.sCompilerFolder
-                        ? path.resolve(resolvedInstallPath, mergedIni.Papyrus.sCompilerFolder)
-                        : null;
+                    const compilerPath =
+                        resolvedInstallPath && mergedIni.Papyrus?.sCompilerFolder
+                            ? path.resolve(resolvedInstallPath, mergedIni.Papyrus.sCompilerFolder)
+                            : null;
 
                     const resolvedCompilerPath =
                         compilerPath && (await exists(compilerPath))
                             ? compilerPath
                             : inDevelopmentEnvironment() && game !== PapyrusGame.skyrim
-                                ? path.resolve(resolvedInstallPath!, getDevelopmentCompilerFolderForGame(game))
-                                : null;
+                            ? path.resolve(resolvedInstallPath!, getDevelopmentCompilerFolderForGame(game))
+                            : null;
 
                     return {
                         resolvedInstallPath,
                         resolvedCompilerPath:
                             inDevelopmentEnvironment() &&
-                                game !== PapyrusGame.skyrim &&
-                                (!resolvedCompilerPath || !(await exists(resolvedCompilerPath)))
+                            game !== PapyrusGame.skyrim &&
+                            (!resolvedCompilerPath || !(await exists(resolvedCompilerPath)))
                                 ? null
                                 : resolvedCompilerPath,
                         config: mergedIni,
@@ -171,4 +172,5 @@ export class CreationKitInfoProvider {
     }
 }
 
-export const ICreationKitInfoProvider: interfaces.ServiceIdentifier<ICreationKitInfoProvider> = Symbol('creationKitInfoProvider');
+export const ICreationKitInfoProvider: interfaces.ServiceIdentifier<ICreationKitInfoProvider> =
+    Symbol('creationKitInfoProvider');

@@ -16,7 +16,6 @@ import md5File from 'md5-file';
 
 const exists = promisify(fs.exists);
 const copyFile = promisify(fs.copyFile);
-const removeFile = promisify(fs.unlink);
 
 export enum DebugSupportInstallState {
     notInstalled,
@@ -107,4 +106,5 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
     }
 }
 
-export const IDebugSupportInstallService: interfaces.ServiceIdentifier<IDebugSupportInstallService> = Symbol('debugSupportInstallService');
+export const IDebugSupportInstallService: interfaces.ServiceIdentifier<IDebugSupportInstallService> =
+    Symbol('debugSupportInstallService');

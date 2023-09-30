@@ -4,9 +4,7 @@ import * as vs from 'vscode';
 import { TreeDataNode } from './TreeDataNode';
 
 @injectable()
-export abstract class TreeDataProviderBase
-    implements vs.TreeDataProvider<TreeDataNode>, vs.Disposable {
-
+export abstract class TreeDataProviderBase implements vs.TreeDataProvider<TreeDataNode>, vs.Disposable {
     private readonly _disposables: vs.Disposable[] = [];
     private readonly _onDidChangeTreeDataEventEmitter = new vs.EventEmitter<TreeDataNode | undefined>();
 
@@ -27,8 +25,7 @@ export abstract class TreeDataProviderBase
     }
 
     dispose() {
-        vs.Disposable.from(
-            this._onDidChangeTreeDataEventEmitter, ...this._disposables).dispose();
+        vs.Disposable.from(this._onDidChangeTreeDataEventEmitter, ...this._disposables).dispose();
     }
 
     protected get disposables() {

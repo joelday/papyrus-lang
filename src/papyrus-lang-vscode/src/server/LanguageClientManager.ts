@@ -50,7 +50,7 @@ export class LanguageClientManager implements Disposable, ILanguageClientManager
         ]);
 
         this._clientSubscriptions = Array.from(this._clients).map((client) =>
-            client[1].subscribe((instance) => {
+            client[1].subscribe((_instance) => {
                 // This is waiting for logging cleanup.
                 // console.log('Client manager instance:', client[0], instance);
             })
@@ -70,23 +70,22 @@ export class LanguageClientManager implements Disposable, ILanguageClientManager
             return [];
         }
 
-        return (await Promise.all(
-            clients.map(async (client) => {
-                const clientStatus = await client.status.pipe(take(1)).toPromise();
-                if (clientStatus !== ClientHostStatus.running) {
-                    return null;
-                }
+        return (
+            await Promise.all(
+                clients.map(async (client) => {
+                    const clientStatus = await client.status.pipe(take(1)).toPromise();
+                    if (clientStatus !== ClientHostStatus.running) {
+                        return null;
+                    }
 
-                return client;
-            })
-        )).filter((client) => client !== null) as ILanguageClientHost[];
+                    return client;
+                })
+            )
+        ).filter((client) => client !== null) as ILanguageClientHost[];
     }
 
     async getLanguageClientHost(game: PapyrusGame): Promise<ILanguageClientHost> {
-        return await this.clients
-            .get(game)!
-            .pipe(take(1))
-            .toPromise();
+        return await this.clients.get(game)!.pipe(take(1)).toPromise();
     }
 
     async getLanguageClient(game: PapyrusGame): Promise<ILanguageClient | null> {
@@ -107,4 +106,5 @@ export class LanguageClientManager implements Disposable, ILanguageClientManager
     }
 }
 
-export const ILanguageClientManager: interfaces.ServiceIdentifier<ILanguageClientManager> = Symbol('languageClientManager');
+export const ILanguageClientManager: interfaces.ServiceIdentifier<ILanguageClientManager> =
+    Symbol('languageClientManager');

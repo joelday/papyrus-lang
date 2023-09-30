@@ -7,9 +7,13 @@ export abstract class EditorAttacherBase<T extends EditorAttachmentBase> impleme
     private readonly _mapping = new Map<vs.TextEditor, T>();
 
     constructor() {
-        vs.window.onDidChangeVisibleTextEditors((editors) => {
-            this.updateAttachments(editors);
-        }, undefined, this._disposables);
+        vs.window.onDidChangeVisibleTextEditors(
+            (editors) => {
+                this.updateAttachments(editors);
+            },
+            undefined,
+            this._disposables
+        );
     }
 
     updateAttachments(editors = vs.window.visibleTextEditors) {

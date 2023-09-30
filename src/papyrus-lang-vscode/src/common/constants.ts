@@ -5,5 +5,5 @@ export const extensionId = 'papyrus-lang-vscode';
 export const extensionQualifiedId = `joelday.${extensionId}`;
 
 export enum GlobalState {
-    PapyrusVersion = 'papyrusVersion'
+    PapyrusVersion = 'papyrusVersion',
 }

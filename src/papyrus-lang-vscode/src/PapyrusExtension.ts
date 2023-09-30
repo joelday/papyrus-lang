@@ -1,4 +1,4 @@
-import "reflect-metadata";
+import 'reflect-metadata';
 
 import { Disposable, extensions, ExtensionContext } from 'vscode';
 import { extensionQualifiedId, GlobalState } from './common/constants';
@@ -49,7 +49,6 @@ class PapyrusExtension implements Disposable {
     private readonly _showWelcomeCommand: ShowWelcomeCommand;
 
     constructor(context: ExtensionContext) {
-
         // This comes first just in case anything below needs to change based on version upgrades
         const papyrus = extensions.getExtension(extensionQualifiedId)!;
         const papyrusVersion = papyrus.packageJSON.version;
@@ -57,11 +56,9 @@ class PapyrusExtension implements Disposable {
 
         this._languageConfigurations = new LanguageConfigurations();
 
-        this._serviceContainer = new Container(
-            {
-                defaultScope: 'Singleton',
-            }
-        );
+        this._serviceContainer = new Container({
+            defaultScope: 'Singleton',
+        });
 
         this._serviceContainer.bind(IExtensionContext).toConstantValue(context);
         this._serviceContainer.bind(IExtensionConfigProvider).to(ExtensionConfigProvider);

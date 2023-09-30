@@ -1,12 +1,15 @@
-import semanticRelease from "semantic-release";
+import semanticRelease from 'semantic-release';
 
 async function getVersionFromSemanticRelease() {
-    return await semanticRelease({
-        dryRun: true,
-        ci: false,
-    }, {
-        stdout: process.stderr
-    });
+    return await semanticRelease(
+        {
+            dryRun: true,
+            ci: false,
+        },
+        {
+            stdout: process.stderr,
+        }
+    );
 }
 
 export async function main() {

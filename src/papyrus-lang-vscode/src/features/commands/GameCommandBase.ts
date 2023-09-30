@@ -3,6 +3,7 @@ import { commands, Disposable } from 'vscode';
 import { PapyrusGame, getGames } from '../../PapyrusGame';
 
 @injectable()
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export abstract class GameCommandBase<TArgs extends any[] = void[], TResult = void> implements Disposable {
     private readonly _name: string;
     private readonly _registrations: Disposable[];

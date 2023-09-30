@@ -6,28 +6,28 @@ export function eventToValueObservable<TEvent, TValue = TEvent>(
     event: Event<TEvent | undefined>,
     getCurrent: () => TValue,
     map: ((event: TEvent) => TValue | undefined) | undefined,
-    emitUndefined: true,
+    emitUndefined: true
 ): Observable<TValue | undefined>;
 
 export function eventToValueObservable<TEvent, TValue = TEvent>(
     event: Event<TEvent>,
     getCurrent: () => TValue,
     map: ((event: TEvent) => TValue) | undefined,
-    emitUndefined: false,
+    emitUndefined: false
 ): Observable<Exclude<TValue, undefined>>;
 
 export function eventToValueObservable<TEvent, TValue = TEvent>(
     event: Event<TEvent>,
     getCurrent: () => TValue,
     map?: (event: TEvent) => TValue | undefined,
-    emitUndefined?: boolean,
+    emitUndefined?: boolean
 ): Observable<Exclude<TValue, undefined>>;
 
 export function eventToValueObservable<TEvent, TValue = TEvent>(
     event: Event<TEvent>,
     getCurrent: () => TValue,
-    map: (event: TEvent) => TValue = (e) => (e as any) as TValue,
-    emitUndefined: boolean = false,
+    map: (event: TEvent) => TValue = (e) => e as unknown as TValue,
+    emitUndefined: boolean = false
 ) {
     return new Observable<TValue>((s) => {
         const initialValue = getCurrent();

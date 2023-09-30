@@ -1,6 +1,6 @@
-import { PapyrusGame, getDisplayNameForGame } from "../../PapyrusGame";
-import { QuickPickItem, window, workspace } from "vscode";
-import { CommandBase } from "../../common/vscode/commands/CommandBase";
+import { PapyrusGame, getDisplayNameForGame } from '../../PapyrusGame';
+import { QuickPickItem, window, workspace } from 'vscode';
+import { CommandBase } from '../../common/vscode/commands/CommandBase';
 
 export class LocateOrDisableGameCommand extends CommandBase {
     private readonly _game: PapyrusGame;

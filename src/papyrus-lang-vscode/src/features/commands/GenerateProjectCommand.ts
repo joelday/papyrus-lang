@@ -23,9 +23,9 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
 
     constructor(
         @inject(IExtensionContext) context: ExtensionContext,
-        @inject(IPathResolver) pathResolver: IPathResolver,
+        @inject(IPathResolver) pathResolver: IPathResolver
     ) {
-        super("generateProject"); // pass additional args for execute() and onExecute() here
+        super('generateProject'); // pass additional args for execute() and onExecute() here
         this._context = context;
         this._pathResolver = pathResolver;
     }
@@ -34,20 +34,20 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
         const installPath = await this._pathResolver.getInstallPath(game);
 
         if (!installPath) {
-            window.showErrorMessage("Could not find the game installation path.");
+            window.showErrorMessage('Could not find the game installation path.');
             return;
         }
 
         const defaultProjectSubdir = {
-            'fallout4': "Data",
-            'skyrimSpecialEdition': "Data",
-            'skyrim': "Data"
+            fallout4: 'Data',
+            skyrimSpecialEdition: 'Data',
+            skyrim: 'Data',
         };
 
         const resourceDir = {
-            'fallout4': 'fo4',
-            'skyrimSpecialEdition': "sse",
-            'skyrim': "tesv"
+            fallout4: 'fo4',
+            skyrimSpecialEdition: 'sse',
+            skyrim: 'tesv',
         };
 
         // Ignore the context menu folder for Fallout 4 because we don't currenlty have a solution for anything other
@@ -56,26 +56,29 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
             args[0] = undefined;
         }
 
-        let projectFolderUri: Uri = args[0] ? Uri.parse(args[0]) : Uri.file(path.join(installPath, defaultProjectSubdir[game]));
+        let projectFolderUri: Uri = args[0]
+            ? Uri.parse(args[0])
+            : Uri.file(path.join(installPath, defaultProjectSubdir[game]));
 
-        console.log("Default projectFolderUri = " + projectFolderUri.fsPath);
+        console.log('Default projectFolderUri = ' + projectFolderUri.fsPath);
 
         const dialogResult = window.showOpenDialog({
             canSelectFiles: false,
             canSelectFolders: true,
             canSelectMany: false,
             defaultUri: projectFolderUri,
-            openLabel: "Select Folder"
+            openLabel: 'Select Folder',
         });
 
         const resultUriArray = await dialogResult.then(
             (uri) => {
-                console.log("showOpenDialog fulfilled: " + uri);
+                console.log('showOpenDialog fulfilled: ' + uri);
                 return uri;
             },
             (reason) => {
-                console.log("showOpenDialog rejected: " + reason);
-            });
+                console.log('showOpenDialog rejected: ' + reason);
+            }
+        );
 
         if (resultUriArray === undefined) {
             return;
@@ -83,15 +86,15 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
             projectFolderUri = resultUriArray[0];
         }
 
-        console.log("Installing project files in: " + projectFolderUri.fsPath);
+        console.log('Installing project files in: ' + projectFolderUri.fsPath);
         const projectFolder = projectFolderUri.fsPath;
 
         const resourcePath = this._context.asAbsolutePath(path.join('resources', resourceDir[game]));
 
         const workspaceFilename = {
-            'fallout4': "Fallout4.code-workspace",
-            'skyrimSpecialEdition': "SkyrimSE.code-workspace",
-            'skyrim': "SkyrimLE.code-workspace"
+            fallout4: 'Fallout4.code-workspace',
+            skyrimSpecialEdition: 'SkyrimSE.code-workspace',
+            skyrim: 'SkyrimLE.code-workspace',
         }[game];
 
         const filesToCopy = [
@@ -99,60 +102,77 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
             ['tasks.json', '.vscode\\tasks.json'],
             [workspaceFilename, workspaceFilename],
         ];
-        let configGamePath = await this._pathResolver.getInstallPath(game);
+        const configGamePath = await this._pathResolver.getInstallPath(game);
         if (!configGamePath) {
             window.showErrorMessage(
-                "Could not find game installation directory for " + PapyrusGame[game] +
-                ". Is the game installed and configured in" +
-                " the extension configuration?", "Ok");
+                'Could not find game installation directory for ' +
+                    PapyrusGame[game] +
+                    '. Is the game installed and configured in' +
+                    ' the extension configuration?',
+                'Ok'
+            );
             return;
         }
-        const configSourcePath = path.join(configGamePath, "Data\\Source\\Scripts");
+        const configSourcePath = path.join(configGamePath, 'Data\\Source\\Scripts');
         if (game === PapyrusGame.fallout4) {
-            let ppjDstDir = 'Scripts\\Source\\User';
+            const ppjDstDir = 'Scripts\\Source\\User';
             filesToCopy.push(['fallout4.ppj', path.join(ppjDstDir, 'fallout4.ppj')]);
             mkDirByPathSync(path.join(projectFolder, ppjDstDir));
         } else if (game === PapyrusGame.skyrimSpecialEdition) {
             await copyAndFillTemplate(
                 path.join(resourcePath, 'skyrimse.ppj'),
                 path.join(projectFolder, 'skyrimse.ppj'),
-                { 'SKYRIMSE_PATH': configSourcePath }
+                { SKYRIMSE_PATH: configSourcePath }
             );
         } else if (game === PapyrusGame.skyrim) {
             await copyAndFillTemplate(
                 path.join(resourcePath, 'skyrimle.ppj'),
                 path.join(projectFolder, 'skyrimle.ppj'),
-                { 'SKYRIMLE_PATH': configSourcePath }
+                { SKYRIMLE_PATH: configSourcePath }
             );
         }
 
         let nerrs = 0;
-        let already_exists: string[] = [];
-        const errHandle = (e: any) => { if (e) { window.showWarningMessage(e.message); nerrs++; } };
+        const already_exists: string[] = [];
+        const errHandle = (e: unknown) => {
+            if (e) {
+                const message = e instanceof Error ? e.message : e.toString();
+
+                window.showWarningMessage(message);
+                nerrs++;
+            }
+        };
 
         try {
-            let dir = path.join(projectFolder, '.vscode');
-            if (await exists(dir)) { already_exists.push(path.basename(dir)); }
+            const dir = path.join(projectFolder, '.vscode');
+            if (await exists(dir)) {
+                already_exists.push(path.basename(dir));
+            }
             await mkdir(dir);
         } catch (e) {
             errHandle(e);
         }
 
-        for (let job of filesToCopy) {
+        for (const job of filesToCopy) {
             try {
-                let file = path.join(projectFolder, job[1]);
-                if (await exists(file)) { already_exists.push(path.basename(file)); }
+                const file = path.join(projectFolder, job[1]);
+                if (await exists(file)) {
+                    already_exists.push(path.basename(file));
+                }
                 await copyFile(path.join(resourcePath, job[0]), file, fs.constants.COPYFILE_EXCL);
             } catch (e) {
                 errHandle(e);
             }
         }
 
-        window.showInformationMessage("Project files installed to " + projectFolder
-            + (nerrs ? ". (" + nerrs + " errors) " : "") +
-            (already_exists.length ? "The following files alredy existed and were not replaced: "
-                + already_exists.join(" ") : ""), "Ok");
-
+        window.showInformationMessage(
+            'Project files installed to ' +
+                projectFolder +
+                (nerrs ? '. (' + nerrs + ' errors) ' : '') +
+                (already_exists.length
+                    ? 'The following files alredy existed and were not replaced: ' + already_exists.join(' ')
+                    : ''),
+            'Ok'
+        );
     }
-
 }

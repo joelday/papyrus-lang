@@ -1,12 +1,12 @@
-import { Disposable, ExtensionContext, OutputChannel, window, TextDocument } from 'vscode';
+import { Disposable, OutputChannel, window, TextDocument } from 'vscode';
 
 import { LanguageClient, ILanguageClient, IToolArguments } from './LanguageClient';
 import { PapyrusGame, getShortDisplayNameForGame } from '../PapyrusGame';
 import { IGameConfig } from '../ExtensionConfigProvider';
-import { Observable, BehaviorSubject, observable, of } from 'rxjs';
+import { Observable, BehaviorSubject, of } from 'rxjs';
 import { ICreationKitInfo } from '../CreationKitInfoProvider';
 import { DocumentScriptInfo } from './messages/DocumentScriptInfo';
-import { shareReplay, take, map, switchMap } from 'rxjs/operators';
+import { shareReplay, take, switchMap } from 'rxjs/operators';
 import { getDefaultFlagsFileNameForGame, IPathResolver } from '../common/PathResolver';
 import { ProjectInfos } from './messages/ProjectInfos';
 import { inject } from 'inversify';
@@ -149,6 +149,7 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
             await this._client.start();
             this._status.next(ClientHostStatus.running);
         } catch (err) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const error = err instanceof Error ? err : new Error((err as any).toString());
 
             this._outputChannel.appendLine(`Error on language service pre-start: ${error.toString()}`);
@@ -163,7 +164,7 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
 
     async getDocumentScriptStatus(document: TextDocument): Promise<IScriptDocumentStatus | null> {
         if (!this._client) {
-            return null
+            return null;
         }
 
         if ((await this._status.pipe(take(1)).toPromise()) !== ClientHostStatus.running) {

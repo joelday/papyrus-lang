@@ -6,9 +6,7 @@ import { inject, injectable } from 'inversify';
 @injectable()
 export class ShowWelcomeCommand extends CommandBase<[Uri]> {
     private readonly _pathResolver: IPathResolver;
-    constructor(
-        @inject(IPathResolver) pathResolver: IPathResolver
-    ) {
+    constructor(@inject(IPathResolver) pathResolver: IPathResolver) {
         super('papyrus.showWelcome');
         this._pathResolver = pathResolver;
     }

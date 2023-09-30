@@ -2,6 +2,7 @@ import { injectable, unmanaged } from 'inversify';
 import { commands, Disposable } from 'vscode';
 
 @injectable()
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export abstract class CommandBase<TArgs extends any[] = void[], TResult = void> implements Disposable {
     private readonly _name: string;
     private readonly _registration: Disposable;
