@@ -87,7 +87,6 @@ interface VSCodeDebugAdapter extends Disposable0 {
 const TWO_CRLF = '\r\n\r\n';
 const HEADER_LINESEPARATOR = /\r?\n/;	// allow for non-RFC 2822 conforming line separators
 const HEADER_FIELDSEPARATOR = /: */;
-export type DAPLogLevel = pino.LevelWithSilent;
 
 
 const custom_colors = {
@@ -122,6 +121,45 @@ function colorize_message(value:any){
 	return colorized
   
 }
+export type DAPLogLevel = pino.LevelWithSilent;
+
+export interface DebugAdapterProxyOptions {
+	port: number;
+	host: string;
+	/**
+	 * If true, start the proxy immediately (default: true)
+	 */
+	startNow?: boolean;
+	/**
+	 *  Log level for messages output to the console (default: "info")
+	 */
+	consoleLogLevel?: DAPLogLevel;
+	/**
+	 * Log level for messages output to the log file (default: "trace")
+	 * `quiet` turns off file logging
+	 */
+	fileLogLevel?: DAPLogLevel;
+	/**
+	 * Directory to write logs to (default: ~/.DAPProxy)
+	 */
+	logdir?: string;
+	/**
+	 * Log level for messages from the client to the proxy (default: "debug")
+	 */
+	logClientToProxy?: DAPLogLevel;
+	/**
+	 * Log level for messages from the proxy to the client (default: "trace")
+	 */
+	logProxyToClient?: DAPLogLevel;
+	/**
+	 * Log level for messages from the server to the proxy (default: "debug")
+	 */
+	logServerToProxy?: DAPLogLevel;
+	/**
+	 * Log level for messages from the proxy to the server (default: "trace")
+	 */
+	logProxyToServer?: DAPLogLevel;
+}
 
 export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
     protected connected = false;
@@ -134,10 +172,12 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
     protected host: string;
     protected readonly _onError = new Emitter<Error>();
     protected _sendMessage = new Emitter<DebugProtocolMessage>()
-	protected logClientToProxy : DAPLogLevel = "info"
+	protected logClientToProxy : DAPLogLevel = "debug"
 	protected logProxyToClient : DAPLogLevel = "trace"
-	protected logServerToProxy : DAPLogLevel = "info"
+	protected logServerToProxy : DAPLogLevel = "debug"
 	protected logProxyToServer : DAPLogLevel = "trace"
+	protected consoleLogLevel : DAPLogLevel = "info"
+	protected fileLogLevel : DAPLogLevel = "trace"
 	protected connectionTimeoutLimit = 20000;
 	protected connectionTimeout : NodeJS.Timeout | undefined;
 	protected logDirectory: string;
@@ -147,14 +187,19 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
 	protected loggerConsole: pino.Logger;
 	protected logFile : stream.Writable;
 	protected readonly logStream: stream.PassThrough;
-    constructor (port: number, host:string, startNow: boolean = true, logdir?: string) {
-        this.port = port;
-        this.host = host;
-        if (startNow)
-            this.start();
-		// TODO: make this configurable
+    constructor (options: DebugAdapterProxyOptions) {
+
+        this.port = options.port;
+        this.host = options.host;
+		this.consoleLogLevel = options.consoleLogLevel || this.consoleLogLevel;
+		this.fileLogLevel = options.fileLogLevel || this.fileLogLevel;
+		this.logClientToProxy = options.logClientToProxy || this.logClientToProxy;
+		this.logProxyToClient = options.logProxyToClient || this.logProxyToClient;
+		this.logServerToProxy = options.logServerToProxy || this.logServerToProxy;
+		this.logProxyToServer = options.logProxyToServer || this.logProxyToServer;
+
 		const homepath = process.env.HOME;
-		this.logDirectory = logdir || path.join(homepath!, ".DAPProxy");
+		this.logDirectory = options.logdir || path.join(homepath!, ".DAPProxy");
 		this.logFilePath = this.getLogFilePath(this.logDirectory);
 		this.logFile = fs.createWriteStream(this.logFilePath, { flags: 'w' })
 		let pprinterFile = pino_pretty.default({
@@ -167,7 +212,7 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
 			return;
 			// return data;
 		})
-		let pprinterConsole = pino_pretty.default({
+		let ppConsoleOpts = {
 			colorize: true,
 			colorizeObjects: true,
 			customPrettifiers: {
@@ -177,16 +222,20 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
 			},
 			ignore: "pid,hostname",
 			destination: this.logStream,
-		});
+		}
+		let pprinterConsole = pino_pretty.default(ppConsoleOpts);
 		this.loggerFile = pino(
-			{level: "trace"},
+			{level: this.fileLogLevel},
 			pprinterFile
 		);
 		this.loggerConsole = pino(
-			{level: "debug"},
+			{level: this.consoleLogLevel},
 			pprinterConsole
 		);
+		if (options.startNow)
+			this.start();
 		this.loginfo("Started.");
+
     }
 	
 	protected getLogFilePath(logDir: string){

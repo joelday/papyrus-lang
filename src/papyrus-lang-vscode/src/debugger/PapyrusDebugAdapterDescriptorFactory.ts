@@ -244,12 +244,14 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
             
             session.configuration.noop = false;
             return new DebugAdapterInlineImplementation( 
-                new StarfieldDebugAdapterProxy(
-                    session.configuration.port || getDefaultPortForGame(game),
-                    "localhost",
-                    true,
-                    workspaceFolder,
-                    baseFolder
+                new StarfieldDebugAdapterProxy({
+                    port: session.configuration.port || getDefaultPortForGame(game),
+                    host: "localhost",
+                    startNow: true,
+                    workspaceFolder: workspaceFolder,
+                    BaseScriptFolder: baseFolder,
+                    consoleLogLevel: "debug" // TODO: Turn this down in production, it can kill performance
+                }
                 )
             )
         }

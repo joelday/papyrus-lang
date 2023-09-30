@@ -2,7 +2,7 @@ import { DebugProtocol as DAP } from "@vscode/debugprotocol";
 import * as fs from 'fs'
 import * as path from 'path'
 import { StarfieldDebugProtocol as SFDAP } from "./StarfieldDebugProtocol";
-import { DebugAdapterProxy } from "./DebugAdapterProxy";
+import { DebugAdapterProxy, DebugAdapterProxyOptions } from "./DebugAdapterProxy";
 import { Response, Event, Message } from "@vscode/debugadapter/lib/messages";
 import { ScopeNode } from "./StarfieldNodes";
 import * as url from "url";
@@ -22,6 +22,12 @@ class Request extends Message implements DAP.Request {
         this.arguments = args;
     }
 }
+
+export interface StarfieldDebugAdapterProxyOptions extends DebugAdapterProxyOptions {
+    workspaceFolder: string;
+    BaseScriptFolder?: string;
+}
+
 export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     private readonly DUMMY_THREAD_NAME = "DUMMY THREAD";
     private readonly DUMMY_THREAD_OBJ: DAP.Thread = {
@@ -52,9 +58,10 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     private _clientColumnsStartAt1: boolean = true;
     private _debuggerLinesStartAt1 = true;
     private _clientLinesStartAt1: boolean = true;
-    constructor(port: number, host:string, startNow: boolean = true, workspaceFolder: string, BaseScriptFolder: string | undefined) {
+    constructor(options: StarfieldDebugAdapterProxyOptions) {
         const logdir = path.join(process.env.USERPROFILE || process.env.HOME || ".", "Documents", "My Games", "Starfield", "Logs");
-        super(port, host, startNow, logdir);
+        options.logdir = options.logdir || logdir;
+        super(options);
         this.logClientToProxy = "trace"
         this.logProxyToServer = "info"
         this.logServerToProxy = "info"
@@ -1048,7 +1055,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     handleValueResponse(message: SFDAP.ValueResponse) {
         this.sendMessageToClient(message);
     }
-    
+
 	/**
 	 * Starfield doesn't actually send back a response when it receives a request it doesn't recognize,
      * so we catch all the requests that starfield doesn't respond to them and return an error
