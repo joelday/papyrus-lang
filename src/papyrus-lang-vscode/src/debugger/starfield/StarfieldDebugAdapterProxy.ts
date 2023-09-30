@@ -5,6 +5,7 @@ import { StarfieldDebugProtocol as SFDAP } from "./StarfieldDebugProtocol";
 import { DebugAdapterProxy } from "./DebugAdapterProxy";
 import { Response, Event, Message } from "@vscode/debugadapter/lib/messages";
 import { ScopeNode } from "./StarfieldNodes";
+import * as url from "url";
 
 
 export enum ErrorDestination {
@@ -45,8 +46,19 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     private _variableReferencetoFrameIdMap: Map<number, number> = new Map<number, number>();
     private _variableRefCount = 0;
     private currentSeq: number = 0;
+    private _debuggerPathsAreURIs = false;
+    private _clientPathsAreURIs: boolean = false;
+    private _debuggerColumnsStartAt1 = true;
+    private _clientColumnsStartAt1: boolean = true;
+    private _debuggerLinesStartAt1 = true;
+    private _clientLinesStartAt1: boolean = true;
     constructor(port: number, host:string, startNow: boolean = true, workspaceFolder: string, BaseScriptFolder: string | undefined) {
-        super(port, host, startNow);
+        const logdir = path.join(process.env.USERPROFILE || process.env.HOME || ".", "Documents", "My Games", "Starfield", "Logs");
+        super(port, host, startNow, logdir);
+        this.logClientToProxy = "trace"
+        this.logProxyToServer = "info"
+        this.logServerToProxy = "info"
+        this.logProxyToClient = "info"
     }
 
     getVariableRefCount(){
@@ -97,8 +109,6 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 
     //overrides base class
     handleMessageFromServer(message: DAP.ProtocolMessage): void {
-        this.log(`---SERVER->PROXY: ${JSON.stringify(message, undefined, 2)}`);
-
         if (message.type == "response") {
             const response = <DAP.Response>message;
 			const clb = this._pendingRequests.get(response.request_seq);
@@ -158,7 +168,6 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 
     //overrides base class
     protected handleMessageFromClient(message: DAP.ProtocolMessage): void {
-        this.log(`---CLIENT->PROXY: ${JSON.stringify(message, undefined, 2)}`);
         let pmessage = message as DAP.ProtocolMessage
         let retries = 0;
         this.currentSeq = message.seq;
@@ -173,8 +182,12 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     
     handleVersionEvent(message: SFDAP.VersionEvent) {
         this.receivedVersionEvent = true;
-        if (this.receivedLaunchOrAttachRequest && !this.sentInitializedEvent) {
-            this.log("SENDING FAKE initialized event BACK")
+        this.maybeSendFakeInitializedEvent();
+    }
+
+    maybeSendFakeInitializedEvent() {
+        if (this.receivedVersionEvent && this.receivedLaunchOrAttachRequest && !this.sentInitializedEvent) {
+            this.loginfo("***PROXY->CLIENT - SENDING FAKE initialized event")
             this.sendMessageToClient(new Event('initialized'))
             this.sentInitializedEvent = true;
         }
@@ -232,8 +245,8 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 		this.sendMessageToClient(response);
 	}
 
-    public sendRequestToServerWithCB(request: SFDAP.Request, timeout: number, cb: (response: SFDAP.Response) => void) : void {
-        this.sendMessageToServer(request);
+    public sendRequestToServerWithCB(request: SFDAP.Request, timeout: number, cb: (response: SFDAP.Response) => void, nolog: boolean = false) : void {
+        this.sendMessageToServer(request, nolog);
 		if (cb) {
 			this._pendingRequests.set(request.seq, cb);
             if (timeout > 0) {
@@ -304,7 +317,10 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 
 			} else if (request.command === 'threads') {
 				this.handleThreadsRequest(<DAP.ThreadsRequest> request);
-
+            } else if (request.command === 'value'){
+                this.handleValueRequest(<SFDAP.ValueRequest> request);
+            } else if (request.command === 'evaluate') {
+                this.handleEvaluateRequest(<DAP.EvaluateRequest> request);
 			} else {
 				this.handleCustomRequest(request);
 			}
@@ -313,9 +329,59 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 		}
 	}
 
+    handleValueRequest(request: SFDAP.ValueRequest) {
+        // This came from the REPL console, just send it to the server
+        this.sendRequestToServerWithCB(request, 10000, (r: DAP.Response) =>{
+            this.loginfo({message:r}, `!!!SERVER->PROXY - Received value response - path: ${request.arguments.path}!!!`);
+        });
+    }
+        
+    // Using this for debugging/RE; in the debug console of the client, you can type in server requests and they will be sent to the server
+    handleEvaluateRequest(request: DAP.EvaluateRequest) {
+        try{
+            if (request.arguments.context == "repl") {
+                let message = JSON.parse(request.arguments.expression)
+                //check that it's a valid DAP.ProtocolMessage
+                // make sure we have a valid sequence number
+                message.seq = 10000 + this.currentSeq++;
+                if (message.type && message.seq) {
+                    // send it to the server
+                    this.loginfo("!!!PROXY->SERVER - Sending message from REPL console to server!!!");
+                    if (message.type == "request" && message.command) {
+
+                        // special handler for variableRequest
+                        if (message.command == "variables" && message?.arguments?.hasOwnProperty("root") && message?.arguments?.hasOwnProperty("path")) {
+                            // formatted correctly, send it to the server
+                            this.sendMessageToServer(message as DAP.ProtocolMessage);
+                        } else {
+                            this.handleClientRequest(message);
+                        }
+                    } else {
+                        this.sendMessageToServer(message as DAP.ProtocolMessage);
+                    }
+                } else {
+                    this.sendErrorResponse(new Response(request), 1104, "Invalid REPL message!", null, ErrorDestination.User);
+                }
+            } else {
+                this.sendErrorResponse(new Response(request), 1104, "Invalid Evaluate request!!", null, ErrorDestination.User);
+            }
+        } catch (e) {
+            this.sendErrorResponse(new Response(request), 1104, 'Invalid expression in REPL message!', e, ErrorDestination.Telemetry);
+        }
+    }
+
 	protected handleInitializeRequest(request: DAP.InitializeRequest) : void {
-        // This is not implemented in Starfield, so we have to intercept and respond ourselves
-        // TODO: handle InitializeRequestArguments (like columnStartAt1)
+        let args = request.arguments;
+        if (typeof args.linesStartAt1 === 'boolean') {
+            this._clientLinesStartAt1 = args.linesStartAt1;
+        }
+        if (typeof args.columnsStartAt1 === 'boolean') {
+            this._clientColumnsStartAt1 = args.columnsStartAt1;
+        }
+        if (typeof args.pathFormat === 'string') {
+            this._clientPathsAreURIs = args.pathFormat === 'uri';
+        }
+
 
         let response = <DAP.InitializeResponse> new Response(request);
         response.body = response.body || {};
@@ -354,22 +420,24 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 		response.body.supportsInstructionBreakpoints = false;
 		response.body.supportsExceptionFilterOptions = false;
         response.body.supportsSingleThreadExecutionRequests = false;
-        
+        this.loginfo("***PROXY->CLIENT - Sending FAKE initialized response");
         // not forwarding message to the server
 		this.sendMessageToClient(response);
 	}
 
     private handleLaunchOrAttach(request: DAP.Request) : void {
-        this.log("SENDING FAKE attach/launch RESPONSE BACK")
-        this.sendMessageToClient(new Response(request))
+        if (!this.connected){
+            this._socket?.once('connect', () => {
+                this.handleLaunchOrAttach(request); 
+            });
+            return;
+        }
+        let response = new Response(request);
+        this.loginfo("***PROXY->CLIENT - Sending FAKE attach/launch response");
+        this.sendMessageToClient(response)
         this.receivedLaunchOrAttachRequest = true;
         // Now we've attached/launched, we fire off the intialized event and we're off to the races
-        if (this.receivedVersionEvent && !this.sentInitializedEvent){
-            this.log("SENDING FAKE initialized event BACK")
-            this.sendMessageToClient(new Event('initialized'))
-            this.sentInitializedEvent = true;
-        // Don't send message to server
-        }
+        this.maybeSendFakeInitializedEvent();
 
     }
 	protected handleLaunchRequest(request: DAP.LaunchRequest) : void {
@@ -392,6 +460,9 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         let source = request.arguments.source;
         let objectName: string = this.sourceToObjectName(source);
 
+        for (let bpoint of request?.arguments?.breakpoints || []) {
+            bpoint.line = this.convertClientLineToDebugger(bpoint.line);
+        }
         let sfRequest = request as any;
         sfRequest.arguments.source = objectName;
 		this.sendRequestToServerWithCB(request, 10000, (r: SFDAP.Response) => {
@@ -403,7 +474,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
                 }
                 if (!(r.body?.breakpoints?.length > 0)) {
                     let response = r as DAP.SetBreakpointsResponse;
-                    // we need to actually put the breakpoints back here so the client can mark them as unverified
+                    // we need to pput the breakpoints back here so the client can mark them as unverified
                     let sourceBpoints = request.arguments.breakpoints || [];
                     response.body = {
                         breakpoints: []
@@ -411,7 +482,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
                     for (let sbp of sourceBpoints) {                
                         let bpoint = {
                             verified: false,
-                            line: sbp.line,
+                            line: this.convertDebuggerLineToClient(sbp.line), // this was converted in the request, so we need to convert it back
                             source: request.arguments.source
                         }
                         response.body.breakpoints.push(bpoint);
@@ -428,6 +499,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     protected handleSetBreakpointsResponse(message: SFDAP.SetBreakpointsResponse): void{
         if (message.body && message.body.breakpoints){
             message.body.breakpoints.forEach((breakpoint: any)=>{
+                breakpoint.line = this.convertDebuggerLineToClient(breakpoint.line);
                 let source = this.objectNameToSourceMap.get(breakpoint.source)!;
                 breakpoint.source = source;
             });
@@ -464,6 +536,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 		this.sendRequestToServerWithCB(request, 5000, (r: SFDAP.Response) => {
             if (r.message === "timeout"){
                 // For some reason, it will often not respond to the pause request, so we'll try again
+                this.loginfo("***PROXY->SERVER - Resending pause Request!");
                 this.sendRequestToServerWithCB(request, 5000, (newr: SFDAP.Response) => {
                     this.handlePauseResponse(newr, request);
                 });
@@ -478,6 +551,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
             // Fake a successful response to get vscode to pause
             r.success = true;
             r.message = "";
+            this.loginfo("***PROXY->CLIENT - Pause request did not return, Sending FAKE pause response");
             this.sendMessageToClient(r);
             // then, send a fake stopped event
             let event = <DAP.StoppedEvent>new Event("stopped");
@@ -486,7 +560,8 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
                 threadId: request.arguments.threadId,
                 allThreadsStopped: true
             };
-            this.sendMessageToClient(event)    
+            this.loginfo("***PROXY->CLIENT - Sending FAKE stopped event");
+            this.sendMessageToClient(event) 
         } else {
             this.sendMessageToClient(r);
         }
@@ -515,6 +590,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
             }
             response.success = true;
             response.message = "";
+            this.loginfo("***PROXY->CLIENT - Threads request failed because VM paused, Sending FAKE threads response.");
         } else if (response.success) {
             if (response.body?.threads?.length > 0){
                 // filter out all the no-name threads
@@ -562,7 +638,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
                         } else if (fs.existsSync(frame.source)){
                             frame.source = {
                                 name: path.basename(frame.source),
-                                path: frame.source
+                                path: this.convertDebuggerPathToClient(frame.source)
                             } as DAP.Source;
                             this.objectNameToSourceMap.set(frame.object, frame.source);
                         } else {
@@ -581,6 +657,8 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
                     if (!frame.column){
                         frame.column = 1;
                     }
+                    frame.line = this.convertDebuggerLineToClient(frame.line);
+                    frame.column = this.convertDebuggerColumnToClient(frame.column);
                     frame.id = idBase + index;
                     this.addStackFrame(threadId, frame as DAP.StackFrame);
                     index++;
@@ -634,7 +712,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         }
         let source: DAP.Source = {
             name: path.basename(relpath),
-            path: abspath
+            path: this.convertDebuggerPathToClient(abspath)
         }
         this.objectNameToSourceMap.set(objectName, source);
         return source;        
@@ -651,7 +729,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         // TODO: Handle
         let scopes: DAP.Scope[] = [];
         let frame = this._stackFrameMap.get(request.arguments.frameId);
-        let objectName = frame?.moduleId || ""
+        let objectName: string = (frame?.moduleId as string) || ""
         if (frame){
             let localScope = {
                 name: "Local",
@@ -675,6 +753,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         for (let scope of scopes){
             let newScope : ScopeNode = {
                 name: scope.name,
+                objectName: objectName,
                 presentationHint: scope.presentationHint,
                 variablesReference: scope.variablesReference,
                 threadId: this.getThreadIdFromStackFrameId(request.arguments.frameId) || 0,
@@ -686,7 +765,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
             }
             this.addScopeToScopeMap(newScope);
         }
-        this.log("SENDING FAKE SCOPES TO CLIENT");
+        this.loginfo("***PROXY->CLIENT - Sending fake Scopes response to client");
         this.sendMessageToClient(response);
 	}
 
@@ -838,6 +917,8 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
             threadId: threadId,
             stackFrameIndex: realStackIndex,
         }
+        // Testing `value` requests
+        // Didn't get much out of this, unfortunately..
         if (scope?.reflectionInfo){
             let TypeInfoRoot: SFDAP.Root = scope.reflectionInfo as SFDAP.Root;
 
@@ -845,24 +926,22 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
             if (newPath.length > 0 && newPath[0] == "self"){
                 let frame = this._stackFrameMap.get(frameId);
                 if (frame && frame.moduleId){
-                    newPath = [frame.moduleId.toString()].concat(newPath.slice(1));
+                    // newPath = [frame.moduleId.toString()].concat(newPath.slice(1));
+                    newPath = [frame.moduleId.toString()];
                 }
-                if (scope.propName && newPath.at(-1) == scope.name){
-                    newPath[newPath.length - 1] = scope.propName;
-                }
+                // if (scope.propName && newPath.at(-1) == scope.name){
+                //     newPath[newPath.length - 1] = scope.propName;
+                // }
             }
-            // TODO: REMOVE
-            newPath = [];
+            newPath = scope.baseForm ? [scope.baseForm] : [];
 
-            // INTERSTING STUFF WITH NO PATH
-            // NEED TO TRY OUT VALUE REQUEST WITH STACKFRAME ROOT
             let innervarRequest = <SFDAP.VariablesRequest> new Request("variables", {
                 root: TypeInfoRoot,
                 path: newPath // TODO: This path is incorrect; maybe it's the script name? Scriptname + property name??
             });
             this.sendRequestToServerWithCB(innervarRequest, 10000, (r)=>{
                 // TODO: just for testing to see what we get back
-                this.log("**************INNER VARIABLE RESPONSE: \n", JSON.stringify(r, undefined, 2));
+                this.loginfo(`^^^^^^^^^^^^^^^^INNER VARIABLE RESPONSE FOR ${scope?.name} - path= ${innervarRequest.arguments.path.join(":")}:`);
             });
             innervarRequest.seq = 0;
             let valueRequest = <SFDAP.VariablesRequest> new Request("value", {
@@ -872,7 +951,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
             valueRequest.seq = 1;
             this.sendRequestToServerWithCB(valueRequest, 10000, (r)=>{
                 // TODO: 
-                this.log("**************VALUE RESPONSE: \n", JSON.stringify(r, undefined, 2));
+                this.loginfo(`^^^^^^^^^^^^^^^^VALUE RESPONSE FOR ${scope?.name} - path= ${valueRequest.arguments.path.join(":")}:`);
             });
 
         }
@@ -929,6 +1008,9 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
                             newScope.propName = newVar.name;
                         }
                     }
+                    if (newScope.scopeType == 'self' && scope?.scopeType == 'self'){
+                        newScope.objectName = scope?.objectName;
+                    }
                     if (info){
                         if (info.root && !newScope.reflectionInfo) {
                             newScope.reflectionInfo = info.root as SFDAP.Root;
@@ -957,10 +1039,10 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         return this._scopeMap.get(varReference);
     }
     
-    // TODO: this
-    handleVariablesResponse(message: SFDAP.VariablesResponse) {
-        this.sendMessageToClient(message);
-    }
+    // // TODO: this
+    // handleVariablesResponse(message: SFDAP.VariablesResponse) {
+    //     this.sendMessageToClient(message);
+    // }
 
     // TODO: this
     handleValueResponse(message: SFDAP.ValueResponse) {
@@ -975,4 +1057,76 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 		this.sendErrorResponse(new Response(request), 1014, 'unrecognized request', null, ErrorDestination.User);
 	}
 
+    convertClientLineToDebugger(line: number) {
+        if (this._debuggerLinesStartAt1) {
+            return this._clientLinesStartAt1 ? line : line + 1;
+        }
+        return this._clientLinesStartAt1 ? line - 1 : line;
+    }
+    convertDebuggerLineToClient(line: number) {
+        if (this._debuggerLinesStartAt1) {
+            return this._clientLinesStartAt1 ? line : line - 1;
+        }
+        return this._clientLinesStartAt1 ? line + 1 : line;
+    }
+    convertClientColumnToDebugger(column: number) {
+        if (this._debuggerColumnsStartAt1) {
+            return this._clientColumnsStartAt1 ? column : column + 1;
+        }
+        return this._clientColumnsStartAt1 ? column - 1 : column;
+    }
+    convertDebuggerColumnToClient(column: number) {
+        if (this._debuggerColumnsStartAt1) {
+            return this._clientColumnsStartAt1 ? column : column - 1;
+        }
+        return this._clientColumnsStartAt1 ? column + 1 : column;
+    }
+
+    convertClientPathToDebugger(clientPath: string) {
+        if (this._clientPathsAreURIs !== this._debuggerPathsAreURIs) {
+            if (this._clientPathsAreURIs) {
+                return this.uri2path(clientPath);
+            }
+            else {
+                return this.path2uri(clientPath);
+            }
+        }
+        return clientPath;
+    }
+
+    convertDebuggerPathToClient(debuggerPath:string) {
+        if (this._debuggerPathsAreURIs !== this._clientPathsAreURIs) {
+            if (this._debuggerPathsAreURIs) {
+                return this.uri2path(debuggerPath);
+            }
+            else {
+                return this.path2uri(debuggerPath);
+            }
+        }
+        return debuggerPath;
+    }
+
+    path2uri(path:string) {
+        if (process.platform === 'win32') {
+            if (/^[A-Z]:/.test(path)) {
+                path = path[0].toLowerCase() + path.substr(1);
+            }
+            path = path.replace(/\\/g, '/');
+        }
+        path = encodeURI(path);
+        let uri = new url.URL(`file:`); // ignore 'path' for now
+        uri.pathname = path; // now use 'path' to get the correct percent encoding (see https://url.spec.whatwg.org)
+        return uri.toString();
+    }
+    uri2path(sourceUri: string) {
+        let uri = new url.URL(sourceUri);
+        let s = decodeURIComponent(uri.pathname);
+        if (process.platform === 'win32') {
+            if (/^\/[a-zA-Z]:/.test(s)) {
+                s = s[1].toLowerCase() + s.substr(2);
+            }
+            s = s.replace(/\//g, '\\');
+        }
+        return s;
+    }
 }

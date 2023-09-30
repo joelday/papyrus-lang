@@ -1,8 +1,17 @@
+process.env.FORCE_COLOR="2"
+
 import { DebugProtocol as DAP } from "@vscode/debugprotocol";
 import * as net from 'net';
 import * as stream from "stream";
 import * as fs from 'fs'
+import * as path from 'path'
+import { pino } from "pino";
+import * as pino_pretty from "pino-pretty"
+import * as chalk_d from 'chalk'
+import {default as colorizer} from "../../common/colorizer"
+import {default as split} from 'split2';
 
+const chalk : chalk_d.Chalk = new chalk_d.default.constructor({ enabled: true, level: 2 })
 
 interface DebugProtocolMessage {
 }
@@ -78,9 +87,43 @@ interface VSCodeDebugAdapter extends Disposable0 {
 const TWO_CRLF = '\r\n\r\n';
 const HEADER_LINESEPARATOR = /\r?\n/;	// allow for non-RFC 2822 conforming line separators
 const HEADER_FIELDSEPARATOR = /: */;
+export type DAPLogLevel = pino.LevelWithSilent;
+
+
+const custom_colors = {
+	STRING_KEY: '#9cdcfe',
+	STRING_LITERAL: '#CE9178',
+	COLON: 'gray'
+}
+
+
+
+function colorize_message(value:any){
+	let colorized = colorizer(value, { colors:custom_colors, pretty: true, forceColor: true});
+	// Make the "success" and "message" fields red if they are present and "success" is false
+	if (typeof value === 'object' && value !== null && value.hasOwnProperty('success') && !value.success) {
+		let lines = colorized.split('\n');
+		for (let idx in lines){
+		let line = lines[idx];
+		if (line.includes("\"success\"") || line.includes("\"message\"")){
+			let line_split = line.replace(/\x1b\[[0-9;]*m/g, '').split(":");
+			let key = line_split[0];
+			let value = line_split[1];
+			let colorized_value = chalk.keyword("red")(value);
+			let colorized_key = chalk.hex("#9cdcfe")(key);
+			let colorized_colon = chalk.keyword("grey")(":");
+			let result = `${colorized_key}${colorized_colon}${colorized_value}`;
+			lines[idx] = result;
+		}
+		}
+		colorized = lines.join("\n");
+	}
+
+	return colorized
+  
+}
 
 export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
-	protected logfile: fs.WriteStream
     protected connected = false;
 	protected outputStream!: stream.Writable;
     protected inputStream!: stream.Readable;
@@ -91,44 +134,130 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
     protected host: string;
     protected readonly _onError = new Emitter<Error>();
     protected _sendMessage = new Emitter<DebugProtocolMessage>()
-
-
-    constructor (port: number, host:string, startNow: boolean = true) {
-        
+	protected logClientToProxy : DAPLogLevel = "info"
+	protected logProxyToClient : DAPLogLevel = "trace"
+	protected logServerToProxy : DAPLogLevel = "info"
+	protected logProxyToServer : DAPLogLevel = "trace"
+	protected connectionTimeoutLimit = 20000;
+	protected connectionTimeout : NodeJS.Timeout | undefined;
+	protected logDirectory: string;
+	protected logFilePath: string;
+	protected serverMsgQueue: DAP.ProtocolMessage[] = [];
+	protected loggerFile: pino.Logger;
+	protected loggerConsole: pino.Logger;
+	protected logFile : stream.Writable;
+	protected readonly logStream: stream.PassThrough;
+    constructor (port: number, host:string, startNow: boolean = true, logdir?: string) {
         this.port = port;
         this.host = host;
         if (startNow)
             this.start();
 		// TODO: make this configurable
-		let basedir = "C:\\Users\\Nikita\\Documents\\My Games\\Starfield\\Logs\\";
-		let logfile = basedir + "debugadapter.log";
-		this.logfile = fs.createWriteStream(logfile, { flags: 'w' });
+		const homepath = process.env.HOME;
+		this.logDirectory = logdir || path.join(homepath!, ".DAPProxy");
+		this.logFilePath = this.getLogFilePath(this.logDirectory);
+		this.logFile = fs.createWriteStream(this.logFilePath, { flags: 'w' })
+		let pprinterFile = pino_pretty.default({
+			colorize: false,
+			ignore: "pid,hostname",
+			destination: this.logFile,
+		})
+		this.logStream = split((data: any) => { //sink()
+			console.log(data)
+			return;
+			// return data;
+		})
+		let pprinterConsole = pino_pretty.default({
+			colorize: true,
+			colorizeObjects: true,
+			customPrettifiers: {
+				message: (value: any) => {
+					return colorize_message(value);
+				}
+			},
+			ignore: "pid,hostname",
+			destination: this.logStream,
+		});
+		this.loggerFile = pino(
+			{level: "trace"},
+			pprinterFile
+		);
+		this.loggerConsole = pino(
+			{level: "debug"},
+			pprinterConsole
+		);
+		this.loginfo("Started.");
     }
-	public logerror(message: string, ...args: any[]) {
-		console.error(message, ...args);
-		this.logfile.write(`ERROR: ${message} ${args.join(' ')}`);
-
+	
+	protected getLogFilePath(logDir: string){
+		const date = new Date();
+		return path.join(logDir, `debugadapter-${date.getFullYear()}-${date.getMonth()}-${date.getDate()}__${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}.log`);
 	}
-    public log(message: string, ...args: any[]){
-		console.log(message, ...args);
-		this.logfile.write(`${message} ${args.join(' ')}`);
+	public logfatal(message: any, ...args: any[]) {
+		this.log("fatal", message, ...args);
+	}
+	public logwarn(message: any, ...args: any[]) {
+		this.log("warn", message, ...args);
+	}
+	public logerror(message: any, ...args: any[]) {
+		this.log("error", message, ...args);
+	}
+    public loginfo(message: any, ...args: any[]){
+		this.log("info", message, ...args);
+	}
+	public logtrace(message: any, ...args: any[]){
+		this.log("trace", message, ...args);
+	}
+	public logdebug(message: any, ...args: any[]){
+		this.log("debug", message, ...args);
+	}
+	public log(level: DAPLogLevel, message: any, ...args: any[]){
+		switch (level) {
+			case "silent":
+				break;
+			case "fatal":
+				this.loggerFile.fatal(message, ...args);
+				this.loggerConsole.fatal(message, ...args);
+				break;
+			case "error":
+				this.loggerFile.error(message, ...args);
+				this.loggerConsole.error(message, ...args);
+				break;
+			case "warn":
+				this.loggerFile.warn(message, ...args);
+				this.loggerConsole.warn(message, ...args);
+				break;
+			case "info":
+				this.loggerFile.info(message, ...args);
+				this.loggerConsole.info(message, ...args);
+				break;
+			case "debug":
+				this.loggerFile.debug(message, ...args);
+				this.loggerConsole.debug(message, ...args);
+				break;
+			case "trace":
+				this.loggerFile.trace(message, ...args);
+				this.loggerConsole.trace(message, ...args);
+				break;
+			default:
+				break;
+		}
 	}
 
     public start() {
+		// set a timeout that kills the server if no connection is established within 20 seconds
+		this.connectionTimeout = setTimeout(() => {
+			this._onError.fire(new Error(`Cannot connect to client`));
+			this.stop();
+		}, this.connectionTimeoutLimit);
         this._socket = net.createConnection(this.port, this.host, () => {
             this.connect(this._socket!, this._socket!);
             this.connected = true;
+			clearTimeout(this.connectionTimeout);
         });
         this._socket.on('close', () => {
             if (this.connected) {
-                this.connected = false;
-                this.sendMessageToClient({
-                    type: 'event',
-                    event: 'exited',
-                    body: {
-                        exitCode: 0
-                    }
-                } as DAP.ExitedEvent)
+                this.stop();
                 this._onError.fire(new Error('connection closed'));
             } else {
                 throw new Error('connection closed');
@@ -137,15 +266,7 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
 
         this._socket.on('error', error => {
             if (this.connected) {
-                this.connected = false;
-				this.failed = true;
-                this.sendMessageToClient({
-                    type: 'event',
-                    event: 'exited',
-                    body: {
-                        exitCode: 1
-                    }
-                } as DAP.ExitedEvent)
+                this.stop();
                 this._onError.fire(error);
             } else {
                 throw error;
@@ -154,6 +275,11 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
     }
 
     public stop(){
+		this.connected = false;
+		this.sendMessageToClient({
+			type: 'event',
+			event: 'terminated'
+		} as DAP.TerminatedEvent)
         this._socket?.destroy();
     }
 
@@ -163,25 +289,38 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
     //override this
     protected handleMessageFromClient?(message: DAP.ProtocolMessage): void
     
-    protected sendMessageToClient(message: DAP.ProtocolMessage): void {
-		this.log(`***PROXY->CLIENT: ${JSON.stringify(message, undefined, 2)}`);
-
+    protected sendMessageToClient(message: DAP.ProtocolMessage, noLog: boolean = false): void {
+		if (!noLog) {
+			if (message.type === 'response' && !((message as DAP.Response).success)){
+				this.log("warn", {message}, "***PROXY->CLIENT FAILED RESPONSE:")
+			} else {
+				this.log(this.logProxyToClient, {message}, "***PROXY->CLIENT:");
+			}
+		}
         this._sendMessage.fire(message as DebugProtocolMessage);
     }
+
+	protected processServerMsgQueue() {
+		while (this.serverMsgQueue.length > 0) {
+			const msg = this.serverMsgQueue.shift();
+			if (msg) {
+				this.sendMessageToServer(msg);
+			}
+		}
+	}
+
     // Send message to server
-    protected sendMessageToServer(message: DAP.ProtocolMessage): void {
-		this.log(`***PROXY->SERVER ${JSON.stringify(message, undefined, 2)}`);
+    protected sendMessageToServer(message: DAP.ProtocolMessage, nolog: boolean = false): void {
+		if (!nolog) {
+			this.log(this.logProxyToServer ,{message}, "***PROXY->SERVER:");
+		}
 		if (!this.outputStream){
-			// install an event listener on the socket to wait for `connect`, `close`, or `error`
-			this._socket?.once('connect', () => {
-				this.sendMessageToServer(message);
-			});
-			this._socket?.once('close', () => {
-				this._onError.fire(new Error('connection closed'));
-			});
-			this._socket?.once('error', error => {
-				this._onError.fire(error);
-			});
+			this.serverMsgQueue.push(message);
+			if (this.serverMsgQueue.length == 1){
+				this._socket?.once('connect', () => {
+					this.processServerMsgQueue();
+				});
+			}
 			return;
 		}
         if (this.outputStream){
@@ -209,17 +348,19 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
 		while (true) {
 			if (this.contentLength >= 0) {
 				if (this.rawData.length >= this.contentLength) {
-					const message = this.rawData.toString('utf8', 0, this.contentLength);
+					const msgData = this.rawData.toString('utf8', 0, this.contentLength);
 					this.rawData = this.rawData.slice(this.contentLength);
 					this.contentLength = -1;
-					if (message.length > 0) {
+					if (msgData.length > 0) {
                         if (!this.handleMessageFromServer) {
                             throw new Error("handleMessageFromServer is undefined");
                         }
 						try {
-                            this.handleMessageFromServer(JSON.parse(message));
+							let message = JSON.parse(msgData);
+							this.log(this.logServerToProxy, {message}, "---SERVER->PROXY:");
+							this.handleMessageFromServer(message);
 						} catch (e) {
-							this.logerror("Received invalid JSON message: ", message, e);
+							this.logerror("Received invalid JSON message: ", msgData, e);
 						}
 					}
 					continue;	// there may be more complete messages to process
@@ -259,6 +400,7 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
         if (!this.handleMessageFromClient){
             throw new Error("handleMessageFromClient is undefined");
         }
+		this.log(this.logClientToProxy, {message}, "---CLIENT->PROXY:");
         this.handleMessageFromClient(message as DAP.ProtocolMessage)
     }
 
