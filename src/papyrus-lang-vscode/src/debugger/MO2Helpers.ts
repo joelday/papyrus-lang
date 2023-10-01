@@ -8,6 +8,7 @@ import * as ini from 'ini';
 
 import {
     AddressLibraryF4SEModName,
+    AddressLibraryName,
     AddressLibrarySKSEAEModName,
     AddressLibrarySKSEModName,
     PDSModName,
@@ -33,8 +34,6 @@ export class ModListItem {
 
 
 
-// path helpers
-// TODO: Move these to pathresolver
 /**
  * Will return the path to the plugins folder for the given game relative to the game's data folder
  * 
@@ -60,7 +59,7 @@ export function GetGlobalGameSavedDataFolder(game: PapyrusGame){
     if (process.env.HOMEPATH === undefined) {
         return undefined;
     }
-    return path.join(process.env.HOMEPATH, "My Games", getRegistryKeyForGame(game));
+    return path.join(process.env.HOMEPATH, "Documents", "My Games", getRegistryKeyForGame(game));
 }
 
 export function GetLocalAppDataFolder(){
@@ -100,7 +99,6 @@ export async function FindMO2InstanceIniPath(modsFolder: string, MO2EXEPath: str
 }
 
 export async function FindMO2ProfilesFolder(modsFolder: string, MO2InstanceIniData : INIData): Promise<string | undefined> {
-  
   let parentFolder = path.dirname(modsFolder);
   let profilesFolder = path.join(parentFolder, 'profiles');
   if (existsSync(profilesFolder)) {
@@ -124,25 +122,15 @@ export async function FindMO2ProfilesFolder(modsFolder: string, MO2InstanceIniDa
   }
   return undefined;
 }
-function getAddressLibNames(game: PapyrusGame) {
+
+export function getAddressLibNames(game: PapyrusGame): AddressLibraryName[] {
   if (game === PapyrusGame.fallout4) {
       return [AddressLibraryF4SEModName];
+  } else if (game === PapyrusGame.skyrimSpecialEdition) {
+    return [AddressLibrarySKSEModName, AddressLibrarySKSEAEModName];
   }
-  return [AddressLibrarySKSEModName, AddressLibrarySKSEAEModName];
+  throw new Error("ERROR: Unsupported game!");
 }
-
-// export async function FindMO2ProfileFolder(profileName: string, modFolder: string, MO2InstanceIniData : INIData ): Promise<string | undefined> {
-//     let profilesFolder = await FindMO2ProfilesFolder(modFolder, MO2InstanceIniData);
-//     if (profilesFolder === undefined) {
-//         return undefined;
-//     }
-//     let profileFolder = path.join(profilesFolder, profileName);
-
-//     if (existsSync(profileFolder)) {
-//         return profileFolder;
-//     }
-//     return undefined;
-// }
 
 export async function ParseIniFile(IniPath: string): Promise <INIData | undefined> {
     let IniText = readFileSync(IniPath, 'utf-8');

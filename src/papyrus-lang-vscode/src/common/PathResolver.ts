@@ -19,6 +19,8 @@ const exists = promisify(fs.exists);
 export interface IPathResolver {
     // Internal paths
     getDebugPluginBundledPath(game: PapyrusGame): Promise<string>;
+    getAddressLibraryDownloadFolder(): Promise<string>;
+    getAddressLibraryDownloadJSON(): Promise<string>;
     getLanguageToolPath(game: PapyrusGame): Promise<string>;
     getDebugToolPath(game: PapyrusGame): Promise<string>;
     getPyroCliPath(): Promise<string>;
@@ -28,6 +30,7 @@ export interface IPathResolver {
     // External paths
     getInstallPath(game: PapyrusGame): Promise<string | null>;
     getModDirectoryPath(game: PapyrusGame): Promise<string | null>;
+    getModParentPath(game: PapyrusGame): Promise<string | null>;
     getDebugPluginInstallPath(game: PapyrusGame, legacy?: boolean): Promise<string | null>;
 }
 
@@ -73,6 +76,14 @@ export class PathResolver implements IPathResolver {
 
     public async getDebugPluginBundledPath(game: PapyrusGame) {
         return this._asExtensionAbsolutePath(path.join(bundledPluginPath, getPluginDllName(game)));
+    }
+
+    public async getAddressLibraryDownloadFolder() {
+        return this._asExtensionAbsolutePath(downloadedAddressLibraryPath);
+    }
+
+    public async getAddressLibraryDownloadJSON() {
+        return this._asExtensionAbsolutePath(path.join(downloadedAddressLibraryPath, "address-library.json"));
     }
 
     public async getLanguageToolPath(game: PapyrusGame): Promise<string> {
@@ -145,7 +156,25 @@ export class PathResolver implements IPathResolver {
         return config.modDirectoryPath;
     }
 
-    dispose() {}
+
+    /**
+     * If the mod directory is set, then this just returns the mod directory
+     * Otherwise, it returns "${game directory}/Data"
+     * @param game 
+     * @returns 
+     */
+    public async getModParentPath(game: PapyrusGame): Promise<string | null> {
+        const modDirectoryPath = await this.getModDirectoryPath(game);
+        if (modDirectoryPath) {
+            return modDirectoryPath;
+        }
+        const installPath = await this.getInstallPath(game);
+        if (!installPath) {
+            return null;
+        }
+        return  path.join(installPath, "Data");
+    }
+    dispose() { }
 }
 
 export const IPathResolver: interfaces.ServiceIdentifier<IPathResolver> = Symbol('pathResolver');
@@ -155,6 +184,7 @@ export const IPathResolver: interfaces.ServiceIdentifier<IPathResolver> = Symbol
 /************************************************************************* */
 
 const bundledPluginPath = 'debug-plugin';
+const downloadedAddressLibraryPath = 'debug-address-library';
 
 function getPluginDllName(game: PapyrusGame, legacy = false) {
     switch (game) {
