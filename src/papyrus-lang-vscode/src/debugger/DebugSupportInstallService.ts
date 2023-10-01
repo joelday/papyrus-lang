@@ -13,6 +13,7 @@ import * as fs from 'fs';
 import { promisify } from 'util';
 
 import md5File from 'md5-file';
+import { PDSModName } from '../common/constants';
 
 const exists = promisify(fs.exists);
 const copyFile = promisify(fs.copyFile);
@@ -27,8 +28,8 @@ export enum DebugSupportInstallState {
 }
 
 export interface IDebugSupportInstallService {
-    getInstallState(game: PapyrusGame): Promise<DebugSupportInstallState>;
-    installPlugin(game: PapyrusGame, cancellationToken?: CancellationToken): Promise<boolean>;
+    getInstallState(game: PapyrusGame, modsDir?: string): Promise<DebugSupportInstallState>;
+    installPlugin(game: PapyrusGame, cancellationToken?: CancellationToken, pluginDir?: string): Promise<boolean>;
 }
 
 @injectable()
@@ -47,7 +48,9 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
         this._pathResolver = pathResolver;
     }
 
-    async getInstallState(game: PapyrusGame): Promise<DebugSupportInstallState> {
+    // TODO: Refactor this properly, right now it's just hacked to work with MO2LaunchDescriptor
+    async getInstallState(game: PapyrusGame, modsDir: string | undefined): Promise<DebugSupportInstallState> {
+
         const config = (await this._configProvider.config.pipe(take(1)).toPromise())[game];
         const client = await this._languageClientManager.getLanguageClientHost(game);
         const status = await client.status.pipe(take(1)).toPromise();
@@ -68,7 +71,7 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
             return DebugSupportInstallState.installed;
         }
 
-        const installedPluginPath = await this._pathResolver.getDebugPluginInstallPath(game, false);
+        const installedPluginPath = modsDir ? path.join(modsDir, "Plugins", PDSModName) : await this._pathResolver.getDebugPluginInstallPath(game, false);
         if (!installedPluginPath || !(await exists(installedPluginPath))) {
             return DebugSupportInstallState.notInstalled;
         }
@@ -87,8 +90,9 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
         return DebugSupportInstallState.installed;
     }
 
-    async installPlugin(game: PapyrusGame, cancellationToken = new CancellationTokenSource().token): Promise<boolean> {
-        const pluginInstallPath = await this._pathResolver.getDebugPluginInstallPath(game, false);
+    // TODO: Refactor this properly, right now it's just hacked to work with MO2LaunchDescriptor
+    async installPlugin(game: PapyrusGame, cancellationToken = new CancellationTokenSource().token, pluginDir: string | undefined): Promise<boolean> {
+        const pluginInstallPath = pluginDir || await this._pathResolver.getDebugPluginInstallPath(game, false);
         if (!pluginInstallPath) {
             return false;
         }

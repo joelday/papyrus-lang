@@ -11,7 +11,8 @@ import { IExtensionContext } from '../common/vscode/IocDecorators';
 
 import { PapyrusGame, getScriptExtenderName } from '../PapyrusGame';
 import { inDevelopmentEnvironment } from '../Utilities';
-import { IExtensionConfigProvider, IGameConfig } from '../ExtensionConfigProvider';
+import { IExtensionConfigProvider, IGameConfig, IExtensionConfig } from '../ExtensionConfigProvider';
+import { PDSModName } from './constants';
 
 const exists = promisify(fs.exists);
 
@@ -59,8 +60,9 @@ export class PathResolver implements IPathResolver {
         return `Data/${getScriptExtenderName(game)}/Plugins`;
     }
 
+    // TODO: Refactor this properly
     // For mod managers. The whole directory for the mod is "Data" so omit that part.
-    private async _getModMgrExtenderPluginPath(game: PapyrusGame) {
+    public static _getModMgrExtenderPluginRelativePath(game: PapyrusGame) {
         return `${getScriptExtenderName(game)}/Plugins`;
     }
     // Public Methods
@@ -114,14 +116,14 @@ export class PathResolver implements IPathResolver {
         return resolveInstallPath(game, config.installPath, this._context);
     }
 
+    // TODO: Refactor this properly.
     public async getDebugPluginInstallPath(game: PapyrusGame, legacy?: boolean): Promise<string | null> {
         const modDirectoryPath = await this.getModDirectoryPath(game);
 
         if (modDirectoryPath) {
             return path.join(
-                modDirectoryPath,
-                'Papyrus Debug Extension',
-                await this._getModMgrExtenderPluginPath(game),
+                modDirectoryPath, PDSModName,
+                PathResolver._getModMgrExtenderPluginRelativePath(game),
                 getPluginDllName(game, legacy)
             );
         } else {
@@ -179,7 +181,7 @@ function getToolGameName(game: PapyrusGame): string {
 /*** External paths (ones that are not "ours")                             */
 /************************************************************************* */
 
-function getRegistryKeyForGame(game: PapyrusGame) {
+export function getRegistryKeyForGame(game: PapyrusGame) {
     switch (game) {
         case PapyrusGame.fallout4:
             return 'Fallout4';
