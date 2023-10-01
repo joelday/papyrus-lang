@@ -1,12 +1,9 @@
 import { inject, injectable, interfaces } from 'inversify';
 import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
 import { CancellationToken, CancellationTokenSource, window } from 'vscode';
-import { take } from 'rxjs/operators';
 import { IPathResolver } from '../common/PathResolver';
-import { getDisplayNameForGame } from '../PapyrusGame';
 import { PapyrusGame } from "../PapyrusGame";
 import { ILanguageClientManager } from '../server/LanguageClientManager';
-import { ClientHostStatus } from '../server/LanguageClientHost';
 import { getGameIsRunning, getGamePIDs, mkdirIfNeeded } from '../Utilities';
 
 import * as path from 'path';

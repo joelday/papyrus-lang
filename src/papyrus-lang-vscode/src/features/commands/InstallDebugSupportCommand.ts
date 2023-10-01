@@ -1,8 +1,9 @@
 import { IDebugSupportInstallService, DebugSupportInstallState } from '../../debugger/DebugSupportInstallService';
 import { window, ProgressLocation } from 'vscode';
-import { PapyrusGame, getDisplayNameForGame } from '../../PapyrusGame';
+import { PapyrusGame, getDisplayNameForGame } from "../../PapyrusGame";
 import { GameCommandBase } from './GameCommandBase';
-import { getGameIsRunning, waitWhile } from '../../Utilities';
+import { getGameIsRunning } from '../../Utilities';
+import { waitWhile } from "../../VsCodeUtilities";
 import { inject, injectable } from 'inversify';
 
 export function showGameDisabledMessage(game: PapyrusGame) {

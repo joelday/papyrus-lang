@@ -1,15 +1,11 @@
 import { existsSync, openSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
-import { getScriptExtenderName } from '../PapyrusGame';
+import { getRegistryKeyForGame, getScriptExtenderName } from "../PapyrusGame";
 import { PapyrusGame } from "../PapyrusGame";
 
 
 import * as ini from 'ini';
 
-import {
-    getRegistryKeyForGame,
-    PathResolver,
-} from '../common/PathResolver';
 import {
     AddressLibraryF4SEModName,
     AddressLibrarySKSEAEModName,
@@ -47,8 +43,7 @@ export class ModListItem {
  * @returns 
  */
 export function getRelativePluginPath(game: PapyrusGame) {
-    // TODO: make it not use this
-    return PathResolver._getModMgrExtenderPluginRelativePath(game);
+    return `${getScriptExtenderName(game)}/Plugins`;
 }
 
 export function getGameIniName(game: PapyrusGame): string {

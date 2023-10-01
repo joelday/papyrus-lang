@@ -17,8 +17,8 @@ import {
     getDisplayNameForGame,
     getScriptExtenderName,
     getScriptExtenderUrl,
-    getShortDisplayNameForGame,
-} from '../PapyrusGame';
+    getShortDisplayNameForGame
+} from "../PapyrusGame";
 import { ICreationKitInfoProvider } from '../CreationKitInfoProvider';
 import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
 import { take } from 'rxjs/operators';

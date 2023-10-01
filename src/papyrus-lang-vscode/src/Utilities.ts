@@ -4,9 +4,7 @@ import { promisify } from 'util';
 
 import procList from 'ps-list';
 
-import { CancellationTokenSource } from 'vscode';
-import { PapyrusGame } from './PapyrusGame';
-import { getExecutableNameForGame } from './common/PathResolver';
+import { getExecutableNameForGame, PapyrusGame } from "./PapyrusGame";
 
 import { isNativeError } from 'util/types';
 
@@ -33,14 +31,16 @@ export async function getGameIsRunning(game: PapyrusGame) {
     return processList.some((p) => p.name.toLowerCase() === getExecutableNameForGame(game).toLowerCase());
 }
 
-export async function waitWhile(
-    func: () => Promise<boolean>,
-    cancellationToken = new CancellationTokenSource().token,
-    pollingFrequencyMs = 1000
-) {
-    while ((await func()) && !cancellationToken.isCancellationRequested) {
-        await delayAsync(pollingFrequencyMs);
+export async function getGamePIDs(game: PapyrusGame): Promise<Array<number>> {
+    const processList = await procList();
+    
+    const gameProcesses = processList.filter((p) => p.name.toLowerCase() === getExecutableNameForGame(game).toLowerCase());
+
+    if (gameProcesses.length === 0) {
+        return [];
     }
+
+    return gameProcesses.map((p) => p.pid);
 }
 
 export function inDevelopmentEnvironment() {

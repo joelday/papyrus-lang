@@ -14,7 +14,8 @@ import {
 import { CancellationToken, Disposable } from 'vscode-jsonrpc';
 
 import { IPyroTaskDefinition, TaskOf, PyroGameToPapyrusGame } from './PyroTaskDefinition';
-import { PapyrusGame, getWorkspaceGameFromProjects } from '../PapyrusGame';
+import { getWorkspaceGameFromProjects, getWorkspaceGame } from '../WorkspaceGame';
+import { PapyrusGame } from "../PapyrusGame";
 import { IPathResolver, PathResolver, pathToOsPath } from '../common/PathResolver';
 import { inject, injectable } from 'inversify';
 

@@ -9,7 +9,7 @@ import { promisify } from 'util';
 import { ExtensionContext } from 'vscode';
 import { IExtensionContext } from '../common/vscode/IocDecorators';
 
-import { PapyrusGame, getScriptExtenderName } from '../PapyrusGame';
+import { PapyrusGame, getScriptExtenderName, getRegistryKeyForGame } from "../PapyrusGame";
 import { inDevelopmentEnvironment } from '../Utilities';
 import { IExtensionConfigProvider, IGameConfig, IExtensionConfig } from '../ExtensionConfigProvider';
 import { PDSModName } from './constants';
@@ -181,28 +181,6 @@ function getToolGameName(game: PapyrusGame): string {
 /*** External paths (ones that are not "ours")                             */
 /************************************************************************* */
 
-export function getRegistryKeyForGame(game: PapyrusGame) {
-    switch (game) {
-        case PapyrusGame.fallout4:
-            return 'Fallout4';
-        case PapyrusGame.skyrim:
-            return 'Skyrim';
-        case PapyrusGame.skyrimSpecialEdition:
-            return 'Skyrim Special Edition';
-    }
-}
-
-export function getDevelopmentCompilerFolderForGame(game: PapyrusGame) {
-    switch (game) {
-        case PapyrusGame.fallout4:
-            return 'fallout4';
-        case PapyrusGame.skyrim:
-            return 'does-not-exist';
-        case PapyrusGame.skyrimSpecialEdition:
-            return 'skyrim';
-    }
-}
-
 export async function resolveInstallPath(
     game: PapyrusGame,
     installPath: string,
@@ -211,11 +189,11 @@ export async function resolveInstallPath(
     if (await exists(installPath)) {
         return installPath;
     }
-
+    const regkey = getRegistryKeyForGame(
+        game
+    );
     const reg = new winreg({
-        key: `\\SOFTWARE\\${process.arch === 'x64' ? 'WOW6432Node\\' : ''}Bethesda Softworks\\${getRegistryKeyForGame(
-            game
-        )}`,
+        key: `\\SOFTWARE\\${process.arch === 'x64' ? 'WOW6432Node\\' : ''}Bethesda Softworks\\${regkey}`,
     });
 
     try {
@@ -235,19 +213,7 @@ export async function resolveInstallPath(
     return null;
 }
 
-export function getDefaultFlagsFileNameForGame(game: PapyrusGame) {
-    return game === PapyrusGame.fallout4 ? 'Institute_Papyrus_Flags.flg' : 'TESV_Papyrus_Flags.flg';
-}
 
-const executableNames = new Map([
-    [PapyrusGame.skyrim, 'Skyrim.exe'],
-    [PapyrusGame.fallout4, 'Fallout4.exe'],
-    [PapyrusGame.skyrimSpecialEdition, 'SkyrimSE.exe'],
-]);
-
-export function getExecutableNameForGame(game: PapyrusGame) {
-    return executableNames.get(game)!;
-}
 
 export function pathToOsPath(pathName: string) {
     return path.format(path.parse(pathName));

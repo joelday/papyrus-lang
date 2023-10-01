@@ -1,11 +1,8 @@
 import { existsSync, fstat, openSync, readFileSync, writeFileSync } from 'fs';
 import * as ini from 'ini';
-import { PapyrusGame } from '../PapyrusGame';
+import { PapyrusGame } from "../PapyrusGame";
 import { MO2Config } from './PapyrusDebugSession';
-import { getExecutableNameForGame, IPathResolver, PathResolver } from '../common/PathResolver';
 import { PDSModName } from '../common/constants';
-
-import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
 
 import { inject, injectable } from 'inversify';
 import path from 'path';

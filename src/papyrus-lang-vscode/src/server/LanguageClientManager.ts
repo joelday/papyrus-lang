@@ -1,6 +1,6 @@
 import { inject, injectable, interfaces } from 'inversify';
 import { ILanguageClient } from './LanguageClient';
-import { PapyrusGame, getGames } from '../PapyrusGame';
+import { PapyrusGame, getGames } from "../PapyrusGame";
 import { Observable, Subscription, combineLatest } from 'rxjs';
 import { IExtensionConfigProvider, IGameConfig } from '../ExtensionConfigProvider';
 import { map, take } from 'rxjs/operators';
