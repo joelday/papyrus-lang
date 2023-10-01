@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import { promisify } from 'util';
 
 import procList from 'ps-list';
@@ -8,11 +9,16 @@ import { getExecutableNameForGame, PapyrusGame } from "./PapyrusGame";
 
 import { isNativeError } from 'util/types';
 
-import { getSystemErrorMap } from 'util';
-
+import {
+    getSystemErrorMap
+} from "util";
+import { execFile as _execFile } from 'child_process';
+const execFile = promisify(_execFile);
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
 const exists = promisify(fs.exists);
+const readdir = promisify(fs.readdir);
+const stat = promisify(fs.stat);
 
 export function* flatten<T>(arrs: T[][]): IterableIterator<T> {
     for (const arr of arrs) {
@@ -41,6 +47,37 @@ export async function getGamePIDs(game: PapyrusGame): Promise<Array<number>> {
     }
 
     return gameProcesses.map((p) => p.pid);
+}
+
+export async function getPIDforProcessName(processName: string): Promise<Array<number>> {
+    const processList = await procList();
+    let thing = processList[0];
+    const gameProcesses = processList.filter((p) => p.name.toLowerCase() === processName.toLowerCase());
+
+    if (gameProcesses.length === 0) {
+        return [];
+    }
+
+    return gameProcesses.map((p) => p.pid);
+}
+export async function getPathFromProcess(pid: number){
+    let pwsh_cmd = `(Get-Process -id ${pid}).Path`
+  
+    var {stdout, stderr} = await execFile('powershell', [ 
+        pwsh_cmd
+    ])
+    if (stderr){
+        return undefined;
+    }
+    return stdout;
+}
+
+export async function getPIDsforFullPath(processPath: string): Promise<Array<number>> {
+    const pidsList = await getPIDforProcessName(path.basename(processPath));
+    let pids = pidsList.filter(async (pid) => {
+        return processPath === await getPathFromProcess(pid);
+    });
+    return pids;
 }
 
 export function inDevelopmentEnvironment() {
@@ -127,4 +164,92 @@ export async function copyAndFillTemplate(srcPath: string, dstPath: string, valu
         templStr = templStr.replace('${' + key + '}', values[key]);
     }
     return writeFile(dstPath, templStr);
+}
+
+export interface EnvData{
+    [key: string]: string;
+}
+
+
+export async function getEnvFromProcess(pid: number){
+    let pwsh_cmd = `(Get-Process -id ${pid}).StartInfo.EnvironmentVariables.ForEach( { $_.Key + "=" + $_.Value } )`
+  
+    var {stdout, stderr} = await execFile('powershell', [ 
+        pwsh_cmd
+    ])
+    if (stderr){
+        return undefined;
+    }
+    let otherEnv: EnvData = {}
+    stdout.split('\r\n').forEach((line) => {
+        let [key, value] = line.split('=');
+        if (key && key !== ''){
+            otherEnv[key] = value;
+        }
+    });
+    return otherEnv;
+}
+
+export async function CheckHash(data: Buffer, expectedHash: string) {
+    const hash = crypto.createHash('sha256');
+    hash.update(data);
+    const actualHash = hash.digest('hex');
+    if (expectedHash !== actualHash) {
+        return false;
+    }
+    return true;
+}
+
+async function _GetHashOfFolder(folderPath: string, inputHash?: crypto.Hash): Promise<crypto.Hash | undefined>{
+    if (!inputHash) {
+        return undefined;
+    }
+    const info = await readdir(folderPath, {withFileTypes: true});
+    if (!info || info.length == 0) {
+      return undefined;
+    }
+    for (let item of info) {
+      const fullPath = path.join(folderPath, item.name);
+      if (item.isFile()) {
+          const data = fs.readFileSync(fullPath);
+          inputHash.update(data);
+      } else if (item.isDirectory()) {
+          // recursively walk sub-folders
+          await _GetHashOfFolder(fullPath, inputHash);
+      }
+    }
+    return inputHash;
+}
+
+export async function GetHashOfFolder(folderPath: string): Promise<string | undefined>{
+  return (await _GetHashOfFolder(folderPath, crypto.createHash('sha256')))?.digest('hex');
+}
+
+export async function CheckHashOfFolder(folderPath: string, expectedSHA256: string): Promise<boolean> {
+    const hash = await GetHashOfFolder(folderPath);
+    if (!hash) {
+        return false;
+    }
+    if (hash !== expectedSHA256){
+      return false;
+    }
+    return true;
+}
+
+export async function CheckHashFile(filePath: string, expectedSHA256: string) {
+    // get the hash of the file
+    if (!await exists(filePath) || !(await stat(filePath)).isFile()) {
+        return false;
+    }
+    const buffer = await readFile(filePath);
+    if (!buffer) {
+        return false;
+    }
+    const hash = crypto.createHash('sha256');
+    hash.update(buffer);
+    const actualHash = hash.digest('hex');
+    if (expectedSHA256 !== actualHash) {
+        return false;
+    }
+    return true;
 }

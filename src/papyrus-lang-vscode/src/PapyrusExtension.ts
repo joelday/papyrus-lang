@@ -28,6 +28,8 @@ import { ShowWelcomeCommand } from './features/commands/ShowWelcomeCommand';
 import { Container } from 'inversify';
 import { IDebugLauncherService, DebugLauncherService } from "./debugger/DebugLauncherService";
 import { IAddressLibraryInstallService, AddressLibraryInstallService } from "./debugger/AddressLibInstallService";
+import { IMO2LaunchDescriptorFactory, MO2LaunchDescriptorFactory } from "./debugger/MO2LaunchDescriptorFactory";
+import { IMO2ConfiguratorService, MO2ConfiguratorService } from "./debugger/MO2ConfiguratorService";
 
 class PapyrusExtension implements Disposable {
     private readonly _serviceContainer: Container;
@@ -70,6 +72,8 @@ class PapyrusExtension implements Disposable {
         this._serviceContainer.bind(IDebugSupportInstallService).to(DebugSupportInstallService);
         this._serviceContainer.bind(IDebugLauncherService).to(DebugLauncherService);
         this._serviceContainer.bind(IAddressLibraryInstallService).to(AddressLibraryInstallService);
+        this._serviceContainer.bind(IMO2LaunchDescriptorFactory).to(MO2LaunchDescriptorFactory);
+        this._serviceContainer.bind(IMO2ConfiguratorService).to(MO2ConfiguratorService);
 
         this._configProvider = this._serviceContainer.get(IExtensionConfigProvider);
         this._clientManager = this._serviceContainer.get(ILanguageClientManager);

@@ -67,38 +67,41 @@
                                 "type": "string",
                                 "enum": [
                                     "XSE",
-                                    "mo2"
+                                    "MO2"
                                 ]
                             },
-                            "XSELoaderPath": {
+                            "launcherPath": {
                                 "type": "string"
                             },
                             "mo2Config": {
                                 "type": "object",
                                 "properties": {
-                                    "mo2Path": {
+                                    "shortcutURI": {
                                         "type": "string"
                                     },
-                                    "shortcut": {
+                                    "profile": {
                                         "type": "string"
                                     },
-                                    "modsFolder": {
-                                        "type": "string"
-                                    },
-                                    "args": {
+                                    "instanceINIPath": {
                                         "type": "array"
                                     }
                                 },
                                 "required": [
-                                    "mo2Path",
-                                    "shortcut",
-                                    "modsFolder"
-                                ]
+                                    "shortcutURI"
+                                ],
+                                "additionalProperties": false
+                            },
+                            "args": {
+                                "type": "array"
+                            },
+                            "ignoreConfigChecks": {
+                                "type": "boolean"
                             }
                         },
                         "required": [
                             "game",
-                            "launchType"
+                            "launchType",
+                            "launcherPath"
                         ]
                     }
                 },
@@ -110,7 +113,7 @@
                             "type": "papyrus",
                             "game": "${3:fallout4}",
                             "request": "attach",
-                            "projectPath": "^\"\\${workspaceFolder}/${1:Project.ppj}\""
+                            "projectPath": "^\"\\${workspaceFolder}/${1:fallout4.ppj}\""
                         }
                     },
                     {
@@ -120,9 +123,9 @@
                             "type": "papyrus",
                             "game": "${3:fallout4}",
                             "request": "launch",
-                            "projectPath": "^\"\\${workspaceFolder}/${1:Project.ppj}\"",
-                            "launchType": "skse",
-                            "XSELoaderPath": "^\"${5:C:/Program Files (x86)/Steam/steamapps/common/Fallout 4/F4SE/F4SE_loader.exe}\""
+                            "projectPath": "^\"\\${workspaceFolder}/${1:fallout4.ppj}\"",
+                            "launchType": "XSE",
+                            "launcherPath": "^\"${5:C:/Program Files (x86)/Steam/steamapps/common/Fallout 4/F4SE/F4SE_loader.exe}\""
                         }
                     },
                     {
@@ -132,12 +135,11 @@
                             "type": "papyrus",
                             "game": "${3:fallout4}",
                             "request": "launch",
-                            "launchType": "mo2",
-                            "projectPath": "^\"\\${workspaceFolder}/${1:Project.ppj}\"",
+                            "launchType": "MO2",
+                            "projectPath": "^\"\\${workspaceFolder}/${1:fallout4.ppj}\"",
+                            "launcherPath": "^\"${6:C:/Modding/MO2/ModOrganizer.exe}\"",
                             "mo2Config": {
-                                "mo2Path": "^\"${6:C:/Modding/MO2/ModOrganizer.exe}\"",
-                                "shortcut": "^\"${7:moshortcut://Skyrim Special Edition:SKSE}\"",
-                                "modsFolder": "^\"${8:\\${env:LOCALAPPDATA\\}/ModOrganizer/Fallout 4/mods}\""
+                                "shortcutURI": "^\"${7:moshortcut://Skyrim Special Edition:SKSE}\""
                             }
                         }
                     }
@@ -547,6 +549,7 @@
     ],
     "dependencies": {
         "@semantic-release/exec": "^6.0.3",
+        "@tybys/windows-file-version-info": "^1.0.5",
         "@types/semantic-release": "^17.2.4",
         "deepmerge": "^4.2.2",
         "fast-deep-equal": "^3.1.3",

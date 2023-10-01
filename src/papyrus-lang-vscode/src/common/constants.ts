@@ -19,24 +19,3 @@ export enum AddressLibAssetSuffix {
     SkyrimAE = 'SkyrimAE',
     Fallout4 = 'Fallout4',
 }
-
-export function getAsssetLibraryDLSuffix(addlibname: AddressLibraryName): AddressLibAssetSuffix {
-    switch (addlibname) {
-        case AddressLibrarySKSEModName:
-            return AddressLibAssetSuffix.SkyrimSE;
-        case AddressLibrarySKSEAEModName:
-            return AddressLibAssetSuffix.SkyrimAE;
-        case AddressLibraryF4SEModName:
-            return AddressLibAssetSuffix.Fallout4
-    }
-}
-export function getAddressLibNameFromAssetSuffix(suffix: AddressLibAssetSuffix): AddressLibraryName {
-    switch (suffix) {
-        case AddressLibAssetSuffix.SkyrimSE:
-            return AddressLibrarySKSEModName;
-        case AddressLibAssetSuffix.SkyrimAE:
-            return AddressLibrarySKSEAEModName;
-        case AddressLibAssetSuffix.Fallout4:
-            return AddressLibraryF4SEModName;
-    }
-}

@@ -2,13 +2,12 @@ import { getReleases } from '@terascope/fetch-github-release/dist/src/getRelease
 import { GithubRelease, GithubReleaseAsset } from '@terascope/fetch-github-release/dist/src/interfaces';
 import { downloadRelease } from '@terascope/fetch-github-release/dist/src/downloadRelease';
 import { getLatest } from '@terascope/fetch-github-release/dist/src/getLatest';
-import * as crypto from 'crypto';
-import * as path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
+import { CheckHashFile } from '../Utilities';
 
 const readdir = promisify(fs.readdir);
-
+const exists = promisify(fs.exists);
 export enum DownloadResult {
     success,
     repoFailure,
@@ -20,64 +19,6 @@ export enum DownloadResult {
     cancelled,
 }
 
-export async function CheckHash(data: Buffer, expectedHash: string) {
-    const hash = crypto.createHash('sha256');
-    hash.update(data);
-    const actualHash = hash.digest('hex');
-    if (expectedHash !== actualHash) {
-        return false;
-    }
-    return true;
-}
-
-export async function GetHashOfFolder(folderPath: string, inputHash?: crypto.Hash): Promise<string | undefined>{
-  const hash = inputHash ? inputHash : crypto.createHash('sha256');
-  const info = await readdir(folderPath, {withFileTypes: true});
-  if (!info || info.length == 0) {
-    return undefined;
-  }
-  for (let item of info) {
-    const fullPath = path.join(folderPath, item.name);
-    if (item.isFile()) {
-        const data = fs.readFileSync(fullPath);
-        hash.update(data);
-    } else if (item.isDirectory()) {
-        // recursively walk sub-folders
-        await GetHashOfFolder(fullPath, hash);
-    }
-  }
-  return hash.digest('hex');
-}
-
-export async function CheckHashOfFolder(folderPath: string, expectedSHA256: string): Promise<boolean> {
-    const hash = await GetHashOfFolder(folderPath);
-    if (!hash) {
-        return false;
-    }
-    if (hash !== expectedSHA256){
-      return false;
-    }
-    return true;
-}
-
-export async function CheckHashFile(filePath: string, expectedSHA256: string) {
-    // get the hash of the file
-    const file = fs.openSync(filePath, 'r');
-    if (!file) {
-        return false;
-    }
-    const buffer = fs.readFileSync(file);
-    if (!buffer) {
-        return false;
-    }
-    const hash = crypto.createHash('sha256');
-    hash.update(buffer);
-    const actualHash = hash.digest('hex');
-    if (expectedSHA256 !== actualHash) {
-        return false;
-    }
-    return true;
-}
 
 /**
  * Downloads all assets from a specific release
@@ -134,27 +75,16 @@ export async function DownloadAssetAndCheckHash(
     downloadFolder: string,
     expectedSha256Sum: string
 ): Promise<DownloadResult> {
-    let dlPath: string;
+    let dlPath: string | undefined;
     try {
         dlPath = await downloadAssetFromGitHub(githubUserName, RepoName, release_id, assetFileName, downloadFolder);
     } catch (e) {
         return DownloadResult.downloadFailure;
     }
-    if (!dlPath) {
+    if (!dlPath || !await exists(dlPath)) {
         return DownloadResult.downloadFailure;
     }
-    // get the hash of the file
-    const file = fs.openSync(dlPath, 'r');
-    if (!file) {
-        return DownloadResult.downloadFailure;
-    }
-    // get the SHA256 hash of the file using the 'crypto' module
-    const buffer = fs.readFileSync(file);
-    if (!buffer || buffer.length == 0) {
-        return DownloadResult.downloadFailure;
-    }
-    // get the hash of the file
-    if (!CheckHash(buffer, expectedSha256Sum)) {
+    if (!CheckHashFile(dlPath, expectedSha256Sum)) {
         fs.rmSync(dlPath);
         return DownloadResult.checksumMismatch;
     }

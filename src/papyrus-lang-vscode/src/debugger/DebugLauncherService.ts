@@ -2,7 +2,7 @@ import { inject, injectable, interfaces } from 'inversify';
 import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
 import { CancellationToken, CancellationTokenSource, window } from 'vscode';
 import { IPathResolver } from '../common/PathResolver';
-import { PapyrusGame } from "../PapyrusGame";
+import { PapyrusGame } from '../PapyrusGame';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
 import { getGameIsRunning, getGamePIDs, mkdirIfNeeded } from '../Utilities';
 
@@ -13,6 +13,8 @@ import { promisify } from 'util';
 import md5File from 'md5-file';
 import { ChildProcess, spawn } from 'node:child_process';
 import { timer } from 'rxjs';
+import { execFile as _execFile } from 'child_process';
+const execFile = promisify(_execFile);
 
 const exists = promisify(fs.exists);
 const copyFile = promisify(fs.copyFile);
@@ -22,17 +24,23 @@ export enum DebugLaunchState {
     success,
     launcherError,
     gameFailedToStart,
+    gameExitedBeforeOpening,
     multipleGamesRunning,
     cancelled,
 }
 export interface IDebugLauncherService {
     tearDownAfterDebug(): Promise<boolean>;
     runLauncher(
-        launcherPath: string,
-        launcherArgs: string[],
+        launcherCommand: LaunchCommand,
         game: PapyrusGame,
+        portToCheck: number,
         cancellationToken?: CancellationToken
     ): Promise<DebugLaunchState>;
+}
+
+export interface LaunchCommand {
+    command: string;
+    args: string[];
 }
 
 @injectable()
@@ -57,6 +65,7 @@ export class DebugLauncherService implements IDebugLauncherService {
     }
 
     async tearDownAfterDebug() {
+        // If MO2 was already opened by the user before launch, the process would have detached and this will be closed anyway
         if (this.launcherProcess) {
             this.launcherProcess.removeAllListeners();
             this.launcherProcess.kill();
@@ -87,9 +96,9 @@ export class DebugLauncherService implements IDebugLauncherService {
     }
 
     async runLauncher(
-        launcherPath: string,
-        launcherArgs: string[],
+        launcherCommand: LaunchCommand,
         game: PapyrusGame,
+        portToCheck: number,
         cancellationToken: CancellationToken | undefined
     ): Promise<DebugLaunchState> {
         await this.tearDownAfterDebug();
@@ -98,13 +107,23 @@ export class DebugLauncherService implements IDebugLauncherService {
             cancellationToken = this.cancellationTokenSource.token;
         }
         this.currentGame = game;
-        this.launcherProcess = spawn(launcherPath, launcherArgs, {
-            detached: true,
-            stdio: 'ignore',
+        let cmd = launcherCommand.command;
+        let args = launcherCommand.args;
+        let _stdOut: string = '';
+        let _stdErr: string = '';
+        this.launcherProcess = spawn(cmd, args);
+        if (!this.launcherProcess || !this.launcherProcess.stdout || !this.launcherProcess.stderr) {
+            window.showErrorMessage(`Failed to start launcher process.\ncmd: ${cmd}\nargs: ${args.join(' ')}`);
+            return DebugLaunchState.launcherError;
+        }
+        this.launcherProcess.stdout.on('data', (data) => {
+            _stdOut += data;
         });
-
+        this.launcherProcess.stderr.on('data', (data) => {
+            _stdErr += data;
+        });
+        const GameStartTimeout = 15000;
         // get the current system time
-        const GameStartTimeout = 10000;
         let startTime = new Date().getTime();
         // wait for the games process to start
         while (!cancellationToken.isCancellationRequested) {
@@ -114,6 +133,11 @@ export class DebugLauncherService implements IDebugLauncherService {
                     !this.launcherProcess ||
                     (this.launcherProcess.exitCode !== null && this.launcherProcess.exitCode !== 0)
                 ) {
+                    window.showErrorMessage(
+                        `Launcher process exited with error code ${
+                            this.launcherProcess.exitCode
+                        }.\ncmd: ${cmd}\nargs: ${args.join(' ')}\nstderr: ${_stdErr}\nstdout: ${_stdOut}`
+                    );
                     return DebugLaunchState.launcherError;
                 }
             } else {
@@ -126,7 +150,7 @@ export class DebugLauncherService implements IDebugLauncherService {
             return DebugLaunchState.cancelled;
         }
         // we can't get the PID of the game from the launcher process because
-        // both MO2 and the script extender loaders forks and deatches the game process
+        // both MO2 and the script extender loaders fork and deatch the game process
         let gamePIDs = await getGamePIDs(game);
 
         if (gamePIDs.length === 0) {
@@ -138,16 +162,22 @@ export class DebugLauncherService implements IDebugLauncherService {
         }
         this.gamePID = gamePIDs[0];
 
+        // TODO: REMOVE THIS SHIT WHEN WE YEET THE DEBUGADAPTERPROXY
         startTime = new Date().getTime();
 
         // wait for the game to fully load
+        let waitedForGame = false;
         while (!cancellationToken.isCancellationRequested) {
-            if (!(await this.keepSleepingUntil(startTime, GameStartTimeout))) {
+            if (await this.keepSleepingUntil(startTime, GameStartTimeout)) {
+                if (!(await getGameIsRunning(game))) {
+                    return DebugLaunchState.gameExitedBeforeOpening;
+                }
+            } else {
+                waitedForGame = true;
                 break;
             }
         }
-
-        if (cancellationToken.isCancellationRequested) {
+        if (!waitedForGame && cancellationToken.isCancellationRequested) {
             await this.tearDownAfterDebug();
             return DebugLaunchState.cancelled;
         }

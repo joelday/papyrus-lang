@@ -8,51 +8,42 @@ export interface IPapyrusDebugSession extends DebugSession {
 
 export interface MO2Config {
     /**
-     * The path to the Mod Organizer 2 executable
-     * 
-     * Example:
-     * - "C:/Program Files/Mod Organizer 2/ModOrganizer.exe"
-     */
-    MO2EXEPath: string;
-    /**
      * The shortcut URI for the Mod Organizer 2 profile to launch
      * 
-     * You can get this from the Mod Organizer 2 shortcut menu
+     * You can get this from the Mod Organizer 2 shortcut menu.
      * 
-     * Example:
-     * - "moshortcut://Skyrim Special Edition:SKSE"
+     * It is in the format: `moshortcut://<instance_name>:<EXE_title>`.
+     * 
+     * If the MO2 installation is portable, the instance name is blank.
+     * 
+     * 
+     * 
+     * Examples:
+     * - non-portable: `moshortcut://Skyrim Special Edition:SKSE`
+     * - portable:     `moshortcut://:F4SE`
     */
-    shortcut: string;
+    shortcutURI: string;
     /**
-     * The path to the Mod Organizer 2 mods folder
-     * If not specified, defaults to the globally configured mods folder.
+     * The name of the Mod Organizer 2 profile to launch with.
      * 
-     * Example:
-     * - "C:/Users/${USERNAME}/AppData/Local/ModOrganizer/Fallout 4/mods"
-     */
-    modsFolder?: string;
-    /**
-     * The name of the Mod Organizer 2 profile to launch with
-     * Defaults to "Default"
+     * Defaults to the currently selected profile
      */
     profile?: string;
     /**
-     * The path to the "profiles" folder for the Mod Organizer 2 instance.
+     * The path to the Mod Organizer 2 instance ini for this game.
+     * This is only necessary to be set if the debugger has difficulty finding the MO2 instance location
      * 
-     * If you have specified a custom mods folder in your MO2 instance configuration,
-     * you must specify the profiles folder here.
+     * - If the Mod Organizer 2 exe is a portable installation, this is located in the parent folder.
+     * - If it is a non-portable installation, this in `%LOCALAPPDATA%/ModOrganizer/<game>/ModOrganizer.ini`
      * 
-     * If not specified, defaults to the "profiles" folder in the same parent directory as the mods folder.
-     * 
-     * Example:
-     * - "C:/Users/${USERNAME}/AppData/Local/ModOrganizer/Fallout 4/profiles"
+     * Examples:
+     * - `C:/Users/<YOUR_USER_NAME>/AppData/Local/ModOrganizer/Fallout4/ModOrganizer.ini`
+     * - `C:/Modding/MO2/ModOrganizer.ini`
      */
-    profilesFolder?: string;
+    instanceIniPath?: string;
+}
 
-    /**
-     * Additional arguments to pass to Mod Organizer 2
-     */
-    args?: string[];
+export interface XSEConfig {
 }
 
 export interface IPapyrusDebugConfiguration extends DebugConfiguration {
@@ -71,34 +62,47 @@ export interface IPapyrusDebugConfiguration extends DebugConfiguration {
      * - 'launch': Launches the game
      */
     request: 'attach' | 'launch';
-    /** 
-     * The type of launch to use
-     * 
-     * - 'XSE': Launches the game using SKSE/F4SE without a mod manager
-     * - 'mo2':  Launches the game using Mod Organizer 2
+
+    //TODO: split these into separate interfaces
+    /**
+     * The type of launcher to use
+     *
+     * - 'XSE':  Launches the game using SKSE/F4SE without a mod manager
+     * - 'MO2':  Launches the game using Mod Organizer 2
      * */
-    launchType?: 'XSE' | 'mo2';
+    launchType?: 'XSE' | 'MO2';
+
+    /**
+     * The path to the launcher executable
+     * 
+     * - If the launch type is 'MO2', this is the path to the Mod Organizer 2 executable.
+     * - If the launch type is 'XSE', this is the path to the f4se/skse loader executable.
+     * 
+     * Examples:
+     * - "C:/Program Files/Mod Organizer 2/ModOrganizer.exe"
+     * - "C:/Program Files (x86)/Steam/steamapps/common/Skyrim Special Edition/skse64_loader.exe"
+     * - "C:/Program Files (x86)/Steam/steamapps/common/Fallout 4/f4se_loader.exe"
+     *
+     */
+    launcherPath?: string;
+
     /**
      * 
      * Configuration for Mod Organizer 2
      * 
-     * Only used if launchType is 'mo2'
+     * Only used if launchType is 'MO2'
      * 
      */
     mo2Config?: MO2Config;
 
-    /** 
-     * The path to the f4se/skse loader executable
-     * 
-     * Examples: 
-     * - "C:/Program Files (x86)/Steam/steamapps/common/Skyrim Special Edition/skse64_loader.exe"
-     * - "C:/Program Files (x86)/Steam/steamapps/common/Fallout 4/f4se_loader.exe"
-     */
-    XSELoaderPath?: string;
 
     /**
-     * Additional arguments to pass 
-     * */
+     * (optional, advanced) Additional arguments to pass to the launcher
+     */
     args?: string[];
 
+    /**
+     * Ignore debugger configuration checks and launch
+     */
+    ignoreConfigChecks?: boolean;
 }

@@ -1,5 +1,5 @@
 import { Parser } from 'binary-parser';
-import { readFileSync } from 'fs';
+import * as fs from 'fs';
 import { PapyrusGame } from '../PapyrusGame';
 
 // This interface contains the same members that are in the "Header" class in F:\workspace\skyrim-mod-workspace\Champollion\Pex\Header.hpp
@@ -160,16 +160,16 @@ export class PexReader {
           .uint16('__strlen')
           .string('__string', { length: '__strlen', encoding: 'ascii', zeroTerminated: false });
   
-  private readonly _strNest = { type: this.StringParser(), formatter: (x): string => x.__string };
+  private readonly _strNest = { type: this.StringParser(), formatter: (x:any): string => x.__string };
   
   private readonly StringTableParser = 
       new Parser().uint16('__tbllen').array('__strings', {
           type: this.StringParser(),
-          formatter: (x): string[] => x.map((y) => y.__string),
+          formatter: (x:any): string[] => x.map((y:any) => y.__string),
           length: '__tbllen',
       });
   
-  private readonly _strTableNest = { type: this.StringTableParser , formatter: (x): 
+  private readonly _strTableNest = { type: this.StringTableParser , formatter: (x:any): 
     PexStringTable => {
       // TODO: Global state hack to get around not being able to reference the parsed string table in the middle of the parse
       this.stringTable = new PexStringTable(x.__strings);
@@ -186,14 +186,14 @@ export class PexReader {
     .array('LineNumbers', {
       type: this.GetUintType(),
       length: 'LineNumbersCount',
-      formatter: (x): number[] => x.map((y) => y.__val)
+      formatter: (x:any): number[] => x.map((y:any) => y.__val)
     })
   
   
   private readonly FunctionInfosParser = () => new Parser().uint16('__FIlen').array('__infos', {
     type: this.FunctionInfoRawParser(),
     length: '__FIlen',
-    formatter: (x): FunctionInfo[] => x.map((y) => {
+    formatter: (x:any): FunctionInfo[] => x.map((y:any) => {
       let functinfo = {
         ObjectName: this.TableLookup(y.ObjectName),
         StateName: this.TableLookup(y.StateName),
@@ -219,7 +219,7 @@ export class PexReader {
     .array('Names', {
       type: this.GetUintType(),
       length: 'NamesCount',
-      formatter: (x): number[] => x.map((y) => y.__val)
+      formatter: (x:any): number[] => x.map((y:any) => y.__val)
     })
   private TableLookup (x: number){
     if (x >= this.stringTable.strings.length){
@@ -230,13 +230,13 @@ export class PexReader {
   private readonly PropertyGroupsParser = () => new Parser().uint16('__PGlen').array('__infos', {
     type: this.PropertyGroupRawParser(),
     length: '__PGlen',
-    formatter: (x): PropertyGroup[] => x.map((y) => {
+    formatter: (x:any): PropertyGroup[] => x.map((y:any) => {
       let pgroups =  {
         ObjectName: this.TableLookup(y.ObjectName),
         GroupName: this.TableLookup(y.GroupName),
         DocString: this.TableLookup(y.DocString),
         UserFlags: y.UserFlags,
-        Names: y.Names.map((z) => this.TableLookup(z))
+        Names: y.Names.map((z:any) => this.TableLookup(z))
       } as PropertyGroup;
       return pgroups;
     })
@@ -249,18 +249,18 @@ export class PexReader {
     .array('Names', {
       type: this.GetUintType(),
       length: 'NamesCount',
-      formatter: (x): number[] => x.map((y) => y.__val)
+      formatter: (x:any): number[] => x.map((y:any) => y.__val)
 
     })
 
   private readonly StructOrdersParser = () => new Parser().uint16('__SOlen').array('__infos', {
     type: this.StructOrderRawParser(),
     length: '__SOlen',
-    formatter: (x): StructOrder[] => x.map((y) => {
+    formatter: (x:any): StructOrder[] => x.map((y:any) => {
       let sorders = {
         StructName: this.TableLookup(y.StructName),
         OrderName: this.TableLookup(y.OrderName),
-        Names: y.Names.map((z) => this.TableLookup(z))
+        Names: y.Names.map((z:any) => this.TableLookup(z))
       } as StructOrder;
       return sorders;
     })
@@ -271,11 +271,11 @@ export class PexReader {
       .uint64('ModificationTime')
       .nest('FunctionInfos', {
         type: this.FunctionInfosParser(),
-        formatter: (x): FunctionInfo[] => x.__infos
+        formatter: (x:any): FunctionInfo[] => x.__infos
       })
       .nest('PropertyGroups', {
         type: this.PropertyGroupsParser(),
-        formatter: (x): PropertyGroup[] => x.__infos
+        formatter: (x:any): PropertyGroup[] => x.__infos
       })
       .choice("StructOrders", {
         tag: () => {
@@ -286,7 +286,7 @@ export class PexReader {
           0: new Parser().skip(0),
           1: this.StructOrdersParser()
         },
-        formatter: (x): StructOrder[] | undefined => {
+        formatter: (x:any): StructOrder[] | undefined => {
           if (this.endianness === "little" && x){
             return x.__infos;
           }
@@ -304,7 +304,7 @@ export class PexReader {
                   0: new Parser().skip(0),
                   1: this._doParseDebugInfo()
               },
-              formatter: (x): DebugInfo | undefined => {
+              formatter: (x:any): DebugInfo | undefined => {
                   if (!x) {
                       return undefined;
                   }
@@ -312,7 +312,7 @@ export class PexReader {
               }
           })
   
-  private readonly _debugInfoNest = { type: this.ParseDebugInfo(), formatter: (x): DebugInfo | undefined => x ? x.DebugInfo : undefined };
+  private readonly _debugInfoNest = { type: this.ParseDebugInfo(), formatter: (x:any): DebugInfo | undefined => x ? x.DebugInfo : undefined };
   
   private readonly HeaderParser = () =>
       new Parser()
@@ -328,7 +328,7 @@ export class PexReader {
   private readonly _HeaderNest = (endianness: 'little' | 'big') => {
       return {
           type: this.HeaderParser(),
-          formatter: (x): PexHeader => {
+          formatter: (x: any): PexHeader => {
               return {
                   Game: getGameFromEndianness(endianness),
                   MajorVersion: x.MajorVersion,
@@ -372,8 +372,11 @@ export class PexReader {
 
   public async ReadPexHeader(): Promise<PexHeader | undefined> {
       // read the binary file from the path into a byte buffer
-      //let data = readFileSync(path,{encoding: 'binary'});
-      const buffer = readFileSync(this.path);
+      if (!fs.existsSync(this.path) || !fs.lstatSync(this.path).isFile()) {
+        return undefined;
+      }
+
+      const buffer = fs.readFileSync(this.path);
       if (!buffer || buffer.length < 4) {
           return undefined;
       }
@@ -387,7 +390,7 @@ export class PexReader {
   }
   // not complete
   async ReadPex(): Promise<PexBinary | undefined>{
-    const buffer = readFileSync(this.path);
+    const buffer = fs.readFileSync(this.path);
     if (!buffer || buffer.length < 4) {
       return undefined;
     }

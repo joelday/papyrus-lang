@@ -92,6 +92,7 @@ export function getGameIniName(game: PapyrusGame): string {
     return game == PapyrusGame.fallout4 ? 'fallout4.ini' :'skyrim.ini';
 }
 
+// TODO: Support VR
 export enum GameVariant {
     Steam = "Steam",
     GOG = "GOG",
