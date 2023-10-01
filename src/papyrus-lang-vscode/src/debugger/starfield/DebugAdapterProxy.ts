@@ -10,6 +10,7 @@ import * as pino_pretty from "pino-pretty"
 import * as chalk_d from 'chalk'
 import {default as colorizer} from "../../common/colorizer"
 import {default as split} from 'split2';
+import { Event } from "@vscode/debugadapter";
 
 const chalk : chalk_d.Chalk = new chalk_d.default.constructor({ enabled: true, level: 2 })
 
@@ -97,7 +98,7 @@ const custom_colors = {
 
 
 
-function colorize_message(value:any){
+export function colorize_message(value:any){
 	let colorized = colorizer(value, { colors:custom_colors, pretty: true, forceColor: true});
 	// Make the "success" and "message" fields red if they are present and "success" is false
 	if (typeof value === 'object' && value !== null && value.hasOwnProperty('success') && !value.success) {
@@ -205,7 +206,7 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
 		let pprinterFile = pino_pretty.default({
 			colorize: false,
 			ignore: "pid,hostname",
-			destination: this.logFile,
+			destination: this.logFilePath,
 		})
 		this.logStream = split((data: any) => { //sink()
 			console.log(data)
@@ -325,13 +326,18 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
 
     public stop(){
 		this.connected = false;
-		this.sendMessageToClient({
-			type: 'event',
-			event: 'terminated'
-		} as DAP.TerminatedEvent)
+		this.sendMessageToClient(new Event("terminated"));
         this._socket?.destroy();
     }
 
+    emitOutputEvent(message: string, category: string = "console") {
+        let event = <DAP.OutputEvent> new Event("output");
+        event.body = {
+            category: category,
+            output: message
+        }
+        this.sendMessageToClient(event);
+    }
     //override this
     protected handleMessageFromServer?(message: DAP.ProtocolMessage): void
     

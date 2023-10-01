@@ -34,28 +34,40 @@ interface Root{
     type: "stackFrame" | "value"
     threadId?: number;
     stackFrameIndex?: number;
-
-    // the below are only present if type is "value"
+    // the reflectionInfo members are only present if the type is "value"
     valueType?: "form" | "alias" | "inventoryItem" | "activeEffect" | "inputEnableLayer";
 
     // looks like they just left everything in the body...
     // form
     formId?: number; // FormId
-    formName?: string; // FormEditorId name
+    /**
+     * It looks like they were SUPPOSED to allow for specifying the form name string, 
+     * but they're just interpreting this as a string containing the hex formId (e.g. "000174A2")
+     */
+    formName?: string; 
 
     // alias
     aliasName?: string; 
-    questName?: string;
     questFormId?: number;
+    /**
+     * Hex string version of questFormId
+     */
+    questName?: string;
 
     // inventoryItem
     containerFormId?: number;
+    /**
+     * Hex string version of uniqueId
+     */
     containerName?: string;
     uniqueId?: number;
 
     // activeEffect
-    targetName?: string;
     targetFormId?: number;
+    /**
+     * Hex string version of targetFormId
+     */
+    targetName?: string;
     effectId?: number;
 
     // inputEnableLayer

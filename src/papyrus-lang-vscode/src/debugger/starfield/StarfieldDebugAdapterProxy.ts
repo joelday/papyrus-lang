@@ -2,10 +2,11 @@ import { DebugProtocol as DAP } from "@vscode/debugprotocol";
 import * as fs from 'fs'
 import * as path from 'path'
 import { StarfieldDebugProtocol as SFDAP } from "./StarfieldDebugProtocol";
-import { DebugAdapterProxy, DebugAdapterProxyOptions } from "./DebugAdapterProxy";
+import { DebugAdapterProxy, DebugAdapterProxyOptions, colorize_message } from "./DebugAdapterProxy";
 import { Response, Event, Message } from "@vscode/debugadapter/lib/messages";
-import { ScopeNode } from "./StarfieldNodes";
+import { IScopeNode, ScopeNode, ScopeType, StackFrameNode, VariableNode } from "./StarfieldNodes";
 import * as url from "url";
+import { Scope } from "@vscode/debugadapter";
 
 
 export enum ErrorDestination {
@@ -28,43 +29,58 @@ export interface StarfieldDebugAdapterProxyOptions extends DebugAdapterProxyOpti
     BaseScriptFolder?: string;
 }
 
+type responseCallback = (response: SFDAP.Response, request: SFDAP.Request) => void;
+
+interface pendingRequest {
+    cb: responseCallback;
+    request: DAP.Request;
+    noLogResponse: boolean;
+}
+
 export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     private readonly DUMMY_THREAD_NAME = "DUMMY THREAD";
     private readonly DUMMY_THREAD_OBJ: DAP.Thread = {
         id: 0,
         name: this.DUMMY_THREAD_NAME
     }
+    // Game name and version from the version event that we currently support
+    private readonly STARFIELD_NAME = "Starfield";
+    private readonly STARFIELD_VERSION = 2;
+    private readonly SEND_TO_SERVER_CMD = "@toServer:";
 
-    private _pendingRequests = new Map<number, (response: DAP.Response) => void>();
+    private _pendingRequestsMap = new Map<number, pendingRequest>();
     private workspaceFolder :string = "";
     private BaseScriptFolder :string | undefined = undefined;
     private receivedVersionEvent: boolean = false;
     private receivedLaunchOrAttachRequest: boolean = false;
     private sentInitializedEvent: boolean = false;
     // object name to source map
-    protected objectNameToSourceMap: Map<string, DAP.Source> = new Map<string, DAP.Source>();
-    protected pathtoObjectNameMap: Map<string, string> = new Map<string, string>();
+    protected _objectNameToSourceMap: Map<string, DAP.Source> = new Map<string, DAP.Source>();
+    protected _pathtoObjectNameMap: Map<string, string> = new Map<string, string>();
+    // TODO: Move state holders to seperate state class
     private _threads: DAP.Thread[] = [this.DUMMY_THREAD_OBJ];
-    private _stackFrameMap: Map<number, DAP.StackFrame> = new Map<number, DAP.StackFrame>();
+    private _stackFrameMap: Map<number, StackFrameNode> = new Map<number, StackFrameNode>();
     private _stackIdToThreadIdMap: Map<number, number> = new Map<number, number>();
     private _scopeMap: Map<number, ScopeNode> = new Map<number, any>();
-    private _variableMap: Map<number, DAP.Variable> = new Map<number, DAP.Variable>();
+    private _variableMap: Map<number, VariableNode> = new Map<number, VariableNode>();
     private _variableReferencetoFrameIdMap: Map<number, number> = new Map<number, number>();
     private _variableRefCount = 0;
+    private _localScopeVarRefToSelfScopeVarRefMap: Map<number, number> = new Map<number, number>();;
+
     private currentSeq: number = 0;
-    private _debuggerPathsAreURIs = false;
-    private _clientPathsAreURIs: boolean = false;
-    private _debuggerColumnsStartAt1 = true;
-    private _clientColumnsStartAt1: boolean = true;
-    private _debuggerLinesStartAt1 = true;
-    private _clientLinesStartAt1: boolean = true;
+    private readonly debuggerPathsAreURIs = false;
+    private clientPathsAreURIs: boolean = false;
+    private readonly debuggerColumnsStartAt1 = true;
+    private clientColumnsStartAt1: boolean = true;
+    private readonly debuggerLinesStartAt1 = true;
+    private clientLinesStartAt1: boolean = true;
     constructor(options: StarfieldDebugAdapterProxyOptions) {
         const logdir = path.join(process.env.USERPROFILE || process.env.HOME || ".", "Documents", "My Games", "Starfield", "Logs");
         options.logdir = options.logdir || logdir;
         super(options);
         this.logClientToProxy = "trace"
         this.logProxyToServer = "info"
-        this.logServerToProxy = "info"
+        this.logServerToProxy = "silent" // we take care of this ourselves
         this.logProxyToClient = "info"
     }
 
@@ -73,16 +89,16 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         return this._variableRefCount;
     }
     clearExecutionState(){
+        this._threads = [this.DUMMY_THREAD_OBJ];
         this._variableRefCount = 0;
         this._stackFrameMap.clear();
         this._scopeMap.clear();
         this._variableMap.clear();
         this._variableReferencetoFrameIdMap.clear();
         this._stackIdToThreadIdMap.clear();
+        this._localScopeVarRefToSelfScopeVarRefMap.clear
     }
-    handlePauseButton(){
 
-    }
     // takes in a Source object and returns the papyrus object idnetifier (e.g. "MyMod:MyScript")
     sourceToObjectName(source: DAP.Source) {
         let name = source.name || "";
@@ -91,23 +107,23 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         let objectName: string = name.split(".")[0];
 
         // check the object name map path first
-        if (this.pathtoObjectNameMap.has(path)) {
-            objectName = this.pathtoObjectNameMap.get(path)!;
-            this.objectNameToSourceMap.set(objectName, source);
+        if (this._pathtoObjectNameMap.has(path)) {
+            objectName = this._pathtoObjectNameMap.get(path)!;
+            this._objectNameToSourceMap.set(objectName, source);
         } else if (path) {
             let newName = this.GetObjectNameFromScript(path);
             if (!newName) {
                 this.logerror("Did not find script name in file: " + path);
             } else {
                 objectName = newName;
-                this.pathtoObjectNameMap.set(path, objectName);
-                this.objectNameToSourceMap.set(objectName, source);
+                this._pathtoObjectNameMap.set(path, objectName);
+                this._objectNameToSourceMap.set(objectName, source);
             }
             // set the object name map path
         } else {
             // last ditch; if objectName is in source
-            if (this.objectNameToSourceMap.has(objectName)){
-                this.objectNameToSourceMap.set(objectName, source);
+            if (this._objectNameToSourceMap.has(objectName)){
+                this._objectNameToSourceMap.set(objectName, source);
             }            
         }
         return objectName;
@@ -118,15 +134,18 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     handleMessageFromServer(message: DAP.ProtocolMessage): void {
         if (message.type == "response") {
             const response = <DAP.Response>message;
-			const clb = this._pendingRequests.get(response.request_seq);
-            
-            // The callbacks should handle all the responses we need to translate into the expected response objects,
-            // but just in case Starfield screws up the request_seq number, we handle them below
-			if (clb) {
-				this._pendingRequests.delete(response.request_seq);
-				clb(response);
+			const pending = this._pendingRequestsMap.get(response.request_seq);
+            // The callbacks should handle all the responses we need to translate into the expected response objects
+            if (pending) {
+                if (!pending.noLogResponse){
+                    this.log(this.logServerToProxy, {message}, "---SERVER->PROXY:");
+                }
+                this._pendingRequestsMap.delete(response.request_seq);
+                pending.cb(response, pending.request);
                 return;
-			}
+            }
+            // just in case
+            this.logwarn("!!!SERVER->PROXY - Received response with no callback!!!");
             this.sendMessageToClient(response);
         } else if (message.type == "event") {
             const event = message as DAP.Event;
@@ -147,9 +166,10 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     }    
 
     protected handleStoppedEvent(message: DAP.StoppedEvent) {
-        // TODO: handle stopped events
+        // TODO: do something special here?
         this.sendMessageToClient(message);
     }
+
     protected handleThreadEvent(message: SFDAP.ThreadEvent): void {
         if (message.body.reason == "started") {
             // check for existence of dummy thread
@@ -187,8 +207,19 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         
     }
     
+    /**
+     * This is the first message sent from the Starfield DAP server when first connecting.
+     * Until we get this, we should not send an initialized event from the proxy to the client
+     */
     handleVersionEvent(message: SFDAP.VersionEvent) {
         this.receivedVersionEvent = true;
+        if (this.STARFIELD_NAME != message.body.game){
+            this.emitOutputEvent("ERROR: Starfield DAP Proxy only supports Starfield, shutting down...", "important");
+            this.stop();
+        } else if (this.STARFIELD_VERSION != message.body.version) {
+            this.emitOutputEvent(`WARNING: Starfield reports unsupported version ${message.body.version}. `
+                                +`Debugging may not work.`, "important");
+        }
         this.maybeSendFakeInitializedEvent();
     }
 
@@ -207,19 +238,6 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         this.sendMessageToClient(message);
     }
 
-
-    private static _formatPIIRegexp = /{([^}]+)}/g;
-
-	private static formatPII(format:string, excludePII: boolean, args: {[key: string]: string}): string {
-		return format.replace(StarfieldDebugAdapterProxy._formatPIIRegexp, function(match, paramName) {
-			if (excludePII && paramName.length > 0 && paramName[0] !== '_') {
-				return match;
-			}
-			return args[paramName] && args.hasOwnProperty(paramName) ?
-				args[paramName] :
-				match;
-		})
-	}
 
 
 	protected sendErrorResponse(response: DAP.Response, codeOrMessage: number | DAP.Message, format?: string, variables?: any, dest: ErrorDestination = ErrorDestination.User): void {
@@ -248,32 +266,31 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 			response.body = { };
 		}
 		response.body.error = msg;
-
-		this.sendMessageToClient(response);
+        this._onError.fire(new Error(response.message));
+        this.log("error", `***PROXY->CLIENT - Request '${response.command}' (seq: ${response.request_seq}) Failed: ${response.message}`)
+		this.sendMessageToClient(response, true);
 	}
 
-    public sendRequestToServerWithCB(request: SFDAP.Request, timeout: number, cb: (response: SFDAP.Response) => void, nolog: boolean = false) : void {
+    public sendRequestToServerWithCB(request: SFDAP.Request, timeout: number, cb: responseCallback, nolog: boolean = false) : void {
         this.sendMessageToServer(request, nolog);
-		if (cb) {
-			this._pendingRequests.set(request.seq, cb);
-            if (timeout > 0) {
-                const timer = setTimeout(() => {
-                    clearTimeout(timer);
-                    const clb = this._pendingRequests.get(request.seq);
-                    if (clb) {
-                        this._pendingRequests.delete(request.seq);
-                        clb(new Response(request, 'timeout'));
-                    }
-                }, timeout);
-            }
-		}
+        // check if cb 
+        this._pendingRequestsMap.set(request.seq, {cb, request, noLogResponse: nolog});
+        if (timeout > 0) {
+            const timer = setTimeout(() => {
+                clearTimeout(timer);
+                const pending = this._pendingRequestsMap.get(request.seq);
+                if (pending?.cb) {
+                    this._pendingRequestsMap.delete(request.seq);
+                    pending.cb(new Response(request, 'timeout'), pending.request);
+                }
+            }, timeout);
+        }
 	}
-    
 
 	public sendRunInTerminalRequest(args: DAP.RunInTerminalRequestArguments, timeout: number, cb: (response: DAP.RunInTerminalResponse) => void) {
         let request = <DAP.RunInTerminalRequest> new Message("request");
         request.arguments = args;
-		this.sendRequestToServerWithCB(request, timeout, (r: DAP.Response) => {
+		this.sendRequestToServerWithCB(request, timeout, (r, req) => {
             r.command = "runInTerminal";
         });
 	}
@@ -324,8 +341,10 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 
 			} else if (request.command === 'threads') {
 				this.handleThreadsRequest(<DAP.ThreadsRequest> request);
+
             } else if (request.command === 'value'){
                 this.handleValueRequest(<SFDAP.ValueRequest> request);
+
             } else if (request.command === 'evaluate') {
                 this.handleEvaluateRequest(<DAP.EvaluateRequest> request);
 			} else {
@@ -336,57 +355,17 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 		}
 	}
 
-    handleValueRequest(request: SFDAP.ValueRequest) {
-        // This came from the REPL console, just send it to the server
-        this.sendRequestToServerWithCB(request, 10000, (r: DAP.Response) =>{
-            this.loginfo({message:r}, `!!!SERVER->PROXY - Received value response - path: ${request.arguments.path}!!!`);
-        });
-    }
-        
-    // Using this for debugging/RE; in the debug console of the client, you can type in server requests and they will be sent to the server
-    handleEvaluateRequest(request: DAP.EvaluateRequest) {
-        try{
-            if (request.arguments.context == "repl") {
-                let message = JSON.parse(request.arguments.expression)
-                //check that it's a valid DAP.ProtocolMessage
-                // make sure we have a valid sequence number
-                message.seq = 10000 + this.currentSeq++;
-                if (message.type && message.seq) {
-                    // send it to the server
-                    this.loginfo("!!!PROXY->SERVER - Sending message from REPL console to server!!!");
-                    if (message.type == "request" && message.command) {
-
-                        // special handler for variableRequest
-                        if (message.command == "variables" && message?.arguments?.hasOwnProperty("root") && message?.arguments?.hasOwnProperty("path")) {
-                            // formatted correctly, send it to the server
-                            this.sendMessageToServer(message as DAP.ProtocolMessage);
-                        } else {
-                            this.handleClientRequest(message);
-                        }
-                    } else {
-                        this.sendMessageToServer(message as DAP.ProtocolMessage);
-                    }
-                } else {
-                    this.sendErrorResponse(new Response(request), 1104, "Invalid REPL message!", null, ErrorDestination.User);
-                }
-            } else {
-                this.sendErrorResponse(new Response(request), 1104, "Invalid Evaluate request!!", null, ErrorDestination.User);
-            }
-        } catch (e) {
-            this.sendErrorResponse(new Response(request), 1104, 'Invalid expression in REPL message!', e, ErrorDestination.Telemetry);
-        }
-    }
 
 	protected handleInitializeRequest(request: DAP.InitializeRequest) : void {
         let args = request.arguments;
         if (typeof args.linesStartAt1 === 'boolean') {
-            this._clientLinesStartAt1 = args.linesStartAt1;
+            this.clientLinesStartAt1 = args.linesStartAt1;
         }
         if (typeof args.columnsStartAt1 === 'boolean') {
-            this._clientColumnsStartAt1 = args.columnsStartAt1;
+            this.clientColumnsStartAt1 = args.columnsStartAt1;
         }
         if (typeof args.pathFormat === 'string') {
-            this._clientPathsAreURIs = args.pathFormat === 'uri';
+            this.clientPathsAreURIs = args.pathFormat === 'uri';
         }
 
 
@@ -458,7 +437,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 
 
 	protected handleDisconnectRequest(request: DAP.DisconnectRequest) : void {
-		this.sendRequestToServerWithCB(request, 5000, (r: SFDAP.Response) => {
+		this.sendRequestToServerWithCB(request, 5000, (r, req) => {
             this.stop();
         });
 	}
@@ -472,42 +451,42 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         }
         let sfRequest = request as any;
         sfRequest.arguments.source = objectName;
-		this.sendRequestToServerWithCB(request, 10000, (r: SFDAP.Response) => {
-            if (r.success == false) {
-                // if we timed out, just skip processing
-                if (r.message == "timeout") {
-                    this.sendMessageToClient(r);
-                    return;
-                }
-                if (!(r.body?.breakpoints?.length > 0)) {
-                    let response = r as DAP.SetBreakpointsResponse;
-                    // we need to pput the breakpoints back here so the client can mark them as unverified
-                    let sourceBpoints = request.arguments.breakpoints || [];
-                    response.body = {
-                        breakpoints: []
-                    }
-                    for (let sbp of sourceBpoints) {                
-                        let bpoint = {
-                            verified: false,
-                            line: this.convertDebuggerLineToClient(sbp.line), // this was converted in the request, so we need to convert it back
-                            source: request.arguments.source
-                        }
-                        response.body.breakpoints.push(bpoint);
-                    }
-                    this.sendMessageToClient(response);
-                    return;
-                }
-            }
-            this.handleSetBreakpointsResponse(r as SFDAP.SetBreakpointsResponse);
+		this.sendRequestToServerWithCB(request, 10000, (r, req) => {
+            this.handleSetBreakpointsResponse(r as SFDAP.SetBreakpointsResponse, req as SFDAP.SetBreakpointsRequest);
         });
     }
 
     // They set body.breakpoints[].source argument to a string instead of a source object, need to fix this
-    protected handleSetBreakpointsResponse(message: SFDAP.SetBreakpointsResponse): void{
+    protected handleSetBreakpointsResponse(message: SFDAP.SetBreakpointsResponse, request: SFDAP.SetBreakpointsRequest): void{
+        if (message.success == false) {
+            // if we timed out, just skip processing
+            if (message.message == "timeout") {
+                this.sendMessageToClient(message);
+                return;
+            }
+            if (!(message.body?.breakpoints?.length > 0)) {
+                let response = message as DAP.SetBreakpointsResponse;
+                // we need to pput the breakpoints back here so the client can mark them as unverified
+                let sourceBpoints = request.arguments.breakpoints || [];
+                response.body = {
+                    breakpoints: []
+                }
+                for (let sbp of sourceBpoints) {                
+                    let bpoint = {
+                        verified: false,
+                        line: this.convertDebuggerLineToClient(sbp.line), // this was converted in the request, so we need to convert it back
+                        source: request.arguments.source
+                    } as DAP.Breakpoint;
+                    response.body.breakpoints.push(bpoint);
+                }
+                this.sendMessageToClient(response);
+                return;
+            }
+        }
         if (message.body && message.body.breakpoints){
             message.body.breakpoints.forEach((breakpoint: any)=>{
                 breakpoint.line = this.convertDebuggerLineToClient(breakpoint.line);
-                let source = this.objectNameToSourceMap.get(breakpoint.source)!;
+                let source = this._objectNameToSourceMap.get(breakpoint.source)!;
                 breakpoint.source = source;
             });
         }
@@ -517,22 +496,22 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 
 	protected handleContinueRequest(request: DAP.ContinueRequest) : void {
         this.clearExecutionState();
-		this.sendRequestToServerWithCB(request, 10000, (r)=>this._defaultResponseHandler(r))
+		this.sendRequestToServerWithCB(request, 10000, (r, req)=>this._defaultResponseHandler(r))
 	}
 
 	protected handleNextRequest(request: DAP.NextRequest) : void {
         this.clearExecutionState();
-		this.sendRequestToServerWithCB(request, 10000, (r)=>this._defaultResponseHandler(r))
+		this.sendRequestToServerWithCB(request, 10000, (r, req)=>this._defaultResponseHandler(r))
 	}
 
 	protected handleStepInRequest(request: DAP.StepInRequest) : void {
         this.clearExecutionState();
-		this.sendRequestToServerWithCB(request, 10000, (r)=>this._defaultResponseHandler(r))
+		this.sendRequestToServerWithCB(request, 10000, (r, req)=>this._defaultResponseHandler(r))
 	}
 
 	protected handleStepOutRequest(request: DAP.StepOutRequest) : void {
         this.clearExecutionState();
-		this.sendRequestToServerWithCB(request, 10000, (r)=>this._defaultResponseHandler(r))
+		this.sendRequestToServerWithCB(request, 10000, (r, req)=>this._defaultResponseHandler(r))
 	}
     
     private _defaultResponseHandler(response: SFDAP.Response) {
@@ -540,26 +519,26 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     }
 
 	protected handlePauseRequest(request: DAP.PauseRequest) : void {
-		this.sendRequestToServerWithCB(request, 5000, (r: SFDAP.Response) => {
+		this.sendRequestToServerWithCB(request, 5000, (r: SFDAP.Response, req) => {
             if (r.message === "timeout"){
                 // For some reason, it will often not respond to the pause request, so we'll try again
                 this.loginfo("***PROXY->SERVER - Resending pause Request!");
-                this.sendRequestToServerWithCB(request, 5000, (newr: SFDAP.Response) => {
-                    this.handlePauseResponse(newr, request);
+                this.sendRequestToServerWithCB(request, 5000, (newr: SFDAP.Response, _newreq) => {
+                    this.handlePauseResponse(newr, request); // use the original request so that the client gets the right request_seq in the response
                 });
             } else {
-                this.handlePauseResponse(r, request);
+                this.handlePauseResponse(r, request); // ditto
             }
         });
 	}
 
-    private handlePauseResponse(r: DAP.PauseResponse, request: DAP.PauseRequest) {
-        if (r.success === false && r.message?.startsWith("VM already paused")) {
+    private handlePauseResponse(response: DAP.PauseResponse, request: DAP.PauseRequest) {
+        if (response.success === false && response.message?.startsWith("VM already paused")) {
             // Fake a successful response to get vscode to pause
-            r.success = true;
-            r.message = "";
-            this.loginfo("***PROXY->CLIENT - Pause request did not return, Sending FAKE pause response");
-            this.sendMessageToClient(r);
+            response.success = true;
+            response.message = "";
+            this.loginfo("***PROXY->CLIENT - Pause request did not return successfully, Sending FAKE pause response");
+            this.sendMessageToClient(response);
             // then, send a fake stopped event
             let event = <DAP.StoppedEvent>new Event("stopped");
             event.body = {
@@ -570,21 +549,21 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
             this.loginfo("***PROXY->CLIENT - Sending FAKE stopped event");
             this.sendMessageToClient(event) 
         } else {
-            this.sendMessageToClient(r);
+            this.sendMessageToClient(response);
         }
     }
 
     // We shouldn't get these; if we do, we screwed up somewhere.'
     // In either case, starfield doesn't respond to them
     protected handleSourceRequest(request: DAP.SourceRequest) : void{
-		this.sendErrorResponse(new Response(request), 1014, 'SOURCE REQUEST?!?!?!?!?', null, ErrorDestination.User);
+		this.sendErrorResponse(new Response(request), 1015, 'SOURCE REQUEST?!?!?!?!?', null, ErrorDestination.User);
     }
 
 	protected handleThreadsRequest(request: DAP.ThreadsRequest) : void {
         // Need to handle "threads" request that gets sent while attempting to pause
         // The server returns an error response because starfield refuses to return any threads before the VM is paused
         // So no subsequent pause request is sent
-		this.sendRequestToServerWithCB(request, 10000, (r) => {
+		this.sendRequestToServerWithCB(request, 10000, (r, req) => {
             this.handleThreadsResponse(r as DAP.ThreadsResponse);
         });
 	}
@@ -612,448 +591,217 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         }
         this.sendMessageToClient(response);
     }
-    protected getThreadIdFromStackFrameId(stackFrameId: number) : number | undefined {
-        return this._stackIdToThreadIdMap.get(stackFrameId);
-    }
-    protected addStackFrame(threadId: number, frame: DAP.StackFrame) {
-        this._stackFrameMap.set(frame.id, frame);
-        this._stackIdToThreadIdMap.set(frame.id, threadId);
-    }
 
-    protected findFrameForVariableReference(variableReference: number) : DAP.StackFrame | undefined {
-        let frameId = this._variableReferencetoFrameIdMap.get(variableReference);
-        if (frameId){
-            return this._stackFrameMap.get(frameId);
-        }
-        return undefined;
-    }
 
 	protected handleStackTraceRequest(request: DAP.StackTraceRequest) : void {
-
-		this.sendRequestToServerWithCB(request, 10000, (r) => {
-            const message = r as SFDAP.StackTraceResponse;
-            const threadId = request.arguments.threadId
-            let stackframes: DAP.StackFrame[] = []
-            if (message.body.stackFrames){
-                let index = 0;
-                let idBase = threadId * 1000;
-
-                message.body.stackFrames.forEach((frame: any)=>{
-                    if (frame.source){
-                        if (this.objectNameToSourceMap.has(frame.object)){
-                            frame.source = this.objectNameToSourceMap.get(frame.object)!;
-                        } else if (fs.existsSync(frame.source)){
-                            frame.source = {
-                                name: path.basename(frame.source),
-                                path: this.convertDebuggerPathToClient(frame.source)
-                            } as DAP.Source;
-                            this.objectNameToSourceMap.set(frame.object, frame.source);
-                        } else {
-                            let source = this.FindSourceForObjectName(frame.object);
-                            // if we can't find the source, this should be undefined so the client can't try and look it
-                            frame.source = source;
-                        }
-                    } else {
-                        let source = this.FindSourceForObjectName(frame.object);
-                        frame.source = source;
-                    }
-                    frame.moduleId = frame.object;
-                    if (!frame.line){
-                        frame.line = 1;
-                    }
-                    if (!frame.column){
-                        frame.column = 1;
-                    }
-                    frame.line = this.convertDebuggerLineToClient(frame.line);
-                    frame.column = this.convertDebuggerColumnToClient(frame.column);
-                    frame.id = idBase + index;
-                    this.addStackFrame(threadId, frame as DAP.StackFrame);
-                    index++;
-                });
-            }
-            this.sendMessageToClient(message);
-        });
+		this.sendRequestToServerWithCB(request, 10000, (r, req) => this.handleStackTraceResponse(r as SFDAP.StackTraceResponse, req as SFDAP.StackTraceRequest));
 	}
 
-    protected GetObjectNameFromScript(abspath : string){
-        let objectName = undefined;
-        try{
-            for (let line of fs.readFileSync(abspath, 'utf8').split(/\r?\n/)){
-                if (line.trim().toLowerCase().startsWith("scriptname")) {
-                    objectName = line.trim().split(" ")[1];
-                    break;
-                }
-            }
-            if (!objectName){
-                this.logerror("Did not find script name in file: " + abspath);
-            }
-        } catch (e) {
-            this.logerror("Error reading file "+ abspath, e);
+    protected handleStackTraceResponse(response: SFDAP.StackTraceResponse, request: SFDAP.StackTraceRequest){
+        const threadId = request.arguments.threadId
+        if (response.body.stackFrames){
+            let index = 0;
+            let dapStackFrames: DAP.StackFrame[] = [];
+            response.body.stackFrames.forEach((frame: any)=>{
+                let stackId = this.addStackFrame(threadId, index, frame);
+                dapStackFrames.push(this._stackFrameMap.get(stackId)!.getStandardDAPFrame());
+                index++;
+            });
+            (response.body as any).stackFrames = dapStackFrames;
         }
-        
-        return objectName;
-    }
-    protected ObjectExistsAtPath(objectName: string, abspath: string) : boolean {
-        if (fs.existsSync(abspath)){
-            let parsedName = this.GetObjectNameFromScript(abspath);
-            if (objectName.toLowerCase() == parsedName?.toLowerCase()){
-                return true;
-            }
-        }
-        return false;
-    }
-    protected FindSourceForObjectName(objectName: string) : DAP.Source | undefined {
-        if (this.objectNameToSourceMap.has(objectName))
-            return this.objectNameToSourceMap.get(objectName);
-        let relpath = objectName.replace(":", path.sep) + ".psc";
-        // Time to dig into the workspace folder and see if it's in there
-        let abspath = path.join(this.workspaceFolder, relpath);
-        if (!this.ObjectExistsAtPath(objectName, abspath)){
-            if (!this.BaseScriptFolder){
-                return undefined;
-            }
-            abspath = path.join(this.BaseScriptFolder, relpath);
-            if (!this.ObjectExistsAtPath(objectName, abspath)){
-                return undefined;
-            }
-        }
-        let source: DAP.Source = {
-            name: path.basename(relpath),
-            path: this.convertDebuggerPathToClient(abspath)
-        }
-        this.objectNameToSourceMap.set(objectName, source);
-        return source;        
+        this.sendMessageToClient(response);
     }
 
-    protected addScopeToScopeMap(scope: ScopeNode) {
-        this._scopeMap.set(scope.variablesReference, scope);
-        this._variableReferencetoFrameIdMap.set(scope.variablesReference, scope.frameId);
-    }
-
+    /**
+     * Not responded to by the server, so we need to fake it
+     * @param request 
+     */
 	protected handleScopesRequest(request: DAP.ScopesRequest) : void {
-        // TODO: Will need to handle "scope" requests, since starfield doesn't respond to them
-        // Translate the scopes into root/path in the custom variable requests and save them as a VariableReference?
-        // TODO: Handle
-        let scopes: DAP.Scope[] = [];
-        let frame = this._stackFrameMap.get(request.arguments.frameId);
-        let objectName: string = (frame?.moduleId as string) || ""
-        if (frame){
-            let localScope = {
-                name: "Local",
-                presentationHint: "locals",
-                variablesReference: this.getVariableRefCount(),
-                expensive: false
-            } as DAP.Scope;
-            scopes.push(localScope);
-            let globalScope = {
-                name: "Self" + (objectName ? (" (" + objectName + ")") : ("")),
-                variablesReference: this.getVariableRefCount(),
-                expensive: false
-            } as DAP.Scope;
-            scopes.push(globalScope);
+        const scopeNodes = this.makeScopesforStackFrame(request.arguments.frameId);
+        if (!scopeNodes || scopeNodes.length == 0) {
+            this.sendErrorResponse(new Response(request), 1403, 
+                                    "Could not find frame for frameId: {frameId}", 
+                                    {frameId: request.arguments.frameId}, ErrorDestination.User);
+            return;
         }
         let response = <DAP.ScopesResponse> new Response(request);
         response.body = {
-            scopes: scopes
-        }
-
-        for (let scope of scopes){
-            let newScope : ScopeNode = {
-                name: scope.name,
-                objectName: objectName,
-                presentationHint: scope.presentationHint,
-                variablesReference: scope.variablesReference,
-                threadId: this.getThreadIdFromStackFrameId(request.arguments.frameId) || 0,
-                frameId: request.arguments.frameId,
-                path: scope.name == "Local" ? [] : ["self"],
-                scopeType: scope.name == "Local" ? "local" : "self",
-                parentVariableReference: 0,
-                expensive: scope.expensive
-            }
-            this.addScopeToScopeMap(newScope);
+            scopes: scopeNodes.map((scope)=>{
+                return scope.getDAPScope();
+            })
         }
         this.loginfo("***PROXY->CLIENT - Sending fake Scopes response to client");
         this.sendMessageToClient(response);
 	}
 
-    protected parseOutReflectionInfo(valueStr: string){
-        /**
-         * Values for compound variables are returned like this:
-         * 
-         * [{FormClass} <{reflection_data}>]
-         * 
-         * the reflection_data is a short string that follows the following formats:
-         *  form:
-         *    %s (%08X)
-         *    <nullptr form> (%08X)
-         * //example: [Armor <Clothes_Miner_UtilitySuit (0001D1E7)>]
-         * 
-         *  topicinfo - doesn't look like you can get this via the debugger
-         *    topic info %08X on <nullptr quest>
-         *    topic info %08X on quest %s (%08X)
-         * 
-         *  alias:
-         *    alias %s on quest %s (%08X)
-         *    alias %s on <nullptr quest> (%08X)
-         *    <nullptr alias> (%hu) on %squest %s (%08X)
-         *    <nullptr alias> (%hu) on <nullptr quest> (%08X)
-         *  example: [mq101playeraliasscript <alias Player on quest MQ101 (00003448)>]
-         * 
-         *  inventoryItem:
-         *    Item %hu in <nullptr container> (%08X)
-         *    Item %hu in container %s (%08X)
-         *  example: [Weapon <Item 21 in container Thing (00000014)>]
-         * 
-         *  activeEffect:
-         *    Active effect %hu on <nullptr actor> (%08X)
-         *    Active effect %hu on %s (%08X)
-         *  example: [MagicEffect <Active effect 1 on Actor (00005251)>]
-         * 
-         *  inputEnableLayer:
-         *    Input enable layer <no name> (%08X)
-         *    Input enable layer %s (%08X)
-         *    Invalid input enable layer (%08X)
-         *  example: [InputEvent <Input enable layer 1 on Player (00000007)>]
-         *  
-         */
-
-        let valueTypes = {};
-        let value = valueStr;      //v yes that space is supposed to be there
-        let re = /\[([\w\d_]+) <(.*)? \(([A-F\d]{8})\)>\]/g;
-        let match = re.exec(valueStr);
-        if (match?.length == 4){
-            let baseForm = match?.[1];
-            let reflectionInfo = match?.[2];
-            let formId = parseInt(match?.[3], 16);
-            
-
-            if (!reflectionInfo || reflectionInfo.length == 0){
-                return {
-                    baseForm: baseForm,
-                    root: {
-                        type: "value",
-                        valueType: "form",
-                        formId: formId
-                    }
-                }
-            }
-            if (reflectionInfo.includes("alias") && reflectionInfo.includes("on quest")){
-                let parts = reflectionInfo.replace("alias ", "").split(" on quest ");
-                return {
-                    baseForm: baseForm,
-                    root: {
-                        type: "value",
-                        valueType: "alias",
-                        aliasName: parts[0],
-                        questName: parts[1],
-                        questFormId: formId
-                    }
-                }
-            } else if (reflectionInfo.startsWith("Item ") && reflectionInfo.includes(" in container ")){
-                let parts = reflectionInfo.replace("Item ", "").split(" in container ");
-                return {
-                    baseForm: baseForm,
-                    root: {
-                        type: "value",
-                        valueType: "inventoryItem",
-                        uniqueId: parseInt(parts[0]),
-                        containerName: parts[1],
-                        containerFormId: formId
-                    }
-                }
-            } else if (reflectionInfo.startsWith("Active effect ")){
-                let parts = reflectionInfo.replace("Active effect ", "").split(" on ");
-                return {
-                    baseForm: baseForm,
-                    root: {
-                        type: "value",
-                        valueType: "activeEffect",
-                        effectId: parseInt(parts[0]),
-                        targetName: parts[1],
-                        targetFormId: formId
-                    }
-                }
-            } else if (reflectionInfo.startsWith("Input enable layer ")){
-                let parts = reflectionInfo.replace("Input enable layer ", "").split(" on ");
-                return {
-                    baseForm: baseForm,
-                    root: {
-                        type: "value",
-                        valueType: "inputEnableLayer",
-                        layerId: formId,
-                    }
-                }
-            } else if (!reflectionInfo.includes(" ")){
-                return {
-                    baseForm: baseForm,
-                    root: {
-                        type: "value",
-                        valueType: "form",
-                        formId: formId,
-                        formName: reflectionInfo
-                    }
-                }
-            } else {
-                return {
-                    baseForm: baseForm,
-                    root: {
-                        type: "value",
-                        valueType: "form",
-                        formId: formId
-                    }
-                }
-            }
-        }
-        return undefined;
-    }
 
 	protected handleVariablesRequest(request: DAP.VariablesRequest) : void {
-        let varReference = request.arguments.variablesReference;
-        let scope = this.getScopeFromVariableReference(varReference);
-        let frameId = scope?.frameId || -1
-        // let frame : any = this.findFrameForVariableReference(varReference);
-        let threadId = scope?.threadId || -1
-        // let objectName = frame?.object!;
-        
-        let vrpath: string[] = scope?.path || []
-        // TODO: testing
-        let stackFrameRoot: SFDAP.Root;
-        let realStackIndex = this.getRealStackIndex(frameId, threadId)
-        stackFrameRoot = {
-            type: "stackFrame",
-            threadId: threadId,
-            stackFrameIndex: realStackIndex,
+        const varReference = request.arguments.variablesReference;
+        const scope = this.getScopeFromVariableReference(varReference);
+        if (!scope){
+            this.sendErrorResponse(new Response(request), 2001, `Non-existent scope for variable reference: ${varReference}`, undefined, ErrorDestination.Telemetry)
+            return;
         }
-        // Testing `value` requests
-        // Didn't get much out of this, unfortunately..
-        if (scope?.reflectionInfo){
-            let TypeInfoRoot: SFDAP.Root = scope.reflectionInfo as SFDAP.Root;
-
-            let newPath = vrpath;
-            if (newPath.length > 0 && newPath[0] == "self"){
-                let frame = this._stackFrameMap.get(frameId);
-                if (frame && frame.moduleId){
-                    // newPath = [frame.moduleId.toString()].concat(newPath.slice(1));
-                    newPath = [frame.moduleId.toString()];
-                }
-                // if (scope.propName && newPath.at(-1) == scope.name){
-                //     newPath[newPath.length - 1] = scope.propName;
-                // }
+        if (scope.scopeType != "reflectionItem"){
+            let stackFrame = this._stackFrameMap.get(scope.frameId);
+            if (!stackFrame || stackFrame === undefined){
+                this.sendErrorResponse(new Response(request), 2004, `SOMEHOW?!?! Non-existent stack frame for variable reference: ${varReference}`, undefined, ErrorDestination.Telemetry)
+                return;
             }
-            newPath = scope.baseForm ? [scope.baseForm] : [];
-
-            let innervarRequest = <SFDAP.VariablesRequest> new Request("variables", {
-                root: TypeInfoRoot,
-                path: newPath // TODO: This path is incorrect; maybe it's the script name? Scriptname + property name??
-            });
-            this.sendRequestToServerWithCB(innervarRequest, 10000, (r)=>{
-                // TODO: just for testing to see what we get back
-                this.loginfo(`^^^^^^^^^^^^^^^^INNER VARIABLE RESPONSE FOR ${scope?.name} - path= ${innervarRequest.arguments.path.join(":")}:`);
-            });
-            innervarRequest.seq = 0;
-            let valueRequest = <SFDAP.VariablesRequest> new Request("value", {
-                root: TypeInfoRoot,
-                path: newPath // TODO: This path is incorrect; maybe it's the script name? Scriptname + property name??
-            });
-            valueRequest.seq = 1;
-            this.sendRequestToServerWithCB(valueRequest, 10000, (r)=>{
-                // TODO: 
-                this.loginfo(`^^^^^^^^^^^^^^^^VALUE RESPONSE FOR ${scope?.name} - path= ${valueRequest.arguments.path.join(":")}:`);
-            });
-
-        }
-
-        let sfVarsRequest = <SFDAP.VariablesRequest> new Request("variables", {
-            root: stackFrameRoot,
-            path: vrpath
-        });
-        sfVarsRequest.seq = request.seq;       
-
-		this.sendRequestToServerWithCB(sfVarsRequest, 10000, (r)=>{
-            let response = r as SFDAP.VariablesResponse;
-            let newResponse = r as DAP.VariablesResponse;
-            let newVariables = [];
-            for (let oldVar of response.body?.variables){
-                let newVar = {
-                    name: oldVar.name,
-                    value: oldVar.value,
-                    type: oldVar.type,
-                    variablesReference: oldVar.compound ? this.getVariableRefCount() : 0 // TODO: verify this
-                } as DAP.Variable;
-                if (oldVar.name.startsWith("::") && oldVar.name.endsWith("_var")){
-                    // strip
-                    newVar.name = oldVar.name.substring(2, oldVar.name.length - 4);
-                    newVar.presentationHint = {
-                        kind: "property"
-                    }
-                }
-                
-                if (oldVar.compound){
-                    let info = this.parseOutReflectionInfo(newVar.value);
-                    // push a new scope
-                    let newScope: ScopeNode | undefined = this.getScopeFromVariableReference(newVar.variablesReference);
-                    if (!newScope){
-                        let _scopeType: "local" | "self" | "parent" | "objectMember" = "objectMember";
-                        if (newVar.name.toLowerCase() == "parent"){
-                            _scopeType = "parent";
-                        } else if (scope?.scopeType == "self"){
-                            _scopeType = "objectMember";
-                        } else {
-                            _scopeType = "local";
-                        }
-                        newScope = {
-                            name: oldVar.name, // Note we need the old variable name here
-                            variablesReference: newVar.variablesReference,
-                            threadId: threadId,
-                            frameId: frameId,
-                            path: vrpath.concat([oldVar.name]),
-                            scopeType: _scopeType,
-                            parentVariableReference: varReference,
-                            expensive: false
-                        } as ScopeNode
-                        if (newVar.presentationHint && newVar.presentationHint.kind == "property") {
-                            newScope.propName = newVar.name;
-                        }
-                    }
-                    if (newScope.scopeType == 'self' && scope?.scopeType == 'self'){
-                        newScope.objectName = scope?.objectName;
-                    }
-                    if (info){
-                        if (info.root && !newScope.reflectionInfo) {
-                            newScope.reflectionInfo = info.root as SFDAP.Root;
-                        }
-                        if (info.baseForm && !newScope.baseForm) {
-                            newScope.baseForm = info.baseForm;
-                        }
-                    }
-                    this._scopeMap.set(newVar.variablesReference, newScope);
-                    this._variableMap.set(newVar.variablesReference, newVar);
-                }
-                newVariables.push(newVar);
+            // TODO: TESTING, REMOVE
+            if (scope?.scopeType != "localEnclosure"){
+                this.testValuesReqs(scope, scope.path, scope.frameId);
+            }    
+            let stackFrameRoot = {
+                type: "stackFrame",
+                threadId: stackFrame.threadId,
+                stackFrameIndex: stackFrame.realStackIndex
             }
-            newResponse.body.variables = newVariables;
-            this.sendMessageToClient(newResponse);
-        })
-	}
-    private getRealStackIndex(stackId: number, threadId: number) {
-        return stackId - (threadId * 1000);
-    }
-
-    getStackIdFromVariableReference(varReference: number) {
-        return this._variableReferencetoFrameIdMap.get(varReference);
-    }
-    getScopeFromVariableReference(varReference: number) {
-        return this._scopeMap.get(varReference);
-    }
+            let sfVarsRequest = <SFDAP.VariablesRequest> new Request("variables", {
+                root: stackFrameRoot,
+                path: scope.path
+            });
+            sfVarsRequest.seq = request.seq;       
     
-    // // TODO: this
-    // handleVariablesResponse(message: SFDAP.VariablesResponse) {
-    //     this.sendMessageToClient(message);
-    // }
+            this.sendRequestToServerWithCB(sfVarsRequest, 10000, (r, req)=>this.handleVariablesResponse(r as SFDAP.VariablesResponse, req as SFDAP.VariablesRequest, varReference));
+            return;
+        }
+        // This is a reflection item...
+        // TODO: handle this
+        this.sendErrorResponse(new Response(request), 2002, `Reflection item variables not yet supported!`, undefined, ErrorDestination.Telemetry);
+	}
+    
+    private testValuesReqs(scope: ScopeNode, vrpath: string[], frameId: number) {
+        let variable = this._variableMap.get(scope.variablesReference)
+        if (!variable){
+            return;
+        }
+        let TypeInfoRoot: SFDAP.Root = variable.reflectionInfo as SFDAP.Root;
+
+        let newPath = vrpath;
+        if (newPath.length > 0 && newPath[0] == "self") {
+            let frame = this._stackFrameMap.get(frameId);
+            if (frame && frame.moduleId) {
+                // newPath = [frame.moduleId.toString()].concat(newPath.slice(1));
+                newPath = [frame.moduleId.toString()];
+            }
+        }
+        newPath = variable.baseForm ? [variable.baseForm] : [];
+
+        let innervarRequest = <SFDAP.VariablesRequest>new Request("variables", {
+            root: TypeInfoRoot,
+            path: newPath // TODO: This path is incorrect; maybe it's the script name? Scriptname + property name??
+        });
+        this.sendRequestToServerWithCB(innervarRequest, 10000, (r) => {
+            // TODO: just for testing to see what we get back
+            this.loginfo({message:r},
+                `vvvvvvvvvvvvvvvvv INNER VARIABLE RESPONSE FOR ${scope?.name} - path= ${innervarRequest.arguments.path.join(":")}:`);
+        }, false);
+        innervarRequest.seq = 0;
+        let valueRequest = <SFDAP.VariablesRequest>new Request("value", {
+            root: TypeInfoRoot,
+            path: newPath // TODO: This path is incorrect; maybe it's the script name? Scriptname + property name??
+        });
+        valueRequest.seq = 1;
+        this.sendRequestToServerWithCB(valueRequest, 10000, (r) => {
+            // TODO: just for testing to see what we get back
+            this.loginfo({message:r}, `vvvvvvvvvvvvvvvvv VALUE RESPONSE FOR ${scope?.name} - path= ${valueRequest.arguments.path.join(":")}:`);
+        }, false);
+    }
+
+    
+    handleVariablesResponse(response: SFDAP.VariablesResponse, request: SFDAP.VariablesRequest, varReference: number) {
+        let parentScope = this.getScopeFromVariableReference(varReference);
+        if (!parentScope){
+            this.sendErrorResponse(new Response(request), 2003, `SOMEHOW?!?! Non-existent scope for variable reference: ${varReference}`, undefined, ErrorDestination.Telemetry)
+            return;
+        }    
+        let stackFrame = this._stackFrameMap.get(parentScope.frameId);
+        if (!stackFrame || stackFrame === undefined){
+            this.sendErrorResponse(new Response(request), 2004, `SOMEHOW?!?! Non-existent stack frame for variable reference: ${varReference}`, undefined, ErrorDestination.Telemetry)
+            return;
+        }
+
+        let newResponse = response as any;
+        newResponse.body.variables = this.addVariablesToState(response.body.variables, stackFrame, parentScope).map((varNode)=>{return varNode.getDAPVariable()});
+        this.sendMessageToClient(newResponse);
+    }
+
+
+    handleValueRequest(request: SFDAP.ValueRequest) {
+        // This came from the REPL console, just send it to the server
+        this.sendRequestToServerWithCB(request, 10000, (r, req) =>{
+            if (r.success != false) { // failed responses will show in the REPL console by themselves
+                this.emitOutputEvent(`Response to REPL variables request (path: ${req.arguments.path.join(".")}):\n${colorize_message(r.body)}`, "console");
+            } else {
+              this.log("warn", {r}, "***PROXY->CLIENT FAILED RESPONSE:")
+            }
+            this.sendMessageToClient(r, true);
+        });
+    }
 
     // TODO: this
-    handleValueResponse(message: SFDAP.ValueResponse) {
+    handleValueResponse(message: SFDAP.ValueResponse, request: SFDAP.ValueRequest) {
         this.sendMessageToClient(message);
+    }
+
+    handleEvaluateRequest(request: DAP.EvaluateRequest) {
+        try {
+            let expr = request.arguments.expression.trim();
+            if (request.arguments.context == "repl") {
+                if (expr.startsWith(this.SEND_TO_SERVER_CMD)) {
+                    this.handleREPLSendToServer(request);
+                    return;
+                }
+            }
+            // Straight-up expression, make a value request
+            // TODO: Not implemented yet
+            this.sendErrorResponse(new Response(request), 1109, 'Evaluation of values is not implemented', null, ErrorDestination.Telemetry);
+        } catch (e) {
+            this.sendErrorResponse(new Response(request), 1109, 'Invalid expression in REPL message!', null, ErrorDestination.Telemetry);
+        }
+    }
+
+    // Using this for debugging/RE; in the debug console of the client, you can type in server requests and they will be sent to the server
+    private handleREPLSendToServer(evalRequest: DAP.EvaluateRequest) {
+        try {
+            let expr = evalRequest.arguments.expression.trim();
+            let messageToSend: DAP.ProtocolMessage = JSON.parse(expr.replace(this.SEND_TO_SERVER_CMD, "").trim());
+            //check that it's a valid DAP.ProtocolMessage
+            // make sure we have a valid sequence number
+            messageToSend.seq = 10000 + this.currentSeq;
+            if (messageToSend.type) {
+                // send it to the server
+                this.loginfo("!!!PROXY->SERVER - Sending message from REPL console to server!!!");
+                if (messageToSend.type == "request") {
+                    let sreq = messageToSend as DAP.Request;
+                    if (!sreq.command) {
+                        this.sendErrorResponse(new Response(evalRequest), 1105, "Invalid server request!", null, ErrorDestination.User);
+                    }
+                    // special handler for variableRequest
+                    if (sreq.command == "variables" && sreq?.arguments?.hasOwnProperty("root") && sreq?.arguments?.hasOwnProperty("path")) {
+                        // formatted correctly, send it to the server
+                        this.sendRequestToServerWithCB(sreq as SFDAP.VariablesRequest, 10000, (r, req) => {
+                            // this was sent from a REPL
+                            if (r.success != false) { // failed responses will show in the REPL console by themselves
+                                this.emitOutputEvent(`Response to REPL variables request (path: ${req.arguments.path.join(".")}):\n${colorize_message(r.body.variables)}`, "console");
+                            }
+                            // TODO: do something else other than sending the response straight back
+                            this.sendMessageToClient(r);
+                            return;
+                        });
+                    } else {
+                        this.handleClientRequest(sreq);
+                    }
+                } else {
+                    this.sendMessageToServer(messageToSend as DAP.ProtocolMessage);
+                }
+            } else {
+                this.sendErrorResponse(new Response(evalRequest), 1106, "Invalid server message!", null, ErrorDestination.User);
+            }
+        } catch (e) {
+            this.sendErrorResponse(new Response(evalRequest), 1107, 'Invalid JSON in REPL Send to Server command!', e, ErrorDestination.Telemetry);
+        }
     }
 
 	/**
@@ -1064,34 +812,47 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 		this.sendErrorResponse(new Response(request), 1014, 'unrecognized request', null, ErrorDestination.User);
 	}
 
+    // formatting functions
+    private static _formatPIIRegexp = /{([^}]+)}/g;
+	private static formatPII(format:string, excludePII: boolean, args: {[key: string]: string}): string {
+		return format.replace(StarfieldDebugAdapterProxy._formatPIIRegexp, function(match, paramName) {
+			if (excludePII && paramName.length > 0 && paramName[0] !== '_') {
+				return match;
+			}
+			return args[paramName] && args.hasOwnProperty(paramName) ?
+				args[paramName] :
+				match;
+		})
+	}
+
     convertClientLineToDebugger(line: number) {
-        if (this._debuggerLinesStartAt1) {
-            return this._clientLinesStartAt1 ? line : line + 1;
+        if (this.debuggerLinesStartAt1) {
+            return this.clientLinesStartAt1 ? line : line + 1;
         }
-        return this._clientLinesStartAt1 ? line - 1 : line;
+        return this.clientLinesStartAt1 ? line - 1 : line;
     }
     convertDebuggerLineToClient(line: number) {
-        if (this._debuggerLinesStartAt1) {
-            return this._clientLinesStartAt1 ? line : line - 1;
+        if (this.debuggerLinesStartAt1) {
+            return this.clientLinesStartAt1 ? line : line - 1;
         }
-        return this._clientLinesStartAt1 ? line + 1 : line;
+        return this.clientLinesStartAt1 ? line + 1 : line;
     }
     convertClientColumnToDebugger(column: number) {
-        if (this._debuggerColumnsStartAt1) {
-            return this._clientColumnsStartAt1 ? column : column + 1;
+        if (this.debuggerColumnsStartAt1) {
+            return this.clientColumnsStartAt1 ? column : column + 1;
         }
-        return this._clientColumnsStartAt1 ? column - 1 : column;
+        return this.clientColumnsStartAt1 ? column - 1 : column;
     }
     convertDebuggerColumnToClient(column: number) {
-        if (this._debuggerColumnsStartAt1) {
-            return this._clientColumnsStartAt1 ? column : column - 1;
+        if (this.debuggerColumnsStartAt1) {
+            return this.clientColumnsStartAt1 ? column : column - 1;
         }
-        return this._clientColumnsStartAt1 ? column + 1 : column;
+        return this.clientColumnsStartAt1 ? column + 1 : column;
     }
 
     convertClientPathToDebugger(clientPath: string) {
-        if (this._clientPathsAreURIs !== this._debuggerPathsAreURIs) {
-            if (this._clientPathsAreURIs) {
+        if (this.clientPathsAreURIs !== this.debuggerPathsAreURIs) {
+            if (this.clientPathsAreURIs) {
                 return this.uri2path(clientPath);
             }
             else {
@@ -1102,8 +863,8 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     }
 
     convertDebuggerPathToClient(debuggerPath:string) {
-        if (this._debuggerPathsAreURIs !== this._clientPathsAreURIs) {
-            if (this._debuggerPathsAreURIs) {
+        if (this.debuggerPathsAreURIs !== this.clientPathsAreURIs) {
+            if (this.debuggerPathsAreURIs) {
                 return this.uri2path(debuggerPath);
             }
             else {
@@ -1136,4 +897,160 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         }
         return s;
     }
+
+    // TODO: move these of these to a seperate State holder
+    // STATE FUNCTIONS
+    private getSource(object: string, filePath?: string) {
+        if (filePath) {
+            if (this._objectNameToSourceMap.has(object)) {
+                return this._objectNameToSourceMap.get(object)!;
+            } else if (fs.existsSync(filePath)) {
+                let source = {
+                    name: path.basename(filePath),
+                    path: this.convertDebuggerPathToClient(filePath)
+                } as DAP.Source;
+                this._objectNameToSourceMap.set(object, source);
+                return source;
+            } else {
+                // if we can't find the source, this should be undefined so the client can't try and look it
+                return this.FindSourceForObjectName(object);
+            }
+        } else {
+            return this.FindSourceForObjectName(object);
+        }
+    }
+
+    protected GetObjectNameFromScript(abspath : string){
+        let objectName = undefined;
+        try{
+            for (let line of fs.readFileSync(abspath, 'utf8').split(/\r?\n/)){
+                if (line.trim().toLowerCase().startsWith("scriptname")) {
+                    objectName = line.trim().split(" ")[1];
+                    break;
+                }
+            }
+            if (!objectName){
+                this.logerror("Did not find script name in file: " + abspath);
+            }
+        } catch (e) {
+            this.logerror("Error reading file "+ abspath, e);
+        }
+        
+        return objectName;
+    }
+    protected ObjectExistsAtPath(objectName: string, abspath: string) : boolean {
+        if (fs.existsSync(abspath)){
+            let parsedName = this.GetObjectNameFromScript(abspath);
+            if (objectName.toLowerCase() == parsedName?.toLowerCase()){
+                return true;
+            }
+        }
+        return false;
+    }
+    protected FindSourceForObjectName(objectName: string) : DAP.Source | undefined {
+        if (this._objectNameToSourceMap.has(objectName))
+            return this._objectNameToSourceMap.get(objectName);
+        let relpath = objectName.replace(":", path.sep) + ".psc";
+        // Time to dig into the workspace folder and see if it's in there
+        let abspath = path.join(this.workspaceFolder, relpath);
+        if (!this.ObjectExistsAtPath(objectName, abspath)){
+            if (!this.BaseScriptFolder){
+                return undefined;
+            }
+            abspath = path.join(this.BaseScriptFolder, relpath);
+            if (!this.ObjectExistsAtPath(objectName, abspath)){
+                return undefined;
+            }
+        }
+        let source: DAP.Source = {
+            name: path.basename(relpath),
+            path: this.convertDebuggerPathToClient(abspath)
+        }
+        this._objectNameToSourceMap.set(objectName, source);
+        return source;        
+    }
+    protected getThreadIdFromStackFrameId(stackFrameId: number) : number | undefined {
+        return this._stackIdToThreadIdMap.get(stackFrameId);
+    }
+    protected addStackFrame( threadId: number, stackIndex: number, frame: SFDAP.StackFrame): number {
+        let Source = this.getSource(frame.object, frame.source);
+        let StackNode = new StackFrameNode(frame, threadId, stackIndex, Source);
+        this._stackFrameMap.set(StackNode.id, StackNode);
+        this._stackIdToThreadIdMap.set(StackNode.id, threadId);
+        return StackNode.id;
+    }
+
+    protected findFrameForVariableReference(variableReference: number) : DAP.StackFrame | undefined {
+        let frameId = this._variableReferencetoFrameIdMap.get(variableReference);
+        if (frameId){
+            return this._stackFrameMap.get(frameId);
+        }
+        return undefined;
+    }
+    protected addScopeToScopeMap(scope: ScopeNode) {
+        this._scopeMap.set(scope.variablesReference, scope);
+        this._variableReferencetoFrameIdMap.set(scope.variablesReference, scope.frameId);
+    }
+
+    protected findScopesForFrame(frameId: number) : ScopeNode[] {
+        return Array.from(this._scopeMap.values()).filter((scope)=>{
+            return scope.frameId == frameId;
+        });
+    }
+    protected makeScopesforStackFrame(frameId: number) : ScopeNode[] | undefined {
+        let frame = this._stackFrameMap.get(frameId);
+        if (!frame){
+            return undefined;
+        }
+        let localScope = ScopeNode.ScopeFromStackFrame(frame, this.getVariableRefCount(), true);
+        let selfScope = ScopeNode.ScopeFromStackFrame(frame, this.getVariableRefCount(), false, localScope.variablesReference);
+        let scopes = [localScope, selfScope]
+        this.addScopeToScopeMap(localScope)
+        this.addScopeToScopeMap(selfScope)
+        this._localScopeVarRefToSelfScopeVarRefMap.set(localScope.variablesReference, selfScope.variablesReference);
+        return scopes;
+    }
+    private getRealStackIndex(stackId: number, threadId: number) {
+        return stackId - (threadId * 1000);
+    }
+
+    getStackIdFromVariableReference(varReference: number) {
+        return this._variableReferencetoFrameIdMap.get(varReference);
+    }
+    getScopeFromVariableReference(varReference: number) {
+        return this._scopeMap.get(varReference);
+    }
+    getSelfScopeRef(localScopeVarRef: number) {
+        return this._localScopeVarRefToSelfScopeVarRefMap.get(localScopeVarRef);
+    }
+
+    addVariablesToState(variables: SFDAP.Variable[], stackFrame: StackFrameNode, parentScope: ScopeNode): VariableNode[] {
+        let newVariables = [];
+        for (let oldVar of variables){
+            let varNode = new VariableNode(oldVar, this.getVariableRefCount(), false, parentScope);
+            if (oldVar.compound){
+                // careful about "self"
+                if (oldVar.name.toLowerCase() == "self" && parentScope.scopeType === "localEnclosure" && parentScope.path) {
+                    let selfVarRef = this.getSelfScopeRef(parentScope.variablesReference);
+                    if (selfVarRef){
+                        if (this._scopeMap.has(selfVarRef)){
+                            if (!this._variableMap.has(selfVarRef)){
+                                this._variableMap.set(selfVarRef, varNode);
+                            }
+                            // no need to make a new scope, just use the old one; we won't put this in the locals variables returned to the client
+                            continue;
+                        } else {
+                            this.logwarn("Could not find self scope for variable reference: " + selfVarRef);
+                        }
+                    }
+                }
+                let ScopeFromVariable: ScopeNode = ScopeNode.ScopeFromVariable(varNode, stackFrame, parentScope);
+                this._scopeMap.set(varNode.variablesReference, ScopeFromVariable);
+                this._variableMap.set(varNode.variablesReference, varNode);
+            }
+            newVariables.push(varNode);
+        }
+        return newVariables
+    }
+    // END STATE FUNCTIONS
 }
