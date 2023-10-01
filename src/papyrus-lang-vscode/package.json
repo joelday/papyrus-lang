@@ -586,6 +586,7 @@
         "eslint": "^8.50.0",
         "eslint-config-prettier": "^9.0.0",
         "eslint-plugin-prettier": "^5.0.0",
+        "eslint-plugin-unused-imports": "^3.0.0",
         "fork-ts-checker-webpack-plugin": "^7.2.14",
         "prettier": "^3.0.3",
         "rimraf": "^3.0.2",

@@ -9,10 +9,15 @@ module.exports = {
     overrides: [
         {
             files: ['*.ts'],
-            plugins: ['@typescript-eslint'],
+            plugins: ['@typescript-eslint', "unused-imports"],
             extends: ['plugin:@typescript-eslint/recommended'],
             rules: {
-                '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+                '@typescript-eslint/no-unused-vars': "off",
+                "unused-imports/no-unused-imports": "error",
+                "unused-imports/no-unused-vars": [
+                    "error",
+                    { "vars": "all", "varsIgnorePattern": "^_", "args": "after-used", "argsIgnorePattern": "^_" }
+                ]
             },
         },
     ],
