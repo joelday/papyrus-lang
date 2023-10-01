@@ -343,6 +343,9 @@ export async function _checkAddressLibsInstalled(
     return AddressLibInstalledState.installed;
 }
 
+// TODO: For some godforsaken reason, the address library names on Nexus mods for both SE and AE are the same.
+// (i.e. "Address Library for SKSE Plugins")
+// Need to handle this
 export async function _installAddressLibs(
     game: PapyrusGame,
     ParentInstallDir: string,
@@ -370,7 +373,7 @@ export async function _installAddressLibs(
             throw new Error('Asset list is corrupt');
         }
         const zipPath = path.join(downloadDir, asset.zipFile);
-        fs.rmSync(addressLibInstallPath, { recursive: true, force: true });
+        // fs.rmSync(addressLibInstallPath, { recursive: true, force: true });
         await mkdirIfNeeded(addressLibInstallPath);
         await extractZip(zipPath, {
             dir: addressLibInstallPath,
