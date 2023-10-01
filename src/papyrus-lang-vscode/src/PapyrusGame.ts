@@ -27,7 +27,14 @@ const scriptExtenderNames = new Map([
 export function getScriptExtenderName(game: PapyrusGame) {
     return scriptExtenderNames.get(game);
 }
+const scriptExtenderExecutableNames = new Map([
+    [PapyrusGame.fallout4, 'f4se_loader.exe'],
+    [PapyrusGame.skyrimSpecialEdition, 'skse64_loader.exe'],
+]);
 
+export function getScriptExtenderExecutableName(game: PapyrusGame) {
+    return scriptExtenderExecutableNames.get(game);
+}
 const scriptExtenderUrls = new Map([
     [PapyrusGame.fallout4, 'https://f4se.silverlock.org/'],
     [PapyrusGame.skyrimSpecialEdition, 'https://skse.silverlock.org/'],
@@ -79,4 +86,37 @@ const executableNames = new Map([
 
 export function getExecutableNameForGame(game: PapyrusGame) {
     return executableNames.get(game)!;
+}
+
+export function getGameIniName(game: PapyrusGame): string {
+    return game == PapyrusGame.fallout4 ? 'fallout4.ini' :'skyrim.ini';
+}
+
+export enum GameVariant {
+    Steam = "Steam",
+    GOG = "GOG",
+    Epic = "Epic Games"
+}
+
+/**
+ * returns the name of the Game Save folder for the given variant
+ * @param variant 
+ * @returns 
+ */
+export function GetUserGameFolderName(game: PapyrusGame, variant: GameVariant){
+    switch (game) {
+        case PapyrusGame.fallout4:
+            return "Fallout4";
+        case PapyrusGame.skyrim:
+            return "Skyrim";
+        case PapyrusGame.skyrimSpecialEdition:
+            switch (variant) {
+                case GameVariant.Steam:
+                return "Skyrim Special Edition";
+                case GameVariant.GOG:
+                return "Skyrim Special Edition GOG";
+                case GameVariant.Epic:
+                return "Skyrim Special Edition EPIC";
+            }
+    }
 }
