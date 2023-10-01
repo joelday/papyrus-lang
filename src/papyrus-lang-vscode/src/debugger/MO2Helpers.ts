@@ -152,7 +152,9 @@ export async function getGameINIFromMO2Profile(
     // Game ini paths for MO2 are different depending on whether the profile has local settings or not
     // if [General] LocalSettings=false, then the game ini is in the global game save folder
     // if [General] LocalSettings=true, then the game ini is in the profile folder
-    const settingsIniData = await getMO2ProfileSettingsData(profileFolder);
+
+    const settingsFile = path.join(profileFolder, 'settings.ini')
+    const settingsIniData = await getMO2ProfileSettingsData(settingsFile);
     if (!settingsIniData) {
         throw new Error(`Could not get settings ini data`);
     }
