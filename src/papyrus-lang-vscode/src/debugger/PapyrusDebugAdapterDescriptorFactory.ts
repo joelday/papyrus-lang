@@ -8,6 +8,9 @@ import {
     commands,
     Uri,
     env,
+    CancellationTokenSource,
+    MessageOptions,
+    MessageItem
 } from 'vscode';
 import {
     PapyrusGame,
@@ -26,6 +29,10 @@ import { IDebugSupportInstallService, DebugSupportInstallState } from './DebugSu
 import { ILanguageClientManager } from '../server/LanguageClientManager';
 import { showGameDisabledMessage, showGameMissingMessage } from '../features/commands/InstallDebugSupportCommand';
 import { inject, injectable } from 'inversify';
+import { ChildProcess, spawn } from 'child_process';
+import { DebugLaunchState, IDebugLauncherService } from './DebugLauncherService';
+import { CancellationToken } from 'vscode-languageclient';
+import { openSync, readSync, readFileSync } from 'fs';
 
 const noopExecutable = new DebugAdapterExecutable('node', ['-e', '""']);
 
@@ -43,6 +50,8 @@ function getDefaultPortForGame(game: PapyrusGame) {
     return game === PapyrusGame.fallout4 ? 2077 : 43201;
 }
 
+
+
 @injectable()
 export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
     private readonly _languageClientManager: ILanguageClientManager;
@@ -50,6 +59,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
     private readonly _configProvider: IExtensionConfigProvider;
     private readonly _pathResolver: IPathResolver;
     private readonly _debugSupportInstaller: IDebugSupportInstallService;
+    private readonly _debugLauncher: IDebugLauncherService;
     private readonly _registration: Disposable;
 
     constructor(
@@ -57,18 +67,19 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
         @inject(ICreationKitInfoProvider) creationKitInfoProvider: ICreationKitInfoProvider,
         @inject(IExtensionConfigProvider) configProvider: IExtensionConfigProvider,
         @inject(IPathResolver) pathResolver: IPathResolver,
-        @inject(IDebugSupportInstallService) debugSupportInstaller: IDebugSupportInstallService
+        @inject(IDebugSupportInstallService) debugSupportInstaller: IDebugSupportInstallService,
+        @inject(IDebugLauncherService) debugLauncher: IDebugLauncherService
     ) {
         this._languageClientManager = languageClientManager;
         this._creationKitInfoProvider = creationKitInfoProvider;
         this._configProvider = configProvider;
         this._pathResolver = pathResolver;
         this._debugSupportInstaller = debugSupportInstaller;
-
+        this._debugLauncher = debugLauncher;
         this._registration = debug.registerDebugAdapterDescriptorFactory('papyrus', this);
     }
 
-    private async ensureReadyFlow(game: PapyrusGame) {
+    private async ensureGameInstalled(game: PapyrusGame) {
         const installState = await this._debugSupportInstaller.getInstallState(game);
 
         switch (installState) {
@@ -133,7 +144,10 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
                 showGameMissingMessage(game);
                 return false;
         }
+        return true;
+    }
 
+    async ensureGameRunning(game: PapyrusGame) {
         if (!(await getGameIsRunning(game))) {
             const selectedGameRunningOption = await window.showWarningMessage(
                 `Make sure that ${getDisplayNameForGame(game)} is running and is either in-game or at the main menu.`,
@@ -158,13 +172,58 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
         if (game !== PapyrusGame.fallout4 && game !== PapyrusGame.skyrimSpecialEdition) {
             throw new Error(`'${game}' is not supported by the Papyrus debugger.`);
         }
-
-        if (!(await this.ensureReadyFlow(game))) {
+        if (!await this.ensureGameInstalled(game)){
             session.configuration.noop = true;
-
             return noopExecutable;
         }
+        let launched = DebugLaunchState.success; 
+        if (session.configuration.request === 'launch'){
+            if (await getGameIsRunning(game)){
+                throw new Error(`'${getDisplayNameForGame(game)}' is already running. Please close it before launching the debugger.`);
+            }
+            // run the launcher with the args from the configuration
+            // if the launcher is MO2
+            let launcherPath: string, launcherArgs: string[]
+            if(session.configuration.launchType === 'mo2') {
+                launcherPath = session.configuration.mo2Config?.MO2EXEPath || "";
+                const shortcut = session.configuration.mo2Config?.shortcut;
+                const args = session.configuration.mo2Config?.args || [];
+                launcherArgs = shortcut ? [shortcut] : [];
+                if (args) {
+                    launcherArgs = launcherArgs.concat(args);
+                }
+            } else if(session.configuration.launchType === 'XSE') {
+                launcherPath = session.configuration.XSELoaderPath || "";
+                launcherArgs = session.configuration.args || [];
+            } else {
+                // throw an error indicated the launch configuration is invalid
+                throw new Error(`'Invalid launch configuration.`);
+            }
 
+            const cancellationSource = new CancellationTokenSource();
+            const cancellationToken = cancellationSource.token;
+            
+            let wait_message = window.setStatusBarMessage(`Waiting for ${getDisplayNameForGame(game)} to start...`, 30000);            
+            launched = await this._debugLauncher.runLauncher( launcherPath, launcherArgs, game, cancellationToken)
+            wait_message.dispose();
+        }
+
+        if (launched != DebugLaunchState.success){
+            if (launched === DebugLaunchState.cancelled){
+                session.configuration.noop = true;
+                return noopExecutable;    
+            }
+            if (launched === DebugLaunchState.multipleGamesRunning){
+                const errMessage = `Multiple ${getDisplayNameForGame(game)} instances are running, shut them down and try again.`;
+                window.showErrorMessage(errMessage);
+            }
+            // throw an error indicating the launch failed
+            throw new Error(`'${game}' failed to launch.`);
+        // attach
+        } else if (!await this.ensureGameRunning(game)) {
+            session.configuration.noop = true;
+            return noopExecutable;
+        }
         const config = (await this._configProvider.config.pipe(take(1)).toPromise())[game];
         const creationKitInfo = await this._creationKitInfoProvider.infos.get(game)!.pipe(take(1)).toPromise();
 

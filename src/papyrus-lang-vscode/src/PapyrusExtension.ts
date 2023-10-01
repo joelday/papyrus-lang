@@ -26,6 +26,7 @@ import { GenerateProjectCommand } from './features/commands/GenerateProjectComma
 import { showWelcome } from './features/WelcomeHandler';
 import { ShowWelcomeCommand } from './features/commands/ShowWelcomeCommand';
 import { Container } from 'inversify';
+import { IDebugLauncherService, DebugLauncherService } from "./debugger/DebugLauncherService";
 
 class PapyrusExtension implements Disposable {
     private readonly _serviceContainer: Container;
@@ -66,6 +67,7 @@ class PapyrusExtension implements Disposable {
         this._serviceContainer.bind(ICreationKitInfoProvider).to(CreationKitInfoProvider);
         this._serviceContainer.bind(ILanguageClientManager).to(LanguageClientManager);
         this._serviceContainer.bind(IDebugSupportInstallService).to(DebugSupportInstallService);
+        this._serviceContainer.bind(IDebugLauncherService).to(DebugLauncherService);
 
         this._configProvider = this._serviceContainer.get(IExtensionConfigProvider);
         this._clientManager = this._serviceContainer.get(ILanguageClientManager);
@@ -78,7 +80,7 @@ class PapyrusExtension implements Disposable {
         this._debugAdapterDescriptorFactory = this._serviceContainer.resolve(PapyrusDebugAdapterDescriptorFactory);
         this._installDebugSupportCommand = this._serviceContainer.resolve(InstallDebugSupportCommand);
 
-        this._debugAdapterTrackerFactory = new PapyrusDebugAdapterTrackerFactory();
+        this._debugAdapterTrackerFactory = this._serviceContainer.resolve(PapyrusDebugAdapterTrackerFactory);
 
         this._attachCommand = new AttachDebuggerCommand();
 

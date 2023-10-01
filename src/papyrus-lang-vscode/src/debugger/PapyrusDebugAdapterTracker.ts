@@ -1,27 +1,37 @@
+import { inject, injectable } from 'inversify';
 import { DebugAdapterTrackerFactory, DebugSession, DebugAdapterTracker, window, Disposable, debug } from 'vscode';
+import { IDebugLauncherService } from './DebugLauncherService';
 
+@injectable()
 export class PapyrusDebugAdapterTrackerFactory implements DebugAdapterTrackerFactory, Disposable {
+    private readonly _debugLauncher: IDebugLauncherService;
     private readonly _registration: Disposable;
 
-    constructor() {
+    constructor(
+        @inject(IDebugLauncherService) debugLauncher: IDebugLauncherService
+    ) {
+        this._debugLauncher = debugLauncher;
         this._registration = debug.registerDebugAdapterTrackerFactory('papyrus', this);
     }
 
     async createDebugAdapterTracker(session: DebugSession): Promise<DebugAdapterTracker> {
-        return new PapyrusDebugAdapterTracker(session);
+        return new PapyrusDebugAdapterTracker(session, this._debugLauncher);
     }
 
     dispose() {
         this._registration.dispose();
     }
 }
-
 export class PapyrusDebugAdapterTracker implements DebugAdapterTracker {
+    private readonly _debugLauncher: IDebugLauncherService;
     private readonly _session: DebugSession;
 
     private _showErrorMessages = true;
 
-    constructor(session: DebugSession) {
+    constructor(session: DebugSession,
+                debugLauncher: IDebugLauncherService
+        ) {
+        this._debugLauncher = debugLauncher;
         this._session = session;
     }
 
@@ -38,6 +48,7 @@ export class PapyrusDebugAdapterTracker implements DebugAdapterTracker {
     }
 
     onExit(code: number | undefined, signal: string | undefined) {
+        this._debugLauncher.tearDownAfterDebug();
         if (!this._showErrorMessages || this._session.configuration.noop) {
             return;
         }

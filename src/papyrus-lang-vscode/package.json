@@ -62,50 +62,83 @@
                             },
                             "projectPath": {
                                 "type": "string"
+                            },
+                            "launchType": {
+                                "type": "string",
+                                "enum": [
+                                    "XSE",
+                                    "mo2"
+                                ]
+                            },
+                            "XSELoaderPath": {
+                                "type": "string"
+                            },
+                            "mo2Config": {
+                                "type": "object",
+                                "properties": {
+                                    "mo2Path": {
+                                        "type": "string"
+                                    },
+                                    "shortcut": {
+                                        "type": "string"
+                                    },
+                                    "modsFolder": {
+                                        "type": "string"
+                                    },
+                                    "args": {
+                                        "type": "array"
+                                    }
+                                },
+                                "required": [
+                                    "mo2Path",
+                                    "shortcut",
+                                    "modsFolder"
+                                ]
                             }
                         },
                         "required": [
-                            "game"
+                            "game",
+                            "launchType"
                         ]
                     }
                 },
                 "configurationSnippets": [
                     {
-                        "label": "Papyrus: Fallout 4",
+                        "label": "Papyrus: Attach",
                         "body": {
-                            "name": "Fallout 4",
+                            "name": "Attach (${2:Fallout 4})",
                             "type": "papyrus",
+                            "game": "${3:fallout4}",
                             "request": "attach",
-                            "game": "fallout4"
-                        }
-                    },
-                    {
-                        "label": "Papyrus: Fallout 4 (with .ppj)",
-                        "body": {
-                            "name": "Fallout 4 Project",
-                            "type": "papyrus",
-                            "request": "attach",
-                            "game": "fallout4",
                             "projectPath": "^\"\\${workspaceFolder}/${1:Project.ppj}\""
                         }
                     },
                     {
-                        "label": "Papyrus: Skyrim Special Edition/Anniversary Edition",
+                        "label": "Papyrus: Launch SKSE/F4SE Loader)",
                         "body": {
-                            "name": "Skyrim",
+                            "name": "Launch with ${4:F4SE}_loader (${2:Fallout 4})",
                             "type": "papyrus",
-                            "request": "attach",
-                            "game": "skyrimSpecialEdition"
+                            "game": "${3:fallout4}",
+                            "request": "launch",
+                            "projectPath": "^\"\\${workspaceFolder}/${1:Project.ppj}\"",
+                            "launchType": "skse",
+                            "XSELoaderPath": "^\"${5:C:/Program Files (x86)/Steam/steamapps/common/Fallout 4/F4SE/F4SE_loader.exe}\""
                         }
                     },
                     {
-                        "label": "Papyrus: Skyrim Special Edition/Anniversary Edition (with .ppj)",
+                        "label": "Papyrus: Launch (ModOrganizer2 Loader)",
                         "body": {
-                            "name": "Skyrim Special Edition/Anniversary Edition Project",
+                            "name": "Launch with ModOrganizer2 (${2:Fallout 4})",
                             "type": "papyrus",
-                            "request": "attach",
-                            "game": "skyrimSpecialEdition",
-                            "projectPath": "^\"\\${workspaceFolder}/${1:Project.ppj}\""
+                            "game": "${3:fallout4}",
+                            "request": "launch",
+                            "launchType": "mo2",
+                            "projectPath": "^\"\\${workspaceFolder}/${1:Project.ppj}\"",
+                            "mo2Config": {
+                                "mo2Path": "^\"${6:C:/Modding/MO2/ModOrganizer.exe}\"",
+                                "shortcut": "^\"${7:moshortcut://Skyrim Special Edition:SKSE}\"",
+                                "modsFolder": "^\"${8:\\${env:LOCALAPPDATA\\}/ModOrganizer/Fallout 4/mods}\""
+                            }
                         }
                     }
                 ]
