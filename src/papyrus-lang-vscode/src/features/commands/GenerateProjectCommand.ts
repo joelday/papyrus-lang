@@ -1,7 +1,7 @@
 import { window, Uri, ExtensionContext } from 'vscode';
 import { IExtensionContext } from '../../common/vscode/IocDecorators';
 import { GameCommandBase } from './GameCommandBase';
-import { PapyrusGame } from "../../PapyrusGame";
+import { PapyrusGame } from '../../PapyrusGame';
 import { IPathResolver } from '../../common/PathResolver';
 import { copyAndFillTemplate, mkDirByPathSync } from '../../Utilities';
 

@@ -1,5 +1,5 @@
 import { interfaces, inject, injectable } from 'inversify';
-import { PapyrusGame, getGames, getDevelopmentCompilerFolderForGame } from "./PapyrusGame";
+import { PapyrusGame, getGames, getDevelopmentCompilerFolderForGame } from './PapyrusGame';
 import { IExtensionConfigProvider } from './ExtensionConfigProvider';
 import { Observable, combineLatest } from 'rxjs';
 import { map, mergeMap, shareReplay } from 'rxjs/operators';

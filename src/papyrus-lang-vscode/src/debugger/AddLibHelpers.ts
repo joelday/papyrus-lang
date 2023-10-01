@@ -64,9 +64,9 @@ export function GetAssetZipForSuffixFromRelease(
 
 export function getAssetListFromAddLibRelease(release: GithubRelease): AddressLibReleaseAssetList | undefined {
     let assetZip: string | undefined | Error;
-    let ret: AddressLibReleaseAssetList = new Object() as AddressLibReleaseAssetList;
+    const ret: AddressLibReleaseAssetList = new Object() as AddressLibReleaseAssetList;
     ret.version = release.tag_name;
-    for (let idx in AddressLibAssetSuffix) {
+    for (const idx in AddressLibAssetSuffix) {
         const assetSuffix: AddressLibAssetSuffix = AddressLibAssetSuffix[idx as keyof typeof AddressLibAssetSuffix];
         assetZip = GetAssetZipForSuffixFromRelease(release, assetSuffix);
         if (!assetZip) {
@@ -137,7 +137,7 @@ export async function DownloadLatestAddressLibs(
     const sha256Sums = JSON.parse(sha256buf);
     const retryLimit = 3;
     let retries = 0;
-    for (let idx in AddressLibAssetSuffix) {
+    for (const idx in AddressLibAssetSuffix) {
         const assetSuffix: AddressLibAssetSuffix = AddressLibAssetSuffix[idx as keyof typeof AddressLibAssetSuffix];
 
         if (cancellationToken.isCancellationRequested) return DownloadResult.cancelled;
@@ -184,7 +184,7 @@ export async function DownloadLatestAddressLibs(
         if (!(await _checkAddlibExtracted(asset.folderName, downloadFolder))) {
             return DownloadResult.filesystemFailure;
         }
-        let folderHash = await GetHashOfFolder(ExtractedFolderPath);
+        const folderHash = await GetHashOfFolder(ExtractedFolderPath);
         if (!folderHash) {
             return DownloadResult.filesystemFailure;
         }
@@ -214,7 +214,7 @@ export async function GetAssetList(jsonPath: string) {
         return undefined;
     }
     // check integrity
-    for (let idx in AddressLibAssetSuffix) {
+    for (const idx in AddressLibAssetSuffix) {
         const assetSuffix: AddressLibAssetSuffix = AddressLibAssetSuffix[idx as keyof typeof AddressLibAssetSuffix];
         const currentAsset = _getAsset(assetList, assetSuffix);
         if (!currentAsset) {
@@ -241,7 +241,7 @@ export async function _checkDownloadIntegrity(
     if (!assetList) {
         return false;
     }
-    for (let idx in AddressLibAssetSuffix) {
+    for (const idx in AddressLibAssetSuffix) {
         const assetSuffix: AddressLibAssetSuffix = AddressLibAssetSuffix[idx as keyof typeof AddressLibAssetSuffix];
         const currentAsset = _getAsset(assetList, assetSuffix);
         if (!currentAsset) {
@@ -270,7 +270,7 @@ export async function _checkAddlibExtracted(name: AddressLibraryName, modsDir: s
     // TODO: refactor this
     const SEDIR = name.indexOf('SKSE') >= 0 ? 'SKSE' : 'F4SE';
     const pluginsdir = path.join(addressLibInstallPath, SEDIR, 'Plugins');
-    
+
     if (!fs.existsSync(pluginsdir) || !fs.lstatSync(pluginsdir).isDirectory()) {
         return false;
     }
@@ -334,7 +334,7 @@ export async function _checkAddressLibsInstalled(
     assetList?: AddressLibReleaseAssetList
 ): Promise<AddressLibInstalledState> {
     const addressLibFolderNames = getAddressLibNames(game);
-    for (let name of addressLibFolderNames) {
+    for (const name of addressLibFolderNames) {
         const state = await _checkAddressLibInstalled(name, modsDir, assetList);
         if (state !== AddressLibInstalledState.installed) {
             return state;
@@ -354,7 +354,7 @@ export async function _installAddressLibs(
     cancellationToken: CancellationToken
 ): Promise<boolean> {
     const addressLibNames = getAddressLibNames(game);
-    for (let name of addressLibNames) {
+    for (const name of addressLibNames) {
         if (cancellationToken.isCancellationRequested) {
             return false;
         }

@@ -1,7 +1,5 @@
 // TODO: Remove, no longer necessary
 
-
-
 import { inject, injectable, interfaces } from 'inversify';
 import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
 import { take } from 'rxjs/operators';
@@ -10,7 +8,7 @@ import { PapyrusGame, getGameIniName } from '../PapyrusGame';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
 import { ClientHostStatus } from '../server/LanguageClientHost';
 import { CheckIfDebuggingIsEnabledInIni, TurnOnDebuggingInIni } from '../common/GameHelpers';
-import { WriteChangesToIni, ParseIniFile } from "../common/INIHelpers";
+import { WriteChangesToIni, ParseIniFile } from '../common/INIHelpers';
 
 import * as path from 'path';
 import * as fs from 'fs';
@@ -26,7 +24,7 @@ export enum GameDebugConfigurationState {
     gameIniMissing,
     gameUserDirMissing,
     gameMissing,
-    gameDisabled
+    gameDisabled,
 }
 
 export interface IGameDebugConfiguratorService {
@@ -60,7 +58,7 @@ export class GameDebugConfiguratorService implements IGameDebugConfiguratorServi
                 return GameDebugConfigurationState.gameMissing;
             }
         }
-        const gameUserDirPath = gameUserDir || await this._pathResolver.getUserGamePath(game);
+        const gameUserDirPath = gameUserDir || (await this._pathResolver.getUserGamePath(game));
         if (!gameUserDirPath) {
             return GameDebugConfigurationState.gameUserDirMissing;
         }
@@ -78,11 +76,8 @@ export class GameDebugConfiguratorService implements IGameDebugConfiguratorServi
         return GameDebugConfigurationState.debugEnabled;
     }
 
-    async configureDebug(
-        game: PapyrusGame,
-        gameUserDir: string | undefined
-    ): Promise<boolean> {
-        const gameUserDirPath = gameUserDir || await this._pathResolver.getUserGamePath(game);
+    async configureDebug(game: PapyrusGame, gameUserDir: string | undefined): Promise<boolean> {
+        const gameUserDirPath = gameUserDir || (await this._pathResolver.getUserGamePath(game));
         if (!gameUserDirPath) {
             return false;
         }

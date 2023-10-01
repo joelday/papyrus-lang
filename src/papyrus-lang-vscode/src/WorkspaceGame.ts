@@ -16,7 +16,7 @@ export async function getWorkspaceGameFromProjects(ppjFiles: Uri[]): Promise<Pap
         return undefined;
     }
 
-    for (let ppjFile of ppjFiles) {
+    for (const ppjFile of ppjFiles) {
         game = await getWorkspaceGameFromProjectFile(ppjFile.fsPath);
         if (game) {
             break;
@@ -43,6 +43,6 @@ export async function getWorkspaceGame(): Promise<PapyrusGame | undefined> {
         return undefined;
     }
 
-    const ppjFiles: Uri[] = await workspace.findFiles(new RelativePattern(workspace.workspaceFolders[0], "**/*.ppj"));
+    const ppjFiles: Uri[] = await workspace.findFiles(new RelativePattern(workspace.workspaceFolders[0], '**/*.ppj'));
     return getWorkspaceGameFromProjects(ppjFiles);
 }

@@ -10,7 +10,7 @@ import {
     ProjectInfoSourceInclude,
     ProjectInfoScript,
 } from '../../server/messages/ProjectInfos';
-import { PapyrusGame, getShortDisplayNameForGame } from "../../PapyrusGame";
+import { PapyrusGame, getShortDisplayNameForGame } from '../../PapyrusGame';
 import { flatten } from '../../Utilities';
 import { IExtensionContext } from '../../common/vscode/IocDecorators';
 import { inject, injectable } from 'inversify';

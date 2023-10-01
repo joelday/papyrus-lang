@@ -4,15 +4,12 @@ import { CancellationToken, CancellationTokenSource, window } from 'vscode';
 import { IPathResolver } from '../common/PathResolver';
 import { PapyrusGame } from '../PapyrusGame';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
-import { getGameIsRunning, getGamePIDs, mkdirIfNeeded } from '../Utilities';
+import { getGameIsRunning, getGamePIDs } from '../Utilities';
 
-import * as path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
 
-import md5File from 'md5-file';
 import { ChildProcess, spawn } from 'node:child_process';
-import { timer } from 'rxjs';
 import { execFile as _execFile } from 'child_process';
 const execFile = promisify(_execFile);
 
@@ -107,8 +104,8 @@ export class DebugLauncherService implements IDebugLauncherService {
             cancellationToken = this.cancellationTokenSource.token;
         }
         this.currentGame = game;
-        let cmd = launcherCommand.command;
-        let args = launcherCommand.args;
+        const cmd = launcherCommand.command;
+        const args = launcherCommand.args;
         let _stdOut: string = '';
         let _stdErr: string = '';
         this.launcherProcess = spawn(cmd, args);
@@ -151,7 +148,7 @@ export class DebugLauncherService implements IDebugLauncherService {
         }
         // we can't get the PID of the game from the launcher process because
         // both MO2 and the script extender loaders fork and deatch the game process
-        let gamePIDs = await getGamePIDs(game);
+        const gamePIDs = await getGamePIDs(game);
 
         if (gamePIDs.length === 0) {
             return DebugLaunchState.gameFailedToStart;

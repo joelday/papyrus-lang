@@ -87,7 +87,7 @@ export class MO2LaunchDescriptorFactory implements IMO2LaunchDescriptorFactory {
         if (!InstanceInfo) {
             throw new Error(`Could not find the instance '${instanceName}' for the MO2 installation at ${MO2EXEPath}`);
         }
-        let papgame = GetPapyrusGameFromMO2GameID(InstanceInfo.gameName);
+        const papgame = GetPapyrusGameFromMO2GameID(InstanceInfo.gameName);
         if (!papgame || papgame !== game) {
             throw new Error(`Instance ${instanceName} is not for game ${game}`);
         }
@@ -113,12 +113,12 @@ export class MO2LaunchDescriptorFactory implements IMO2LaunchDescriptorFactory {
         game: PapyrusGame
     ): Promise<IMO2LauncherDescriptor> {
         // taken care of by debug config provider
-        let { instanceName, exeName } = MO2Lib.parseMoshortcutURI(mo2Config.shortcutURI);
+        const { instanceName, exeName } = MO2Lib.parseMoshortcutURI(mo2Config.shortcutURI);
         if (!instanceName || !exeName) {
             throw new Error(`Could not parse the shortcut URI`);
         }
 
-        let MO2EXEPath = launcherPath;
+        const MO2EXEPath = launcherPath;
         if (!MO2EXEPath || !existsSync(MO2EXEPath) || !statSync(MO2EXEPath).isFile()) {
             throw new Error(`Could not find the Mod Organizer 2 executable path`);
         }
@@ -193,8 +193,8 @@ export interface IMO2LauncherDescriptor {
 }
 
 function joinArgs(args: string[]): string {
-    let _args = args;
-    for (let arg in args) {
+    const _args = args;
+    for (const arg in args) {
         if (_args[arg].includes(' ') && !_args[arg].startsWith('"') && !_args[arg].endsWith('"')) {
             _args[arg] = `"${_args[arg]}"`;
         }
@@ -219,7 +219,7 @@ export class MO2LauncherDescriptor implements IMO2LauncherDescriptor {
     }
 
     public getLaunchCommand(): LaunchCommand {
-        let command = this.MO2EXEPath;
+        const command = this.MO2EXEPath;
         let cmdargs = ['-p', this.profileToLaunchData.name];
         if (this.instanceInfo.name !== 'portable') {
             cmdargs = cmdargs.concat(['-i', this.instanceInfo.name]);

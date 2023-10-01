@@ -5,13 +5,11 @@ import { promisify } from 'util';
 
 import procList from 'ps-list';
 
-import { getExecutableNameForGame, PapyrusGame } from "./PapyrusGame";
+import { getExecutableNameForGame, PapyrusGame } from './PapyrusGame';
 
 import { isNativeError } from 'util/types';
 
-import {
-    getSystemErrorMap
-} from "util";
+import { getSystemErrorMap } from 'util';
 import { execFile as _execFile } from 'child_process';
 const execFile = promisify(_execFile);
 const readFile = promisify(fs.readFile);
@@ -39,8 +37,10 @@ export async function getGameIsRunning(game: PapyrusGame) {
 
 export async function getGamePIDs(game: PapyrusGame): Promise<Array<number>> {
     const processList = await procList();
-    
-    const gameProcesses = processList.filter((p) => p.name.toLowerCase() === getExecutableNameForGame(game).toLowerCase());
+
+    const gameProcesses = processList.filter(
+        (p) => p.name.toLowerCase() === getExecutableNameForGame(game).toLowerCase()
+    );
 
     if (gameProcesses.length === 0) {
         return [];
@@ -51,7 +51,7 @@ export async function getGamePIDs(game: PapyrusGame): Promise<Array<number>> {
 
 export async function getPIDforProcessName(processName: string): Promise<Array<number>> {
     const processList = await procList();
-    let thing = processList[0];
+    const thing = processList[0];
     const gameProcesses = processList.filter((p) => p.name.toLowerCase() === processName.toLowerCase());
 
     if (gameProcesses.length === 0) {
@@ -60,13 +60,11 @@ export async function getPIDforProcessName(processName: string): Promise<Array<n
 
     return gameProcesses.map((p) => p.pid);
 }
-export async function getPathFromProcess(pid: number){
-    let pwsh_cmd = `(Get-Process -id ${pid}).Path`
-  
-    var {stdout, stderr} = await execFile('powershell', [ 
-        pwsh_cmd
-    ])
-    if (stderr){
+export async function getPathFromProcess(pid: number) {
+    const pwsh_cmd = `(Get-Process -id ${pid}).Path`;
+
+    const { stdout, stderr } = await execFile('powershell', [pwsh_cmd]);
+    if (stderr) {
         return undefined;
     }
     return stdout;
@@ -74,8 +72,8 @@ export async function getPathFromProcess(pid: number){
 
 export async function getPIDsforFullPath(processPath: string): Promise<Array<number>> {
     const pidsList = await getPIDforProcessName(path.basename(processPath));
-    let pids = pidsList.filter(async (pid) => {
-        return processPath === await getPathFromProcess(pid);
+    const pids = pidsList.filter(async (pid) => {
+        return processPath === (await getPathFromProcess(pid));
     });
     return pids;
 }
@@ -166,24 +164,21 @@ export async function copyAndFillTemplate(srcPath: string, dstPath: string, valu
     return writeFile(dstPath, templStr);
 }
 
-export interface EnvData{
+export interface EnvData {
     [key: string]: string;
 }
 
+export async function getEnvFromProcess(pid: number) {
+    const pwsh_cmd = `(Get-Process -id ${pid}).StartInfo.EnvironmentVariables.ForEach( { $_.Key + "=" + $_.Value } )`;
 
-export async function getEnvFromProcess(pid: number){
-    let pwsh_cmd = `(Get-Process -id ${pid}).StartInfo.EnvironmentVariables.ForEach( { $_.Key + "=" + $_.Value } )`
-  
-    var {stdout, stderr} = await execFile('powershell', [ 
-        pwsh_cmd
-    ])
-    if (stderr){
+    const { stdout, stderr } = await execFile('powershell', [pwsh_cmd]);
+    if (stderr) {
         return undefined;
     }
-    let otherEnv: EnvData = {}
+    const otherEnv: EnvData = {};
     stdout.split('\r\n').forEach((line) => {
-        let [key, value] = line.split('=');
-        if (key && key !== ''){
+        const [key, value] = line.split('=');
+        if (key && key !== '') {
             otherEnv[key] = value;
         }
     });
@@ -200,29 +195,29 @@ export async function CheckHash(data: Buffer, expectedHash: string) {
     return true;
 }
 
-async function _GetHashOfFolder(folderPath: string, inputHash?: crypto.Hash): Promise<crypto.Hash | undefined>{
+async function _GetHashOfFolder(folderPath: string, inputHash?: crypto.Hash): Promise<crypto.Hash | undefined> {
     if (!inputHash) {
         return undefined;
     }
-    const info = await readdir(folderPath, {withFileTypes: true});
+    const info = await readdir(folderPath, { withFileTypes: true });
     if (!info || info.length == 0) {
-      return undefined;
+        return undefined;
     }
-    for (let item of info) {
-      const fullPath = path.join(folderPath, item.name);
-      if (item.isFile()) {
-          const data = fs.readFileSync(fullPath);
-          inputHash.update(data);
-      } else if (item.isDirectory()) {
-          // recursively walk sub-folders
-          await _GetHashOfFolder(fullPath, inputHash);
-      }
+    for (const item of info) {
+        const fullPath = path.join(folderPath, item.name);
+        if (item.isFile()) {
+            const data = fs.readFileSync(fullPath);
+            inputHash.update(data);
+        } else if (item.isDirectory()) {
+            // recursively walk sub-folders
+            await _GetHashOfFolder(fullPath, inputHash);
+        }
     }
     return inputHash;
 }
 
-export async function GetHashOfFolder(folderPath: string): Promise<string | undefined>{
-  return (await _GetHashOfFolder(folderPath, crypto.createHash('sha256')))?.digest('hex');
+export async function GetHashOfFolder(folderPath: string): Promise<string | undefined> {
+    return (await _GetHashOfFolder(folderPath, crypto.createHash('sha256')))?.digest('hex');
 }
 
 export async function CheckHashOfFolder(folderPath: string, expectedSHA256: string): Promise<boolean> {
@@ -230,15 +225,15 @@ export async function CheckHashOfFolder(folderPath: string, expectedSHA256: stri
     if (!hash) {
         return false;
     }
-    if (hash !== expectedSHA256){
-      return false;
+    if (hash !== expectedSHA256) {
+        return false;
     }
     return true;
 }
 
 export async function CheckHashFile(filePath: string, expectedSHA256: string) {
     // get the hash of the file
-    if (!await exists(filePath) || !(await stat(filePath)).isFile()) {
+    if (!(await exists(filePath)) || !(await stat(filePath)).isFile()) {
         return false;
     }
     const buffer = await readFile(filePath);

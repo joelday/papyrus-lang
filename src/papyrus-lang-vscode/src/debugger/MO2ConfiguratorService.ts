@@ -2,22 +2,14 @@ import { inject, injectable, interfaces } from 'inversify';
 import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
 import { take } from 'rxjs/operators';
 import { IPathResolver } from '../common/PathResolver';
-import { PapyrusGame, getGameIniName } from '../PapyrusGame';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
-import { ClientHostStatus } from '../server/LanguageClientHost';
-import { getPIDsforFullPath, mkdirIfNeeded } from '../Utilities';
 
-import * as path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
 
-import md5File from 'md5-file';
-import { PDSModName } from '../common/constants';
 import { IDebugSupportInstallService, DebugSupportInstallState } from './DebugSupportInstallService';
 import { IAddressLibraryInstallService, AddressLibInstalledState } from './AddressLibInstallService';
 import { MO2LauncherDescriptor } from './MO2LaunchDescriptorFactory';
-import { CheckIfDebuggingIsEnabledInIni, TurnOnDebuggingInIni } from '../common/GameHelpers';
-import { WriteChangesToIni, ParseIniFile } from '../common/INIHelpers';
 import {
     AddRequiredModsToModList,
     checkAddressLibrariesExistAndEnabled,
@@ -30,8 +22,6 @@ import * as MO2Lib from '../common/MO2Lib';
 import { CancellationTokenSource } from 'vscode-languageclient';
 import { CancellationToken } from 'vscode';
 import { execFile as _execFile, spawn } from 'child_process';
-import { mkdir } from 'fs/promises';
-import { AddSeparatorToBeginningOfModList } from '../common/MO2Lib';
 const execFile = promisify(_execFile);
 const exists = promisify(fs.exists);
 const copyFile = promisify(fs.copyFile);
@@ -83,12 +73,12 @@ function _getErrorMessage(state: MO2LaunchConfigurationStatus) {
 }
 
 export function GetErrorMessageFromStatus(state: MO2LaunchConfigurationStatus): string {
-    let errorMessages = new Array<string>();
-    let states = getStates(state);
+    const errorMessages = new Array<string>();
+    const states = getStates(state);
     if (states.length === 1 && states[0] === MO2LaunchConfigurationStatus.Ready) {
         return 'Ready';
     }
-    for (let state of states) {
+    for (const state of states) {
         errorMessages.push(_getErrorMessage(state));
     }
     const errMsg = '- ' + errorMessages.join('\n - ');
@@ -98,10 +88,10 @@ function getStates(state: MO2LaunchConfigurationStatus): MO2LaunchConfigurationS
     if (state === MO2LaunchConfigurationStatus.Ready) {
         return [MO2LaunchConfigurationStatus.Ready];
     }
-    let states: MO2LaunchConfigurationStatus[] = [];
+    const states: MO2LaunchConfigurationStatus[] = [];
     let key: keyof typeof MO2LaunchConfigurationStatus;
     for (key in MO2LaunchConfigurationStatus) {
-        let value: MO2LaunchConfigurationStatus = Number(MO2LaunchConfigurationStatus[key]);
+        const value: MO2LaunchConfigurationStatus = Number(MO2LaunchConfigurationStatus[key]);
         if (state & value) {
             states.push(value);
         }
@@ -153,7 +143,7 @@ export class MO2ConfiguratorService implements IMO2ConfiguratorService {
     }
 
     private async checkPDSisPresent(launchDescriptor: MO2LauncherDescriptor): Promise<MO2LaunchConfigurationStatus> {
-        let result = await this._debugSupportInstallService.getInstallState(
+        const result = await this._debugSupportInstallService.getInstallState(
             launchDescriptor.game,
             launchDescriptor.instanceInfo.modsFolder
         );
@@ -175,7 +165,7 @@ export class MO2ConfiguratorService implements IMO2ConfiguratorService {
     private async checkAddressLibsArePresent(
         launchDescriptor: MO2LauncherDescriptor
     ): Promise<MO2LaunchConfigurationStatus> {
-        let result = await this._addressLibraryInstallService.getInstallState(
+        const result = await this._addressLibraryInstallService.getInstallState(
             launchDescriptor.game,
             launchDescriptor.instanceInfo.modsFolder
         );
@@ -197,7 +187,7 @@ export class MO2ConfiguratorService implements IMO2ConfiguratorService {
         if (!modList) {
             return MO2LaunchConfigurationStatus.ModListNotParsable;
         }
-        let ret: MO2LaunchConfigurationStatus = MO2LaunchConfigurationStatus.Ready;
+        const ret: MO2LaunchConfigurationStatus = MO2LaunchConfigurationStatus.Ready;
         if (!checkPDSModExistsAndEnabled(modList)) {
             return MO2LaunchConfigurationStatus.PDSModNotEnabledInModList;
         }
@@ -223,8 +213,8 @@ export class MO2ConfiguratorService implements IMO2ConfiguratorService {
         launchDescriptor: MO2LauncherDescriptor,
         cancellationToken = new CancellationTokenSource().token
     ): Promise<boolean> {
-        let states = getStates(await this.getStateFromConfig(launchDescriptor));
-        for (let state of states) {
+        const states = getStates(await this.getStateFromConfig(launchDescriptor));
+        for (const state of states) {
             switch (state) {
                 case MO2LaunchConfigurationStatus.Ready:
                     break;
@@ -260,8 +250,11 @@ export class MO2ConfiguratorService implements IMO2ConfiguratorService {
                     if (await isMO2Running()) {
                         wasRunning = true;
                         // if ModOrganizer is currently running, and the installation or selected profile isn't what we're going to run, this will fuck up, kill it
-                        let notOurs = !await isOurMO2Running(launchDescriptor.MO2EXEPath);
-                        if (notOurs || launchDescriptor.instanceInfo.selectedProfile !== launchDescriptor.profileToLaunchData.name){
+                        const notOurs = !(await isOurMO2Running(launchDescriptor.MO2EXEPath));
+                        if (
+                            notOurs ||
+                            launchDescriptor.instanceInfo.selectedProfile !== launchDescriptor.profileToLaunchData.name
+                        ) {
                             await killAllMO2Processes();
                         }
                     }
@@ -278,10 +271,14 @@ export class MO2ConfiguratorService implements IMO2ConfiguratorService {
                         return false;
                     }
                     if (wasRunning) {
-                        spawn(launchDescriptor.MO2EXEPath, ['-p', launchDescriptor.profileToLaunchData.name, "refresh"], {
-                            detached: true,
-                            stdio: 'ignore',
-                        }).unref();
+                        spawn(
+                            launchDescriptor.MO2EXEPath,
+                            ['-p', launchDescriptor.profileToLaunchData.name, 'refresh'],
+                            {
+                                detached: true,
+                                stdio: 'ignore',
+                            }
+                        ).unref();
                     }
                     break;
                 default:

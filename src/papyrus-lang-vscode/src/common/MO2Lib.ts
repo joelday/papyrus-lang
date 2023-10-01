@@ -1,7 +1,7 @@
 import { existsSync, openSync, readdirSync, readFileSync, writeFileSync } from 'fs';
 import * as fs from 'fs';
 import path from 'path';
-import { INIData, ParseIniArray, ParseIniFile, SerializeIniArray, WriteChangesToIni } from './INIHelpers';
+import { INIData, ParseIniArray, ParseIniFile, SerializeIniArray } from './INIHelpers';
 import { getLocalAppDataFolder, getRegistryValueData } from './OSHelpers';
 
 export enum ModEnabledState {
@@ -65,7 +65,6 @@ export interface MO2InstanceInfo {
 // import a library that deals with nukpg version strings
 
 // import the semver library
-import * as semver from 'semver';
 
 export interface WinVerObject {
     major: number;
@@ -82,11 +81,11 @@ export class WinVer implements WinVerObject {
     public readonly privateNum: number = 0;
     public readonly version: string = '0.0.0.0';
     public static fromVersionString(version: string): WinVer {
-        let parts = version.split('.');
-        let major = parseInt(parts[0]);
-        let minor = parseInt(parts[1]);
-        let build = parseInt(parts[2]);
-        let privateNum = parseInt(parts[3]);
+        const parts = version.split('.');
+        const major = parseInt(parts[0]);
+        const minor = parseInt(parts[1]);
+        const build = parseInt(parts[2]);
+        const privateNum = parseInt(parts[3]);
         return new WinVer({ major, minor, build, privateNum, version });
     }
     public static lessThan(a: WinVerObject, b: WinVerObject): boolean {
@@ -157,7 +156,7 @@ export interface MO2Location {
 }
 
 export function GetGlobalMO2DataFolder(): string | undefined {
-    let appdata = getLocalAppDataFolder();
+    const appdata = getLocalAppDataFolder();
     if (appdata === undefined) {
         return undefined;
     }
@@ -175,11 +174,11 @@ export async function IsMO2Portable(MO2EXEPath: string): Promise<boolean> {
 
 export async function GetMO2EXELocations(gameId?: MO2LongGameID, ...additionalIds: MO2LongGameID[]): Promise<string[]> {
     let possibleLocations: string[] = [];
-    let nxmHandlerIniPath = await FindNXMHandlerIniPath();
+    const nxmHandlerIniPath = await FindNXMHandlerIniPath();
     if (nxmHandlerIniPath === undefined) {
         return possibleLocations;
     }
-    let MO2NXMData = await ParseIniFile(nxmHandlerIniPath);
+    const MO2NXMData = await ParseIniFile(nxmHandlerIniPath);
     if (MO2NXMData === undefined) {
         return possibleLocations;
     }
@@ -189,7 +188,7 @@ export async function GetMO2EXELocations(gameId?: MO2LongGameID, ...additionalId
 }
 
 function getIDFromNXMHandlerName(nxmName: string): MO2LongGameID | undefined {
-    let _nxmName = nxmName.toLowerCase().replace(/ /g, '');
+    const _nxmName = nxmName.toLowerCase().replace(/ /g, '');
     switch (_nxmName) {
         case 'skyrimse':
         case 'skyrimspecialedition':
@@ -238,27 +237,27 @@ function GetMO2EXELocationsFromNXMHandlerData(
     if (!nxmData.handlers) {
         return exePaths;
     }
-    let handler_array = ParseIniArray(nxmData.handlers);
+    const handler_array = ParseIniArray(nxmData.handlers);
     if (!handler_array || handler_array.length === 0) {
         return exePaths;
     }
     for (const handler of handler_array) {
-        let executable: string | undefined = handler.executable;
-        let games: string | undefined = handler.games;
+        const executable: string | undefined = handler.executable;
+        const games: string | undefined = handler.games;
         if (!executable || !games) {
             continue;
         }
-        let gameList = NormalizeIniString(games)
+        const gameList = NormalizeIniString(games)
             .split(',')
             .filter((val) => val !== '');
         if (!gameId) {
             exePaths.push(executable);
         } else {
-            let _args = [gameId, ...additionalIds];
+            const _args = [gameId, ...additionalIds];
             for (const gameID of _args) {
                 if (
                     gameList.filter((val) => {
-                        let _valID = getIDFromNXMHandlerName(val);
+                        const _valID = getIDFromNXMHandlerName(val);
                         if (_valID === undefined) {
                             return false;
                         }
@@ -326,16 +325,16 @@ function _normMO2Path(pathstring: string | undefined, basedir: string | undefine
 }
 
 function ParseMO2CustomExecutable(iniData: INIData) {
-    let title = _normInistr(iniData.title);
-    let binary = _normIniPath(iniData.binary);
-    let steamAppID = _normInistr(iniData.steamAppID) || '';
-    let toolbar = iniData.toolbar === true; // explicit boolean check in case unset
-    let hide = iniData.hide === true;
-    let ownicon = iniData.ownicon === true;
-    let arguments_ = _normInistr(iniData.arguments) || '';
-    let workingDirectory = _normIniPath(iniData.workingDirectory) || '';
+    const title = _normInistr(iniData.title);
+    const binary = _normIniPath(iniData.binary);
+    const steamAppID = _normInistr(iniData.steamAppID) || '';
+    const toolbar = iniData.toolbar === true; // explicit boolean check in case unset
+    const hide = iniData.hide === true;
+    const ownicon = iniData.ownicon === true;
+    const arguments_ = _normInistr(iniData.arguments) || '';
+    const workingDirectory = _normIniPath(iniData.workingDirectory) || '';
     if (title !== undefined && binary !== undefined) {
-        let result: MO2CustomExecutableInfo = {
+        const result: MO2CustomExecutableInfo = {
             arguments: arguments_,
             binary: binary,
             hide: hide,
@@ -351,9 +350,9 @@ function ParseMO2CustomExecutable(iniData: INIData) {
 }
 
 function ParseMO2CustomExecutables(iniArray: INIData[]) {
-    let result: MO2CustomExecutableInfo[] = [];
+    const result: MO2CustomExecutableInfo[] = [];
     for (const iniData of iniArray) {
-        let parsed = ParseMO2CustomExecutable(iniData);
+        const parsed = ParseMO2CustomExecutable(iniData);
         if (parsed) {
             result.push(parsed);
         }
@@ -390,36 +389,36 @@ function ParseMO2CustomExecutables(iniArray: INIData[]) {
  * @returns
  */
 function ParseInstanceINI(iniPath: string, iniData: INIData, isPortable: boolean): MO2InstanceInfo | undefined {
-    let iniBaseDir = NormalizePath(path.dirname(iniPath));
-    let instanceName = isPortable ? 'portable' : path.basename(iniBaseDir);
-    let gameName: MO2LongGameID = iniData.General['gameName'];
+    const iniBaseDir = NormalizePath(path.dirname(iniPath));
+    const instanceName = isPortable ? 'portable' : path.basename(iniBaseDir);
+    const gameName: MO2LongGameID = iniData.General['gameName'];
     if (gameName === undefined) {
         return undefined;
     }
-    let gameDirPath = _normIniPath(iniData.General['gamePath']);
+    const gameDirPath = _normIniPath(iniData.General['gamePath']);
     if (gameDirPath === undefined) {
         return undefined;
     }
     // TODO: We should probably pin to a specific minor version of MO2
-    let version = iniData.General['version'];
+    const version = iniData.General['version'];
 
     // TODO: Figure out if this is ever not set
-    let selectedProfile = _normInistr(iniData.General['selected_profile']) || 'Default';
+    const selectedProfile = _normInistr(iniData.General['selected_profile']) || 'Default';
 
-    let settings = iniData.Settings || {}; // Settings may be empty; we don't need it to populate the rest of the information
+    const settings = iniData.Settings || {}; // Settings may be empty; we don't need it to populate the rest of the information
 
-    let baseDirectory = _normIniPath(settings['base_directory']) || iniBaseDir;
-    let downloadsPath =
+    const baseDirectory = _normIniPath(settings['base_directory']) || iniBaseDir;
+    const downloadsPath =
         _normMO2Path(settings['download_directory'], baseDirectory) || path.join(baseDirectory, 'downloads');
-    let modsPath = _normMO2Path(settings['mod_directory'], baseDirectory) || path.join(baseDirectory, 'mods');
-    let cachesPath = _normMO2Path(settings['cache_directory'], baseDirectory) || path.join(baseDirectory, 'webcache');
-    let profilesPath =
+    const modsPath = _normMO2Path(settings['mod_directory'], baseDirectory) || path.join(baseDirectory, 'mods');
+    const cachesPath = _normMO2Path(settings['cache_directory'], baseDirectory) || path.join(baseDirectory, 'webcache');
+    const profilesPath =
         _normMO2Path(settings['profiles_directory'], baseDirectory) || path.join(baseDirectory, 'profiles');
-    let overwritePath =
+    const overwritePath =
         _normMO2Path(settings['overwrite_directory'], baseDirectory) || path.join(baseDirectory, 'overwrite');
     let customExecutables: MO2CustomExecutableInfo[] = [];
     if (iniData.customExecutables) {
-        let arr = ParseIniArray(iniData.customExecutables);
+        const arr = ParseIniArray(iniData.customExecutables);
         if (arr && arr.length > 0) {
             customExecutables = ParseMO2CustomExecutables(arr);
         }
@@ -446,7 +445,7 @@ function ParseInstanceINI(iniPath: string, iniData: INIData, isPortable: boolean
  * @returns MO2InstanceInfo
  */
 export async function GetMO2InstanceInfo(iniPath: string): Promise<MO2InstanceInfo | undefined> {
-    let iniData = await ParseIniFile(iniPath);
+    const iniData = await ParseIniFile(iniPath);
     if (iniData === undefined) {
         return undefined;
     }
@@ -455,7 +454,7 @@ export async function GetMO2InstanceInfo(iniPath: string): Promise<MO2InstanceIn
 
 export async function validateInstanceLocationInfo(info: MO2InstanceInfo): Promise<boolean> {
     // check that all the directory paths exist and they are directories
-    let dirPaths = [
+    const dirPaths = [
         info.gameDirPath,
         info.baseDirectory,
         info.downloadsFolder,
@@ -464,7 +463,7 @@ export async function validateInstanceLocationInfo(info: MO2InstanceInfo): Promi
         info.profilesFolder,
         info.overwriteFolder,
     ];
-    for (let p of dirPaths) {
+    for (const p of dirPaths) {
         if (!existsSync(p)) {
             return false;
         }
@@ -483,10 +482,10 @@ export async function FindInstanceForEXE(MO2EXEPath: string, instanceName?: stri
     if (!fs.existsSync(MO2EXEPath)) {
         return undefined;
     }
-    let isPortable = await IsMO2Portable(MO2EXEPath);
+    const isPortable = await IsMO2Portable(MO2EXEPath);
     if (isPortable) {
-        let instanceFolder = path.dirname(MO2EXEPath);
-        let instanceIniPath = path.join(instanceFolder, InstanceIniName);
+        const instanceFolder = path.dirname(MO2EXEPath);
+        const instanceIniPath = path.join(instanceFolder, InstanceIniName);
         return await GetMO2InstanceInfo(instanceIniPath);
     } else if (instanceName !== undefined && instanceName !== 'portable') {
         return await FindGlobalInstance(instanceName);
@@ -506,10 +505,10 @@ export async function GetLocationInfoForEXE(
     if (!fs.existsSync(MO2EXEPath)) {
         return undefined;
     }
-    let isPortable = await IsMO2Portable(MO2EXEPath);
+    const isPortable = await IsMO2Portable(MO2EXEPath);
     let instanceInfos: MO2InstanceInfo[] = [];
     if (isPortable) {
-        let instanceInfo = await GetMO2InstanceInfo(_portableExeIni(MO2EXEPath));
+        const instanceInfo = await GetMO2InstanceInfo(_portableExeIni(MO2EXEPath));
         instanceInfos = instanceInfo ? [instanceInfo] : [];
     } else {
         instanceInfos = await FindGlobalInstances(gameId, ...addtionalIds);
@@ -528,15 +527,15 @@ export async function FindAllKnownMO2EXEandInstanceLocations(
     gameID?: MO2LongGameID,
     ...additionalIds: MO2LongGameID[]
 ): Promise<MO2Location[]> {
-    let possibleLocations: MO2Location[] = [];
-    let exeLocations = await GetMO2EXELocations(gameID, ...additionalIds);
+    const possibleLocations: MO2Location[] = [];
+    const exeLocations = await GetMO2EXELocations(gameID, ...additionalIds);
     if (exeLocations.length !== 0) {
-        let globalInstances = (await FindGlobalInstances(gameID)) || [];
-        for (let exeLocation of exeLocations) {
+        const globalInstances = (await FindGlobalInstances(gameID)) || [];
+        for (const exeLocation of exeLocations) {
             let instanceInfos: MO2InstanceInfo[] | undefined = undefined;
-            let isPortable = await IsMO2Portable(exeLocation);
+            const isPortable = await IsMO2Portable(exeLocation);
             if (isPortable) {
-                let instanceInfo = await GetMO2InstanceInfo(_portableExeIni(exeLocation));
+                const instanceInfo = await GetMO2InstanceInfo(_portableExeIni(exeLocation));
                 instanceInfos = instanceInfo ? [instanceInfo] : [];
             } else {
                 instanceInfos = globalInstances;
@@ -555,7 +554,7 @@ export async function FindAllKnownMO2EXEandInstanceLocations(
 }
 
 function GetNXMHandlerIniPath(): string | undefined {
-    let global = GetGlobalMO2DataFolder();
+    const global = GetGlobalMO2DataFolder();
     if (global === undefined) {
         return undefined;
     }
@@ -563,7 +562,7 @@ function GetNXMHandlerIniPath(): string | undefined {
 }
 
 export async function FindNXMHandlerIniPath(): Promise<string | undefined> {
-    let nxmHandlerIniPath = GetNXMHandlerIniPath();
+    const nxmHandlerIniPath = GetNXMHandlerIniPath();
     if (nxmHandlerIniPath === undefined || !existsSync(nxmHandlerIniPath)) {
         return undefined;
     }
@@ -571,7 +570,7 @@ export async function FindNXMHandlerIniPath(): Promise<string | undefined> {
 }
 
 export async function IsInstanceOfGame(gameID: MO2LongGameID, instanceIniPath: string): Promise<boolean> {
-    let iniData = await ParseIniFile(instanceIniPath);
+    const iniData = await ParseIniFile(instanceIniPath);
     if (iniData === undefined) {
         return false;
     }
@@ -587,8 +586,8 @@ function _isInstanceOfGames(
         return false;
     }
 
-    let gameIDs = [gameID, ...additionalIds];
-    for (let id of gameIDs) {
+    const gameIDs = [gameID, ...additionalIds];
+    for (const id of gameIDs) {
         if (instanceIniData.General.gameName === id) {
             return true;
         }
@@ -597,17 +596,17 @@ function _isInstanceOfGames(
 }
 
 export async function FindGlobalInstance(name: string): Promise<MO2InstanceInfo | undefined> {
-    let globalFolder = GetGlobalMO2DataFolder();
+    const globalFolder = GetGlobalMO2DataFolder();
     if (globalFolder === undefined || (!existsSync(globalFolder) && !fs.statSync(globalFolder).isDirectory())) {
         return undefined;
     }
-    let instanceNames = readdirSync(globalFolder, { withFileTypes: true });
-    let instance = instanceNames.find((dirent) => dirent.isDirectory() && dirent.name === name);
+    const instanceNames = readdirSync(globalFolder, { withFileTypes: true });
+    const instance = instanceNames.find((dirent) => dirent.isDirectory() && dirent.name === name);
     if (instance === undefined) {
         return undefined;
     }
-    let instanceIniPath = path.join(globalFolder, instance.name, InstanceIniName);
-    let iniData = await ParseIniFile(instanceIniPath);
+    const instanceIniPath = path.join(globalFolder, instance.name, InstanceIniName);
+    const iniData = await ParseIniFile(instanceIniPath);
     if (!iniData) {
         return undefined;
     }
@@ -618,24 +617,24 @@ export async function FindGlobalInstances(
     gameId?: MO2LongGameID,
     ...additionalIds: MO2LongGameID[]
 ): Promise<MO2InstanceInfo[]> {
-    let possibleLocations: MO2InstanceInfo[] = [];
-    let globalFolder = GetGlobalMO2DataFolder();
+    const possibleLocations: MO2InstanceInfo[] = [];
+    const globalFolder = GetGlobalMO2DataFolder();
     // list all the directories in globalMO2Data
     if (globalFolder === undefined || (!existsSync(globalFolder) && !fs.statSync(globalFolder).isDirectory())) {
         return [];
     }
-    let instanceNames = readdirSync(globalFolder, { withFileTypes: true });
-    for (let dirent of instanceNames) {
+    const instanceNames = readdirSync(globalFolder, { withFileTypes: true });
+    for (const dirent of instanceNames) {
         if (dirent.isDirectory()) {
-            let instanceIniPath = path.join(globalFolder, dirent.name, InstanceIniName);
-            let iniData = await ParseIniFile(instanceIniPath);
+            const instanceIniPath = path.join(globalFolder, dirent.name, InstanceIniName);
+            const iniData = await ParseIniFile(instanceIniPath);
             if (!iniData) {
                 continue;
             }
             if (gameId !== undefined && !_isInstanceOfGames(iniData, gameId, ...additionalIds)) {
                 continue;
             }
-            let info = ParseInstanceINI(instanceIniPath, iniData, false);
+            const info = ParseInstanceINI(instanceIniPath, iniData, false);
             if (info !== undefined) {
                 possibleLocations.push(info);
             }
@@ -646,7 +645,7 @@ export async function FindGlobalInstances(
 
 export async function GetCurrentGlobalInstance(): Promise<MO2InstanceInfo | undefined> {
     // HKEY_CURRENT_USER\SOFTWARE\Mod Organizer Team\Mod Organizer\CurrentInstance
-    let currentInstanceName = await getRegistryValueData(
+    const currentInstanceName = await getRegistryValueData(
         'SOFTWARE\\Mod Organizer Team\\Mod Organizer',
         'CurrentInstance',
         'HKCU'
@@ -687,14 +686,14 @@ export async function GetCurrentGlobalInstance(): Promise<MO2InstanceInfo | unde
  */
 
 export function ParseModListText(modListContents: string): ModListItem[] {
-    let modlist = new Array<ModListItem>();
+    const modlist = new Array<ModListItem>();
     const modlistLines = modListContents.replace(/\r\n/g, '\n').split('\n');
-    for (let line of modlistLines) {
+    for (const line of modlistLines) {
         if (line.charAt(0) === '#' || line === '') {
             continue;
         }
-        let indic = line.charAt(0);
-        let modName = line.substring(1);
+        const indic = line.charAt(0);
+        const modName = line.substring(1);
         let modEnabledState: ModEnabledState | undefined = undefined;
         switch (indic) {
             case '+':
@@ -730,9 +729,9 @@ export async function ParseModListFile(modlistPath: string): Promise<ModListItem
 // parse moshortcut URI
 
 export function parseMoshortcutURI(moshortcutURI: string): { instanceName: string; exeName: string } {
-    let moshortcutparts = moshortcutURI.replace('moshortcut://', '').split(':');
-    let instanceName = moshortcutparts[0] || 'portable';
-    let exeName = moshortcutparts[1];
+    const moshortcutparts = moshortcutURI.replace('moshortcut://', '').split(':');
+    const instanceName = moshortcutparts[0] || 'portable';
+    const exeName = moshortcutparts[1];
     return { instanceName, exeName };
 }
 
@@ -747,13 +746,12 @@ export function checkIfModExistsAndEnabled(modlist: Array<ModListItem>, modName:
  * @returns
  */
 
-
 export function IndexOfModList(modlist: Array<ModListItem>, modName: string) {
     return modlist.findIndex((m) => m.name === modName);
 }
 
 export function RemoveMod(modlist: Array<ModListItem>, modName: string) {
-    let modIndex = modlist.findIndex((m) => m.name === modName);
+    const modIndex = modlist.findIndex((m) => m.name === modName);
     if (modIndex !== -1) {
         return modlist.slice(0, modIndex).concat(modlist.slice(modIndex + 1));
     }
@@ -762,7 +760,7 @@ export function RemoveMod(modlist: Array<ModListItem>, modName: string) {
 
 export function AddModToBeginningOfModList(modlist: Array<ModListItem>, mod: ModListItem) {
     // check if the mod is already in the modlist
-    let modIndex = modlist.findIndex((m) => m.name === mod.name);
+    const modIndex = modlist.findIndex((m) => m.name === mod.name);
     if (modIndex !== -1) {
         // if the mod is already in the modlist, remove it and return the modlist with the specified mod at the top
         return [mod].concat(modlist.slice(0, modIndex).concat(modlist.slice(modIndex + 1)));
@@ -772,7 +770,7 @@ export function AddModToBeginningOfModList(modlist: Array<ModListItem>, mod: Mod
 
 export function AddModIfNotInModList(modlist: Array<ModListItem>, mod: ModListItem) {
     // check if the mod is already in the modlist
-    let modIndex = IndexOfModList(modlist, mod.name);
+    const modIndex = IndexOfModList(modlist, mod.name);
     if (modIndex === -1) {
         // if the mod is not already in the modlist, add it at the beginning
         return [mod].concat(modlist);
@@ -782,11 +780,11 @@ export function AddModIfNotInModList(modlist: Array<ModListItem>, mod: ModListIt
 }
 
 export function AddOrEnableModInModList(modlist: Array<ModListItem>, modName: string) {
-    let modIndex = modlist.findIndex((m) => m.name === modName);
+    const modIndex = modlist.findIndex((m) => m.name === modName);
     if (modIndex !== -1) {
-        return modlist.slice(0, modIndex).concat(
-            new ModListItem(modName, ModEnabledState.enabled),
-            modlist.slice(modIndex + 1));
+        return modlist
+            .slice(0, modIndex)
+            .concat(new ModListItem(modName, ModEnabledState.enabled), modlist.slice(modIndex + 1));
     }
     return AddModToBeginningOfModList(modlist, new ModListItem(modName, ModEnabledState.enabled));
 }
@@ -794,14 +792,14 @@ export function AddOrEnableModInModList(modlist: Array<ModListItem>, modName: st
 // modlist.txt has to be in CRLF, because MO2 is cursed
 export function ModListToText(modlist: Array<ModListItem>) {
     let modlistText = '# This file was automatically generated by Mod Organizer.\r\n';
-    for (let mod of modlist) {
+    for (const mod of modlist) {
         modlistText += mod.enabled + mod.name + '\r\n';
     }
     return modlistText;
 }
 
 export function WriteChangesToModListFile(modlistPath: string, modlist: Array<ModListItem>) {
-    let modlistContents = ModListToText(modlist);
+    const modlistContents = ModListToText(modlist);
     fs.rmSync(modlistPath, { force: true });
     if (!openSync(modlistPath, 'w')) {
         return false;
@@ -819,7 +817,7 @@ export function WriteChangesToModListFile(modlistPath: string, modlist: Array<Mo
  * cmd.exe ends up mangling the arguments if they contain quote-literals.
  */
 export function ParseMO2CmdLineArguments(normargstring: string) {
-    let args: string[] = [];
+    const args: string[] = [];
     let arg = '';
     let inQuote = false;
     for (let i = 0; i < normargstring.length; i++) {
@@ -906,13 +904,10 @@ export function ParseMO2CmdLineArguments(normargstring: string) {
  * - [installedFiles].size
  */
 
-export function isKeyOfObject<T extends Object>(
-    key: string | number | symbol,
-    obj: T,
-  ): key is keyof T {
+export function isKeyOfObject<T extends Object>(key: string | number | symbol, obj: T): key is keyof T {
     return key in obj;
-  }
-  
+}
+
 function ParseModMetaIni(modMetaIni: INIData): MO2ModMeta | undefined {
     if (!modMetaIni) {
         return undefined;
@@ -932,23 +927,23 @@ function ParseModMetaIni(modMetaIni: INIData): MO2ModMeta | undefined {
     ) {
         return undefined;
     }
-    let general = modMetaIni.General;
+    const general = modMetaIni.General;
     // check if each key in general is a key in the type MO2ModMeta
-    let modMeta = {} as any;
-    for (let key in general) {
+    const modMeta = {} as any;
+    for (const key in general) {
         if (isKeyOfObject(key, general as MO2ModMeta)) {
             modMeta[key] = general[key];
         }
     }
-    let installedFilesSize = modMetaIni.installedFiles.size;
+    const installedFilesSize = modMetaIni.installedFiles.size;
     if (!installedFilesSize) {
         return undefined;
     }
-    let installedFiles = ParseIniArray(modMetaIni.installedFiles);
+    const installedFiles = ParseIniArray(modMetaIni.installedFiles);
     if (!installedFiles) {
         return undefined;
     }
-    modMeta["installedFiles"] = installedFiles.map((installedFile) => {
+    modMeta['installedFiles'] = installedFiles.map((installedFile) => {
         return {
             modid: installedFile.modid,
             fileid: installedFile.fileid,
@@ -958,11 +953,11 @@ function ParseModMetaIni(modMetaIni: INIData): MO2ModMeta | undefined {
 }
 
 export function SerializeModMetaInfo(info: MO2ModMeta) {
-    let ini = {} as INIData;
+    const ini = {} as INIData;
     ini.General = {} as INIData;
     Object.keys(info).forEach((key) => {
         if (key !== 'installedFiles' && info[key as keyof MO2ModMeta] !== undefined) {
-            ini.General[key] = info[key as keyof MO2ModMeta];    
+            ini.General[key] = info[key as keyof MO2ModMeta];
         }
     });
     ini.installedFiles = SerializeIniArray(info.installedFiles);
@@ -970,7 +965,7 @@ export function SerializeModMetaInfo(info: MO2ModMeta) {
 }
 
 export async function ParseModMetaIniFile(modMetaIniPath: string) {
-    let modMetaIni = await ParseIniFile(modMetaIniPath);
+    const modMetaIni = await ParseIniFile(modMetaIniPath);
     if (!modMetaIni) {
         return undefined;
     }
@@ -978,5 +973,5 @@ export async function ParseModMetaIniFile(modMetaIniPath: string) {
 }
 
 export function AddSeparatorToBeginningOfModList(name: string, modList: ModListItem[]): ModListItem[] {
-    return AddModIfNotInModList(modList, new ModListItem(name + "_separator", ModEnabledState.disabled)) 
+    return AddModIfNotInModList(modList, new ModListItem(name + '_separator', ModEnabledState.disabled));
 }

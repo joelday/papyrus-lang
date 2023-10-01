@@ -3,7 +3,7 @@ import { workspace, FileSystemWatcher, OutputChannel } from 'vscode';
 
 import { DocumentScriptInfo, documentScriptInfoRequestType } from './messages/DocumentScriptInfo';
 import { DocumentSyntaxTree, documentSyntaxTreeRequestType } from './messages/DocumentSyntaxTree';
-import { PapyrusGame } from "../PapyrusGame";
+import { PapyrusGame } from '../PapyrusGame';
 import { toCommandLineArgs } from '../Utilities';
 import { ProjectInfos, projectInfosRequestType } from './messages/ProjectInfos';
 import { Observable, BehaviorSubject } from 'rxjs';

@@ -1,5 +1,5 @@
 import { getReleases } from '@terascope/fetch-github-release/dist/src/getReleases';
-import { GithubRelease, GithubReleaseAsset } from '@terascope/fetch-github-release/dist/src/interfaces';
+import { GithubRelease } from '@terascope/fetch-github-release/dist/src/interfaces';
 import { downloadRelease } from '@terascope/fetch-github-release/dist/src/downloadRelease';
 import { getLatest } from '@terascope/fetch-github-release/dist/src/getLatest';
 import * as fs from 'fs';
@@ -19,7 +19,6 @@ export enum DownloadResult {
     cancelled,
 }
 
-
 /**
  * Downloads all assets from a specific release
  * @param githubUserName The name of the user or organization that owns the repo
@@ -30,13 +29,25 @@ export enum DownloadResult {
  * @throws An error if the repo does not exist or the release does not exist
  * @throws An error if the release has multiple assets with the same name
  * @throws An error if the download fails
-*/
-export async function downloadAssetsFromGitHub(githubUserName: string, repoName: string, releaseId: number, downloadFolder: string): Promise<string[] | undefined> {
-  const paths = await downloadRelease(githubUserName, repoName, downloadFolder, (release) => release.id == releaseId, undefined, true);
-  if (!paths || paths.length == 0){
-    return undefined;
-  }
-  return paths;
+ */
+export async function downloadAssetsFromGitHub(
+    githubUserName: string,
+    repoName: string,
+    releaseId: number,
+    downloadFolder: string
+): Promise<string[] | undefined> {
+    const paths = await downloadRelease(
+        githubUserName,
+        repoName,
+        downloadFolder,
+        (release) => release.id == releaseId,
+        undefined,
+        true
+    );
+    if (!paths || paths.length == 0) {
+        return undefined;
+    }
+    return paths;
 }
 
 /**
@@ -52,12 +63,25 @@ export async function downloadAssetsFromGitHub(githubUserName: string, repoName:
  * @throws An error if the download fails
  * @throws An error if the asset does not exist in the release
  */
-export async function downloadAssetFromGitHub(githubUserName: string, repoName: string, release_id: number, assetFileName: string, downloadFolder: string): Promise<string| undefined>{
-  const paths = await downloadRelease(githubUserName, repoName, downloadFolder, (release) => release.id == release_id, (asset) => asset.name === assetFileName, true);
-  return (paths && paths.length > 0) ? paths[0] : undefined;
+export async function downloadAssetFromGitHub(
+    githubUserName: string,
+    repoName: string,
+    release_id: number,
+    assetFileName: string,
+    downloadFolder: string
+): Promise<string | undefined> {
+    const paths = await downloadRelease(
+        githubUserName,
+        repoName,
+        downloadFolder,
+        (release) => release.id == release_id,
+        (asset) => asset.name === assetFileName,
+        true
+    );
+    return paths && paths.length > 0 ? paths[0] : undefined;
 }
 
-/** 
+/**
  * Downloads a specific asset from a specific release and checks the hash
  * @param githubUserName The name of the user or organization that owns the repo
  * @param repoName The name of the repo
@@ -81,7 +105,7 @@ export async function DownloadAssetAndCheckHash(
     } catch (e) {
         return DownloadResult.downloadFailure;
     }
-    if (!dlPath || !await exists(dlPath)) {
+    if (!dlPath || !(await exists(dlPath))) {
         return DownloadResult.downloadFailure;
     }
     if (!CheckHashFile(dlPath, expectedSha256Sum)) {
@@ -91,12 +115,16 @@ export async function DownloadAssetAndCheckHash(
     return DownloadResult.success;
 }
 
-export async function GetLatestReleaseFromRepo(githubUserName: string, repoName: string, prerelease: boolean = false): Promise<GithubRelease | undefined> {
-  // if pre-releases == false, filter out pre-releases
-  const releaseFilter = !prerelease ? (release: GithubRelease) => release.prerelease == false : undefined;
-  const latestRelease = await getLatest(await getReleases(githubUserName, repoName), releaseFilter);
-  if (!latestRelease) {
-      return undefined;
-  }
-  return latestRelease;
+export async function GetLatestReleaseFromRepo(
+    githubUserName: string,
+    repoName: string,
+    prerelease: boolean = false
+): Promise<GithubRelease | undefined> {
+    // if pre-releases == false, filter out pre-releases
+    const releaseFilter = !prerelease ? (release: GithubRelease) => release.prerelease == false : undefined;
+    const latestRelease = await getLatest(await getReleases(githubUserName, repoName), releaseFilter);
+    if (!latestRelease) {
+        return undefined;
+    }
+    return latestRelease;
 }

@@ -1,12 +1,12 @@
 import { Disposable, OutputChannel, window, TextDocument } from 'vscode';
 
 import { LanguageClient, ILanguageClient, IToolArguments } from './LanguageClient';
-import { PapyrusGame, getShortDisplayNameForGame, getDefaultFlagsFileNameForGame } from "../PapyrusGame";
+import { PapyrusGame, getShortDisplayNameForGame, getDefaultFlagsFileNameForGame } from '../PapyrusGame';
 import { IGameConfig } from '../ExtensionConfigProvider';
 import { Observable, BehaviorSubject, of } from 'rxjs';
 import { ICreationKitInfo } from '../CreationKitInfoProvider';
 import { DocumentScriptInfo } from './messages/DocumentScriptInfo';
-import { shareReplay, take, map, switchMap } from 'rxjs/operators';
+import { shareReplay, take, switchMap } from 'rxjs/operators';
 import { IPathResolver } from '../common/PathResolver';
 import { ProjectInfos } from './messages/ProjectInfos';
 import { inject } from 'inversify';

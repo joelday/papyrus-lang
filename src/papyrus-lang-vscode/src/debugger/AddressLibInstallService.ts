@@ -1,12 +1,10 @@
 import { inject, injectable, interfaces } from 'inversify';
 import { IPathResolver } from '../common/PathResolver';
 import { PapyrusGame } from '../PapyrusGame';
-import {
-    DownloadResult,
-} from '../common/GithubHelpers';
+import { DownloadResult } from '../common/GithubHelpers';
 import { CancellationToken, CancellationTokenSource } from 'vscode';
 
-import * as AddLib from './AddLibHelpers'
+import * as AddLib from './AddLibHelpers';
 
 export enum AddressLibDownloadedState {
     notDownloaded,
@@ -38,16 +36,16 @@ export interface IAddressLibraryInstallService {
 export class AddressLibraryInstallService implements IAddressLibraryInstallService {
     private readonly _pathResolver: IPathResolver;
 
-    constructor(
-        @inject(IPathResolver) pathResolver: IPathResolver
-    ) {
+    constructor(@inject(IPathResolver) pathResolver: IPathResolver) {
         this._pathResolver = pathResolver;
     }
 
-    public async DownloadLatestAddressLibs(cancellationToken = new CancellationTokenSource().token): Promise<DownloadResult> {
+    public async DownloadLatestAddressLibs(
+        cancellationToken = new CancellationTokenSource().token
+    ): Promise<DownloadResult> {
         const addressLibDownloadPath = await this._pathResolver.getAddressLibraryDownloadFolder();
         const addressLibDLJSONPath = await this._pathResolver.getAddressLibraryDownloadJSON();
-        let status = await AddLib.DownloadLatestAddressLibs(
+        const status = await AddLib.DownloadLatestAddressLibs(
             addressLibDownloadPath,
             addressLibDLJSONPath,
             cancellationToken
@@ -101,7 +99,6 @@ export class AddressLibraryInstallService implements IAddressLibraryInstallServi
         return AddressLibDownloadedState.latest;
     }
 
-
     /**
      * Right now, this just checks if the address libraries are installed or not
      * It returns either "Installed" or "Not Installed".
@@ -148,7 +145,7 @@ export class AddressLibraryInstallService implements IAddressLibraryInstallServi
             return false;
         }
         const addressLibDownloadPath = await this._pathResolver.getAddressLibraryDownloadFolder();
-        let downloadedState = await this.getDownloadedState();
+        const downloadedState = await this.getDownloadedState();
         if (downloadedState === AddressLibDownloadedState.notDownloaded) {
             if (forceDownload) {
                 if ((await this.DownloadLatestAddressLibs(cancellationToken)) != DownloadResult.success) {

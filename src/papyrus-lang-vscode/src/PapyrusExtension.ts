@@ -26,10 +26,10 @@ import { GenerateProjectCommand } from './features/commands/GenerateProjectComma
 import { showWelcome } from './features/WelcomeHandler';
 import { ShowWelcomeCommand } from './features/commands/ShowWelcomeCommand';
 import { Container } from 'inversify';
-import { IDebugLauncherService, DebugLauncherService } from "./debugger/DebugLauncherService";
-import { IAddressLibraryInstallService, AddressLibraryInstallService } from "./debugger/AddressLibInstallService";
-import { IMO2LaunchDescriptorFactory, MO2LaunchDescriptorFactory } from "./debugger/MO2LaunchDescriptorFactory";
-import { IMO2ConfiguratorService, MO2ConfiguratorService } from "./debugger/MO2ConfiguratorService";
+import { IDebugLauncherService, DebugLauncherService } from './debugger/DebugLauncherService';
+import { IAddressLibraryInstallService, AddressLibraryInstallService } from './debugger/AddressLibInstallService';
+import { IMO2LaunchDescriptorFactory, MO2LaunchDescriptorFactory } from './debugger/MO2LaunchDescriptorFactory';
+import { IMO2ConfiguratorService, MO2ConfiguratorService } from './debugger/MO2ConfiguratorService';
 
 class PapyrusExtension implements Disposable {
     private readonly _serviceContainer: Container;

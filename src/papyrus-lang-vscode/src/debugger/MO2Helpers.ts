@@ -1,11 +1,6 @@
-import { exists, existsSync } from 'fs';
-import path, { normalize } from 'path';
-import {
-    getExecutableNameForGame,
-    getGameIniName,
-    getScriptExtenderExecutableName,
-    getScriptExtenderName,
-} from '../PapyrusGame';
+import { existsSync } from 'fs';
+import path from 'path';
+import { getGameIniName } from '../PapyrusGame';
 import { PapyrusGame } from '../PapyrusGame';
 import { PDSModName } from '../common/constants';
 import { DetermineGameVariant, FindUserGamePath, getAddressLibNames } from '../common/GameHelpers';
@@ -45,7 +40,7 @@ export function checkPDSModExistsAndEnabled(modlist: Array<MO2Lib.ModListItem>) 
 
 export function checkAddressLibrariesExistAndEnabled(modlist: Array<MO2Lib.ModListItem>, game: PapyrusGame) {
     const names = getAddressLibNames(game);
-    for (let name of names) {
+    for (const name of names) {
         if (!MO2Lib.checkIfModExistsAndEnabled(modlist, name)) {
             return false;
         }
@@ -63,12 +58,11 @@ export function AddRequiredModsToModList(p_modlist: Array<MO2Lib.ModListItem>, g
             modlist = MO2Lib.AddOrEnableModInModList(modlist, PDSModName);
         }
         if (addlibsNeeded) {
-            let addressLibraryMods = getAddressLibNames(game).map(
+            const addressLibraryMods = getAddressLibNames(game).map(
                 (d) => new MO2Lib.ModListItem(d, MO2Lib.ModEnabledState.enabled)
             );
             modlist = addressLibraryMods.reduce(
-                (_modlist, mod) =>
-                    MO2Lib.AddOrEnableModInModList(_modlist, mod.name),
+                (_modlist, mod) => MO2Lib.AddOrEnableModInModList(_modlist, mod.name),
                 modlist
             );
         }
@@ -77,7 +71,7 @@ export function AddRequiredModsToModList(p_modlist: Array<MO2Lib.ModListItem>, g
 }
 
 export function GetMO2GameShortIdentifier(game: PapyrusGame): string {
-    let gamestring =
+    const gamestring =
         game === PapyrusGame.skyrimSpecialEdition ? 'skyrimse' : PapyrusGame[game].toLowerCase().replace(/ /g, '');
     return gamestring;
 }
@@ -98,26 +92,26 @@ export async function WasGameLaunchedWithMO2(game: PapyrusGame) {
     }
     const pid = pids[0];
     // get env from process
-    let otherEnv = await getEnvFromProcess(pid);
+    const otherEnv = await getEnvFromProcess(pid);
     if (!otherEnv) {
         return false;
     }
-    let pathVar: string = otherEnv['Path'];
+    const pathVar: string = otherEnv['Path'];
     if (!pathVar) {
         return false;
     }
-    let pathVarSplit = pathVar.split(';');
+    const pathVarSplit = pathVar.split(';');
     if (pathVarSplit.length === 0 || !pathVarSplit[0]) {
         return false;
     }
-    let firstPath = path.normalize(pathVarSplit[0]);
+    const firstPath = path.normalize(pathVarSplit[0]);
     if (!firstPath) {
         return false;
     }
-    let basename = path.basename(firstPath);
+    const basename = path.basename(firstPath);
     if (basename.toLowerCase() === 'dlls') {
-        let parentdir = path.dirname(firstPath);
-        let MO2EXEPath = path.join(parentdir, MO2Lib.MO2EXEName);
+        const parentdir = path.dirname(firstPath);
+        const MO2EXEPath = path.join(parentdir, MO2Lib.MO2EXEName);
         if (existsSync(MO2EXEPath)) {
             return true;
         }
@@ -129,8 +123,8 @@ export async function GetPossibleMO2InstancesForModFolder(
     modsFolder: string,
     game: PapyrusGame
 ): Promise<MO2Lib.MO2InstanceInfo[] | undefined> {
-    let gameId = GetMO2GameID(game);
-    let instances = (await MO2Lib.FindAllKnownMO2EXEandInstanceLocations(gameId)).reduce((acc, val) => {
+    const gameId = GetMO2GameID(game);
+    const instances = (await MO2Lib.FindAllKnownMO2EXEandInstanceLocations(gameId)).reduce((acc, val) => {
         // Combine all the instances together, check to see if the mods folder is in the instance
         return acc.concat(val.instances.filter((d) => d.modsFolder === modsFolder));
     }, [] as Array<MO2Lib.MO2InstanceInfo>);
@@ -138,7 +132,7 @@ export async function GetPossibleMO2InstancesForModFolder(
         return undefined;
     }
     //filter out the dupes from instances by comparing iniPaths
-    let filteredInstances = instances.filter((d, i) => {
+    const filteredInstances = instances.filter((d, i) => {
         return instances.findIndex((e) => e.iniPath === d.iniPath) === i;
     });
     return filteredInstances;
@@ -153,7 +147,7 @@ export async function getGameINIFromMO2Profile(
     // if [General] LocalSettings=false, then the game ini is in the global game save folder
     // if [General] LocalSettings=true, then the game ini is in the profile folder
 
-    const settingsFile = path.join(profileFolder, 'settings.ini')
+    const settingsFile = path.join(profileFolder, 'settings.ini');
     const settingsIniData = await getMO2ProfileSettingsData(settingsFile);
     if (!settingsIniData) {
         throw new Error(`Could not get settings ini data`);
@@ -208,13 +202,13 @@ export async function getMO2ProfileSettingsData(settingsIniPath: string): Promis
 export async function isMO2Running() {
     return (await getPIDforProcessName(MO2Lib.MO2EXEName)).length > 0;
 }
-export async function isMO2ButNotThisOneRunning(MO2EXEPath: string){
+export async function isMO2ButNotThisOneRunning(MO2EXEPath: string) {
     const pids = await getPIDforProcessName(MO2Lib.MO2EXEName);
     if (pids.length === 0) {
         return false;
     }
     const ourPids = await getPIDsforFullPath(MO2EXEPath);
-    if (ourPids.length === 0 ) {
+    if (ourPids.length === 0) {
         return true;
     }
     return pids.some((pid) => ourPids.indexOf(pid) === -1);

@@ -46,13 +46,13 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
         this._configProvider = configProvider;
         this._pathResolver = pathResolver;
     }
-    private _getMMPluginInstallPath(game: PapyrusGame, modsDir: string ): string {
+    private _getMMPluginInstallPath(game: PapyrusGame, modsDir: string): string {
         return path.join(
             modsDir,
             PDSModName,
             PathResolver._getModMgrExtenderPluginRelativePath(game),
             getPluginDllName(game, false)
-        )
+        );
     }
     // TODO: Refactor this properly, right now it's just hacked to work with MO2LaunchDescriptor
     async getInstallState(game: PapyrusGame, modsDir: string | undefined): Promise<DebugSupportInstallState> {

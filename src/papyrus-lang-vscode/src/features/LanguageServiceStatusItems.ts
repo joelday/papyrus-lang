@@ -1,6 +1,6 @@
 import { ILanguageClientManager } from '../server/LanguageClientManager';
 import { StatusBarItem, Disposable, window, StatusBarAlignment, TextEditor } from 'vscode';
-import { PapyrusGame, getGames, getShortDisplayNameForGame, getDisplayNameForGame } from "../PapyrusGame";
+import { PapyrusGame, getGames, getShortDisplayNameForGame, getDisplayNameForGame } from '../PapyrusGame';
 import { Observable, Unsubscribable, combineLatest as combineLatest, ObservableInput, ObservedValueOf } from 'rxjs';
 import { ILanguageClientHost, ClientHostStatus } from '../server/LanguageClientHost';
 import { mergeMap, shareReplay } from 'rxjs/operators';

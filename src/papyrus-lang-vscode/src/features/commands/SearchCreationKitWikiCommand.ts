@@ -1,7 +1,7 @@
 import { EditorCommandBase } from '../../common/vscode/commands/EditorCommandBase';
 import { TextEditor, env, Uri, window } from 'vscode';
 import { ILanguageClientManager } from '../../server/LanguageClientManager';
-import { PapyrusGame } from "../../PapyrusGame";
+import { PapyrusGame } from '../../PapyrusGame';
 import { inject, injectable } from 'inversify';
 
 @injectable()

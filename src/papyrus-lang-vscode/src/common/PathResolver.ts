@@ -78,9 +78,9 @@ export class PathResolver implements IPathResolver {
     /************************************************************************* */
 
     public async getDebugPluginBundledPath(game: PapyrusGame) {
-        let dll = getPluginDllName(game);
-        if (!dll){
-            throw new Error("Debugging not supported for game " + game);
+        const dll = getPluginDllName(game);
+        if (!dll) {
+            throw new Error('Debugging not supported for game ' + game);
         }
         return this._asExtensionAbsolutePath(path.join(bundledPluginPath, dll));
     }
@@ -205,7 +205,7 @@ export function getPluginDllName(game: PapyrusGame, legacy = false) {
         case PapyrusGame.skyrimSpecialEdition:
             return 'DarkId.Papyrus.DebugServer.Skyrim.dll';
         default:
-            throw new Error("Debugging not supported for game " + game);
+            throw new Error('Debugging not supported for game ' + game);
     }
 }
 
@@ -249,7 +249,7 @@ async function resolveUserGamePath(
     installPath: string,
     context: ExtensionContext
 ): Promise<string | null> {
-    let _installPath : string | null = installPath;
+    let _installPath: string | null = installPath;
     if (!(await exists(installPath))) {
         _installPath = await resolveInstallPath(game, installPath, context);
     }

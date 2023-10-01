@@ -89,35 +89,35 @@ export function getExecutableNameForGame(game: PapyrusGame) {
 }
 
 export function getGameIniName(game: PapyrusGame): string {
-    return game == PapyrusGame.fallout4 ? 'fallout4.ini' :'skyrim.ini';
+    return game == PapyrusGame.fallout4 ? 'fallout4.ini' : 'skyrim.ini';
 }
 
 // TODO: Support VR
 export enum GameVariant {
-    Steam = "Steam",
-    GOG = "GOG",
-    Epic = "Epic Games"
+    Steam = 'Steam',
+    GOG = 'GOG',
+    Epic = 'Epic Games',
 }
 
 /**
  * returns the name of the Game Save folder for the given variant
- * @param variant 
- * @returns 
+ * @param variant
+ * @returns
  */
-export function GetUserGameFolderName(game: PapyrusGame, variant: GameVariant){
+export function GetUserGameFolderName(game: PapyrusGame, variant: GameVariant) {
     switch (game) {
         case PapyrusGame.fallout4:
-            return "Fallout4";
+            return 'Fallout4';
         case PapyrusGame.skyrim:
-            return "Skyrim";
+            return 'Skyrim';
         case PapyrusGame.skyrimSpecialEdition:
             switch (variant) {
                 case GameVariant.Steam:
-                return "Skyrim Special Edition";
+                    return 'Skyrim Special Edition';
                 case GameVariant.GOG:
-                return "Skyrim Special Edition GOG";
+                    return 'Skyrim Special Edition GOG';
                 case GameVariant.Epic:
-                return "Skyrim Special Edition EPIC";
+                    return 'Skyrim Special Edition EPIC';
             }
     }
 }

@@ -7,9 +7,7 @@ export class PapyrusDebugAdapterTrackerFactory implements DebugAdapterTrackerFac
     private readonly _debugLauncher: IDebugLauncherService;
     private readonly _registration: Disposable;
 
-    constructor(
-        @inject(IDebugLauncherService) debugLauncher: IDebugLauncherService
-    ) {
+    constructor(@inject(IDebugLauncherService) debugLauncher: IDebugLauncherService) {
         this._debugLauncher = debugLauncher;
         this._registration = debug.registerDebugAdapterTrackerFactory('papyrus', this);
     }
@@ -28,9 +26,7 @@ export class PapyrusDebugAdapterTracker implements DebugAdapterTracker {
 
     private _showErrorMessages = true;
 
-    constructor(session: DebugSession,
-                debugLauncher: IDebugLauncherService
-        ) {
+    constructor(session: DebugSession, debugLauncher: IDebugLauncherService) {
         this._debugLauncher = debugLauncher;
         this._session = session;
     }
