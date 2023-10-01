@@ -523,7 +523,7 @@ namespace DarkId::Papyrus::DebugServer
 			if (tasklet->topFrame)
 			{
 				// We don't need to set the instruction pointer because Fallout 4 assigns the IP every time an opcode is executed
-				g_InstructionExecutionEvent(tasklet, tasklet->topFrame->STACK_FRAME_IP);
+				g_InstructionExecutionEvent(tasklet);
 			}
 		}
 		// TODO: There's a second CreateStack() @ 1427422C0, do we need to hook that?
