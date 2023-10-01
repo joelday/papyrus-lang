@@ -13,6 +13,7 @@ import * as chalk_d from 'chalk';
 import { default as colorizer } from '../../common/colorizer';
 import { default as split } from 'split2';
 import { Event } from '@vscode/debugadapter';
+import * as url from 'url';
 
 const chalk: chalk_d.Chalk = new chalk_d.default.constructor({ enabled: true, level: 2 });
 
@@ -154,7 +155,57 @@ export interface DebugAdapterProxyOptions {
      * Log level for messages from the proxy to the server (default: "trace")
      */
     logProxyToServer?: DAPLogLevel;
+
+    /**
+     * The client capabilities
+     * default:
+     * {
+     *   adapterID: '',
+     *   linesStartAt1: true,
+     *   columnsStartAt1: true,
+     *   pathFormat: 'path',
+     *   supportsVariableType: true
+     *   pathsAreURIs: false
+     * }
+     *
+     */
+    clientCapabilities?: ClientCapabilities;
+
+    /**
+     * The debugger locale
+     * default:
+     * {
+     *  linesStartAt1: true,
+     *  columnsStartAt1: true,
+     *  pathsAreURIs: false
+     * }
+     */
+    debuggerLocale?: DebuggerLocale;
 }
+
+// these are the ones we care about, so we make them mandatory
+export interface ClientCapabilities extends DAP.InitializeRequestArguments {
+    linesStartAt1: boolean;
+    columnsStartAt1: boolean;
+    pathFormat: 'path' | 'uri' | string;
+    supportsVariableType: boolean;
+    pathsAreURIs: boolean;
+}
+
+export interface DebuggerLocale {
+    linesStartAt1: boolean;
+    columnsStartAt1: boolean;
+    pathsAreURIs: boolean;
+}
+
+const DEFAULT_CLIENT_CAPABILITIES: ClientCapabilities = {
+    adapterID: 'DebugAdapterProxy',
+    linesStartAt1: true,
+    columnsStartAt1: true,
+    pathFormat: 'path',
+    supportsVariableType: true,
+    pathsAreURIs: false,
+};
 
 export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
     protected connected = false;
@@ -173,7 +224,7 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
     protected logProxyToServer: DAPLogLevel = 'trace';
     protected consoleLogLevel: DAPLogLevel = 'info';
     protected fileLogLevel: DAPLogLevel = 'trace';
-    protected connectionTimeoutLimit = 20000;
+    protected readonly connectionTimeoutLimit = 12000; // the debugger will disconnect after about 20 seconds, so we need to be faster than that
     protected connectionTimeout: NodeJS.Timeout | undefined;
     protected logDirectory: string;
     protected logFilePath: string;
@@ -182,6 +233,8 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
     protected loggerConsole: pino.Logger;
     protected logFile: stream.Writable;
     protected readonly logStream: stream.PassThrough;
+    protected clientCaps: ClientCapabilities;
+    protected debuggerLocale: DebuggerLocale;
     constructor(options: DebugAdapterProxyOptions) {
         this.port = options.port;
         this.host = options.host;
@@ -191,7 +244,12 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
         this.logProxyToClient = options.logProxyToClient || this.logProxyToClient;
         this.logServerToProxy = options.logServerToProxy || this.logServerToProxy;
         this.logProxyToServer = options.logProxyToServer || this.logProxyToServer;
-
+        this.clientCaps = options.clientCapabilities || DEFAULT_CLIENT_CAPABILITIES;
+        this.debuggerLocale = options.debuggerLocale || {
+            linesStartAt1: true,
+            columnsStartAt1: true,
+            pathsAreURIs: false,
+        };
         const homepath = process.env.HOME;
         this.logDirectory = options.logdir || path.join(homepath!, '.DAPProxy');
         this.logFilePath = this.getLogFilePath(this.logDirectory);
@@ -284,9 +342,10 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
     }
 
     public start() {
-        // set a timeout that kills the server if no connection is established within 20 seconds
+        // set a timeout that kills the server if no connection is established within 12 seconds
         this.connectionTimeout = setTimeout(() => {
-            this._onError.fire(new Error(`Cannot connect to client`));
+            this._onError.fire(new Error(`annot connect to Starfield DAP server`));
+            this.emitOutputEvent('Cannot connect to Starfield DAP server!', 'important');
             this.stop();
         }, this.connectionTimeoutLimit);
         this._socket = net.createConnection(this.port, this.host, () => {
@@ -296,6 +355,7 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
         });
         this._socket.on('close', () => {
             if (this.connected) {
+                this.emitOutputEvent('Connection closed!', 'important');
                 this.stop();
                 this._onError.fire(new Error('connection closed'));
             } else {
@@ -305,6 +365,7 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
 
         this._socket.on('error', (error) => {
             if (this.connected) {
+                this.emitOutputEvent('Connection error!', 'important');
                 this.stop();
                 this._onError.fire(error);
             } else {
@@ -319,7 +380,7 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
         this._socket?.destroy();
     }
 
-    emitOutputEvent(message: string, category: string = 'console') {
+    protected emitOutputEvent(message: string, category: string = 'console') {
         const event = <DAP.OutputEvent>new Event('output');
         event.body = {
             category: category,
@@ -426,6 +487,112 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
 
     protected _isRunningInline() {
         return this._sendMessage && this._sendMessage.hasListener();
+    }
+
+    protected setClientCapabilities(args: DAP.InitializeRequestArguments) {
+        const nargs = args as ClientCapabilities;
+        if (typeof args.adapterID !== 'string') {
+            nargs.adapterID = DEFAULT_CLIENT_CAPABILITIES.adapterID;
+        }
+        if (typeof args.linesStartAt1 !== 'boolean') {
+            nargs.linesStartAt1 = DEFAULT_CLIENT_CAPABILITIES.linesStartAt1;
+        }
+        if (typeof args.columnsStartAt1 !== 'boolean') {
+            nargs.columnsStartAt1 = DEFAULT_CLIENT_CAPABILITIES.columnsStartAt1;
+        }
+        if (typeof args.pathFormat !== 'string') {
+            nargs.pathsAreURIs = DEFAULT_CLIENT_CAPABILITIES.pathsAreURIs;
+            nargs.pathFormat = DEFAULT_CLIENT_CAPABILITIES.pathFormat;
+        } else {
+            nargs.pathsAreURIs = args.pathFormat === 'uri';
+        }
+        if (typeof args.supportsVariableType !== 'boolean') {
+            nargs.columnsStartAt1 = DEFAULT_CLIENT_CAPABILITIES.supportsVariableType;
+        }
+        // set the rest
+        this.clientCaps = nargs;
+    }
+
+    // formatting
+    protected static _formatPIIRegexp = /{([^}]+)}/g;
+    protected static formatPII(format: string, excludePII: boolean, args: { [key: string]: string }): string {
+        return format.replace(DebugAdapterProxy._formatPIIRegexp, function (match, paramName) {
+            if (excludePII && paramName.length > 0 && paramName[0] !== '_') {
+                return match;
+            }
+            return args[paramName] && args.hasOwnProperty(paramName) ? args[paramName] : match;
+        });
+    }
+
+    convertClientLineToDebugger(line: number) {
+        if (this.debuggerLocale.linesStartAt1) {
+            return this.clientCaps.linesStartAt1 ? line : line + 1;
+        }
+        return this.clientCaps.linesStartAt1 ? line - 1 : line;
+    }
+    convertDebuggerLineToClient(line: number) {
+        if (this.debuggerLocale.linesStartAt1) {
+            return this.clientCaps.linesStartAt1 ? line : line - 1;
+        }
+        return this.clientCaps.linesStartAt1 ? line + 1 : line;
+    }
+    convertClientColumnToDebugger(column: number) {
+        if (this.debuggerLocale.columnsStartAt1) {
+            return this.clientCaps.columnsStartAt1 ? column : column + 1;
+        }
+        return this.clientCaps.columnsStartAt1 ? column - 1 : column;
+    }
+    convertDebuggerColumnToClient(column: number) {
+        if (this.debuggerLocale.columnsStartAt1) {
+            return this.clientCaps.columnsStartAt1 ? column : column - 1;
+        }
+        return this.clientCaps.columnsStartAt1 ? column + 1 : column;
+    }
+
+    convertClientPathToDebugger(clientPath: string) {
+        if (this.clientCaps.pathsAreURIs !== this.debuggerLocale.pathsAreURIs) {
+            if (this.clientCaps.pathsAreURIs) {
+                return this.uri2path(clientPath);
+            } else {
+                return this.path2uri(clientPath);
+            }
+        }
+        return clientPath;
+    }
+
+    convertDebuggerPathToClient(debuggerPath: string) {
+        if (this.debuggerLocale.pathsAreURIs !== this.clientCaps.pathsAreURIs) {
+            if (this.debuggerLocale.pathsAreURIs) {
+                return this.uri2path(debuggerPath);
+            } else {
+                return this.path2uri(debuggerPath);
+            }
+        }
+        return debuggerPath;
+    }
+
+    path2uri(path: string) {
+        if (process.platform === 'win32') {
+            if (/^[A-Z]:/.test(path)) {
+                path = path[0].toLowerCase() + path.substr(1);
+            }
+            path = path.replace(/\\/g, '/');
+        }
+        path = encodeURI(path);
+        const uri = new url.URL(`file:`); // ignore 'path' for now
+        uri.pathname = path; // now use 'path' to get the correct percent encoding (see https://url.spec.whatwg.org)
+        return uri.toString();
+    }
+    uri2path(sourceUri: string) {
+        const uri = new url.URL(sourceUri);
+        let s = decodeURIComponent(uri.pathname);
+        if (process.platform === 'win32') {
+            if (/^\/[a-zA-Z]:/.test(s)) {
+                s = s[1].toLowerCase() + s.substr(2);
+            }
+            s = s.replace(/\//g, '\\');
+        }
+        return s;
     }
 
     // ---- implements vscode.Debugadapter interface ---------------------------

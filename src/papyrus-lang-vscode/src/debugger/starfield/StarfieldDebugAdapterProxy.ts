@@ -7,7 +7,6 @@ import { StarfieldDebugProtocol as SFDAP } from './StarfieldDebugProtocol';
 import { DebugAdapterProxy, DebugAdapterProxyOptions, colorize_message } from './DebugAdapterProxy';
 import { Response, Event, Message } from '@vscode/debugadapter/lib/messages';
 import { ScopeNode, StackFrameNode, VariableNode } from './StarfieldNodes';
-import * as url from 'url';
 
 export enum ErrorDestination {
     User = 1,
@@ -37,6 +36,12 @@ interface pendingRequest {
     noLogResponse: boolean;
 }
 
+const STARFIELD_DAP_LOCALE = {
+    linesStartAt1: true,
+    columnsStartAt1: true,
+    pathsAreURIs: false,
+};
+
 export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     private readonly DUMMY_THREAD_NAME = 'DUMMY THREAD';
     private readonly DUMMY_THREAD_OBJ: DAP.Thread = {
@@ -47,6 +52,47 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     private readonly STARFIELD_NAME = 'Starfield';
     private readonly STARFIELD_VERSION = 2;
     private readonly SEND_TO_SERVER_CMD = '@toServer:';
+    private readonly DEBUGGER_CAPABILITIES: DAP.Capabilities = {
+        supportsConfigurationDoneRequest: false,
+        supportsFunctionBreakpoints: false,
+        supportsConditionalBreakpoints: false,
+        supportsHitConditionalBreakpoints: false,
+        supportsEvaluateForHovers: false,
+        exceptionBreakpointFilters: [],
+        supportsStepBack: false,
+        supportsSetVariable: false,
+        supportsRestartFrame: false,
+        supportsGotoTargetsRequest: false,
+        supportsStepInTargetsRequest: false,
+        supportsCompletionsRequest: false,
+        completionTriggerCharacters: [],
+        supportsModulesRequest: false,
+        additionalModuleColumns: [],
+        supportedChecksumAlgorithms: [],
+        supportsRestartRequest: false,
+        supportsExceptionOptions: false,
+        supportsValueFormattingOptions: false,
+        supportsExceptionInfoRequest: false,
+        supportTerminateDebuggee: false,
+        supportSuspendDebuggee: false,
+        supportsDelayedStackTraceLoading: false,
+        supportsLoadedSourcesRequest: false,
+        supportsLogPoints: false,
+        supportsTerminateThreadsRequest: false,
+        supportsSetExpression: false,
+        supportsTerminateRequest: false,
+        supportsDataBreakpoints: false,
+        supportsReadMemoryRequest: false,
+        supportsWriteMemoryRequest: false,
+        supportsDisassembleRequest: false,
+        supportsCancelRequest: false,
+        supportsBreakpointLocationsRequest: false,
+        supportsClipboardContext: false,
+        supportsSteppingGranularity: false,
+        supportsInstructionBreakpoints: false,
+        supportsExceptionFilterOptions: false,
+        supportsSingleThreadExecutionRequests: false,
+    };
 
     private _pendingRequestsMap = new Map<number, pendingRequest>();
     private workspaceFolder: string = '';
@@ -68,22 +114,19 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     private _localScopeVarRefToSelfScopeVarRefMap: Map<number, number> = new Map<number, number>();
 
     private currentSeq: number = 0;
-    private readonly debuggerPathsAreURIs = false;
-    private clientPathsAreURIs: boolean = false;
-    private readonly debuggerColumnsStartAt1 = true;
-    private clientColumnsStartAt1: boolean = true;
-    private readonly debuggerLinesStartAt1 = true;
-    private clientLinesStartAt1: boolean = true;
     constructor(options: StarfieldDebugAdapterProxyOptions) {
         const logdir = path.join(
             process.env.USERPROFILE || process.env.HOME || '.',
             'Documents',
             'My Games',
             'Starfield',
-            'Logs'
+            'Logs',
+            'DAProxy'
         );
         options.logdir = options.logdir || logdir;
+        options.debuggerLocale = STARFIELD_DAP_LOCALE;
         super(options);
+        this.clientCaps.adapterID = 'papyrus';
         this.logClientToProxy = 'trace';
         this.logProxyToServer = 'info';
         this.logServerToProxy = 'silent'; // we take care of this ourselves
@@ -270,7 +313,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         }
 
         response.success = false;
-        response.message = StarfieldDebugAdapterProxy.formatPII(msg.format, true, msg.variables || {});
+        response.message = DebugAdapterProxy.formatPII(msg.format, true, msg.variables || {});
         if (!response.body) {
             response.body = {};
         }
@@ -362,53 +405,11 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 
     protected handleInitializeRequest(request: DAP.InitializeRequest): void {
         const args = request.arguments;
-        if (typeof args.linesStartAt1 === 'boolean') {
-            this.clientLinesStartAt1 = args.linesStartAt1;
-        }
-        if (typeof args.columnsStartAt1 === 'boolean') {
-            this.clientColumnsStartAt1 = args.columnsStartAt1;
-        }
-        if (typeof args.pathFormat === 'string') {
-            this.clientPathsAreURIs = args.pathFormat === 'uri';
-        }
-
+        this.setClientCapabilities(args);
         const response = <DAP.InitializeResponse>new Response(request);
         response.body = response.body || {};
 
-        // Starfield supports NONE OF THESE
-
-        response.body.supportsConditionalBreakpoints = false;
-        response.body.supportsHitConditionalBreakpoints = false;
-        response.body.supportsFunctionBreakpoints = false;
-        response.body.supportsConfigurationDoneRequest = false;
-        response.body.supportsEvaluateForHovers = false;
-        response.body.supportsStepBack = false;
-        response.body.supportsSetVariable = false;
-        response.body.supportsRestartFrame = false;
-        response.body.supportsStepInTargetsRequest = false;
-        response.body.supportsGotoTargetsRequest = false;
-        response.body.supportsCompletionsRequest = false;
-        response.body.supportsRestartRequest = false;
-        response.body.supportsExceptionOptions = false;
-        response.body.supportsValueFormattingOptions = false;
-        response.body.supportsExceptionInfoRequest = false;
-        response.body.supportTerminateDebuggee = false;
-        response.body.supportsDelayedStackTraceLoading = false;
-        response.body.supportsLoadedSourcesRequest = false;
-        response.body.supportsLogPoints = false;
-        response.body.supportsTerminateThreadsRequest = false;
-        response.body.supportsSetExpression = false;
-        response.body.supportsTerminateRequest = false;
-        response.body.supportsDataBreakpoints = false;
-        response.body.supportsReadMemoryRequest = false;
-        response.body.supportsDisassembleRequest = false;
-        response.body.supportsCancelRequest = false;
-        response.body.supportsBreakpointLocationsRequest = false;
-        response.body.supportsClipboardContext = false;
-        response.body.supportsSteppingGranularity = false;
-        response.body.supportsInstructionBreakpoints = false;
-        response.body.supportsExceptionFilterOptions = false;
-        response.body.supportsSingleThreadExecutionRequests = false;
+        response.body = this.DEBUGGER_CAPABILITIES;
         this.loginfo('***PROXY->CLIENT - Sending FAKE initialized response');
         // not forwarding message to the server
         this.sendMessageToClient(response);
@@ -918,88 +919,6 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
      */
     protected handleCustomRequest(request: DAP.Request): void {
         this.sendErrorResponse(new Response(request), 1014, 'unrecognized request', null, ErrorDestination.User);
-    }
-
-    // formatting functions
-    private static _formatPIIRegexp = /{([^}]+)}/g;
-    private static formatPII(format: string, excludePII: boolean, args: { [key: string]: string }): string {
-        return format.replace(StarfieldDebugAdapterProxy._formatPIIRegexp, function (match, paramName) {
-            if (excludePII && paramName.length > 0 && paramName[0] !== '_') {
-                return match;
-            }
-            return args[paramName] && args.hasOwnProperty(paramName) ? args[paramName] : match;
-        });
-    }
-
-    convertClientLineToDebugger(line: number) {
-        if (this.debuggerLinesStartAt1) {
-            return this.clientLinesStartAt1 ? line : line + 1;
-        }
-        return this.clientLinesStartAt1 ? line - 1 : line;
-    }
-    convertDebuggerLineToClient(line: number) {
-        if (this.debuggerLinesStartAt1) {
-            return this.clientLinesStartAt1 ? line : line - 1;
-        }
-        return this.clientLinesStartAt1 ? line + 1 : line;
-    }
-    convertClientColumnToDebugger(column: number) {
-        if (this.debuggerColumnsStartAt1) {
-            return this.clientColumnsStartAt1 ? column : column + 1;
-        }
-        return this.clientColumnsStartAt1 ? column - 1 : column;
-    }
-    convertDebuggerColumnToClient(column: number) {
-        if (this.debuggerColumnsStartAt1) {
-            return this.clientColumnsStartAt1 ? column : column - 1;
-        }
-        return this.clientColumnsStartAt1 ? column + 1 : column;
-    }
-
-    convertClientPathToDebugger(clientPath: string) {
-        if (this.clientPathsAreURIs !== this.debuggerPathsAreURIs) {
-            if (this.clientPathsAreURIs) {
-                return this.uri2path(clientPath);
-            } else {
-                return this.path2uri(clientPath);
-            }
-        }
-        return clientPath;
-    }
-
-    convertDebuggerPathToClient(debuggerPath: string) {
-        if (this.debuggerPathsAreURIs !== this.clientPathsAreURIs) {
-            if (this.debuggerPathsAreURIs) {
-                return this.uri2path(debuggerPath);
-            } else {
-                return this.path2uri(debuggerPath);
-            }
-        }
-        return debuggerPath;
-    }
-
-    path2uri(path: string) {
-        if (process.platform === 'win32') {
-            if (/^[A-Z]:/.test(path)) {
-                path = path[0].toLowerCase() + path.substr(1);
-            }
-            path = path.replace(/\\/g, '/');
-        }
-        path = encodeURI(path);
-        const uri = new url.URL(`file:`); // ignore 'path' for now
-        uri.pathname = path; // now use 'path' to get the correct percent encoding (see https://url.spec.whatwg.org)
-        return uri.toString();
-    }
-    uri2path(sourceUri: string) {
-        const uri = new url.URL(sourceUri);
-        let s = decodeURIComponent(uri.pathname);
-        if (process.platform === 'win32') {
-            if (/^\/[a-zA-Z]:/.test(s)) {
-                s = s[1].toLowerCase() + s.substr(2);
-            }
-            s = s.replace(/\//g, '\\');
-        }
-        return s;
     }
 
     // TODO: move these of these to a seperate State holder
