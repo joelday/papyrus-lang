@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable no-prototype-builtins */
 import { DebugProtocol as DAP } from '@vscode/debugprotocol';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -199,7 +201,6 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     //overrides base class
     protected handleMessageFromClient(message: DAP.ProtocolMessage): void {
         const pmessage = message as DAP.ProtocolMessage;
-        const retries = 0;
         this.currentSeq = message.seq;
         if (pmessage.type === 'request') {
             this.handleClientRequest(pmessage as DAP.Request);
@@ -306,11 +307,11 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     public sendRunInTerminalRequest(
         args: DAP.RunInTerminalRequestArguments,
         timeout: number,
-        cb: (response: DAP.RunInTerminalResponse) => void
+        _cb: (response: DAP.RunInTerminalResponse) => void
     ) {
         const request = <DAP.RunInTerminalRequest>new Message('request');
         request.arguments = args;
-        this.sendRequestToServerWithCB(request, timeout, (r, req) => {
+        this.sendRequestToServerWithCB(request, timeout, (r, _req) => {
             r.command = 'runInTerminal';
         });
     }
@@ -437,7 +438,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     }
 
     protected handleDisconnectRequest(request: DAP.DisconnectRequest): void {
-        this.sendRequestToServerWithCB(request, 5000, (r, req) => {
+        this.sendRequestToServerWithCB(request, 5000, (_r, _req) => {
             this.stop();
         });
     }
@@ -499,22 +500,22 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 
     protected handleContinueRequest(request: DAP.ContinueRequest): void {
         this.clearExecutionState();
-        this.sendRequestToServerWithCB(request, 10000, (r, req) => this._defaultResponseHandler(r));
+        this.sendRequestToServerWithCB(request, 10000, (r, _req) => this._defaultResponseHandler(r));
     }
 
     protected handleNextRequest(request: DAP.NextRequest): void {
         this.clearExecutionState();
-        this.sendRequestToServerWithCB(request, 10000, (r, req) => this._defaultResponseHandler(r));
+        this.sendRequestToServerWithCB(request, 10000, (r, _req) => this._defaultResponseHandler(r));
     }
 
     protected handleStepInRequest(request: DAP.StepInRequest): void {
         this.clearExecutionState();
-        this.sendRequestToServerWithCB(request, 10000, (r, req) => this._defaultResponseHandler(r));
+        this.sendRequestToServerWithCB(request, 10000, (r, _req) => this._defaultResponseHandler(r));
     }
 
     protected handleStepOutRequest(request: DAP.StepOutRequest): void {
         this.clearExecutionState();
-        this.sendRequestToServerWithCB(request, 10000, (r, req) => this._defaultResponseHandler(r));
+        this.sendRequestToServerWithCB(request, 10000, (r, _req) => this._defaultResponseHandler(r));
     }
 
     private _defaultResponseHandler(response: SFDAP.Response) {
@@ -522,7 +523,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     }
 
     protected handlePauseRequest(request: DAP.PauseRequest): void {
-        this.sendRequestToServerWithCB(request, 5000, (r: SFDAP.Response, req) => {
+        this.sendRequestToServerWithCB(request, 5000, (r: SFDAP.Response, _req) => {
             if (r.message === 'timeout') {
                 // For some reason, it will often not respond to the pause request, so we'll try again
                 this.loginfo('***PROXY->SERVER - Resending pause Request!');
@@ -566,7 +567,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         // Need to handle "threads" request that gets sent while attempting to pause
         // The server returns an error response because starfield refuses to return any threads before the VM is paused
         // So no subsequent pause request is sent
-        this.sendRequestToServerWithCB(request, 10000, (r, req) => {
+        this.sendRequestToServerWithCB(request, 10000, (r, _req) => {
             this.handleThreadsResponse(r as DAP.ThreadsResponse);
         });
     }
@@ -808,7 +809,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     }
 
     // TODO: this
-    handleValueResponse(message: SFDAP.ValueResponse, request: SFDAP.ValueRequest) {
+    handleValueResponse(message: SFDAP.ValueResponse, _request: SFDAP.ValueRequest) {
         this.sendMessageToClient(message);
     }
 

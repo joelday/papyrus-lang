@@ -260,9 +260,7 @@ export class VariableNode implements IVariableNode {
          *  example: [InputEvent <Input enable layer 1 on Player (00000007)>]
          *
          */
-
-        const valueTypes = {};
-        const value = valueStr; //v yes that space is supposed to be there
+        /*                             v yes that space is supposed to be there */
         const re = /\[([\w\d_]+) <(.*)? \(([A-F\d]{8})\)>\]/g;
         const match = re.exec(valueStr);
         if (match?.length == 4) {
@@ -317,7 +315,7 @@ export class VariableNode implements IVariableNode {
                     },
                 };
             } else if (reflectionInfo.startsWith('Input enable layer ')) {
-                const parts = reflectionInfo.replace('Input enable layer ', '').split(' on ');
+                const _parts = reflectionInfo.replace('Input enable layer ', '').split(' on ');
                 return {
                     baseForm: baseForm,
                     root: {

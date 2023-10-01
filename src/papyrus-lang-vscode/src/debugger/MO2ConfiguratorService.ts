@@ -261,53 +261,60 @@ export class MO2ConfiguratorService implements IMO2ConfiguratorService {
                     }
                     break;
                 case MO2LaunchConfigurationStatus.PDSModNotEnabledInModList:
-                case MO2LaunchConfigurationStatus.AddressLibraryModNotEnabledInModList: {
-                    let wasRunning = false;
-                    // if MO2 is running, we have to force a refresh after we add the mods, or it will overwrite our changes
-                    if (await isMO2Running()) {
-                        wasRunning = true;
-                        // if ModOrganizer is currently running, and the installation or selected profile isn't what we're going to run, this will fuck up, kill it
-                        const notOurs = !(await isOurMO2Running(launchDescriptor.MO2EXEPath));
+                case MO2LaunchConfigurationStatus.AddressLibraryModNotEnabledInModList:
+                    {
+                        let wasRunning = false;
+                        // if MO2 is running, we have to force a refresh after we add the mods, or it will overwrite our changes
+                        if (await isMO2Running()) {
+                            wasRunning = true;
+                            // if ModOrganizer is currently running, and the installation or selected profile isn't what we're going to run, this will fuck up, kill it
+                            const notOurs = !(await isOurMO2Running(launchDescriptor.MO2EXEPath));
+                            if (
+                                notOurs ||
+                                launchDescriptor.instanceInfo.selectedProfile !==
+                                    launchDescriptor.profileToLaunchData.name
+                            ) {
+                                await killAllMO2Processes();
+                            }
+                        }
+
+                        const modList = await MO2Lib.ParseModListFile(launchDescriptor.profileToLaunchData.modListPath);
+                        if (!modList) {
+                            return false;
+                        }
+
+                        const newmodList = AddRequiredModsToModList(modList, launchDescriptor.game);
                         if (
-                            notOurs ||
-                            launchDescriptor.instanceInfo.selectedProfile !== launchDescriptor.profileToLaunchData.name
+                            !MO2Lib.WriteChangesToModListFile(
+                                launchDescriptor.profileToLaunchData.modListPath,
+                                newmodList
+                            )
                         ) {
-                            await killAllMO2Processes();
+                            return false;
+                        }
+                        if (wasRunning) {
+                            spawn(
+                                launchDescriptor.MO2EXEPath,
+                                ['-p', launchDescriptor.profileToLaunchData.name, 'refresh'],
+                                {
+                                    detached: true,
+                                    stdio: 'ignore',
+                                }
+                            ).unref();
                         }
                     }
-
-                    const modList = await MO2Lib.ParseModListFile(launchDescriptor.profileToLaunchData.modListPath);
-                    if (!modList) {
-                        return false;
-                    }
-
-                    const newmodList = AddRequiredModsToModList(modList, launchDescriptor.game);
-                    if (
-                        !MO2Lib.WriteChangesToModListFile(launchDescriptor.profileToLaunchData.modListPath, newmodList)
-                    ) {
-                        return false;
-                    }
-                    if (wasRunning) {
-                        spawn(
-                            launchDescriptor.MO2EXEPath,
-                            ['-p', launchDescriptor.profileToLaunchData.name, 'refresh'],
-                            {
-                                detached: true,
-                                stdio: 'ignore',
-                            }
-                        ).unref();
-                    }
-
                     break;
-                }
+
                 case MO2LaunchConfigurationStatus.IniNotConfigured:
-                    const gameIniPath = launchDescriptor.profileToLaunchData.gameIniPath;
-                    const gameIni = await ParseIniFile(gameIniPath);
-                    if (!gameIni) {
-                        return false;
-                    }
-                    if (!(await TurnOnDebuggingInIni(launchDescriptor.game, gameIni))) {
-                        return false;
+                    {
+                        const gameIniPath = launchDescriptor.profileToLaunchData.gameIniPath;
+                        const gameIni = await ParseIniFile(gameIniPath);
+                        if (!gameIni) {
+                            return false;
+                        }
+                        if (!(await TurnOnDebuggingInIni(launchDescriptor.game, gameIni))) {
+                            return false;
+                        }
                     }
                     break;
                 default:

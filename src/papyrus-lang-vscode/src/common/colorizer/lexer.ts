@@ -58,8 +58,8 @@ export function getTokens(json: string | object, options: { pretty?: boolean } =
  * @returns {boolean} checkResult - Check result
  * @private
  */
-function _allTokensAnalyzed(input: any, foundToken: boolean): boolean {
-    const safeInput = input || {};
+function _allTokensAnalyzed(input: string, foundToken: boolean): boolean {
+    const safeInput = input || '';
 
     const inputLength = safeInput.length;
     return inputLength > 0 && foundToken;

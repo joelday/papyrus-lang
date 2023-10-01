@@ -196,20 +196,22 @@ export async function FindGamePath(game: PapyrusGame) {
         // TODO: support gamepass version of starfield
         case PapyrusGame.starfield:
             return FindGameSteamPath(game);
-        case PapyrusGame.skyrimSpecialEdition: {
-            let path = await FindGameSteamPath(game);
-            if (path) {
-                return path;
+        case PapyrusGame.skyrimSpecialEdition:
+            {
+                let path = await FindGameSteamPath(game);
+                if (path) {
+                    return path;
+                }
+                path = await findSkyrimSEGOG();
+                if (path) {
+                    return path;
+                }
+                path = await findSkyrimSEEpic();
+                if (path) {
+                    return path;
+                }
             }
-            path = await findSkyrimSEGOG();
-            if (path) {
-                return path;
-            }
-            path = await findSkyrimSEEpic();
-            if (path) {
-                return path;
-            }
-        }
+            break;
         default:
             break;
     }

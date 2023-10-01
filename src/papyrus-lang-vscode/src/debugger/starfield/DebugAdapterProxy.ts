@@ -1,3 +1,5 @@
+/* eslint-disable no-prototype-builtins */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 process.env.FORCE_COLOR = '2';
 
 import { DebugProtocol as DAP } from '@vscode/debugprotocol';
@@ -39,8 +41,7 @@ class Emitter<T> {
                 this._listener = listener;
                 this._this = thisArg;
 
-                let result: IDisposable;
-                result = {
+                const result: IDisposable = {
                     dispose: () => {
                         this._listener = undefined;
                         this._this = undefined;
@@ -56,7 +57,9 @@ class Emitter<T> {
         if (this._listener) {
             try {
                 this._listener.call(this._this, event);
-            } catch (e) {}
+            } catch (e) {
+                /* empty */
+            }
         }
     }
 
@@ -97,6 +100,7 @@ export function colorize_message(value: any) {
         for (const idx in lines) {
             const line = lines[idx];
             if (line.includes('"success"') || line.includes('"message"')) {
+                // eslint-disable-next-line no-control-regex
                 const line_split = line.replace(/\x1b\[[0-9;]*m/g, '').split(':');
                 const key = line_split[0];
                 const value = line_split[1];
@@ -380,6 +384,7 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
     protected handleData(data: Buffer): void {
         this.rawData = Buffer.concat([this.rawData, data]);
 
+        // eslint-disable-next-line no-constant-condition
         while (true) {
             if (this.contentLength >= 0) {
                 if (this.rawData.length >= this.contentLength) {

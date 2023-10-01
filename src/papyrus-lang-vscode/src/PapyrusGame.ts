@@ -180,6 +180,7 @@ export function GetUserGameFolderName(game: PapyrusGame, variant: GameVariant) {
                 case GameVariant.Epic:
                     return 'Skyrim Special Edition EPIC';
             }
+            break;
         case PapyrusGame.starfield:
             switch (variant) {
                 case GameVariant.Steam:

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-namespace */
 import { DebugProtocol as DAP } from '@vscode/debugprotocol';
 
 // Starfield breaks the DAP spec in ways that are not easily fixable, so we have to implement our own proxy

@@ -46,9 +46,9 @@ export class PapyrusDebugAdapterTracker implements DebugAdapterTracker {
         window.showErrorMessage(`Papyrus debugger error: ${error.toString()}`);
     }
 
-    // TODO: Starfield: TURN THIS BACK OFF
-    onWillReceiveMessage(message: any) {}
-    onDidSendMessage(message: any) {}
+    // debugging stuff
+    // onWillReceiveMessage(message: any) {}
+    // onDidSendMessage(message: any) {}
 
     onExit(code: number | undefined, signal: string | undefined) {
         this._debugLauncher.tearDownAfterDebug();
