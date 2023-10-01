@@ -9,6 +9,7 @@ export declare module StarfieldDebugProtocol {
     type Response = DAP.Response;
     type Event = DAP.Event;
 
+    type Thread = DAP.Thread;
     interface OutputEvent extends DAP.Event {
         //event: 'output';
         body: {

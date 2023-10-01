@@ -611,7 +611,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
             const dapStackFrames: DAP.StackFrame[] = [];
             response.body.stackFrames.forEach((frame: any) => {
                 const stackId = this.addStackFrame(threadId, index, frame);
-                dapStackFrames.push(this._stackFrameMap.get(stackId)!.getStandardDAPFrame());
+                dapStackFrames.push(this._stackFrameMap.get(stackId)!.getDAPStackFrame());
                 index++;
             });
             (response.body as any).stackFrames = dapStackFrames;
