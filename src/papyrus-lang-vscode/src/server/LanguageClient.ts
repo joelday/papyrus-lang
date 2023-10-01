@@ -1,5 +1,5 @@
-import { LanguageClient as BaseClient, TextDocumentIdentifier, NotificationType, State } from 'vscode-languageclient';
-import { workspace, FileSystemWatcher, OutputChannel, TextDocument } from 'vscode';
+import { LanguageClient as BaseClient, TextDocumentIdentifier, NotificationType } from 'vscode-languageclient';
+import { workspace, FileSystemWatcher, OutputChannel } from 'vscode';
 
 import { DocumentScriptInfo, documentScriptInfoRequestType } from './messages/DocumentScriptInfo';
 import { DocumentSyntaxTree, documentSyntaxTreeRequestType } from './messages/DocumentSyntaxTree';

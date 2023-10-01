@@ -11,7 +11,29 @@ import { LocateOrDisableGameCommand } from './commands/LocateOrDisableGameComman
 import { inject, injectable } from 'inversify';
 import { DocumentScriptInfo } from '../server/messages/DocumentScriptInfo';
 
-declare function combineLatest_<O1 extends ObservableInput<any>, O2 extends ObservableInput<any>, O3 extends ObservableInput<any>, O4 extends ObservableInput<any>, O5 extends ObservableInput<any>, O6 extends ObservableInput<any>, O7 extends ObservableInput<any>>(...sources: [O1, O2, O3, O4, O5, O6, O7]): Observable<[ObservedValueOf<O1>, ObservedValueOf<O2>, ObservedValueOf<O3>, ObservedValueOf<O4>, ObservedValueOf<O5>, ObservedValueOf<O6>, ObservedValueOf<O7>]>;
+/* eslint-disable @typescript-eslint/no-explicit-any */
+declare function combineLatest_<
+    O1 extends ObservableInput<any>,
+    O2 extends ObservableInput<any>,
+    O3 extends ObservableInput<any>,
+    O4 extends ObservableInput<any>,
+    O5 extends ObservableInput<any>,
+    O6 extends ObservableInput<any>,
+    O7 extends ObservableInput<any>,
+>(
+    ...sources: [O1, O2, O3, O4, O5, O6, O7]
+): Observable<
+    [
+        ObservedValueOf<O1>,
+        ObservedValueOf<O2>,
+        ObservedValueOf<O3>,
+        ObservedValueOf<O4>,
+        ObservedValueOf<O5>,
+        ObservedValueOf<O6>,
+        ObservedValueOf<O7>,
+    ]
+>;
+/* eslint-enable @typescript-eslint/no-explicit-any */
 declare type ExtendedCombineLatestSignature = typeof combineLatest_;
 
 class StatusBarItemController implements Disposable {
@@ -24,9 +46,17 @@ class StatusBarItemController implements Disposable {
 
         this._locateOrDisableCommand = new LocateOrDisableGameCommand(game);
 
-        const activeEditor = eventToValueObservable(window.onDidChangeActiveTextEditor, () => window.activeTextEditor, undefined, true);
+        const activeEditor = eventToValueObservable(
+            window.onDidChangeActiveTextEditor,
+            () => window.activeTextEditor,
+            undefined,
+            true
+        );
 
-        const visibleEditors = eventToValueObservable(window.onDidChangeVisibleTextEditors, () => window.visibleTextEditors);
+        const visibleEditors = eventToValueObservable(
+            window.onDidChangeVisibleTextEditors,
+            () => window.visibleTextEditors
+        );
 
         const hostStatus = languageClientHost.pipe(
             mergeMap((host) => host.status),
@@ -45,7 +75,7 @@ class StatusBarItemController implements Disposable {
                     activeEditor &&
                     activeEditor.document.languageId === 'papyrus'
                 ) {
-                    return await host.client?.requestScriptInfo(activeEditor.document.uri.toString()) || null;
+                    return (await host.client?.requestScriptInfo(activeEditor.document.uri.toString())) || null;
                 }
 
                 return null;
@@ -75,9 +105,19 @@ class StatusBarItemController implements Disposable {
             showOutputChannelCommand,
             activeDocumentScriptInfo
         ).subscribe({
-            next: ([host, status, _error, activeEditor, visibleEditors, showOutputChannelCommand, activeDocumentScriptInfo]) => {
+            next: ([
+                host,
+                status,
+                _error,
+                activeEditor,
+                visibleEditors,
+                showOutputChannelCommand,
+                activeDocumentScriptInfo,
+            ]) => {
                 if (
-                    !activeEditor || !visibleEditors || (visibleEditors.length === 0) ||
+                    !activeEditor ||
+                    !visibleEditors ||
+                    visibleEditors.length === 0 ||
                     (activeEditor.document.languageId !== 'papyrus' &&
                         activeEditor.document.languageId !== 'papyrus-project')
                 ) {
@@ -98,12 +138,16 @@ class StatusBarItemController implements Disposable {
                         this._statusBarItem.text = `${shortName} $(sync)`;
                         this._statusBarItem.tooltip = `${fullName} language service starting...`;
                         break;
-                    case ClientHostStatus.running:
-                        const hasActiveDocument = activeDocumentScriptInfo && activeDocumentScriptInfo.identifiers.length > 0;
+                    case ClientHostStatus.running: {
+                        const hasActiveDocument =
+                            activeDocumentScriptInfo && activeDocumentScriptInfo.identifiers.length > 0;
 
                         this._statusBarItem.text = `${shortName} $(check)` + (hasActiveDocument ? ` $(file-code)` : ``);
-                        this._statusBarItem.tooltip = `${fullName} language service is running${hasActiveDocument ? ` and has active scripts.` : `.`}`;
+                        this._statusBarItem.tooltip = `${fullName} language service is running${
+                            hasActiveDocument ? ` and has active scripts.` : `.`
+                        }`;
                         break;
+                    }
                     case ClientHostStatus.missing:
                         this._statusBarItem.text = `${shortName} $(alert)`;
                         this._statusBarItem.tooltip = `Unable to locate ${fullName}. Click for more options...`;

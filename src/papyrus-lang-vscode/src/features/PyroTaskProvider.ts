@@ -1,11 +1,20 @@
 import {
-    TaskProvider, Task, tasks, ProcessExecution, workspace, TaskScope,
-    RelativePattern, GlobPattern, FileSystemWatcher, Uri, window
+    TaskProvider,
+    Task,
+    tasks,
+    ProcessExecution,
+    workspace,
+    TaskScope,
+    RelativePattern,
+    GlobPattern,
+    FileSystemWatcher,
+    Uri,
+    window,
 } from 'vscode';
 import { CancellationToken, Disposable } from 'vscode-jsonrpc';
 
 import { IPyroTaskDefinition, TaskOf, PyroGameToPapyrusGame } from './PyroTaskDefinition';
-import { PapyrusGame, getWorkspaceGameFromProjects, getWorkspaceGame } from '../PapyrusGame';
+import { PapyrusGame, getWorkspaceGameFromProjects } from '../PapyrusGame';
 import { IPathResolver, PathResolver, pathToOsPath } from '../common/PathResolver';
 import { inject, injectable } from 'inversify';
 
@@ -16,12 +25,10 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
     private _taskCachePromise: Promise<Task[]> | undefined = undefined;
     private readonly _projPattern!: GlobPattern;
     private readonly _fileWatcher!: FileSystemWatcher;
-    private readonly _source: string = "pyro";
+    private readonly _source: string = 'pyro';
     private _workspaceGame!: PapyrusGame;
 
-    constructor(
-        @inject(IPathResolver) pathResolver: PathResolver
-    ) {
+    constructor(@inject(IPathResolver) pathResolver: PathResolver) {
         this._pathResolver = pathResolver;
 
         this._taskProviderHandle = tasks.registerTaskProvider('pyro', this);
@@ -33,12 +40,11 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
             return;
         }
 
-        this._projPattern = new RelativePattern(workspace.workspaceFolders[0], "**/*.ppj");
-        const fsw = this._fileWatcher = workspace.createFileSystemWatcher(this._projPattern);
-        fsw.onDidChange(() => this._taskCachePromise = undefined);
-        fsw.onDidCreate(() => this._taskCachePromise = undefined);
-        fsw.onDidDelete(() => this._taskCachePromise = undefined);
-
+        this._projPattern = new RelativePattern(workspace.workspaceFolders[0], '**/*.ppj');
+        const fsw = (this._fileWatcher = workspace.createFileSystemWatcher(this._projPattern));
+        fsw.onDidChange(() => (this._taskCachePromise = undefined));
+        fsw.onDidCreate(() => (this._taskCachePromise = undefined));
+        fsw.onDidDelete(() => (this._taskCachePromise = undefined));
     }
 
     public provideTasks(token?: CancellationToken): Promise<Task[]> {
@@ -59,7 +65,7 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
         // search for all .PPJ files in workspace
         const ppjFiles: Uri[] = await workspace.findFiles(this._projPattern, undefined, undefined, token);
 
-        let tasks: Task[] = [];
+        const tasks: Task[] = [];
 
         let game: PapyrusGame | undefined;
         if (this._workspaceGame) {
@@ -68,9 +74,11 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
             game = await getWorkspaceGameFromProjects(ppjFiles);
             if (!game) {
                 window.showWarningMessage(
-                    "Could not find a ppj file in this workspace with a game type specified."
-                    + "  Please specify a game type in your ppj file or use the Generate Project Files command for a"
-                    + " template.", "Ok");
+                    'Could not find a ppj file in this workspace with a game type specified.' +
+                        '  Please specify a game type in your ppj file or use the Generate Project Files command for a' +
+                        ' template.',
+                    'Ok'
+                );
                 return tasks;
             } else {
                 this._workspaceGame = game;
@@ -78,16 +86,16 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
         }
 
         // provide a build task for each one found
-        for (let uri of ppjFiles) {
+        for (const uri of ppjFiles) {
             const installPath = await this._pathResolver.getInstallPath(game);
             if (!installPath) {
                 continue;
             }
 
-            let taskDef: IPyroTaskDefinition = {
+            const taskDef: IPyroTaskDefinition = {
                 type: this._source,
                 projectFile: workspace.asRelativePath(uri),
-                gamePath: installPath
+                gamePath: installPath,
             };
             tasks.push(await this.createTaskForDefinition(taskDef));
         }
@@ -103,16 +111,17 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
         if (definition === undefined) {
             definition = {
                 type: this._source,
-                projectFile: "unknown.ppj"
+                projectFile: 'unknown.ppj',
             };
         }
         if (!definition.gamePath) {
+            // ask why this block is empty → @joey
         }
         return this.createTaskForDefinition(definition);
     }
 
     private async createTaskForDefinition(taskDef: IPyroTaskDefinition) {
-        let argv: string[] = [];
+        const argv: string[] = [];
 
         // Required arguments
         argv.push('--input-path');
@@ -171,7 +180,7 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
         } else {
             const installPath = await this._pathResolver.getInstallPath(game);
             if (!installPath) {
-                throw new Error("Could not find game install path.");
+                throw new Error('Could not find game install path.');
             }
 
             argv.push('--game-path');
@@ -197,17 +206,12 @@ export class PyroTaskProvider implements TaskProvider, Disposable {
         }
 
         const pyroAbsPath = await this._pathResolver.getPyroCliPath();
-        console.log("New task, process: " + pyroAbsPath + " " + argv);
+        console.log('New task, process: ' + pyroAbsPath + ' ' + argv);
         const label = `Compile Project (${taskDef.projectFile})`;
         taskDef['label'] = label;
-        return new Task(
-            taskDef,
-            TaskScope.Workspace,
-            label,
-            taskDef.type,
-            new ProcessExecution(pyroAbsPath, argv),
-            ["$PapyrusCompiler"]
-        );
+        return new Task(taskDef, TaskScope.Workspace, label, taskDef.type, new ProcessExecution(pyroAbsPath, argv), [
+            '$PapyrusCompiler',
+        ]);
     }
 
     dispose() {

@@ -2,6 +2,7 @@ import { injectable, unmanaged } from 'inversify';
 import { Disposable, commands, TextEditor, TextEditorEdit } from 'vscode';
 
 @injectable()
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export abstract class EditorCommandBase<TArgs extends any[] = void[], TResult = void> implements Disposable {
     private readonly _name: string;
     private readonly _registration: Disposable;

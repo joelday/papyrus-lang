@@ -1,5 +1,6 @@
 import * as vs from 'vscode';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export abstract class TreeViewControllerBase<T = any> implements vs.Disposable {
     private readonly _viewId: string;
     private readonly _dataProvider: vs.TreeDataProvider<T>;

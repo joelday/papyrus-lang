@@ -19,8 +19,8 @@ export class PapyrusDebugConfigurationProvider implements DebugConfigurationProv
     }
 
     async provideDebugConfigurations(
-        folder: WorkspaceFolder | undefined,
-        token?: CancellationToken
+        _folder: WorkspaceFolder | undefined,
+        _token?: CancellationToken
     ): Promise<IPapyrusDebugConfiguration[]> {
         return [
             {

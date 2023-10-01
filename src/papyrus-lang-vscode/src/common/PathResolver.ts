@@ -11,10 +11,9 @@ import { IExtensionContext } from '../common/vscode/IocDecorators';
 
 import { PapyrusGame, getScriptExtenderName } from '../PapyrusGame';
 import { inDevelopmentEnvironment } from '../Utilities';
-import { IExtensionConfigProvider, IGameConfig, IExtensionConfig } from '../ExtensionConfigProvider';
+import { IExtensionConfigProvider, IGameConfig } from '../ExtensionConfigProvider';
 
 const exists = promisify(fs.exists);
-
 
 export interface IPathResolver {
     // Internal paths
@@ -84,8 +83,8 @@ export class PathResolver implements IPathResolver {
     public async getDebugToolPath(game: PapyrusGame): Promise<string> {
         const toolGameName = getToolGameName(game);
         return this._asExtensionAbsolutePath(
-            `./debug-bin/Debug/net472/DarkId.Papyrus.DebugAdapterProxy.${toolGameName}/`
-            + `DarkId.Papyrus.DebugAdapterProxy.${toolGameName}.exe`
+            `./debug-bin/Debug/net472/DarkId.Papyrus.DebugAdapterProxy.${toolGameName}/` +
+                `DarkId.Papyrus.DebugAdapterProxy.${toolGameName}.exe`
         );
     }
 
@@ -120,7 +119,8 @@ export class PathResolver implements IPathResolver {
 
         if (modDirectoryPath) {
             return path.join(
-                modDirectoryPath, "Papyrus Debug Extension",
+                modDirectoryPath,
+                'Papyrus Debug Extension',
                 await this._getModMgrExtenderPluginPath(game),
                 getPluginDllName(game, legacy)
             );
@@ -130,11 +130,7 @@ export class PathResolver implements IPathResolver {
                 return null;
             }
 
-            return path.join(
-                installPath,
-                await this._getExtenderPluginPath(game),
-                getPluginDllName(game, legacy)
-            );
+            return path.join(installPath, await this._getExtenderPluginPath(game), getPluginDllName(game, legacy));
         }
     }
 
@@ -147,11 +143,10 @@ export class PathResolver implements IPathResolver {
         return config.modDirectoryPath;
     }
 
-    dispose() { }
+    dispose() {}
 }
 
 export const IPathResolver: interfaces.ServiceIdentifier<IPathResolver> = Symbol('pathResolver');
-
 
 /************************************************************************* */
 /*** Internal paths                                                        */
@@ -179,7 +174,6 @@ function getToolGameName(game: PapyrusGame): string {
             return 'Skyrim';
     }
 }
-
 
 /************************************************************************* */
 /*** External paths (ones that are not "ours")                             */
@@ -228,7 +222,9 @@ export async function resolveInstallPath(
         if (await exists(item.value)) {
             return item.value;
         }
-    } catch (_) { }
+    } catch (_) {
+        // empty on purpose
+    }
 
     if (inDevelopmentEnvironment() && game !== PapyrusGame.skyrim) {
         return context.asAbsolutePath('../../dependencies/compilers');

@@ -31,7 +31,10 @@ const shortDisplayNames = new Map([
     [PapyrusGame.skyrimSpecialEdition, 'Skyrim SE/AE'],
 ]);
 
-const scriptExtenderNames = new Map([[PapyrusGame.fallout4, 'F4SE'], [PapyrusGame.skyrimSpecialEdition, 'SKSE']]);
+const scriptExtenderNames = new Map([
+    [PapyrusGame.fallout4, 'F4SE'],
+    [PapyrusGame.skyrimSpecialEdition, 'SKSE'],
+]);
 
 export function getScriptExtenderName(game: PapyrusGame) {
     return scriptExtenderNames.get(game);
@@ -60,7 +63,7 @@ export async function getWorkspaceGameFromProjects(ppjFiles: Uri[]): Promise<Pap
         return undefined;
     }
 
-    for (let ppjFile of ppjFiles) {
+    for (const ppjFile of ppjFiles) {
         game = await getWorkspaceGameFromProjectFile(ppjFile.fsPath);
         if (game) {
             break;
@@ -77,6 +80,7 @@ export async function getWorkspaceGameFromProjects(ppjFiles: Uri[]): Promise<Pap
 export async function getWorkspaceGameFromProjectFile(projectFile: string): Promise<PapyrusGame | undefined> {
     const xml = await readFile(projectFile, { encoding: 'utf-8' });
     // TODO: Annoying type cast here:
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const results = xml2js(xml, { compact: true, trim: true }) as Record<string, any>;
 
     return results['PapyrusProject']['_attributes']['Game'];
@@ -87,6 +91,6 @@ export async function getWorkspaceGame(): Promise<PapyrusGame | undefined> {
         return undefined;
     }
 
-    const ppjFiles: Uri[] = await workspace.findFiles(new RelativePattern(workspace.workspaceFolders[0], "**/*.ppj"));
+    const ppjFiles: Uri[] = await workspace.findFiles(new RelativePattern(workspace.workspaceFolders[0], '**/*.ppj'));
     return getWorkspaceGameFromProjects(ppjFiles);
 }

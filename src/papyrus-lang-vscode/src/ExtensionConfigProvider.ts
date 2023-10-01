@@ -2,14 +2,13 @@ import { injectable, interfaces } from 'inversify';
 import { workspace, Disposable } from 'vscode';
 import { eventToValueObservable } from './common/vscode/reactive/Events';
 import { Observable } from 'rxjs';
-import { filter } from 'rxjs/operators';
 
 export interface IGameConfig {
     readonly enabled: boolean;
     readonly creationKitIniFiles: string[];
     readonly installPath: string;
     readonly ignoreDebuggerVersion: boolean;
-    readonly modDirectoryPath: string;              // For supporting mod managers managing the debug plugin
+    readonly modDirectoryPath: string; // For supporting mod managers managing the debug plugin
 }
 
 export interface IExtensionConfig {
@@ -31,14 +30,15 @@ export class ExtensionConfigProvider implements IExtensionConfigProvider {
     private readonly _config = eventToValueObservable(
         workspace.onDidChangeConfiguration,
         () => getPapyrusConfig(),
-        (e) => (e.affectsConfiguration('papyrus') ? getPapyrusConfig() : undefined),
+        (e) => (e.affectsConfiguration('papyrus') ? getPapyrusConfig() : undefined)
     );
 
     get config() {
         return this._config;
     }
 
-    dispose() { }
+    dispose() {}
 }
 
-export const IExtensionConfigProvider: interfaces.ServiceIdentifier<IExtensionConfigProvider> = Symbol('extensionConfigProvider');
+export const IExtensionConfigProvider: interfaces.ServiceIdentifier<IExtensionConfigProvider> =
+    Symbol('extensionConfigProvider');

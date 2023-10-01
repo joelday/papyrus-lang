@@ -5,13 +5,13 @@ export type TaskOf<T extends TaskDefinition> = { readonly definition: T } & Task
 export enum PyroGameToPapyrusGame {
     fo4 = 'fallout4',
     tesv = 'skyrim',
-    sse = 'skyrimSpecialEdition'
+    sse = 'skyrimSpecialEdition',
 }
 
 export enum PyroGame {
     fallout4 = 'fo4',
     skyrim = 'tesv',
-    skyrimSpecialEdition = 'sse'
+    skyrimSpecialEdition = 'sse',
 }
 
 export interface IPyroTaskDefinition extends TaskDefinition {

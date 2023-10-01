@@ -72,7 +72,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
         const installState = await this._debugSupportInstaller.getInstallState(game);
 
         switch (installState) {
-            case DebugSupportInstallState.incorrectVersion:
+            case DebugSupportInstallState.incorrectVersion: {
                 const ignoreVersion = (await this._configProvider.config.pipe(take(1)).toPromise())[game]
                     .ignoreDebuggerVersion;
 
@@ -97,7 +97,8 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
                 }
 
                 break;
-            case DebugSupportInstallState.notInstalled:
+            }
+            case DebugSupportInstallState.notInstalled: {
                 const getExtenderOption = `Get ${getScriptExtenderName(game)}`;
                 const installOption = `Install ${getScriptExtenderName(game)} Plugin`;
 
@@ -124,6 +125,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
                 }
 
                 return false;
+            }
             case DebugSupportInstallState.gameDisabled:
                 showGameDisabledMessage(game);
                 return false;
@@ -149,7 +151,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
 
     async createDebugAdapterDescriptor(
         session: IPapyrusDebugSession,
-        executable: DebugAdapterExecutable
+        _executable: DebugAdapterExecutable
     ): Promise<DebugAdapterDescriptor> {
         const game = session.configuration.game;
 
@@ -164,15 +166,10 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
         }
 
         const config = (await this._configProvider.config.pipe(take(1)).toPromise())[game];
-        const creationKitInfo = await this._creationKitInfoProvider.infos
-            .get(game)!
-            .pipe(take(1))
-            .toPromise();
+        const creationKitInfo = await this._creationKitInfoProvider.infos.get(game)!.pipe(take(1)).toPromise();
 
         if (!creationKitInfo.resolvedInstallPath) {
-            throw new Error(
-                `Creation Kit install path for ${getDisplayNameForGame(game)} is not configured.`
-            );
+            throw new Error(`Creation Kit install path for ${getDisplayNameForGame(game)} is not configured.`);
         }
 
         const toolArguments: IDebugToolArguments = {

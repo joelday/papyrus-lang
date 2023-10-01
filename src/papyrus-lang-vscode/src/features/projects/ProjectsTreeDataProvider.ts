@@ -1,6 +1,6 @@
 import { TreeDataProviderBase } from '../../common/vscode/view/TreeDataProviderBase';
 import { TreeDataNode } from '../../common/vscode/view/TreeDataNode';
-import { TreeItem, TreeItemCollapsibleState, Uri, ThemeIcon, ExtensionContext } from 'vscode';
+import { TreeItem, TreeItemCollapsibleState, Uri, ExtensionContext } from 'vscode';
 import { ILanguageClientManager } from '../../server/LanguageClientManager';
 import { Observable, combineLatest, Subscription } from 'rxjs';
 import { mergeMap, take } from 'rxjs/operators';
