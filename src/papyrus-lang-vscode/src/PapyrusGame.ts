@@ -9,7 +9,7 @@ const displayNames = new Map([
     [PapyrusGame.fallout4, 'Fallout 4'],
     [PapyrusGame.skyrim, 'Skyrim'],
     [PapyrusGame.skyrimSpecialEdition, 'Skyrim Special Edition/Anniversary Edition'],
-    [PapyrusGame.starfield, 'Starfield']
+    [PapyrusGame.starfield, 'Starfield'],
 ]);
 
 export function getDisplayNameForGame(game: PapyrusGame) {
@@ -23,13 +23,11 @@ const shortDisplayNames = new Map([
     [PapyrusGame.starfield, 'Starfield'],
 ]);
 
-const scriptExtenderNames = new Map(
-    [
-        [PapyrusGame.fallout4, 'F4SE'], 
-        [PapyrusGame.skyrimSpecialEdition, 'SKSE'],
-        [PapyrusGame.starfield, 'SFSE']
-    ]
-);
+const scriptExtenderNames = new Map([
+    [PapyrusGame.fallout4, 'F4SE'],
+    [PapyrusGame.skyrimSpecialEdition, 'SKSE'],
+    [PapyrusGame.starfield, 'SFSE'],
+]);
 
 export function getScriptExtenderName(game: PapyrusGame) {
     return scriptExtenderNames.get(game);
@@ -61,13 +59,9 @@ export function getGames(): PapyrusGame[] {
     return (Object.keys(PapyrusGame) as (keyof typeof PapyrusGame)[]).map((k) => PapyrusGame[k]);
 }
 
-const commonOldRegPrefix = `\\SOFTWARE\\${
-        process.arch === 'x64' ? 'WOW6432Node\\' : ''
-    }Bethesda Softworks\\`
-    
+const commonOldRegPrefix = `\\SOFTWARE\\${process.arch === 'x64' ? 'WOW6432Node\\' : ''}Bethesda Softworks\\`;
 
 export function getRegistryKeyForGame(game: PapyrusGame) {
-    
     switch (game) {
         case PapyrusGame.fallout4:
             return commonOldRegPrefix + 'Fallout4';
@@ -76,18 +70,18 @@ export function getRegistryKeyForGame(game: PapyrusGame) {
         case PapyrusGame.skyrimSpecialEdition:
             return commonOldRegPrefix + 'Skyrim Special Edition';
         case PapyrusGame.starfield:
-            return '\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Steam App 1716740'
+            return '\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Steam App 1716740';
     }
 }
 
-export function getInstalledPathRegVal(game:PapyrusGame){
+export function getInstalledPathRegVal(game: PapyrusGame) {
     switch (game) {
         case PapyrusGame.fallout4:
         case PapyrusGame.skyrim:
         case PapyrusGame.skyrimSpecialEdition:
             return 'installed path';
         case PapyrusGame.starfield:
-            return 'InstallLocation'
+            return 'InstallLocation';
     }
 }
 
@@ -106,7 +100,6 @@ export function getDevelopmentCompilerFolderForGame(game: PapyrusGame) {
 }
 
 export function getDefaultFlagsFileNameForGame(game: PapyrusGame) {
-    
     switch (game) {
         case PapyrusGame.fallout4:
             return 'Institute_Papyrus_Flags.flg';
@@ -117,14 +110,13 @@ export function getDefaultFlagsFileNameForGame(game: PapyrusGame) {
         case PapyrusGame.starfield:
             return 'Starfield_Papyrus_Flags.flg';
     }
-    
 }
 
 const executableNames = new Map([
     [PapyrusGame.skyrim, 'Skyrim.exe'],
     [PapyrusGame.fallout4, 'Fallout4.exe'],
     [PapyrusGame.skyrimSpecialEdition, 'SkyrimSE.exe'],
-    [PapyrusGame.starfield, 'Starfield.exe']
+    [PapyrusGame.starfield, 'Starfield.exe'],
 ]);
 
 export function getExecutableNameForGame(game: PapyrusGame) {
@@ -157,19 +149,18 @@ export function getGameCustomIniName(game: PapyrusGame): string {
     }
 }
 
-
 // TODO: Support VR
 export enum GameVariant {
-    Steam = "Steam",
-    GOG = "GOG",
-    Epic = "Epic Games",
-    GamePass = "Game Pass"
+    Steam = 'Steam',
+    GOG = 'GOG',
+    Epic = 'Epic Games',
+    GamePass = 'Game Pass',
 }
 
 /**
  * returns the name of the Game Save folder for the given variant
  * Resides in "%USERPROFILE%\Documents\My Games"
- * 
+ *
  * @param game
  * @param variant
  * @returns string - the name of the game save folder
@@ -192,10 +183,10 @@ export function GetUserGameFolderName(game: PapyrusGame, variant: GameVariant) {
         case PapyrusGame.starfield:
             switch (variant) {
                 case GameVariant.Steam:
-                return "Starfield";
-                case GameVariant.GamePass: // TODO: Starfield: verify what this is 
-                return "Starfield";
+                    return 'Starfield';
+                case GameVariant.GamePass: // TODO: Starfield: verify what this is
+                    return 'Starfield';
             }
     }
-    return "";
+    return '';
 }

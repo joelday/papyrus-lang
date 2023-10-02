@@ -2,9 +2,6 @@ import { injectable, interfaces } from 'inversify';
 import { workspace, Disposable } from 'vscode';
 import { eventToValueObservable } from './common/vscode/reactive/Events';
 import { Observable } from 'rxjs';
-import { filter } from 'rxjs/operators';
-import { PapyrusGame } from './PapyrusGame';
-import { FindGamePath } from './common/GameHelpers';
 export interface IGameConfig {
     readonly enabled: boolean;
     readonly creationKitIniFiles: string[];

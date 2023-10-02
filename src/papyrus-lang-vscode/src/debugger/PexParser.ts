@@ -64,22 +64,22 @@ export class PexHeader implements IPexHeader {
         this.ComputerName = header.ComputerName;
     }
     // getter function for Game
-    public get Game() : PapyrusGame | undefined {
-      switch(this.GameID){
-        case 1:
-          if (this.MajorVersion === 3 && this.MinorVersion === 2){
-            return PapyrusGame.skyrimSpecialEdition;
-          }
-          return PapyrusGame.skyrim;
-        case 2:
-          return PapyrusGame.fallout4;
-        case 3: // fallout 76, unsupported
-          return undefined;
-        case 4:
-          return PapyrusGame.starfield;
-      }
-      return undefined;
-    };
+    public get Game(): PapyrusGame | undefined {
+        switch (this.GameID) {
+            case 1:
+                if (this.MajorVersion === 3 && this.MinorVersion === 2) {
+                    return PapyrusGame.skyrimSpecialEdition;
+                }
+                return PapyrusGame.skyrim;
+            case 2:
+                return PapyrusGame.fallout4;
+            case 3: // fallout 76, unsupported
+                return undefined;
+            case 4:
+                return PapyrusGame.starfield;
+        }
+        return undefined;
+    }
 }
 
 export interface PexBinary {

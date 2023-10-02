@@ -45,7 +45,12 @@ export interface IMO2LaunchDescriptorFactory {
 export class MO2LaunchDescriptorFactory implements IMO2LaunchDescriptorFactory {
     constructor() {}
     // TODO: After testing, make these private
-    public static async populateMO2ProfileData(name: string, profileFolder: string, game:PapyrusGame, gamePath: string): Promise<MO2ProfileData> {
+    public static async populateMO2ProfileData(
+        name: string,
+        profileFolder: string,
+        game: PapyrusGame,
+        gamePath: string
+    ): Promise<MO2ProfileData> {
         if (!existsSync(profileFolder)) {
             throw new Error(`Invalid MO2 profile: Could not find the profile folder ${profileFolder}}`);
         }
@@ -146,7 +151,12 @@ export class MO2LaunchDescriptorFactory implements IMO2LaunchDescriptorFactory {
         if (!existsSync(profilePath) || !statSync(profilePath).isDirectory()) {
             throw new Error(`Could not find the profile '${profile}' in ${instanceData.profilesFolder}`);
         }
-        const profileData: MO2ProfileData = await this.populateMO2ProfileData(profile, profilePath, game, instanceData.gameDirPath);
+        const profileData: MO2ProfileData = await this.populateMO2ProfileData(
+            profile,
+            profilePath,
+            game,
+            instanceData.gameDirPath
+        );
         const additionalArgs = launcherArgs;
         return {
             exeTitle: exeName,

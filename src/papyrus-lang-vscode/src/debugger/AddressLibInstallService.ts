@@ -109,9 +109,8 @@ export class AddressLibraryInstallService implements IAddressLibraryInstallServi
      */
     public async getInstallState(game: PapyrusGame, modsDir?: string): Promise<AddressLibInstalledState> {
         // TODO: Verify this is what we want to do for Starfield
-        if (game === PapyrusGame.starfield)
-            return AddressLibInstalledState.installed;
-    
+        if (game === PapyrusGame.starfield) return AddressLibInstalledState.installed;
+
         const ModsInstallDir = modsDir || (await this._pathResolver.getModParentPath(game)) || '';
         if (!ModsInstallDir || ModsInstallDir.length === 0) {
             return AddressLibInstalledState.notInstalled;

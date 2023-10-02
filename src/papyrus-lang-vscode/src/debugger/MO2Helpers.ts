@@ -22,7 +22,7 @@ export function GetMO2GameID(game: PapyrusGame): MO2Lib.MO2LongGameID {
         case PapyrusGame.skyrim:
             return 'Skyrim';
         case PapyrusGame.starfield:
-            return 'Starfield'
+            return 'Starfield';
     }
 }
 

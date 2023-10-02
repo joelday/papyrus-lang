@@ -2,7 +2,6 @@ import { TaskDefinition, Task } from 'vscode';
 
 export type TaskOf<T extends TaskDefinition> = { readonly definition: T } & Task;
 
-
 // TODO: Ask fire what these are going to be
 
 export enum PyroGameToPapyrusGame {

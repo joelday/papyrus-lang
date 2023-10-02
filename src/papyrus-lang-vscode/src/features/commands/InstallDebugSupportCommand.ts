@@ -31,7 +31,11 @@ export class InstallDebugSupportCommand extends GameCommandBase {
         @inject(IDebugSupportInstallService) installer: IDebugSupportInstallService,
         @inject(IMO2ConfiguratorService) mo2ConfiguratorService: IMO2ConfiguratorService
     ) {
-        super('installDebuggerSupport', [PapyrusGame.fallout4, PapyrusGame.skyrimSpecialEdition, PapyrusGame.starfield]);
+        super('installDebuggerSupport', [
+            PapyrusGame.fallout4,
+            PapyrusGame.skyrimSpecialEdition,
+            PapyrusGame.starfield,
+        ]);
 
         this._installer = installer;
         this._mo2ConfiguratorService = mo2ConfiguratorService;

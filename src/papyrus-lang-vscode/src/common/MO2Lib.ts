@@ -194,7 +194,7 @@ function getIDFromNXMHandlerName(nxmName: string): MO2LongGameID | undefined {
     const _nxmName = nxmName.toLowerCase().replace(/ /g, '');
     switch (_nxmName) {
         case 'starfield':
-            return 'Starfield'
+            return 'Starfield';
         case 'skyrimse':
         case 'skyrimspecialedition':
             return 'Skyrim Special Edition';

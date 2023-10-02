@@ -225,7 +225,6 @@ export class MO2ConfiguratorService implements IMO2ConfiguratorService {
         }
         return MO2LaunchConfigurationStatus.Ready;
     }
-    
 
     public async fixDebuggerConfiguration(
         launchDescriptor: MO2LauncherDescriptor,
@@ -307,12 +306,7 @@ export class MO2ConfiguratorService implements IMO2ConfiguratorService {
                     if (!gameIni) {
                         return false;
                     }
-                    if (
-                        !await TurnOnDebuggingInIni(
-                            launchDescriptor.game,
-                            gameIni
-                        )
-                    ) {
+                    if (!(await TurnOnDebuggingInIni(launchDescriptor.game, gameIni))) {
                         return false;
                     }
                     break;

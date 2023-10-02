@@ -1,11 +1,23 @@
-import path from "path";
-import { getRegistryKeyForGame, PapyrusGame, GameVariant, GetUserGameFolderName, getScriptExtenderName, getInstalledPathRegVal } from "../PapyrusGame";
-import * as fs from "fs";
-import { promisify } from "util";
-import { AddressLibAssetSuffix, AddressLibraryF4SEModName, AddressLibraryName, AddressLibrarySKSEAEModName, AddressLibrarySKSEModName } from "./constants";
-import { INIData } from "./INIHelpers";
-import { getHomeFolder, getRegistryValueData } from "./OSHelpers";
-import { get } from "http";
+import path from 'path';
+import {
+    getRegistryKeyForGame,
+    PapyrusGame,
+    GameVariant,
+    GetUserGameFolderName,
+    getScriptExtenderName,
+    getInstalledPathRegVal,
+} from '../PapyrusGame';
+import * as fs from 'fs';
+import { promisify } from 'util';
+import {
+    AddressLibAssetSuffix,
+    AddressLibraryF4SEModName,
+    AddressLibraryName,
+    AddressLibrarySKSEAEModName,
+    AddressLibrarySKSEModName,
+} from './constants';
+import { INIData } from './INIHelpers';
+import { getHomeFolder, getRegistryValueData } from './OSHelpers';
 
 const exists = promisify(fs.exists);
 const readdir = promisify(fs.readdir);
@@ -44,32 +56,28 @@ export function getAddressLibNames(game: PapyrusGame): AddressLibraryName[] {
 }
 
 export function CheckIfDebuggingIsEnabledInIni(game: PapyrusGame, iniData: INIData) {
-  let check = (
-    iniData.Papyrus.bLoadDebugInformation === 1 &&
-    iniData.Papyrus.bEnableTrace === 1 &&
-    iniData.Papyrus.bEnableLogging === 1
-  );
-  if (game == PapyrusGame.starfield) {
-    check = check && (
-      iniData.Papyrus.bEnableRemoteDebugging === 1 &&
-      iniData.Papyrus.iRemoteDebuggingPort === 20548 // TODO: Starfield: make this dynamic
-    )
-  }
-  return check;
+    let check =
+        iniData.Papyrus.bLoadDebugInformation === 1 &&
+        iniData.Papyrus.bEnableTrace === 1 &&
+        iniData.Papyrus.bEnableLogging === 1;
+    if (game == PapyrusGame.starfield) {
+        check = check && iniData.Papyrus.bEnableRemoteDebugging === 1 && iniData.Papyrus.iRemoteDebuggingPort === 20548; // TODO: Starfield: make this dynamic
+    }
+    return check;
 }
 
 export function TurnOnDebuggingInIni(game: PapyrusGame, iniData: INIData) {
-  const _ini = structuredClone(iniData);
-  
-  _ini.Papyrus.bLoadDebugInformation = 1;
-  _ini.Papyrus.bEnableTrace = 1;
-  _ini.Papyrus.bEnableLogging = 1;
-  if (game === PapyrusGame.starfield){
-      _ini.Papyrus.bRemoteDebuggingLogVerbose = 1;
-      _ini.Papyrus.bEnableRemoteDebugging = 1;
-      _ini.Papyrus.iRemoteDebuggingPort = 20548; // TODO: STarfield: make this dynamic
-  }
-  return _ini;
+    const _ini = structuredClone(iniData);
+
+    _ini.Papyrus.bLoadDebugInformation = 1;
+    _ini.Papyrus.bEnableTrace = 1;
+    _ini.Papyrus.bEnableLogging = 1;
+    if (game === PapyrusGame.starfield) {
+        _ini.Papyrus.bRemoteDebuggingLogVerbose = 1;
+        _ini.Papyrus.bEnableRemoteDebugging = 1;
+        _ini.Papyrus.iRemoteDebuggingPort = 20548; // TODO: STarfield: make this dynamic
+    }
+    return _ini;
 }
 
 export async function FindUserGamePath(game: PapyrusGame, variant: GameVariant): Promise<string | null> {
@@ -171,43 +179,41 @@ async function findSkyrimSEGOG(): Promise<string | null> {
 }
 
 async function FindGameSteamPath(game: PapyrusGame): Promise<string | null> {
-  const key = getRegistryKeyForGame(game);
-  const val = getInstalledPathRegVal(game);
-  const pathValue = await getRegistryValueData(key, val);
-  if (pathValue && (await exists(pathValue))) {
-      return pathValue;
-  }
-  return null;
+    const key = getRegistryKeyForGame(game);
+    const val = getInstalledPathRegVal(game);
+    const pathValue = await getRegistryValueData(key, val);
+    if (pathValue && (await exists(pathValue))) {
+        return pathValue;
+    }
+    return null;
 }
 
-export async function FindGamePath(game: PapyrusGame)
-{
-  switch (game) {
-      case PapyrusGame.fallout4:
-      case PapyrusGame.skyrim:
-        return FindGameSteamPath(game);
+export async function FindGamePath(game: PapyrusGame) {
+    switch (game) {
+        case PapyrusGame.fallout4:
+        case PapyrusGame.skyrim:
+            return FindGameSteamPath(game);
         // TODO: support gamepass version of starfield
-      case PapyrusGame.starfield:
-        return FindGameSteamPath(game);
-      case PapyrusGame.skyrimSpecialEdition: {
-        let path = await FindGameSteamPath(game);
-        if (path) {
-          return path;
+        case PapyrusGame.starfield:
+            return FindGameSteamPath(game);
+        case PapyrusGame.skyrimSpecialEdition: {
+            let path = await FindGameSteamPath(game);
+            if (path) {
+                return path;
+            }
+            path = await findSkyrimSEGOG();
+            if (path) {
+                return path;
+            }
+            path = await findSkyrimSEEpic();
+            if (path) {
+                return path;
+            }
         }
-        path = await findSkyrimSEGOG();
-        if (path) {
-          return path;
-        }
-        path = await findSkyrimSEEpic();
-        if (path) {
-          return path;
-        }
-      }
-      default:
-          break;
-  }
-  return null;
-
+        default:
+            break;
+    }
+    return null;
 }
 
 /**

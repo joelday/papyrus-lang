@@ -9,7 +9,6 @@ import {
     Uri,
     env,
     CancellationTokenSource,
-    DebugAdapterServer,
     DebugAdapterInlineImplementation,
     workspace,
 } from 'vscode';
@@ -40,7 +39,7 @@ import {
 import path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
-import { isMO2ButNotThisOneRunning, isMO2Running, isOurMO2Running, killAllMO2Processes } from './MO2Helpers';
+import { isMO2ButNotThisOneRunning, killAllMO2Processes } from './MO2Helpers';
 import { StarfieldDebugAdapterProxy } from './starfield/StarfieldDebugAdapterProxy';
 const exists = promisify(fs.exists);
 
@@ -57,7 +56,7 @@ export interface IDebugToolArguments {
 }
 
 function getDefaultPortForGame(game: PapyrusGame) {
-    switch(game) {
+    switch (game) {
         case PapyrusGame.fallout4:
             return 2077;
         case PapyrusGame.skyrimSpecialEdition:
@@ -233,27 +232,26 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
         if (game == PapyrusGame.starfield) {
             // get the workspace folder
             // TODO: Starfield: Replace this with actual name resolution
-            let workspaceFolder = ""
-            let baseFolder = ""
-            if (workspace.workspaceFolders !== undefined){
+            let workspaceFolder = '';
+            let baseFolder = '';
+            if (workspace.workspaceFolders !== undefined) {
                 workspaceFolder = workspace.workspaceFolders[0].uri.fsPath;
-                if (workspace.workspaceFolders.length > 1){
+                if (workspace.workspaceFolders.length > 1) {
                     baseFolder = workspace.workspaceFolders[1].uri.fsPath;
                 }
             }
-            
+
             session.configuration.noop = false;
-            return new DebugAdapterInlineImplementation( 
+            return new DebugAdapterInlineImplementation(
                 new StarfieldDebugAdapterProxy({
                     port: session.configuration.port || getDefaultPortForGame(game),
-                    host: "localhost",
+                    host: 'localhost',
                     startNow: true,
                     workspaceFolder: workspaceFolder,
                     BaseScriptFolder: baseFolder,
-                    consoleLogLevel: "debug" // TODO: Turn this down in production, it can kill performance
-                }
-                )
-            )
+                    consoleLogLevel: 'debug', // TODO: Turn this down in production, it can kill performance
+                })
+            );
         }
 
         let launched = DebugLaunchState.success;
@@ -350,10 +348,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
         }
         const gConfig = await this._configProvider.config.pipe(take(1)).toPromise();
         const config = gConfig[game];
-        const creationKitInfo = await this._creationKitInfoProvider.infos
-            .get(game)!
-            .pipe(take(1))
-            .toPromise();
+        const creationKitInfo = await this._creationKitInfoProvider.infos.get(game)!.pipe(take(1)).toPromise();
 
         if (!creationKitInfo.resolvedInstallPath) {
             throw new Error(`Creation Kit install path for ${getDisplayNameForGame(game)} is not configured.`);
