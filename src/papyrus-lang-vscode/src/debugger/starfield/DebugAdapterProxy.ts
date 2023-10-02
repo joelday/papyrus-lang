@@ -459,9 +459,13 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
                         try {
                             const message = JSON.parse(msgData);
                             this.log(this.logServerToProxy, { message }, '---SERVER->PROXY:');
-                            this.handleMessageFromServer(message);
+                            try {
+                                this.handleMessageFromServer(message);
+                            } catch (e) {
+                                this.logerror(e, `Error handling message from server: ${message}`);
+                            }
                         } catch (e) {
-                            this.logerror('Received invalid JSON message: ', msgData, e);
+                            this.logerror(e, `Received invalid JSON message: ${msgData}`);
                         }
                     }
                     continue; // there may be more complete messages to process

@@ -317,7 +317,7 @@ export class ScopedVariableNode extends BasicVariableNode implements IScopedVari
     readonly path: string[];
     readonly scopeType: ScopeType;
     readonly hasStackFrame: boolean;
-    readonly children: IVariableNode[];
+    readonly children: IVariableNode[] = [];
 
     readonly baseForm?: string;
     readonly reflectionInfo?: SFDAP.Root;
@@ -349,10 +349,10 @@ export class ScopedVariableNode extends BasicVariableNode implements IScopedVari
 
         // iscopenode
         this.frameId = scopedVarNode.frameId;
-        this.path = scopedVarNode.path;
+        this.path = scopedVarNode.path || [];
         this.scopeType = scopedVarNode.scopeType;
         this.hasStackFrame = scopedVarNode.hasStackFrame;
-        this.children = scopedVarNode.children;
+        this.children = scopedVarNode.children || [];
 
         // iscopedvariablenode
         this.baseForm = scopedVarNode.baseForm;
@@ -387,14 +387,14 @@ export class VariableNodeFactory {
             type: variable.type,
             varPresentationHint: varPresentationHint,
             evaluateName: _evaluateName, // TODO: this?
-            variablesReference: 0,
+            variablesReference: varRef,
             namedVariables: undefined,
             indexedVariables: undefined,
             memoryReference: undefined,
             parentScopeVarRef: parentScope?.variablesReference || 0,
             isProp: isProp,
             realName: realName,
-            compound: false,
+            compound: variable.compound,
         } as IVariableNode;
     }
 
@@ -677,9 +677,9 @@ export class StateNode implements IStateNode {
     }
     protected addVariableToState(varNode: IVariableNode, parentScopeVarRef?: number) {
         const parentScope = parentScopeVarRef ? this.getScopeNode(parentScopeVarRef) : undefined;
-        parentScope?.children.push(varNode);
-        this.getScopeNode(varNode.variablesReference)?.children.push(varNode);
-
+        if (parentScope) {
+            parentScope?.children.push(varNode);
+        }
         if (varNode.compound) {
             this.addScopeToScopeMap(varNode as IScopedVariableNode);
             this._variableMap.set(varNode.variablesReference, varNode);
@@ -702,7 +702,12 @@ export class StateNode implements IStateNode {
         const parentScope = parentScopeVarRef ? this.getScopeNode(parentScopeVarRef) : undefined;
 
         for (const oldVar of variables) {
-            const varNode = VariableNodeFactory.makeVariableNode(oldVar, this.getVariableRefCount(), parentScope);
+            const varNode = VariableNodeFactory.makeVariableNode(
+                oldVar,
+                oldVar.compound ? this.getVariableRefCount() : 0, // TODO: make variable node factory handle this
+                parentScope,
+                frameid
+            );
             this.addVariableToState(varNode, parentScopeVarRef);
             newVariables.push(varNode);
         }
