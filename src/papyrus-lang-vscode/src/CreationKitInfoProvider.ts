@@ -1,9 +1,9 @@
 import { interfaces, inject, injectable } from 'inversify';
-import { PapyrusGame, getGames } from './PapyrusGame';
+import { PapyrusGame, getGames, getDevelopmentCompilerFolderForGame } from './PapyrusGame';
 import { IExtensionConfigProvider } from './ExtensionConfigProvider';
 import { Observable, combineLatest } from 'rxjs';
 import { map, mergeMap, shareReplay } from 'rxjs/operators';
-import { IPathResolver, getDevelopmentCompilerFolderForGame } from './common/PathResolver';
+import { IPathResolver } from './common/PathResolver';
 import { inDevelopmentEnvironment } from './Utilities';
 import * as path from 'path';
 import * as ini from 'ini';

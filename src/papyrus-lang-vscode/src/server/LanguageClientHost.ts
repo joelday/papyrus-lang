@@ -1,13 +1,13 @@
 import { Disposable, OutputChannel, window, TextDocument } from 'vscode';
 
 import { LanguageClient, ILanguageClient, IToolArguments } from './LanguageClient';
-import { PapyrusGame, getShortDisplayNameForGame } from '../PapyrusGame';
+import { PapyrusGame, getShortDisplayNameForGame, getDefaultFlagsFileNameForGame } from '../PapyrusGame';
 import { IGameConfig } from '../ExtensionConfigProvider';
 import { Observable, BehaviorSubject, of } from 'rxjs';
 import { ICreationKitInfo } from '../CreationKitInfoProvider';
 import { DocumentScriptInfo } from './messages/DocumentScriptInfo';
 import { shareReplay, take, switchMap } from 'rxjs/operators';
-import { getDefaultFlagsFileNameForGame, IPathResolver } from '../common/PathResolver';
+import { IPathResolver } from '../common/PathResolver';
 import { ProjectInfos } from './messages/ProjectInfos';
 import { inject } from 'inversify';
 
@@ -123,12 +123,12 @@ export class LanguageClientHost implements ILanguageClientHost, Disposable {
                 this._status.next(ClientHostStatus.compilerMissing);
                 return;
             }
-
+            const defaultFlags = getDefaultFlagsFileNameForGame(this._game);
             const toolArguments: IToolArguments = {
                 compilerAssemblyPath: this._creationKitInfo.resolvedCompilerPath,
                 creationKitInstallPath: this._creationKitInfo.resolvedInstallPath,
                 relativeIniPaths: this._config.creationKitIniFiles,
-                flagsFileName: getDefaultFlagsFileNameForGame(this._game),
+                flagsFileName: defaultFlags,
                 ambientProjectName: 'Creation Kit',
                 defaultScriptSourceFolder: this._creationKitInfo.config.Papyrus?.sScriptSourceFolder,
                 defaultAdditionalImports: this._creationKitInfo.config.Papyrus?.sAdditionalImports,

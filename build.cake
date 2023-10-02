@@ -210,14 +210,17 @@ Task("copy-debug-plugin")
             CreateDirectory("./src/papyrus-lang-vscode/debug-plugin");
 
             var configuration = isRelease ? "Release" : "Debug";
+            var skyrimPath = $"src/DarkId.Papyrus.DebugServer/bin/DarkId.Papyrus.DebugServer.Skyrim/x64/{configuration}/DarkId.Papyrus.DebugServer.Skyrim.dll";
+            var fallout4Path = $"src/DarkId.Papyrus.DebugServer/bin/DarkId.Papyrus.DebugServer.Fallout4/x64/{configuration}/DarkId.Papyrus.DebugServer.Fallout4.dll";
+            var copyDir = "./src/papyrus-lang-vscode/debug-plugin";
 
             CopyFileToDirectory(
-                $"src/DarkId.Papyrus.DebugServer/bin/DarkId.Papyrus.DebugServer.Skyrim/x64/{configuration}/DarkId.Papyrus.DebugServer.Skyrim.dll",
-                "./src/papyrus-lang-vscode/debug-plugin");
+                skyrimPath,
+                copyDir);
 
             CopyFileToDirectory(
-                $"src/DarkId.Papyrus.DebugServer/bin/DarkId.Papyrus.DebugServer.Fallout4/x64/{configuration}/DarkId.Papyrus.DebugServer.Fallout4.dll",
-                "./src/papyrus-lang-vscode/debug-plugin");
+                fallout4Path,
+                copyDir);
         }
         catch (Exception)
         {
@@ -352,6 +355,11 @@ Task("update-bin")
 
 Task("build-extension")
     .IsDependentOn("npm-build");
+
+Task("build-extension-and-update-bin")
+    .IsDependentOn("build-debugger")
+    .IsDependentOn("update-bin")
+    .IsDependentOn("build-extension");
 
 Task("build-test")
     .IsDependentOn("build")

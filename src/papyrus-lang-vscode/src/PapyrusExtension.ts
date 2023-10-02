@@ -26,6 +26,10 @@ import { GenerateProjectCommand } from './features/commands/GenerateProjectComma
 import { showWelcome } from './features/WelcomeHandler';
 import { ShowWelcomeCommand } from './features/commands/ShowWelcomeCommand';
 import { Container } from 'inversify';
+import { IDebugLauncherService, DebugLauncherService } from './debugger/DebugLauncherService';
+import { IAddressLibraryInstallService, AddressLibraryInstallService } from './debugger/AddressLibInstallService';
+import { IMO2LaunchDescriptorFactory, MO2LaunchDescriptorFactory } from './debugger/MO2LaunchDescriptorFactory';
+import { IMO2ConfiguratorService, MO2ConfiguratorService } from './debugger/MO2ConfiguratorService';
 
 class PapyrusExtension implements Disposable {
     private readonly _serviceContainer: Container;
@@ -66,6 +70,10 @@ class PapyrusExtension implements Disposable {
         this._serviceContainer.bind(ICreationKitInfoProvider).to(CreationKitInfoProvider);
         this._serviceContainer.bind(ILanguageClientManager).to(LanguageClientManager);
         this._serviceContainer.bind(IDebugSupportInstallService).to(DebugSupportInstallService);
+        this._serviceContainer.bind(IDebugLauncherService).to(DebugLauncherService);
+        this._serviceContainer.bind(IAddressLibraryInstallService).to(AddressLibraryInstallService);
+        this._serviceContainer.bind(IMO2LaunchDescriptorFactory).to(MO2LaunchDescriptorFactory);
+        this._serviceContainer.bind(IMO2ConfiguratorService).to(MO2ConfiguratorService);
 
         this._configProvider = this._serviceContainer.get(IExtensionConfigProvider);
         this._clientManager = this._serviceContainer.get(ILanguageClientManager);
@@ -78,7 +86,7 @@ class PapyrusExtension implements Disposable {
         this._debugAdapterDescriptorFactory = this._serviceContainer.resolve(PapyrusDebugAdapterDescriptorFactory);
         this._installDebugSupportCommand = this._serviceContainer.resolve(InstallDebugSupportCommand);
 
-        this._debugAdapterTrackerFactory = new PapyrusDebugAdapterTrackerFactory();
+        this._debugAdapterTrackerFactory = this._serviceContainer.resolve(PapyrusDebugAdapterTrackerFactory);
 
         this._attachCommand = new AttachDebuggerCommand();
 
