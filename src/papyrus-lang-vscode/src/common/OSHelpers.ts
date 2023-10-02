@@ -21,6 +21,8 @@ export async function getRegistryValueData(key: string, value: string, hive: str
     try {
         const item = await promisify(reg.get).call(reg, value);
         return item.value;
-    } catch (e) {}
+    } catch (e) {
+        /* empty */
+    }
     return null;
 }

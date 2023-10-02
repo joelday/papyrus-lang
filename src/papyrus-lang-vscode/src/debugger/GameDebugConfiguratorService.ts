@@ -15,8 +15,6 @@ import * as fs from 'fs';
 import { promisify } from 'util';
 
 const exists = promisify(fs.exists);
-const copyFile = promisify(fs.copyFile);
-const removeFile = promisify(fs.unlink);
 
 export enum GameDebugConfigurationState {
     debugEnabled,

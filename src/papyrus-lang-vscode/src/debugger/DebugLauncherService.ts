@@ -5,17 +5,7 @@ import { IPathResolver } from '../common/PathResolver';
 import { PapyrusGame } from '../PapyrusGame';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
 import { getGameIsRunning, getGamePIDs } from '../Utilities';
-
-import * as fs from 'fs';
-import { promisify } from 'util';
-
 import { ChildProcess, spawn } from 'node:child_process';
-import { execFile as _execFile } from 'child_process';
-const execFile = promisify(_execFile);
-
-const exists = promisify(fs.exists);
-const copyFile = promisify(fs.copyFile);
-const removeFile = promisify(fs.unlink);
 
 export enum DebugLaunchState {
     success,

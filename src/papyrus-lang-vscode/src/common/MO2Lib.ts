@@ -400,7 +400,7 @@ function ParseInstanceINI(iniPath: string, iniData: INIData, isPortable: boolean
         return undefined;
     }
     // TODO: We should probably pin to a specific minor version of MO2
-    const version = iniData.General['version'];
+    const _version = iniData.General['version'];
 
     // TODO: Figure out if this is ever not set
     const selectedProfile = _normInistr(iniData.General['selected_profile']) || 'Default';
@@ -904,7 +904,7 @@ export function ParseMO2CmdLineArguments(normargstring: string) {
  * - [installedFiles].size
  */
 
-export function isKeyOfObject<T extends Object>(key: string | number | symbol, obj: T): key is keyof T {
+export function isKeyOfObject<T extends object>(key: string | number | symbol, obj: T): key is keyof T {
     return key in obj;
 }
 
@@ -929,6 +929,8 @@ function ParseModMetaIni(modMetaIni: INIData): MO2ModMeta | undefined {
     }
     const general = modMetaIni.General;
     // check if each key in general is a key in the type MO2ModMeta
+    // TODO: figure out how to do this without the any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const modMeta = {} as any;
     for (const key in general) {
         if (isKeyOfObject(key, general as MO2ModMeta)) {

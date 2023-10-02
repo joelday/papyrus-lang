@@ -25,8 +25,8 @@ export class PapyrusDebugConfigurationProvider implements DebugConfigurationProv
     }
 
     async provideDebugConfigurations(
-        folder: WorkspaceFolder | undefined,
-        token?: CancellationToken
+        _folder: WorkspaceFolder | undefined,
+        _token?: CancellationToken
         // TODO: FIX THIS
     ): Promise<IPapyrusDebugConfiguration[]> {
         const PapyrusAttach = {
@@ -60,9 +60,9 @@ export class PapyrusDebugConfigurationProvider implements DebugConfigurationProv
     }
 
     async resolveDebugConfiguration(
-        folder: WorkspaceFolder | undefined,
+        _folder: WorkspaceFolder | undefined,
         debugConfiguration: IPapyrusDebugConfiguration,
-        token?: CancellationToken
+        _token?: CancellationToken
     ): Promise<IPapyrusDebugConfiguration | null | undefined> {
         if (debugConfiguration.game !== undefined && debugConfiguration.request !== undefined) {
             if (debugConfiguration.request === 'launch') {
@@ -90,13 +90,13 @@ export class PapyrusDebugConfigurationProvider implements DebugConfigurationProv
     // substitute all the environment variables in the given string
     // environment variables are of the form ${env:VARIABLE_NAME}
     async substituteEnvVars(string: string): Promise<string> {
-        const envVars = string.match(/\$\{env:([^\}]+)\}/g);
+        const envVars = string.match(/\$\{env:([^}]+)\}/g);
         if (envVars !== null) {
             for (const envVar of envVars) {
                 if (envVar === undefined || envVar === null) {
                     continue;
                 }
-                const matches = envVar?.match(/\$\{env:([^\}]+)\}/);
+                const matches = envVar?.match(/\$\{env:([^}]+)\}/);
                 if (matches === null || matches.length < 2) {
                     continue;
                 }
@@ -156,9 +156,9 @@ export class PapyrusDebugConfigurationProvider implements DebugConfigurationProv
     }
 
     async resolveDebugConfigurationWithSubstitutedVariables(
-        folder: WorkspaceFolder | undefined,
+        _folder: WorkspaceFolder | undefined,
         debugConfiguration: IPapyrusDebugConfiguration,
-        token?: CancellationToken
+        _token?: CancellationToken
     ): Promise<IPapyrusDebugConfiguration | null | undefined> {
         if (debugConfiguration.request === 'launch' && debugConfiguration.launcherPath) {
             const path = await this.substituteEnvVars(debugConfiguration.launcherPath);

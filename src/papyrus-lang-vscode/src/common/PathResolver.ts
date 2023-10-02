@@ -15,8 +15,6 @@ import { PDSModName } from './constants';
 import { DetermineGameVariant, FindGamePath, FindUserGamePath } from './GameHelpers';
 
 const exists = promisify(fs.exists);
-const readdir = promisify(fs.readdir);
-const readFile = promisify(fs.readFile);
 
 export interface IPathResolver {
     // Internal paths

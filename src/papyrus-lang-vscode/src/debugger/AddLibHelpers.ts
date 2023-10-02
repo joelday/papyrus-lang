@@ -97,6 +97,7 @@ export async function getLatestAddLibReleaseInfo(): Promise<GithubRelease | unde
 
 interface CancellationToken {
     isCancellationRequested: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onCancellationRequested: any;
 }
 

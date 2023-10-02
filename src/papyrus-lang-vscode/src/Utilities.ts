@@ -51,7 +51,7 @@ export async function getGamePIDs(game: PapyrusGame): Promise<Array<number>> {
 
 export async function getPIDforProcessName(processName: string): Promise<Array<number>> {
     const processList = await procList();
-    const thing = processList[0];
+
     const gameProcesses = processList.filter((p) => p.name.toLowerCase() === processName.toLowerCase());
 
     if (gameProcesses.length === 0) {

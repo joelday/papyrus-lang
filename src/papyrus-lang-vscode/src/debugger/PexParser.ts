@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Parser } from 'binary-parser';
 import * as fs from 'fs';
 import { PapyrusGame } from '../PapyrusGame';
@@ -91,7 +92,7 @@ export interface DebugInfo {
 }
 
 // TODO: maybe implement this
-class PexIndexedString {
+export class PexIndexedString {
     public readonly index: number;
     public readonly str: string;
     constructor(index: number, str: string) {

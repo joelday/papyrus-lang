@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { IDebugSupportInstallService, DebugSupportInstallState } from '../../debugger/DebugSupportInstallService';
 import { window, ProgressLocation } from 'vscode';
 import { PapyrusGame, getDisplayNameForGame } from '../../PapyrusGame';

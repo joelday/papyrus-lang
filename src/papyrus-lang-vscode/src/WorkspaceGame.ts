@@ -33,6 +33,7 @@ export async function getWorkspaceGameFromProjects(ppjFiles: Uri[]): Promise<Pap
 export async function getWorkspaceGameFromProjectFile(projectFile: string): Promise<PapyrusGame | undefined> {
     const xml = await readFile(projectFile, { encoding: 'utf-8' });
     // TODO: Annoying type cast here:
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const results = xml2js(xml, { compact: true, trim: true }) as Record<string, any>;
 
     return results['PapyrusProject']['_attributes']['Game'];

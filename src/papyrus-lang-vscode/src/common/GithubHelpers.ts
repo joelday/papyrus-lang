@@ -6,7 +6,6 @@ import * as fs from 'fs';
 import { promisify } from 'util';
 import { CheckHashFile } from '../Utilities';
 
-const readdir = promisify(fs.readdir);
 const exists = promisify(fs.exists);
 export enum DownloadResult {
     success,
