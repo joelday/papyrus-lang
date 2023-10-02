@@ -100,6 +100,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     private receivedVersionEvent: boolean = false;
     private receivedLaunchOrAttachRequest: boolean = false;
     private sentInitializedEvent: boolean = false;
+    private firstTimeReceivingScopes: boolean = true;
     // object name to source map
     protected _objectNameToSourceMap: Map<string, DAP.Source> = new Map<string, DAP.Source>();
     protected _pathtoObjectNameMap: Map<string, string> = new Map<string, string>();
@@ -628,6 +629,15 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
                 scopes: scopes,
             };
             this.sendMessageToClient(response);
+            if (this.firstTimeReceivingScopes) {
+                this.emitOutputEvent(
+                    'WARNING: Due to limitations in the DAP server built into Starfield, ' +
+                        'form reflection is limited. Most form objects that do not have ' +
+                        'scripts attached to them will only show the current object state ("::state").\n',
+                    'console'
+                );
+                this.firstTimeReceivingScopes = false;
+            }
         });
     }
 
