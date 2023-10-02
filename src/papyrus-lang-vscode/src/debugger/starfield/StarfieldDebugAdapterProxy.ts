@@ -130,36 +130,6 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         this.stateNode.clear();
     }
 
-    // takes in a Source object and returns the papyrus object idnetifier (e.g. "MyMod:MyScript")
-    sourceToObjectName(source: DAP.Source) {
-        const name = source.name || '';
-        const path = source.path || '';
-
-        let objectName: string = name.split('.')[0];
-
-        // check the object name map path first
-        if (this._pathtoObjectNameMap.has(path)) {
-            objectName = this._pathtoObjectNameMap.get(path)!;
-            this._objectNameToSourceMap.set(objectName, source);
-        } else if (path) {
-            const newName = this.GetObjectNameFromScript(path);
-            if (!newName) {
-                this.logerror('Did not find script name in file: ' + path);
-            } else {
-                objectName = newName;
-                this._pathtoObjectNameMap.set(path, objectName);
-                this._objectNameToSourceMap.set(objectName, source);
-            }
-            // set the object name map path
-        } else {
-            // last ditch; if objectName is in source
-            if (this._objectNameToSourceMap.has(objectName)) {
-                this._objectNameToSourceMap.set(objectName, source);
-            }
-        }
-        return objectName;
-    }
-
     //overrides base class
     handleMessageFromServer(message: DAP.ProtocolMessage): void {
         if (message.type == 'response') {
@@ -897,5 +867,35 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         };
         this._objectNameToSourceMap.set(objectName, source);
         return source;
+    }
+
+    // takes in a Source object and returns the papyrus object idnetifier (e.g. "MyMod:MyScript")
+    sourceToObjectName(source: DAP.Source) {
+        const name = source.name || '';
+        const path = source.path || '';
+
+        let objectName: string = name.split('.')[0];
+
+        // check the object name map path first
+        if (this._pathtoObjectNameMap.has(path)) {
+            objectName = this._pathtoObjectNameMap.get(path)!;
+            this._objectNameToSourceMap.set(objectName, source);
+        } else if (path) {
+            const newName = this.GetObjectNameFromScript(path);
+            if (!newName) {
+                this.logerror('Did not find script name in file: ' + path);
+            } else {
+                objectName = newName;
+                this._pathtoObjectNameMap.set(path, objectName);
+                this._objectNameToSourceMap.set(objectName, source);
+            }
+            // set the object name map path
+        } else {
+            // last ditch; if objectName is in source
+            if (this._objectNameToSourceMap.has(objectName)) {
+                this._objectNameToSourceMap.set(objectName, source);
+            }
+        }
+        return objectName;
     }
 }
