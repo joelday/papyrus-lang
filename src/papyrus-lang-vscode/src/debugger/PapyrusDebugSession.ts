@@ -46,9 +46,9 @@ export interface MO2Config {
 export interface XSEConfig {}
 
 export interface IPapyrusDebugConfiguration extends DebugConfiguration {
-    /**
-     * The game to debug ('fallout4', 'skyrim', 'skyrimSpecialEdition')
-     */
+    /** 
+     * The game to debug ('fallout4', 'skyrim', 'skyrimSpecialEdition', 'starfield')
+     */ 
     game: PapyrusGame;
     /**
      * The path to the project to debug

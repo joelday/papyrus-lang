@@ -55,6 +55,13 @@ function getDefaultPapyrusConfigForGame(game: PapyrusGame): ICreationKitPapyrusC
                 sCompilerFolder,
                 sScriptCompiledFolder,
             };
+        case PapyrusGame.starfield:
+        // TODO: Starfield: verify what these are when the CK comes out
+        return {
+            sScriptSourceFolder: '.\\Data\\Scripts\\Source\\',
+            sCompilerFolder,
+            sScriptCompiledFolder,
+        };
     }
 }
 

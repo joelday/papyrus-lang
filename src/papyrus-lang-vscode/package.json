@@ -7,7 +7,8 @@
         "onDebug",
         "onDebugInitialConfigurations",
         "onDebugResolve:papyrus",
-        "onView:papyrus-projects"
+        "onView:papyrus-projects",
+        "onDebugAdapterProtocolTracker:papyrus"
     ],
     "author": {
         "email": "joelday@gmail.com",
@@ -40,7 +41,8 @@
                                 "type": "string",
                                 "enum": [
                                     "fallout4",
-                                    "skyrimSpecialEdition"
+                                    "skyrimSpecialEdition",
+                                    "starfield"
                                 ]
                             },
                             "projectPath": {
@@ -57,7 +59,8 @@
                                 "type": "string",
                                 "enum": [
                                     "fallout4",
-                                    "skyrimSpecialEdition"
+                                    "skyrimSpecialEdition",
+                                    "starfield"
                                 ]
                             },
                             "projectPath": {
@@ -322,6 +325,37 @@
                     "default": "",
                     "type": "string",
                     "description": "If you want to use a mod manager to manage the debugger plugin as a mod, set this to the path of the directory where installed mods for Skyrim SE/AE are kept. Otherwise it will be installed in the game directory."
+                },
+                "papyrus.starfield.enabled": {
+                    "default": true,
+                    "type": "boolean",
+                    "markdownDescription": "Enable support for **Skyrim Special Edition/Anniversary Edition**. Use the [Generate Project Files](command:papyrus.starfield.generateProject) command to set up the language server and builds."
+                },
+                "papyrus.starfield.creationKitIniFiles": {
+                    "default": [
+                        "CreationKit.ini",
+                        "CreationKitCustom.ini"
+                    ],
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "INI Files for the Skyrim Special Edition/Anniversary Edition version of the Creation Kit."
+                },
+                "papyrus.starfield.installPath": {
+                    "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Starfield\\",
+                    "type": "string",
+                    "description": "Pathname of the directory where Skyrim Special Edition/Anniversary Edition is installed."
+                },
+                "papyrus.starfield.ignoreDebuggerVersion": {
+                    "default": false,
+                    "type": "boolean",
+                    "description": "Allow using old version of the debugger script extender plugin with Starfield."
+                },
+                "papyrus.starfield.modDirectoryPath": {
+                    "default": "",
+                    "type": "string",
+                    "description": "If you want to use a mod manager to manage the debugger plugin as a mod, set this to the path of the directory where installed mods for Skyrim SE/AE are kept. Otherwise it will be installed in the game directory."
                 }
             },
             "title": "Papyrus",
@@ -580,6 +614,7 @@
         "@types/winreg": "^1.2.31",
         "@typescript-eslint/eslint-plugin": "^6.7.3",
         "@typescript-eslint/parser": "^6.7.3",
+        "@vscode/debugprotocol": "^1.63.0",
         "@vscode/test-electron": "2.2.0",
         "@vscode/vsce": "^2.16.0",
         "cpr": "^3.0.1",

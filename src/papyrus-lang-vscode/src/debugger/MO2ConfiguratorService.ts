@@ -19,6 +19,9 @@ import * as MO2Lib from '../common/MO2Lib';
 import { CancellationTokenSource } from 'vscode-languageclient';
 import { CancellationToken } from 'vscode';
 import { spawn } from 'child_process';
+import { ParseIniFile } from '../common/INIHelpers';
+import { CheckIfDebuggingIsEnabledInIni, TurnOnDebuggingInIni } from '../common/GameHelpers';
+import { PapyrusGame } from '../PapyrusGame';
 
 export enum MO2LaunchConfigurationStatus {
     Ready = 0,
@@ -29,9 +32,10 @@ export enum MO2LaunchConfigurationStatus {
     AddressLibraryOutdated = 1 << 3, // This is not currently in use
     PDSModNotEnabledInModList = 1 << 4,
     AddressLibraryModNotEnabledInModList = 1 << 5,
+    IniNotConfigured = 1 << 6,
     // not fixable
-    ModListNotParsable = 1 << 6,
-    UnknownError = 1 << 7,
+    ModListNotParsable = 1 << 7,
+    UnknownError = 1 << 8,
 }
 
 export interface IMO2ConfiguratorService {
@@ -57,6 +61,8 @@ function _getErrorMessage(state: MO2LaunchConfigurationStatus) {
             return 'Papyrus Debug Support mod is not enabled in the mod list';
         case MO2LaunchConfigurationStatus.AddressLibraryModNotEnabledInModList:
             return 'Address Library mod is not enabled in the mod list';
+        case MO2LaunchConfigurationStatus.IniNotConfigured:
+            return 'Game INI not correctly configured for debugging';
         case MO2LaunchConfigurationStatus.ModListNotParsable:
             return 'Mod list is not parsable';
         case MO2LaunchConfigurationStatus.UnknownError:
@@ -127,6 +133,10 @@ export class MO2ConfiguratorService implements IMO2ConfiguratorService {
     }
 
     public async getStateFromConfig(launchDescriptor: MO2LauncherDescriptor): Promise<MO2LaunchConfigurationStatus> {
+        // starfield just needs to check if the ini is configured
+        if (launchDescriptor.game === PapyrusGame.starfield) {
+            return await this.checkINIConfiguration(launchDescriptor);
+        }
         let state = MO2LaunchConfigurationStatus.Ready;
         state |= await this.checkPDSisPresent(launchDescriptor);
         state |= await this.checkAddressLibsArePresent(launchDescriptor);
@@ -202,6 +212,21 @@ export class MO2ConfiguratorService implements IMO2ConfiguratorService {
         return MO2LaunchConfigurationStatus.Ready;
     }
 
+    private async checkINIConfiguration(
+        launchDescriptor: MO2LauncherDescriptor
+    ): Promise<MO2LaunchConfigurationStatus> {
+        const gameIniPath = launchDescriptor.profileToLaunchData.gameIniPath;
+        const gameIni = await ParseIniFile(gameIniPath);
+        if (!gameIni) {
+            return MO2LaunchConfigurationStatus.IniNotConfigured;
+        }
+        if (!CheckIfDebuggingIsEnabledInIni(launchDescriptor.game, gameIni)) {
+            return MO2LaunchConfigurationStatus.IniNotConfigured;
+        }
+        return MO2LaunchConfigurationStatus.Ready;
+    }
+    
+
     public async fixDebuggerConfiguration(
         launchDescriptor: MO2LauncherDescriptor,
         cancellationToken = new CancellationTokenSource().token
@@ -276,6 +301,21 @@ export class MO2ConfiguratorService implements IMO2ConfiguratorService {
 
                     break;
                 }
+                case MO2LaunchConfigurationStatus.IniNotConfigured:
+                    const gameIniPath = launchDescriptor.profileToLaunchData.gameIniPath;
+                    const gameIni = await ParseIniFile(gameIniPath);
+                    if (!gameIni) {
+                        return false;
+                    }
+                    if (
+                        !await TurnOnDebuggingInIni(
+                            launchDescriptor.game,
+                            gameIni
+                        )
+                    ) {
+                        return false;
+                    }
+                    break;
                 default:
                     // shouldn't reach here
                     throw new Error(`Unknown state in fixDebuggerConfiguration`);

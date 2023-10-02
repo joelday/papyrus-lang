@@ -16,6 +16,7 @@ const mkdir = promisify(fs.mkdir);
 const copyFile = promisify(fs.copyFile);
 //const removeFile = promisify(fs.unlink);
 
+// TODO: Starfield: Finish implementing the rest for starfield
 @injectable()
 export class GenerateProjectCommand extends GameCommandBase<[string]> {
     private readonly _context: ExtensionContext;
@@ -39,15 +40,18 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
         }
 
         const defaultProjectSubdir = {
-            fallout4: 'Data',
-            skyrimSpecialEdition: 'Data',
-            skyrim: 'Data',
+            'fallout4': "Data",
+            'skyrimSpecialEdition': "Data",
+            'skyrim': "Data",
+            'starfield': "Data"
         };
 
         const resourceDir = {
-            fallout4: 'fo4',
-            skyrimSpecialEdition: 'sse',
-            skyrim: 'tesv',
+            'fallout4': 'fo4',
+            'skyrimSpecialEdition': "sse",
+            'skyrim': "tesv",
+            // TODO: ask fire what this should be
+            'starfield': "sf"
         };
 
         // Ignore the context menu folder for Fallout 4 because we don't currenlty have a solution for anything other
@@ -92,9 +96,10 @@ export class GenerateProjectCommand extends GameCommandBase<[string]> {
         const resourcePath = this._context.asAbsolutePath(path.join('resources', resourceDir[game]));
 
         const workspaceFilename = {
-            fallout4: 'Fallout4.code-workspace',
-            skyrimSpecialEdition: 'SkyrimSE.code-workspace',
-            skyrim: 'SkyrimLE.code-workspace',
+            'fallout4': "Fallout4.code-workspace",
+            'skyrimSpecialEdition': "SkyrimSE.code-workspace",
+            'skyrim': "SkyrimLE.code-workspace",
+            'starfield': "Starfield.code-workspace"
         }[game];
 
         const filesToCopy = [

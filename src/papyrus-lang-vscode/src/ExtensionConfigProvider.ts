@@ -2,7 +2,9 @@ import { injectable, interfaces } from 'inversify';
 import { workspace, Disposable } from 'vscode';
 import { eventToValueObservable } from './common/vscode/reactive/Events';
 import { Observable } from 'rxjs';
-
+import { filter } from 'rxjs/operators';
+import { PapyrusGame } from './PapyrusGame';
+import { FindGamePath } from './common/GameHelpers';
 export interface IGameConfig {
     readonly enabled: boolean;
     readonly creationKitIniFiles: string[];
@@ -15,6 +17,7 @@ export interface IExtensionConfig {
     readonly fallout4: IGameConfig;
     readonly skyrim: IGameConfig;
     readonly skyrimSpecialEdition: IGameConfig;
+    readonly starfield: IGameConfig;
 }
 
 export interface IExtensionConfigProvider extends Disposable {

@@ -203,7 +203,7 @@ export function getPluginDllName(game: PapyrusGame, legacy = false) {
         case PapyrusGame.skyrimSpecialEdition:
             return 'DarkId.Papyrus.DebugServer.Skyrim.dll';
         default:
-            throw new Error('Debugging not supported for game ' + game);
+            throw new Error("Debugging plugin not implemented for game " + game);
     }
 }
 
@@ -214,6 +214,8 @@ function getToolGameName(game: PapyrusGame): string {
         case PapyrusGame.skyrim:
         case PapyrusGame.skyrimSpecialEdition:
             return 'Skyrim';
+        case PapyrusGame.starfield:
+            return 'Starfield';
     }
 }
 

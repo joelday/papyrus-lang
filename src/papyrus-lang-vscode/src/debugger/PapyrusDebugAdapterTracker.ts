@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify';
-import { DebugAdapterTrackerFactory, DebugSession, DebugAdapterTracker, window, Disposable, debug } from 'vscode';
+import { DebugAdapterTrackerFactory, DebugSession, DebugAdapterTracker, window, Disposable, debug, DebugProtocolMessage } from 'vscode';
 import { IDebugLauncherService } from './DebugLauncherService';
-
+import { IExtensionContext } from '../common/vscode/IocDecorators';
 @injectable()
 export class PapyrusDebugAdapterTrackerFactory implements DebugAdapterTrackerFactory, Disposable {
     private readonly _debugLauncher: IDebugLauncherService;
@@ -31,6 +31,10 @@ export class PapyrusDebugAdapterTracker implements DebugAdapterTracker {
         this._session = session;
     }
 
+    onWillStartSession(): void {
+        console.log(`session ${this._session.id} will start with ${JSON.stringify(this._session.configuration)}\n`);
+    }
+    
     onWillStopSession() {
         this._showErrorMessages = false;
     }
@@ -41,6 +45,14 @@ export class PapyrusDebugAdapterTracker implements DebugAdapterTracker {
         }
 
         window.showErrorMessage(`Papyrus debugger error: ${error.toString()}`);
+    }
+    
+    // TODO: Starfield: TURN THIS BACK OFF
+    onWillReceiveMessage(message: any) {
+        console.log(`> ${JSON.stringify(message, undefined, 2)}`);
+    }
+    onDidSendMessage(message: any) {
+        console.log(`< ${JSON.stringify(message, undefined, 2)}`);
     }
 
     onExit(code: number | undefined, signal: string | undefined) {

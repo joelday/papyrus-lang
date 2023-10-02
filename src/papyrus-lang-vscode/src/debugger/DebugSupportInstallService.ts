@@ -56,6 +56,10 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
     }
     // TODO: Refactor this properly, right now it's just hacked to work with MO2LaunchDescriptor
     async getInstallState(game: PapyrusGame, modsDir: string | undefined): Promise<DebugSupportInstallState> {
+        // TODO: Verify this is what we want to do for Starfield
+        if (game === PapyrusGame.starfield)
+            return DebugSupportInstallState.installed;
+
         const config = (await this._configProvider.config.pipe(take(1)).toPromise())[game];
         const client = await this._languageClientManager.getLanguageClientHost(game);
         const status = await client.status.pipe(take(1)).toPromise();

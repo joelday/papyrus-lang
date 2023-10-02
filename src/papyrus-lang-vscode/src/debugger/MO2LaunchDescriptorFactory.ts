@@ -4,7 +4,7 @@ import { MO2Config } from './PapyrusDebugSession';
 
 import { injectable, interfaces } from 'inversify';
 import path from 'path';
-import { GetPapyrusGameFromMO2GameID } from './MO2Helpers';
+import { GetPapyrusGameFromMO2GameID, getGameINIFromMO2Profile } from './MO2Helpers';
 import * as MO2Lib from '../common/MO2Lib';
 import { LaunchCommand } from './DebugLauncherService';
 
@@ -24,9 +24,9 @@ export interface MO2ProfileData {
      */
     modListPath: string;
     /**
-     * Path to the ini file that contains the Skyrim or Fallout 4 settings.
+     * Path to the ini file that contains the Skyrim/Fallout 4/Starfield settings.
      * Depending if the profile has local settings, this is either present in the profile folder or in the global save game folder.
-     * Should alays be named "Skyrim.ini" or "Fallout4.ini"
+     * Should alays be named "Skyrim.ini", "Fallout4.ini", or "Starfield.ini"
      * @type {string}
      */
     gameIniPath: string;
@@ -45,7 +45,7 @@ export interface IMO2LaunchDescriptorFactory {
 export class MO2LaunchDescriptorFactory implements IMO2LaunchDescriptorFactory {
     constructor() {}
     // TODO: After testing, make these private
-    public static async populateMO2ProfileData(name: string, profileFolder: string): Promise<MO2ProfileData> {
+    public static async populateMO2ProfileData(name: string, profileFolder: string, game:PapyrusGame, gamePath: string): Promise<MO2ProfileData> {
         if (!existsSync(profileFolder)) {
             throw new Error(`Invalid MO2 profile: Could not find the profile folder ${profileFolder}}`);
         }
@@ -63,11 +63,13 @@ export class MO2LaunchDescriptorFactory implements IMO2LaunchDescriptorFactory {
         if (!ModsListData) {
             throw new Error(`Invalid MO2 profile: Mod list file is not parsable`);
         }
+        const gameIniPath = await getGameINIFromMO2Profile(game, gamePath, profileFolder);
         return {
             name: name,
             folderPath: profileFolder,
             settingsIniPath: settingsIniPath,
             modListPath: ModsListPath,
+            gameIniPath: gameIniPath,
         } as MO2ProfileData;
     }
 
@@ -144,7 +146,7 @@ export class MO2LaunchDescriptorFactory implements IMO2LaunchDescriptorFactory {
         if (!existsSync(profilePath) || !statSync(profilePath).isDirectory()) {
             throw new Error(`Could not find the profile '${profile}' in ${instanceData.profilesFolder}`);
         }
-        const profileData: MO2ProfileData = await this.populateMO2ProfileData(profile, profilePath);
+        const profileData: MO2ProfileData = await this.populateMO2ProfileData(profile, profilePath, game, instanceData.gameDirPath);
         const additionalArgs = launcherArgs;
         return {
             exeTitle: exeName,

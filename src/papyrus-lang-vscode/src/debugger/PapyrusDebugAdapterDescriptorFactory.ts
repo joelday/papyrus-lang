@@ -9,6 +9,8 @@ import {
     Uri,
     env,
     CancellationTokenSource,
+    DebugAdapterServer,
+    DebugAdapterInlineImplementation,
 } from 'vscode';
 import {
     PapyrusGame,
@@ -37,7 +39,8 @@ import {
 import path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
-import { isMO2ButNotThisOneRunning, killAllMO2Processes } from './MO2Helpers';
+import { isMO2ButNotThisOneRunning, isMO2Running, isOurMO2Running, killAllMO2Processes } from './MO2Helpers';
+import { StarfieldDebugAdapterProxy } from './StarfieldDebugAdapterProxy';
 const exists = promisify(fs.exists);
 
 const noopExecutable = new DebugAdapterExecutable('node', ['-e', '""']);
@@ -53,7 +56,15 @@ export interface IDebugToolArguments {
 }
 
 function getDefaultPortForGame(game: PapyrusGame) {
-    return game === PapyrusGame.fallout4 ? 2077 : 43201;
+    switch(game) {
+        case PapyrusGame.fallout4:
+            return 2077;
+        case PapyrusGame.skyrimSpecialEdition:
+            return 43201;
+        case PapyrusGame.starfield:
+            return 20548;
+    }
+    return 0;
 }
 
 @injectable()
@@ -212,9 +223,21 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
     ): Promise<DebugAdapterDescriptor> {
         const game = session.configuration.game;
 
-        if (game !== PapyrusGame.fallout4 && game !== PapyrusGame.skyrimSpecialEdition) {
+        if (game === PapyrusGame.skyrim) {
             throw new Error(`'${game}' is not supported by the Papyrus debugger.`);
         }
+
+        // Starfield doesnt need the adapter proxy and doesn't support launch right now
+        //TODO: Starfield: clean up
+        if (game == PapyrusGame.starfield) {
+            session.configuration.noop = false;
+            return new DebugAdapterInlineImplementation( 
+                new StarfieldDebugAdapterProxy(
+                    session.configuration.port || getDefaultPortForGame(game),
+                    "localhost")
+                    )
+        }
+
         let launched = DebugLaunchState.success;
 
         if (session.configuration.request === 'launch') {
@@ -307,8 +330,12 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
             session.configuration.noop = true;
             return noopExecutable;
         }
-        const config = (await this._configProvider.config.pipe(take(1)).toPromise())[game];
-        const creationKitInfo = await this._creationKitInfoProvider.infos.get(game)!.pipe(take(1)).toPromise();
+        const gConfig = await this._configProvider.config.pipe(take(1)).toPromise();
+        const config = gConfig[game];
+        const creationKitInfo = await this._creationKitInfoProvider.infos
+            .get(game)!
+            .pipe(take(1))
+            .toPromise();
 
         if (!creationKitInfo.resolvedInstallPath) {
             throw new Error(`Creation Kit install path for ${getDisplayNameForGame(game)} is not configured.`);
@@ -326,9 +353,8 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
 
         const toolPath = await this._pathResolver.getDebugToolPath(game);
         const commandLineArgs = toCommandLineArgs(toolArguments);
-
-        const outputChannel = (await this._languageClientManager.getLanguageClientHost(session.configuration.game))
-            .outputChannel;
+        const host = await this._languageClientManager.getLanguageClientHost(session.configuration.game);
+        const outputChannel = host?.outputChannel;
         outputChannel?.appendLine(
             `Debug session: Launching debug adapter client: ${toolPath} ${commandLineArgs.join(' ')}`
         );

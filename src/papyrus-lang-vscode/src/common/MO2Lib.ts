@@ -33,10 +33,13 @@ export interface MO2CustomExecutableInfo {
     toolbar: boolean;
     workingDirectory: string;
 }
+
+// TODO: Starfield: Verify values
 export type MO2LongGameID =
     | 'Fallout 4'
     | 'Skyrim Special Edition'
     | 'Skyrim'
+    | 'Starfield'
     | 'Enderal'
     | 'Fallout 3'
     | 'Fallout 4 VR'
@@ -45,7 +48,7 @@ export type MO2LongGameID =
     | 'Skyrim VR'
     | 'TTW'
     | 'Other';
-export type MO2ShortGameID = 'Fallout4' | 'SkyrimSE' | 'Skyrim'; //TODO: Do the rest of these | 'enderal' | 'fo3' | 'fo4vr' | 'nv' | 'morrowind' | 'skyrimvr' | 'ttw' | 'other';
+export type MO2ShortGameID = 'Fallout4' | 'SkyrimSE' | 'Skyrim' | 'Starfield'; //TODO: Do the rest of these | 'enderal' | 'fo3' | 'fo4vr' | 'nv' | 'morrowind' | 'skyrimvr' | 'ttw' | 'other';
 
 export interface MO2InstanceInfo {
     name: string;
@@ -190,6 +193,8 @@ export async function GetMO2EXELocations(gameId?: MO2LongGameID, ...additionalId
 function getIDFromNXMHandlerName(nxmName: string): MO2LongGameID | undefined {
     const _nxmName = nxmName.toLowerCase().replace(/ /g, '');
     switch (_nxmName) {
+        case 'starfield':
+            return 'Starfield'
         case 'skyrimse':
         case 'skyrimspecialedition':
             return 'Skyrim Special Edition';

@@ -5,14 +5,7 @@ import { PapyrusGame } from '../PapyrusGame';
 
 // This interface contains the same members that are in the "Header" class in F:\workspace\skyrim-mod-workspace\Champollion\Pex\Header.hpp
 // The members are in the same order as they are in the C++ header file.
-export interface PexHeader {
-    /**
-     * Determines the game that the pex file was compiled for.
-     * This is determined by the endianness of the magic number.
-     * If the magic number is 0xFA57C0DE, then the game is Fallout 4.
-     * If the magic number is 0xDEC057FA, then the game is Skyrim.
-     */
-    Game: PapyrusGame;
+export interface IPexHeader {
     /**
      * The major version game that the pex file was compiled for.
      */
@@ -23,6 +16,10 @@ export interface PexHeader {
     MinorVersion: number;
     /**
      * The game ID of the game that the pex file was compiled for.
+     * 1 = Skyrim
+     * 2 = Fallout 4
+     * 3 = Fallout 76
+     * 4 = Starfield
      */
     GameID: number;
     /**
@@ -44,6 +41,45 @@ export interface PexHeader {
      * The name of the computer that compiled the pex file.
      */
     ComputerName: string;
+}
+
+export class PexHeader implements IPexHeader {
+    public MajorVersion: number;
+    public MinorVersion: number;
+    public GameID: number;
+    public CompileTime: number;
+    public SourceFileName: string;
+    public UserName: string;
+    public ComputerName: string;
+
+    // Property "thing" has a getter and a setter
+
+    constructor(header: IPexHeader) {
+        this.MajorVersion = header.MajorVersion;
+        this.MinorVersion = header.MinorVersion;
+        this.GameID = header.GameID;
+        this.CompileTime = header.CompileTime;
+        this.SourceFileName = header.SourceFileName;
+        this.UserName = header.UserName;
+        this.ComputerName = header.ComputerName;
+    }
+    // getter function for Game
+    public get Game() : PapyrusGame | undefined {
+      switch(this.GameID){
+        case 1:
+          if (this.MajorVersion === 3 && this.MinorVersion === 2){
+            return PapyrusGame.skyrimSpecialEdition;
+          }
+          return PapyrusGame.skyrim;
+        case 2:
+          return PapyrusGame.fallout4;
+        case 3: // fallout 76, unsupported
+          return undefined;
+        case 4:
+          return PapyrusGame.starfield;
+      }
+      return undefined;
+    };
 }
 
 export interface PexBinary {
@@ -128,13 +164,6 @@ function DetermineEndiannessFromNumber(number: number) {
     } else {
         return undefined;
     }
-}
-
-function getGameFromEndianness(endianness: 'little' | 'big') {
-    if (endianness === 'little') {
-        return PapyrusGame.fallout4;
-    }
-    return PapyrusGame.skyrimSpecialEdition;
 }
 
 /**
@@ -333,12 +362,11 @@ export class PexReader {
             .nest('UserName', this._strNest)
             .nest('ComputerName', this._strNest);
 
-    private readonly _HeaderNest = (endianness: 'little' | 'big') => {
+    private readonly _HeaderNest = () => {
         return {
             type: this.HeaderParser(),
             formatter: (x: any): PexHeader => {
-                return {
-                    Game: getGameFromEndianness(endianness),
+                return new PexHeader({
                     MajorVersion: x.MajorVersion,
                     MinorVersion: x.MinorVersion,
                     GameID: x.GameID,
@@ -346,7 +374,7 @@ export class PexReader {
                     SourceFileName: x.SourceFileName,
                     UserName: x.UserName,
                     ComputerName: x.ComputerName,
-                };
+                });
             },
         };
     };
@@ -358,7 +386,7 @@ export class PexReader {
         }
         const Pex = new Parser()
             .endianess(endianness)
-            .nest('Header', this._HeaderNest(endianness))
+            .nest('Header', this._HeaderNest())
             .nest('StringTable', this._strTableNest)
             .nest('DebugInfo', this._debugInfoNest)
             .parse(buffer);
@@ -371,7 +399,7 @@ export class PexReader {
     }
 
     private ReadHeader(buffer: Buffer) {
-        return new Parser().endianess(this.endianness).nest('Header', this._HeaderNest(this.endianness)).parse(buffer);
+        return new Parser().endianess(this.endianness).nest('Header', this._HeaderNest()).parse(buffer);
     }
 
     public async ReadPexHeader(): Promise<PexHeader | undefined> {
