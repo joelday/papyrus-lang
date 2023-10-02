@@ -163,4 +163,5 @@ export declare module StarfieldDebugProtocol {
             breakpoints: CustomBreakpoint[];
         };
     }
+    
 }

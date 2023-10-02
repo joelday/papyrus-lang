@@ -6,7 +6,7 @@ import * as path from 'path';
 import { StarfieldDebugProtocol as SFDAP } from './StarfieldDebugProtocol';
 import { DebugAdapterProxy, DebugAdapterProxyOptions, colorize_message } from './DebugAdapterProxy';
 import { Response, Event, Message } from '@vscode/debugadapter/lib/messages';
-import { ScopeNode, StackFrameNode, VariableNode } from './StarfieldNodes';
+import { StateNode } from './StarfieldNodes';
 
 export enum ErrorDestination {
     User = 1,
@@ -103,15 +103,8 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
     // object name to source map
     protected _objectNameToSourceMap: Map<string, DAP.Source> = new Map<string, DAP.Source>();
     protected _pathtoObjectNameMap: Map<string, string> = new Map<string, string>();
-    // TODO: Move state holders to seperate state class
-    private _threads: DAP.Thread[] = [this.DUMMY_THREAD_OBJ];
-    private _stackFrameMap: Map<number, StackFrameNode> = new Map<number, StackFrameNode>();
-    private _stackIdToThreadIdMap: Map<number, number> = new Map<number, number>();
-    private _scopeMap: Map<number, ScopeNode> = new Map<number, any>();
-    private _variableMap: Map<number, VariableNode> = new Map<number, VariableNode>();
-    private _variableReferencetoFrameIdMap: Map<number, number> = new Map<number, number>();
-    private _variableRefCount = 0;
-    private _localScopeVarRefToSelfScopeVarRefMap: Map<number, number> = new Map<number, number>();
+
+    protected stateNode: StateNode;
 
     private currentSeq: number = 0;
     constructor(options: StarfieldDebugAdapterProxyOptions) {
@@ -131,21 +124,10 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         this.logProxyToServer = 'info';
         this.logServerToProxy = 'silent'; // we take care of this ourselves
         this.logProxyToClient = 'info';
-    }
-
-    getVariableRefCount() {
-        this._variableRefCount++;
-        return this._variableRefCount;
+        this.stateNode = new StateNode();
     }
     clearExecutionState() {
-        this._threads = [this.DUMMY_THREAD_OBJ];
-        this._variableRefCount = 0;
-        this._stackFrameMap.clear();
-        this._scopeMap.clear();
-        this._variableMap.clear();
-        this._variableReferencetoFrameIdMap.clear();
-        this._stackIdToThreadIdMap.clear();
-        this._localScopeVarRefToSelfScopeVarRefMap.clear;
+        this.stateNode.clear();
     }
 
     // takes in a Source object and returns the papyrus object idnetifier (e.g. "MyMod:MyScript")
@@ -220,23 +202,9 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 
     protected handleThreadEvent(message: SFDAP.ThreadEvent): void {
         if (message.body.reason == 'started') {
-            // check for existence of dummy thread
-            if (this._threads.length == 1 && this._threads[0].name == this.DUMMY_THREAD_NAME) {
-                this._threads.pop();
-            }
-            this._threads.push({
-                id: message.body.threadId,
-                name: '<thread ' + message.body.threadId + '>',
-            });
+            this.stateNode.addThread(message.body.threadId);
         } else if (message.body.reason == 'exited') {
-            // remove thread from list
-            this._threads = this._threads.filter((thread) => {
-                return thread.id != message.body.threadId;
-            });
-            // if no threads left, add dummy thread
-            if (this._threads.length == 0) {
-                this._threads.push(this.DUMMY_THREAD_OBJ);
-            }
+            this.stateNode.removeThread(message.body.threadId);
         }
         this.sendMessageToClient(message);
     }
@@ -577,7 +545,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         if (!response.success && response.message == 'VM is not paused') {
             // Fake a successful response to get vscode to be able to send the pause request
             response.body = {
-                threads: this._threads,
+                threads: this.stateNode.getThreads(),
             };
             response.success = true;
             response.message = '';
@@ -589,10 +557,10 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
                 response.body.threads = response.body.threads.filter((thread) => {
                     return thread.name != '';
                 });
-                this._threads = response.body.threads;
+                this.stateNode.setThreads(response.body.threads);
             } else {
-                // possible all the threads have ended?
-                this._threads = [this.DUMMY_THREAD_OBJ];
+                this.stateNode.setThreads([]);
+                response.body.threads = this.stateNode.getThreads();
             }
         }
         this.sendMessageToClient(response);
@@ -609,9 +577,17 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         if (response.body.stackFrames) {
             let index = 0;
             const dapStackFrames: DAP.StackFrame[] = [];
-            response.body.stackFrames.forEach((frame: any) => {
-                const stackId = this.addStackFrame(threadId, index, frame);
-                dapStackFrames.push(this._stackFrameMap.get(stackId)!.getDAPStackFrame());
+
+            response.body.stackFrames.forEach((frame: SFDAP.StackFrame) => {
+                const SFDAPsource = frame.source;
+                const source = this.getSource(frame.object, SFDAPsource);
+                if (source) {
+                    source.path = this.convertDebuggerPathToClient(source?.path || '');
+                }
+                const dapStack = this.stateNode.addStackFrame(frame, threadId, index, source);
+                dapStack.column = this.convertDebuggerColumnToClient(dapStack.column);
+                dapStack.line = this.convertDebuggerLineToClient(dapStack.line);
+                dapStackFrames.push(dapStack);
                 index++;
             });
             (response.body as any).stackFrames = dapStackFrames;
@@ -621,34 +597,73 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
 
     /**
      * Not responded to by the server, so we need to fake it
-     * @param request
+     * @param scopesRequest
      */
-    protected handleScopesRequest(request: DAP.ScopesRequest): void {
-        const scopeNodes = this.makeScopesforStackFrame(request.arguments.frameId);
-        if (!scopeNodes || scopeNodes.length == 0) {
+    protected handleScopesRequest(scopesRequest: DAP.ScopesRequest): void {
+        const localScope = this.stateNode.makeLocalScopeForStackFrame(scopesRequest.arguments.frameId);
+        if (!localScope) {
             this.sendErrorResponse(
-                new Response(request),
+                new Response(scopesRequest),
                 1403,
                 'Could not find frame for frameId: {frameId}',
-                { frameId: request.arguments.frameId },
+                { frameId: scopesRequest.arguments.frameId },
                 ErrorDestination.User
             );
             return;
         }
-        const response = <DAP.ScopesResponse>new Response(request);
-        response.body = {
-            scopes: scopeNodes.map((scope) => {
-                return scope.getDAPScope();
-            }),
-        };
-        this.loginfo('***PROXY->CLIENT - Sending fake Scopes response to client');
-        this.sendMessageToClient(response);
+        // now we make a variables request for the local scope
+
+        const args = this.stateNode.getVariablesArgumentsForScope(localScope.variablesReference);
+        if (!args) {
+            this.sendErrorResponse(
+                new Response(scopesRequest),
+                1403,
+                'Could not find variables arguments for scope: {scope}',
+                { scope: localScope },
+                ErrorDestination.User
+            );
+            return;
+        }
+        const variablesRequest = <SFDAP.VariablesRequest>new Request('variables', args);
+        this.sendRequestToServerWithCB(variablesRequest, 10000, (r, _req) => {
+            if (!r.success) {
+                this.sendErrorResponse(
+                    new Response(scopesRequest),
+                    1403,
+                    'Could not get variables for scope: {scope}',
+                    { scope: localScope },
+                    ErrorDestination.User
+                );
+                return;
+            }
+            // we only care about getting the `self` scope out of this
+            const scopes = [localScope];
+            const variablesResponse = r as SFDAP.VariablesResponse;
+            const respVariables = variablesResponse.body.variables;
+            const dapVars = this.stateNode.addVariablesToState(
+                respVariables,
+                localScope.variablesReference,
+                scopesRequest.arguments.frameId
+            );
+            const selfVariable = dapVars.find((variable) => {
+                return variable.name.toLowerCase() == 'self';
+            });
+            // if we didn't find a self variable, this must be a static script; don't worry about it
+            if (selfVariable && selfVariable.variablesReference) {
+                const selfScope = this.stateNode.getScope(selfVariable.variablesReference);
+                scopes.push(selfScope);
+            }
+            const response = <DAP.ScopesResponse>new Response(scopesRequest);
+            response.body = {
+                scopes: scopes,
+            };
+            this.sendMessageToClient(response);
+        });
     }
 
     protected handleVariablesRequest(request: DAP.VariablesRequest): void {
         const varReference = request.arguments.variablesReference;
-        const scope = this.getScopeFromVariableReference(varReference);
-        if (!scope) {
+        if (!this.stateNode.hasScope(varReference)) {
             this.sendErrorResponse(
                 new Response(request),
                 2001,
@@ -658,135 +673,28 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
             );
             return;
         }
-        if (scope.scopeType != 'reflectionItem') {
-            const stackFrame = this._stackFrameMap.get(scope.frameId);
-            if (!stackFrame || stackFrame === undefined) {
-                this.sendErrorResponse(
-                    new Response(request),
-                    2004,
-                    `SOMEHOW?!?! Non-existent stack frame for variable reference: ${varReference}`,
-                    undefined,
-                    ErrorDestination.Telemetry
-                );
-                return;
-            }
-            // TODO: TESTING, REMOVE
-            if (scope?.scopeType != 'localEnclosure') {
-                this.testValuesReqs(scope, scope.path, scope.frameId);
-            }
-            const stackFrameRoot = {
-                type: 'stackFrame',
-                threadId: stackFrame.threadId,
-                stackFrameIndex: stackFrame.realStackIndex,
-            };
-            const sfVarsRequest = <SFDAP.VariablesRequest>new Request('variables', {
-                root: stackFrameRoot,
-                path: scope.path,
-            });
-            sfVarsRequest.seq = request.seq;
+        // TODO: Handle reflection items
+        const args = this.stateNode.getVariablesArgumentsForScope(varReference);
+        const sfVarsRequest = <SFDAP.VariablesRequest>new Request('variables', args);
+        sfVarsRequest.seq = request.seq;
 
-            this.sendRequestToServerWithCB(sfVarsRequest, 10000, (r, req) =>
-                this.handleVariablesResponse(r as SFDAP.VariablesResponse, req as SFDAP.VariablesRequest, varReference)
-            );
-            return;
-        }
-        // This is a reflection item...
-        // TODO: handle this
-        this.sendErrorResponse(
-            new Response(request),
-            2002,
-            `Reflection item variables not yet supported!`,
-            undefined,
-            ErrorDestination.Telemetry
-        );
-    }
-
-    private testValuesReqs(scope: ScopeNode, vrpath: string[], frameId: number) {
-        const variable = this._variableMap.get(scope.variablesReference);
-        if (!variable) {
-            return;
-        }
-        const TypeInfoRoot: SFDAP.Root = variable.reflectionInfo as SFDAP.Root;
-
-        let newPath = vrpath;
-        if (newPath.length > 0 && newPath[0] == 'self') {
-            const frame = this._stackFrameMap.get(frameId);
-            if (frame && frame.moduleId) {
-                // newPath = [frame.moduleId.toString()].concat(newPath.slice(1));
-                newPath = [frame.moduleId.toString()];
-            }
-        }
-        newPath = variable.baseForm ? [variable.baseForm] : [];
-
-        const innervarRequest = <SFDAP.VariablesRequest>new Request('variables', {
-            root: TypeInfoRoot,
-            path: newPath, // TODO: This path is incorrect; maybe it's the script name? Scriptname + property name??
+        this.sendRequestToServerWithCB(sfVarsRequest, 10000, (r, req) => {
+            this.handleVariablesResponse(r as SFDAP.VariablesResponse, req as SFDAP.VariablesRequest, varReference);
         });
-        this.sendRequestToServerWithCB(
-            innervarRequest,
-            10000,
-            (r) => {
-                // TODO: just for testing to see what we get back
-                this.loginfo(
-                    { message: r },
-                    `vvvvvvvvvvvvvvvvv INNER VARIABLE RESPONSE FOR ${scope?.name} - path= ${innervarRequest.arguments.path.join(
-                        ':'
-                    )}:`
-                );
-            },
-            false
-        );
-        innervarRequest.seq = 0;
-        const valueRequest = <SFDAP.VariablesRequest>new Request('value', {
-            root: TypeInfoRoot,
-            path: newPath, // TODO: This path is incorrect; maybe it's the script name? Scriptname + property name??
-        });
-        valueRequest.seq = 1;
-        this.sendRequestToServerWithCB(
-            valueRequest,
-            10000,
-            (r) => {
-                // TODO: just for testing to see what we get back
-                this.loginfo(
-                    { message: r },
-                    `vvvvvvvvvvvvvvvvv VALUE RESPONSE FOR ${scope?.name} - path= ${valueRequest.arguments.path.join(
-                        ':'
-                    )}:`
-                );
-            },
-            false
-        );
+        return;
     }
 
     handleVariablesResponse(response: SFDAP.VariablesResponse, request: SFDAP.VariablesRequest, varReference: number) {
-        const parentScope = this.getScopeFromVariableReference(varReference);
-        if (!parentScope) {
-            this.sendErrorResponse(
-                new Response(request),
-                2003,
-                `SOMEHOW?!?! Non-existent scope for variable reference: ${varReference}`,
-                undefined,
-                ErrorDestination.Telemetry
-            );
+        if (!response.success) {
+            this.sendMessageToClient(response);
             return;
         }
-        const stackFrame = this._stackFrameMap.get(parentScope.frameId);
-        if (!stackFrame || stackFrame === undefined) {
-            this.sendErrorResponse(
-                new Response(request),
-                2004,
-                `SOMEHOW?!?! Non-existent stack frame for variable reference: ${varReference}`,
-                undefined,
-                ErrorDestination.Telemetry
-            );
-            return;
-        }
-
         const newResponse = response as any;
-        newResponse.body.variables = this.addVariablesToState(response.body.variables, stackFrame, parentScope).map(
-            (varNode) => {
-                return varNode.getDAPVariable();
-            }
+
+        newResponse.body.variables = this.stateNode.addVariablesToState(
+            response.body.variables,
+            varReference,
+            this.stateNode.getFrameIdForScope(varReference)
         );
         this.sendMessageToClient(newResponse);
     }
@@ -921,8 +829,7 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         this.sendErrorResponse(new Response(request), 1014, 'unrecognized request', null, ErrorDestination.User);
     }
 
-    // TODO: move these of these to a seperate State holder
-    // STATE FUNCTIONS
+    // TODO: move these of these to a seperate Source locator class
     private getSource(object: string, filePath?: string) {
         if (filePath) {
             if (this._objectNameToSourceMap.has(object)) {
@@ -991,101 +898,4 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
         this._objectNameToSourceMap.set(objectName, source);
         return source;
     }
-    protected getThreadIdFromStackFrameId(stackFrameId: number): number | undefined {
-        return this._stackIdToThreadIdMap.get(stackFrameId);
-    }
-    protected addStackFrame(threadId: number, stackIndex: number, frame: SFDAP.StackFrame): number {
-        const Source = this.getSource(frame.object, frame.source);
-        const StackNode = new StackFrameNode(frame, threadId, stackIndex, Source);
-        this._stackFrameMap.set(StackNode.id, StackNode);
-        this._stackIdToThreadIdMap.set(StackNode.id, threadId);
-        return StackNode.id;
-    }
-
-    protected findFrameForVariableReference(variableReference: number): DAP.StackFrame | undefined {
-        const frameId = this._variableReferencetoFrameIdMap.get(variableReference);
-        if (frameId) {
-            return this._stackFrameMap.get(frameId);
-        }
-        return undefined;
-    }
-    protected addScopeToScopeMap(scope: ScopeNode) {
-        this._scopeMap.set(scope.variablesReference, scope);
-        this._variableReferencetoFrameIdMap.set(scope.variablesReference, scope.frameId);
-    }
-
-    protected findScopesForFrame(frameId: number): ScopeNode[] {
-        return Array.from(this._scopeMap.values()).filter((scope) => {
-            return scope.frameId == frameId;
-        });
-    }
-    protected makeScopesforStackFrame(frameId: number): ScopeNode[] | undefined {
-        const frame = this._stackFrameMap.get(frameId);
-        if (!frame) {
-            return undefined;
-        }
-        const localScope = ScopeNode.ScopeFromStackFrame(frame, this.getVariableRefCount(), true);
-        const selfScope = ScopeNode.ScopeFromStackFrame(
-            frame,
-            this.getVariableRefCount(),
-            false,
-            localScope.variablesReference
-        );
-        const scopes = [localScope, selfScope];
-        this.addScopeToScopeMap(localScope);
-        this.addScopeToScopeMap(selfScope);
-        this._localScopeVarRefToSelfScopeVarRefMap.set(localScope.variablesReference, selfScope.variablesReference);
-        return scopes;
-    }
-    private getRealStackIndex(stackId: number, threadId: number) {
-        return stackId - threadId * 1000;
-    }
-
-    getStackIdFromVariableReference(varReference: number) {
-        return this._variableReferencetoFrameIdMap.get(varReference);
-    }
-    getScopeFromVariableReference(varReference: number) {
-        return this._scopeMap.get(varReference);
-    }
-    getSelfScopeRef(localScopeVarRef: number) {
-        return this._localScopeVarRefToSelfScopeVarRefMap.get(localScopeVarRef);
-    }
-
-    addVariablesToState(
-        variables: SFDAP.Variable[],
-        stackFrame: StackFrameNode,
-        parentScope: ScopeNode
-    ): VariableNode[] {
-        const newVariables = [];
-        for (const oldVar of variables) {
-            const varNode = new VariableNode(oldVar, this.getVariableRefCount(), false, parentScope);
-            if (oldVar.compound) {
-                // careful about "self"
-                if (
-                    oldVar.name.toLowerCase() == 'self' &&
-                    parentScope.scopeType === 'localEnclosure' &&
-                    parentScope.path
-                ) {
-                    const selfVarRef = this.getSelfScopeRef(parentScope.variablesReference);
-                    if (selfVarRef) {
-                        if (this._scopeMap.has(selfVarRef)) {
-                            if (!this._variableMap.has(selfVarRef)) {
-                                this._variableMap.set(selfVarRef, varNode);
-                            }
-                            // no need to make a new scope, just use the old one; we won't put this in the locals variables returned to the client
-                            continue;
-                        } else {
-                            this.logwarn('Could not find self scope for variable reference: ' + selfVarRef);
-                        }
-                    }
-                }
-                const ScopeFromVariable: ScopeNode = ScopeNode.ScopeFromVariable(varNode, stackFrame, parentScope);
-                this._scopeMap.set(varNode.variablesReference, ScopeFromVariable);
-                this._variableMap.set(varNode.variablesReference, varNode);
-            }
-            newVariables.push(varNode);
-        }
-        return newVariables;
-    }
-    // END STATE FUNCTIONS
 }

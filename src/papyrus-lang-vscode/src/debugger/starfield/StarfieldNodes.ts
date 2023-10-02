@@ -1,21 +1,22 @@
 import { DebugProtocol as DAP } from '@vscode/debugprotocol';
 import { StarfieldDebugProtocol as SFDAP } from './StarfieldDebugProtocol';
-
+import { StarfieldConstants as SFC } from './StarfieldConstants';
 export interface IThreadNode extends DAP.Thread {
     readonly id: number;
     readonly name: string;
     readonly stackFrames: IStackFrameNode[];
-    readonly DAPThread: DAP.Thread;
+    readonly getDAPThread: () => DAP.Thread;
+    //readonly globalScope: IScopeNode; // TODO: Do globals
 }
 export class ThreadNode implements IThreadNode {
     readonly id: number;
-    readonly name: string;
+    name: string;
     stackFrames: StackFrameNode[] = [];
     constructor(thread: SFDAP.Thread) {
         this.id = thread.id;
         this.name = thread.name;
     }
-    get DAPThread(): DAP.Thread {
+    getDAPThread(): DAP.Thread {
         return {
             id: this.id,
             name: this.name,
@@ -38,6 +39,7 @@ export interface IStackFrameNode extends DAP.StackFrame {
     readonly realStackIndex: number;
     readonly functionInfo: IFunctionInfo;
     readonly scopes: IScopeNode[];
+    readonly getDAPStackFrame: (lineStartsAt1?: boolean, columnStartsAt1?: boolean) => DAP.StackFrame;
 }
 export class StackFrameNode implements IStackFrameNode {
     readonly id: number;
@@ -54,7 +56,7 @@ export class StackFrameNode implements IStackFrameNode {
     readonly object: string;
     readonly threadId: number;
     readonly realStackIndex: number;
-    scopes: ScopeNode[] = [];
+    scopes: IScopeNode[] = [];
     public get functionInfo(): IFunctionInfo {
         return StackFrameNode.getFunctionInfo(this.name);
     }
@@ -88,7 +90,9 @@ export class StackFrameNode implements IStackFrameNode {
             functionName: parts[2],
         };
     }
-
+    public get DAPStackFrame(): DAP.StackFrame {
+        return this.getDAPStackFrame();
+    }
     public getDAPStackFrame(lineStartsAt1: boolean = true, ColumnStartsAt1: boolean = true): DAP.StackFrame {
         return {
             id: this.id,
@@ -124,57 +128,78 @@ export class StackFrameNode implements IStackFrameNode {
 
 export type ScopeType = 'localEnclosure' | 'localVar' | 'self' | 'parent' | 'objectMember' | 'reflectionItem';
 
-export interface IScopeNode extends DAP.Scope {
+export interface IScopeNode {
     name: string;
-    presentationHint?: string;
+    scopePresentationHint?: string;
     variablesReference: number;
     frameId: number;
+    namedVariables?: number;
+    indexedVariables?: number;
+    expensive: boolean;
+    source?: DAP.Source;
+    line?: number;
+    column?: number;
+    endLine?: number;
+    endColumn?: number;
 
+    parentScopeVarRef: number;
+
+    getDAPScope: (lineStartsAt1?: boolean, columnStartsAt1?: boolean) => DAP.Scope;
     path: string[];
-    parentVariableReference: number;
     scopeType: ScopeType;
+    hasStackFrame: boolean;
+    children: IVariableNode[];
 }
 
 export class ScopeNode implements IScopeNode {
     readonly name: string;
-    readonly presentationHint?: string;
+    readonly scopePresentationHint?: string;
     readonly variablesReference: number;
     readonly frameId: number;
-    readonly parentVariableReference: number;
+    readonly namedVariables?: number;
+    readonly indexedVariables?: number;
+    readonly expensive: boolean;
+    readonly source?: DAP.Source;
+    readonly line?: number;
+    readonly column?: number;
+    readonly endLine?: number;
+    readonly endColumn?: number;
 
     readonly path: string[];
+    readonly parentScopeVarRef: number;
     readonly scopeType: ScopeType;
-    readonly expensive: boolean;
-    // implement getters and setters for path
 
-    public getDAPScope(): DAP.Scope {
+    readonly hasStackFrame: boolean;
+    children: IVariableNode[] = [];
+
+    public getDAPScope(lineStartsAt1: boolean = true, ColumnStartsAt1: boolean = true): DAP.Scope {
         return {
             name: this.name,
-            presentationHint: this.presentationHint,
+            presentationHint: this.scopePresentationHint,
             variablesReference: this.variablesReference,
             expensive: this.expensive,
-        };
-    }
-    public static ScopeFromVariable(varNode: VariableNode, stackFrame?: StackFrameNode, parentScope?: ScopeNode) {
-        let _scopeType: ScopeType = 'objectMember';
-        if (varNode.name.toLowerCase() == 'parent') {
-            _scopeType = 'parent';
-        } else if (varNode.isFakeReflectionVar) {
-            _scopeType = 'reflectionItem';
-        } else if (parentScope?.scopeType == 'localEnclosure') {
-            _scopeType = 'localVar';
-        }
-        return new ScopeNode({
-            name: varNode.name,
-            variablesReference: varNode.variablesReference,
-            frameId: stackFrame?.id || 0,
-            path: [...(parentScope?.path || []), varNode.realName],
-            scopeType: _scopeType,
-            parentVariableReference: parentScope?.variablesReference || 0,
-            expensive: false,
-        } as IScopeNode);
+            source: this.source,
+            line: this.line ? this.line + (lineStartsAt1 ? 0 : -1) : undefined,
+            column: this.column ? this.column + (ColumnStartsAt1 ? 0 : -1) : undefined,
+            endLine: this.endLine ? this.endLine + (lineStartsAt1 ? 0 : -1) : undefined,
+            endColumn: this.endColumn ? this.endColumn + (ColumnStartsAt1 ? 0 : -1) : undefined,
+        } as DAP.Scope;
     }
 
+    constructor(c: IScopeNode) {
+        this.name = c.name;
+        this.scopePresentationHint = c.scopePresentationHint;
+        this.variablesReference = c.variablesReference;
+        this.frameId = c.frameId;
+        this.path = c.path;
+        this.parentScopeVarRef = c.parentScopeVarRef;
+        this.scopeType = c.scopeType;
+        this.expensive = c.expensive;
+        this.hasStackFrame = c.hasStackFrame;
+    }
+}
+
+export class ScopeFactory {
     public static ScopeFromStackFrame(
         stackFrame: StackFrameNode,
         varRef: number,
@@ -183,7 +208,7 @@ export class ScopeNode implements IScopeNode {
     ) {
         const scope = {
             name: makeLocal ? 'Local' : 'Self',
-            presentationHint: makeLocal ? 'locals' : undefined,
+            scopePresentationHint: makeLocal ? 'locals' : undefined,
             variablesReference: varRef,
             expensive: false,
         } as DAP.Scope;
@@ -193,258 +218,272 @@ export class ScopeNode implements IScopeNode {
         }
         return new ScopeNode({
             name: scope.name,
-            presentationHint: scope.presentationHint,
+            scopePresentationHint: scope.presentationHint,
             variablesReference: scope.variablesReference,
             frameId: stackFrame.id,
             path: scope.name == 'Local' ? [] : ['self'],
-            parentVariableReference: parentVarRef,
+            parentScopeVarRef: parentVarRef,
             scopeType: scope.name == 'Local' ? 'localEnclosure' : 'self',
             expensive: scope.expensive,
+            hasStackFrame: true,
         } as IScopeNode);
-    }
-
-    constructor(c: IScopeNode) {
-        this.name = c.name;
-        this.presentationHint = c.presentationHint;
-        this.variablesReference = c.variablesReference;
-        this.frameId = c.frameId;
-        this.path = c.path;
-        this.parentVariableReference = c.parentVariableReference;
-        this.scopeType = c.scopeType;
-        this.expensive = c.expensive;
     }
 }
 
-export interface IVariableNode extends DAP.Variable {
+export interface IVariableNode {
     name: string;
     value: string;
     type?: string;
-    presentationHint?: DAP.VariablePresentationHint;
+    varPresentationHint?: DAP.VariablePresentationHint;
     evaluateName?: string;
     variablesReference: number;
     namedVariables?: number;
     indexedVariables?: number;
     memoryReference?: string;
 
+    getDAPVariable: (lineStartsAt1?: boolean, columnStartsAt1?: boolean) => DAP.Variable;
     isProp: boolean;
     realName: string;
     compound: boolean;
+    parentScopeVarRef: number;
 }
 
-export class VariableNode implements IVariableNode {
+export interface IScopedVariableNode extends IVariableNode, IScopeNode {
+    isFakeReflectionVar: boolean;
+    reflectionInfo?: SFDAP.Root;
+    baseForm?: string;
+}
+
+export class BasicVariableNode implements IVariableNode {
+    readonly compound: boolean = false;
+
     readonly name: string;
     readonly value: string;
     readonly type: string;
-    readonly presentationHint?: DAP.VariablePresentationHint;
-    readonly variablesReference: number;
+    readonly varPresentationHint?: DAP.VariablePresentationHint;
+    readonly variablesReference: number = 0;
     readonly evaluateName?: string;
-    readonly namedVariables?: number;
-    readonly indexedVariables?: number;
+    readonly namedVariables?: number = 0;
+    readonly indexedVariables?: number = 0;
     readonly memoryReference?: string;
 
-    parentScope?: ScopeNode;
+    readonly parentScopeVarRef: number;
     readonly isProp: boolean;
     readonly realName: string;
-    readonly compound: boolean;
-    readonly isFakeReflectionVar: boolean;
-    baseForm?: string;
-    reflectionInfo?: SFDAP.Root;
 
-    public static parseOutReflectionInfo(valueStr: string) {
-        /**
-         * Values for compound variables are returned like this:
-         *
-         * [{FormClass} <{reflection_data}>]
-         *
-         * the reflection_data is a short string that follows the following formats:
-         *  form:
-         *    %s (%08X)
-         *    <nullptr form> (%08X)
-         * //example: [Armor <Clothes_Miner_UtilitySuit (0001D1E7)>]
-         *
-         *  topicinfo - doesn't look like you can get this via the debugger
-         *    topic info %08X on <nullptr quest>
-         *    topic info %08X on quest %s (%08X)
-         *
-         *  alias:
-         *    alias %s on quest %s (%08X)
-         *    alias %s on <nullptr quest> (%08X)
-         *    <nullptr alias> (%hu) on %squest %s (%08X)
-         *    <nullptr alias> (%hu) on <nullptr quest> (%08X)
-         *  example: [mq101playeraliasscript <alias Player on quest MQ101 (00003448)>]
-         *
-         *  inventoryItem:
-         *    Item %hu in <nullptr container> (%08X)
-         *    Item %hu in container %s (%08X)
-         *  example: [Weapon <Item 21 in container Thing (00000014)>]
-         *
-         *  activeEffect:
-         *    Active effect %hu on <nullptr actor> (%08X)
-         *    Active effect %hu on %s (%08X)
-         *  example: [MagicEffect <Active effect 1 on Actor (00005251)>]
-         *
-         *  inputEnableLayer:
-         *    Input enable layer <no name> (%08X)
-         *    Input enable layer %s (%08X)
-         *    Invalid input enable layer (%08X)
-         *  layerId is the formId of the layer `(XXXXXXXX)`
-         *  example: [InputEvent <Input enable layer 1 on Player (00000007)>]
-         *
-         */
-        /*                             v yes that space is supposed to be there */
-        const re = /\[([\w\d_]+) <(.*)? \(([A-F\d]{8})\)>\]/g;
-        const match = re.exec(valueStr);
-        if (match?.length == 4) {
-            const baseForm = match?.[1];
-            const rInfo = match?.[2];
-            const formId = parseInt(match?.[3], 16);
-
-            if (!rInfo || rInfo.length == 0) {
-                return {
-                    baseForm: baseForm,
-                    root: {
-                        type: 'value',
-                        valueType: 'form',
-                        formId: formId,
-                    },
-                };
-            }
-            if (rInfo.includes('alias') && rInfo.includes('on quest')) {
-                const parts = rInfo.replace('alias ', '').split(' on quest ');
-                return {
-                    baseForm: baseForm,
-                    root: {
-                        type: 'value',
-                        valueType: 'alias',
-                        aliasName: parts[0],
-                        questName: parts[1],
-                        questFormId: formId,
-                    },
-                };
-            } else if (rInfo.startsWith('Item ') && rInfo.includes(' in container ')) {
-                const parts = rInfo.replace('Item ', '').split(' in container ');
-                return {
-                    baseForm: baseForm,
-                    root: {
-                        type: 'value',
-                        valueType: 'inventoryItem',
-                        uniqueId: parseInt(parts[0]),
-                        containerName: parts[1],
-                        containerFormId: formId,
-                    },
-                };
-            } else if (rInfo.startsWith('Active effect ')) {
-                const parts = rInfo.replace('Active effect ', '').split(' on ');
-                return {
-                    baseForm: baseForm,
-                    root: {
-                        type: 'value',
-                        valueType: 'activeEffect',
-                        effectId: parseInt(parts[0]),
-                        targetName: parts[1],
-                        targetFormId: formId,
-                    },
-                };
-            } else if (rInfo.startsWith('Input enable layer ')) {
-                return {
-                    baseForm: baseForm,
-                    root: {
-                        type: 'value',
-                        valueType: 'inputEnableLayer',
-                        layerId: formId,
-                    },
-                };
-            } else if (!rInfo.includes(' ')) {
-                return {
-                    baseForm: baseForm,
-                    root: {
-                        type: 'value',
-                        valueType: 'form',
-                        formId: formId,
-                        formName: rInfo,
-                    },
-                };
-            } else {
-                return {
-                    baseForm: baseForm,
-                    root: {
-                        type: 'value',
-                        valueType: 'form',
-                        formId: formId,
-                    },
-                };
-            }
-        }
-        return undefined;
-    }
-
-    public getEvaluateName() {
-        if (!this.parentScope || this.parentScope.scopeType == 'localEnclosure' || this.parentScope.path.length == 0) {
-            return [this.realName];
-        }
-        return [...this.parentScope.path, this.realName];
-    }
-    public getDAPVariable(): DAP.Variable {
+    public getDAPVariable(_lineStartsAt1?: boolean, _columnStartsAt1?: boolean): DAP.Variable {
         return {
             name: this.name,
             value: this.value,
             type: this.type,
-            presentationHint: this.presentationHint,
+            presentationHint: this.varPresentationHint,
             evaluateName: this.evaluateName,
             variablesReference: this.variablesReference,
             namedVariables: this.namedVariables,
             indexedVariables: this.indexedVariables,
             memoryReference: this.memoryReference,
-        };
+        } as DAP.Variable;
     }
 
-    constructor(variable: SFDAP.Variable, varRef: number, isFakeReflectionVar: boolean, parentScope?: ScopeNode) {
-        this.name = variable.name;
-        this.value = variable.value;
-        this.type = variable.type;
-        this.variablesReference = variable.compound ? varRef : 0;
-        this.realName = variable.name;
-        this.compound = variable.compound;
-        this.parentScope = parentScope;
-        this.isFakeReflectionVar = isFakeReflectionVar;
-        if (isFakeReflectionVar) {
-            const refinfo = VariableNode.parseOutReflectionInfo(variable.name);
-            if (refinfo) {
-                this.reflectionInfo = refinfo.root as SFDAP.Root;
-                this.baseForm = refinfo.baseForm;
-            }
-        } else if (variable.compound) {
-            const reflectionInfo = VariableNode.parseOutReflectionInfo(variable.value);
-            if (reflectionInfo) {
-                this.reflectionInfo = reflectionInfo.root as SFDAP.Root;
-                this.baseForm = reflectionInfo.baseForm;
-            }
-        }
+    constructor(ivarNode: IVariableNode) {
+        this.name = ivarNode.name;
+        this.value = ivarNode.value;
+        this.type = ivarNode.type || ''; // TODO: Fix this
+        this.varPresentationHint = ivarNode.varPresentationHint;
+        this.evaluateName = ivarNode.evaluateName;
+        this.memoryReference = ivarNode.memoryReference;
+        this.parentScopeVarRef = ivarNode.parentScopeVarRef;
+        this.isProp = ivarNode.isProp;
+        this.realName = ivarNode.realName;
+
+        this.variablesReference = ivarNode.variablesReference;
+        this.namedVariables = ivarNode.namedVariables;
+        this.indexedVariables = ivarNode.indexedVariables;
+    }
+}
+
+export class ScopedVariableNode extends BasicVariableNode implements IScopedVariableNode {
+    readonly compound: boolean = true;
+
+    readonly expensive: boolean = false;
+    readonly source?: DAP.Source;
+    readonly line?: number;
+    readonly column?: number;
+    readonly endLine?: number;
+    readonly endColumn?: number;
+
+    readonly scopePresentationHint?: string | undefined;
+    readonly frameId: number;
+    readonly path: string[];
+    readonly scopeType: ScopeType;
+    readonly hasStackFrame: boolean;
+    readonly children: IVariableNode[];
+
+    readonly baseForm?: string;
+    readonly reflectionInfo?: SFDAP.Root;
+    readonly isFakeReflectionVar: boolean;
+
+    public getDAPScope(lineStartsAt1: boolean = true, ColumnStartsAt1: boolean = true): DAP.Scope {
+        return {
+            name: this.name,
+            presentationHint: this.scopePresentationHint,
+            variablesReference: this.variablesReference,
+            expensive: this.expensive,
+            source: this.source,
+            line: this.line ? this.line + (lineStartsAt1 ? 0 : -1) : undefined,
+            column: this.column ? this.column + (ColumnStartsAt1 ? 0 : -1) : undefined,
+            endLine: this.endLine ? this.endLine + (lineStartsAt1 ? 0 : -1) : undefined,
+            endColumn: this.endColumn ? this.endColumn + (ColumnStartsAt1 ? 0 : -1) : undefined,
+        } as DAP.Scope;
+    }
+
+    constructor(scopedVarNode: IScopedVariableNode) {
+        super(scopedVarNode);
+        // dap.scope
+        this.source = scopedVarNode.source;
+        this.line = scopedVarNode.line;
+        this.column = scopedVarNode.column;
+        this.endLine = scopedVarNode.endLine;
+        this.endColumn = scopedVarNode.endColumn;
+        this.scopePresentationHint = scopedVarNode.scopePresentationHint;
+
+        // iscopenode
+        this.frameId = scopedVarNode.frameId;
+        this.path = scopedVarNode.path;
+        this.scopeType = scopedVarNode.scopeType;
+        this.hasStackFrame = scopedVarNode.hasStackFrame;
+        this.children = scopedVarNode.children;
+
+        // iscopedvariablenode
+        this.baseForm = scopedVarNode.baseForm;
+        this.reflectionInfo = scopedVarNode.reflectionInfo;
+        this.isFakeReflectionVar = scopedVarNode.isFakeReflectionVar;
+    }
+}
+
+export class VariableNodeFactory {
+    protected static makeiVariableNode(
+        variable: SFDAP.Variable,
+        varRef: number,
+        parentScope?: ScopeNode
+    ): IVariableNode {
+        let name = variable.name;
+        let varPresentationHint: DAP.VariablePresentationHint | undefined = undefined;
+        let isProp = false;
+        const realName = variable.name;
         if (variable.name.startsWith('::') && variable.name.endsWith('_var')) {
-            this.name = variable.name.substring(2, variable.name.length - 4);
-            this.realName = this.name;
-            this.presentationHint = {
+            name = variable.name.substring(2, variable.name.length - 4);
+            varPresentationHint = {
                 kind: 'property',
             };
-            this.isProp = true;
+            isProp = true;
         }
-        this.isProp = false;
+        const path = [...(parentScope?.path || []), realName];
+        const _evaluateName = path.join('.');
+
+        return {
+            name: name,
+            value: variable.value,
+            type: variable.type,
+            varPresentationHint: varPresentationHint,
+            evaluateName: _evaluateName, // TODO: this?
+            variablesReference: 0,
+            namedVariables: undefined,
+            indexedVariables: undefined,
+            memoryReference: undefined,
+            parentScopeVarRef: parentScope?.variablesReference || 0,
+            isProp: isProp,
+            realName: realName,
+            compound: false,
+        } as IVariableNode;
+    }
+
+    protected static iScopeFromVariable(varNode: IVariableNode, frameId?: number, parentScope?: ScopeNode) {
+        if (!varNode.compound) {
+            return undefined;
+        }
+        let _scopeType: ScopeType = 'objectMember';
+        if (varNode.name == 'self' && parentScope?.scopeType == 'localEnclosure') {
+            _scopeType = 'self';
+        } else if (varNode.name.toLowerCase() == 'parent') {
+            _scopeType = 'parent';
+        } else if (parentScope?.scopeType == 'localEnclosure') {
+            _scopeType = 'localVar';
+        }
+        return {
+            name: varNode.name,
+            variablesReference: varNode.variablesReference,
+            frameId: frameId || 0,
+            path: [...(parentScope?.path || []), varNode.realName],
+            scopeType: _scopeType,
+            parentScopeVarRef: parentScope?.variablesReference || 0,
+            expensive: false,
+            hasStackFrame: frameId && frameId !== undefined && frameId > 0,
+        } as IScopeNode;
+    }
+
+    public static makeVariableNode(
+        variable: SFDAP.Variable,
+        varRef: number,
+        parentScope?: ScopeNode,
+        frameId?: number,
+        isFakeReflectionVar?: boolean
+    ): IVariableNode {
+        if (variable.compound) {
+            return VariableNodeFactory.makeScopedVariableNode(
+                variable,
+                varRef,
+                parentScope,
+                frameId,
+                isFakeReflectionVar
+            );
+        }
+
+        return new BasicVariableNode(VariableNodeFactory.makeiVariableNode(variable, varRef, parentScope));
+    }
+
+    public static makeScopedVariableNode(
+        variable: SFDAP.Variable,
+        varRef: number,
+        parentScope?: ScopeNode,
+        frameId?: number,
+        _isFakeReflectionVar?: boolean
+    ): IScopedVariableNode {
+        const iVarNode = VariableNodeFactory.makeiVariableNode(variable, varRef, parentScope);
+        const iScopeNode = VariableNodeFactory.iScopeFromVariable(iVarNode, frameId, parentScope)!;
+        const refInfo = SFC.parseOutReflectionInfo(variable.value);
+        const reflectionInfo = (refInfo?.root as SFDAP.Root) || undefined;
+        const baseForm = refInfo?.baseForm || undefined;
+
+        let _scopeType: ScopeType = 'objectMember';
+        if (variable.name.toLowerCase() == 'self' && parentScope?.scopeType == 'localEnclosure') {
+            _scopeType = 'self';
+        } else if (variable.name.toLowerCase() == 'parent') {
+            _scopeType = 'parent';
+        } else if (parentScope?.scopeType == 'localEnclosure') {
+            _scopeType = 'localVar';
+        }
+        const iSVarNode: IScopedVariableNode = {
+            ...iVarNode,
+            ...iScopeNode,
+            reflectionInfo: reflectionInfo,
+            baseForm: baseForm,
+            isFakeReflectionVar: _isFakeReflectionVar || false,
+            // expensive: false,
+            // scopeType: _scopeType,
+            // frameId: frameId || 0,
+        };
+
+        return new ScopedVariableNode(iSVarNode);
     }
 }
 
-export interface IStateNode {
-    readonly threads: IThreadNode[];
-}
+export interface IStateNode {}
 
 export class StackFrameMap extends Map<number, StackFrameNode> {}
-export class ScopeMap extends Map<number, ScopeNode> {}
+export class ScopeMap extends Map<number, IScopeNode> {}
 
-export class VariableMap extends Map<number, VariableNode> {}
-
-export class StackFrameArray extends Array<StackFrameNode> {
-    // set the members of the array to be constant
-    readonly [index: number]: StackFrameNode;
-}
+export class VariableMap extends Map<number, IVariableNode> {}
 
 export class StateNode implements IStateNode {
     private readonly DUMMY_THREAD_NAME = 'DUMMY THREAD';
@@ -453,23 +492,22 @@ export class StateNode implements IStateNode {
         id: this.DUMMY_THREAD_ID,
         name: this.DUMMY_THREAD_NAME,
     } as SFDAP.Thread);
-    public get threads(): ThreadNode[] {
-        return this._threads;
-    }
-    public get stackFrames(): DAP.StackFrame[] {
-        return StackFrameArray.from(this._stackFrameMap.values()).map((v) => v.getDAPStackFrame());
-    }
-    private _threads: ThreadNode[] = [this.DUMMY_THREAD_OBJ];
+    private readonly DUMMY_ARR = [this.DUMMY_THREAD_OBJ];
     private _threadMap: Map<number, ThreadNode> = new Map<number, ThreadNode>();
     private _stackFrameMap: StackFrameMap = new StackFrameMap();
-    private _stackIdToThreadIdMap: Map<number, number> = new Map<number, number>();
+    // private _stackIdToThreadIdMap: Map<number, number> = new Map<number, number>();
     private _scopeMap: ScopeMap = new ScopeMap();
     private _variableMap: VariableMap = new VariableMap();
-    private _variableReferencetoFrameIdMap: Map<number, number> = new Map<number, number>();
+    // private _variableReferencetoFrameIdMap: Map<number, number> = new Map<number, number>();
     private _variableRefCount = 0;
-    private _localScopeVarRefToSelfScopeVarRefMap: Map<number, number> = new Map<number, number>();
     constructor() {}
-
+    public clear() {
+        this._threadMap = new Map<number, ThreadNode>();
+        this._stackFrameMap = new StackFrameMap();
+        this._scopeMap = new ScopeMap();
+        this._variableMap = new VariableMap();
+        this._variableRefCount = 0;
+    }
     public getVariableRefCount() {
         this._variableRefCount++;
         return this._variableRefCount;
@@ -479,7 +517,7 @@ export class StateNode implements IStateNode {
         return this._threadMap.has(threadId);
     }
     public getThread(threadId: number): DAP.Thread {
-        return this.getThreadNode(threadId).DAPThread;
+        return this.getThreadNode(threadId).getDAPThread();
     }
 
     protected getThreadNode(threadId: number): ThreadNode {
@@ -503,7 +541,7 @@ export class StateNode implements IStateNode {
         return this._stackFrameMap.get(stackId)!;
     }
 
-    protected getScopeNode(varRef: number): ScopeNode {
+    protected getScopeNode(varRef: number): IScopeNode {
         if (varRef > this._variableRefCount || !this.hasScope(varRef)) {
             throw new Error(`Variable reference ${varRef} is out of range`);
         }
@@ -515,6 +553,9 @@ export class StateNode implements IStateNode {
     public getScope(varRef: number): DAP.Scope {
         return this.getScopeNode(varRef)!.getDAPScope();
     }
+    public getFrameIdForScope(varRef: number): number {
+        return this.hasScope(varRef) ? this.getScopeNode(varRef).frameId : 0;
+    }
 
     public hasVariable(varRef: number): boolean {
         return this._variableMap.has(varRef);
@@ -524,39 +565,108 @@ export class StateNode implements IStateNode {
         return this.getVariableNode(varRef).getDAPVariable();
     }
 
-    protected getVariableNode(varRef: number): VariableNode {
+    protected getVariableNode(varRef: number): IVariableNode {
         if (varRef > this._variableRefCount || !this.hasVariable(varRef)) {
             throw new Error(`Variable reference ${varRef} is out of range`);
         }
         return this._variableMap.get(varRef)!;
     }
+    protected addThreadToThreadMap(thread: ThreadNode) {
+        this._threadMap.set(thread.id, thread);
+    }
 
-    protected addScopeToScopeMap(scope: ScopeNode) {
+    public addThread(threadId: number, threadName?: string) {
+        if (this.hasThread(threadId)) {
+            if (threadName) {
+                this.getThreadNode(threadId).name = threadName;
+            }
+            return;
+        }
+        if (!threadName) {
+            threadName = '<thread ' + threadId.toString() + '>';
+        }
+        const threadNode = new ThreadNode({ id: threadId, name: threadName } as DAP.Thread);
+        this.addThreadToThreadMap(threadNode);
+    }
+    public addThreads(threads: SFDAP.Thread[]) {
+        for (const thread of threads) {
+            this.addThread(thread.id, thread.name);
+        }
+    }
+    public setThreads(threads: SFDAP.Thread[]) {
+        // first, we need to remove any threads that are no longer in the list
+        const threadIds = threads.map((t) => t.id);
+        const threadIdsToRemove = Array.from(this._threadMap.keys()).filter((t) => !threadIds.includes(t));
+        for (const threadId of threadIdsToRemove) {
+            this.removeThread(threadId);
+        }
+        // then add the new ones
+        this.addThreads(threads);
+    }
+
+    public removeThread(threadId: number) {
+        this._threadMap.delete(threadId);
+    }
+
+    public getThreads(): DAP.Thread[] {
+        if (this._threadMap.size == 0) {
+            return this.DUMMY_ARR;
+        }
+        return Array.from(this._threadMap.values()).map((t) => t.getDAPThread());
+    }
+
+    protected addStackFrameToStackFrameMap(stackFrame: StackFrameNode) {
+        this.getThreadNode(stackFrame.threadId).stackFrames.push(stackFrame);
+        this._stackFrameMap.set(stackFrame.id, stackFrame);
+    }
+
+    public addStackFrame(stackFrame: SFDAP.StackFrame, threadId: number, stackIndex: number, source?: DAP.Source) {
+        const stackFrameNode = new StackFrameNode(stackFrame, threadId, stackIndex, source);
+        this.addStackFrameToStackFrameMap(stackFrameNode);
+        return stackFrameNode.DAPStackFrame;
+    }
+
+    public getThreadIdForStackFrame(stackId: number): number {
+        return Math.floor(stackId / 1000); // TODO: replace this
+    }
+
+    protected addScopeToScopeMap(scope: IScopeNode) {
+        if (scope.hasStackFrame) {
+            this.getStackFrameNode(scope.frameId)?.scopes.push(scope);
+        }
         this._scopeMap.set(scope.variablesReference, scope);
-        this._variableReferencetoFrameIdMap.set(scope.variablesReference, scope.frameId);
     }
 
-    protected makeScopeNodesForStackFrame(frameId: number): ScopeNode[] | undefined {
-        const frame = this._stackFrameMap.get(frameId)!;
-        const localScope = ScopeNode.ScopeFromStackFrame(frame, this.getVariableRefCount(), true);
-        const selfScope = ScopeNode.ScopeFromStackFrame(
-            frame,
-            this.getVariableRefCount(),
-            false,
-            localScope.variablesReference
-        );
-        const scopes = [localScope, selfScope];
+    protected makeLocalScopeNodeForStackFrame(frameId: number): IScopeNode | undefined {
+        const frame = this.getStackFrameNode(frameId)!;
+        const localScope = ScopeFactory.ScopeFromStackFrame(frame, this.getVariableRefCount(), true);
         this.addScopeToScopeMap(localScope);
-        this.addScopeToScopeMap(selfScope);
-        this._localScopeVarRefToSelfScopeVarRefMap.set(localScope.variablesReference, selfScope.variablesReference);
-        return scopes;
+        return localScope;
     }
-    public makeScopesForStackFrame(frameId: number): ScopeNode[] | undefined {
+    public makeLocalScopeForStackFrame(frameId: number): DAP.Scope {
         if (this.hasStackFrame(frameId)) {
-            return this.makeScopeNodesForStackFrame(frameId);
+            return this.makeLocalScopeNodeForStackFrame(frameId)!.getDAPScope();
         }
         throw new Error(`Stack frame ${frameId} not found`);
     }
+
+    public getVariablesArgumentsForScope(varRef: number): SFDAP.VariablesArguments {
+        // TODO: handle non-local scopes
+        const scope = this.getScopeNode(varRef);
+        const frame = this.getStackFrameNode(scope.frameId);
+        const thread = this.getThreadNode(frame.threadId);
+
+        const root: SFDAP.Root = {
+            type: 'stackFrame',
+            threadId: thread.id,
+            stackFrameIndex: frame.realStackIndex,
+        };
+        return {
+            root: root,
+            path: scope.path,
+        };
+    }
+
     protected getSelfScopeRef(frameid: number): number | undefined {
         if (this._stackFrameMap.has(frameid)) {
             const frame = this._stackFrameMap.get(frameid)!;
@@ -565,52 +675,45 @@ export class StateNode implements IStateNode {
         }
         return undefined;
     }
+    protected addVariableToState(varNode: IVariableNode, parentScopeVarRef?: number) {
+        const parentScope = parentScopeVarRef ? this.getScopeNode(parentScopeVarRef) : undefined;
+        parentScope?.children.push(varNode);
+        this.getScopeNode(varNode.variablesReference)?.children.push(varNode);
 
-    getScopesForVariable(varRef: number): ScopeNode {
-        return this._scopeMap.get(varRef)!;
+        if (varNode.compound) {
+            this.addScopeToScopeMap(varNode as IScopedVariableNode);
+            this._variableMap.set(varNode.variablesReference, varNode);
+        }
     }
 
-    addVariablesToState(variables: SFDAP.Variable[], parentScopeVarRef: number, frameid?: number): VariableNode[] {
+    protected addVariableNodesToState(
+        variables: SFDAP.Variable[],
+        parentScopeVarRef?: number,
+        frameid?: number
+    ): IVariableNode[] {
         const newVariables = [];
         if (frameid && !this._stackFrameMap.has(frameid)) {
             throw new Error(`Stack frame ${frameid} not found`);
         }
-        if (!this._scopeMap.has(parentScopeVarRef)) {
+        if (parentScopeVarRef && !this._scopeMap.has(parentScopeVarRef)) {
             throw new Error(`Parent scope ${parentScopeVarRef} not found`);
         }
 
-        const parentScope = this._scopeMap.get(parentScopeVarRef);
+        const parentScope = parentScopeVarRef ? this.getScopeNode(parentScopeVarRef) : undefined;
 
         for (const oldVar of variables) {
-            const varNode = new VariableNode(oldVar, this.getVariableRefCount(), false, parentScope);
-            if (parentScope && oldVar.compound) {
-                // careful about "self"
-                if (
-                    oldVar.name.toLowerCase() == 'self' &&
-                    parentScope.scopeType === 'localEnclosure' &&
-                    parentScope.path
-                ) {
-                    const selfVarRef = this.getSelfScopeRef(parentScope.variablesReference);
-                    if (selfVarRef) {
-                        if (this._scopeMap.has(selfVarRef)) {
-                            if (!this._variableMap.has(selfVarRef)) {
-                                this._variableMap.set(selfVarRef, varNode);
-                            }
-                            // no need to make a new scope, just use the old one; we won't put this in the locals variables returned to the client
-                            continue;
-                        } else {
-                            // this.logwarn('Could not find self scope for variable reference: ' + selfVarRef);
-                        }
-                    }
-                }
-                const stackFrame = frameid ? this._stackFrameMap.get(frameid)! : undefined;
-
-                const ScopeFromVariable: ScopeNode = ScopeNode.ScopeFromVariable(varNode, stackFrame, parentScope);
-                this._scopeMap.set(varNode.variablesReference, ScopeFromVariable);
-                this._variableMap.set(varNode.variablesReference, varNode);
-            }
+            const varNode = VariableNodeFactory.makeVariableNode(oldVar, this.getVariableRefCount(), parentScope);
+            this.addVariableToState(varNode, parentScopeVarRef);
             newVariables.push(varNode);
         }
         return newVariables;
+    }
+
+    public addVariablesToState(
+        variables: SFDAP.Variable[],
+        parentScopeVarRef?: number,
+        frameid?: number
+    ): DAP.Variable[] {
+        return this.addVariableNodesToState(variables, parentScopeVarRef, frameid).map((v) => v.getDAPVariable());
     }
 }
