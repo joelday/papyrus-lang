@@ -207,14 +207,22 @@ namespace DarkId.Papyrus.Server.Features
             {
                 var displayText = _displayTextEmitter.GetDisplayText(symbol);
 
-                return new CompletionItem()
+                var item = new CompletionItem()
                 {
                     Kind = GetCompletionItemKind(symbol),
                     Label = symbol.Name,
                     Detail = displayText.Text,
                     SortText = symbol.Name,
-                    Documentation = displayText.Documentation
+                    Documentation = displayText.Documentation,
                 };
+
+                if (symbol is FunctionSymbol)
+                {
+                    item.InsertText = symbol.Name + "($0)";
+                    item.InsertTextFormat = InsertTextFormat.Snippet;
+                }
+
+                return item;
             }).ToArray();
         }
 
