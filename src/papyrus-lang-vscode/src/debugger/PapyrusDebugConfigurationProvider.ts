@@ -1,14 +1,16 @@
 import { inject, injectable } from 'inversify';
-import { DebugConfigurationProvider, CancellationToken, WorkspaceFolder, debug, Disposable } from 'vscode';
+import { DebugConfigurationProvider, CancellationToken, WorkspaceFolder, debug, Disposable, commands } from 'vscode';
 import { IPathResolver } from '../common/PathResolver';
-import { PapyrusGame } from '../PapyrusGame';
+import { PapyrusGame, getScriptExtenderExecutableName } from '../PapyrusGame';
 import { GetPapyrusGameFromMO2GameID } from './MO2Helpers';
 import { FindInstanceForEXE, parseMoshortcutURI } from '../common/MO2Lib';
 import { MO2Config, IPapyrusDebugConfiguration } from './PapyrusDebugSession';
 import { getHomeFolder, getLocalAppDataFolder, getTempFolder, getUserName } from '../common/OSHelpers';
-
-// TODO: Auto install F4SE plugin
-// TODO: Warn if port is not open/if Fallout4.exe is not running
+import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
+import path from 'path';
+import { promisify } from 'util';
+import fs from 'fs';
+const exists = promisify(fs.exists);
 
 // Possibly based on custom language server requests:
 // TODO: Resolve project from whichever that includes the active editor file.
@@ -18,10 +20,33 @@ import { getHomeFolder, getLocalAppDataFolder, getTempFolder, getUserName } from
 export class PapyrusDebugConfigurationProvider implements DebugConfigurationProvider, Disposable {
     private readonly _registration: Disposable;
     private readonly _pathResolver: IPathResolver;
+    private readonly _configProvider: IExtensionConfigProvider;
 
-    constructor(@inject(IPathResolver) pathResolver: IPathResolver) {
+    private readonly DebuggerGames = [PapyrusGame.skyrimSpecialEdition, PapyrusGame.fallout4, PapyrusGame.starfield];
+    private readonly _registrations: Disposable[];
+    constructor(
+        @inject(IPathResolver) pathResolver: IPathResolver,
+        @inject(IExtensionConfigProvider) configurationservice: IExtensionConfigProvider
+    ) {
+        const supportedGames = [PapyrusGame.fallout4, PapyrusGame.skyrim, PapyrusGame.starfield];
+        this._registrations = [
+            commands.registerCommand(
+                `papyrus.debugConfig.getInstallDir`,
+                async (config: IPapyrusDebugConfiguration) => {
+                    let thing = config;
+
+                    return await this.getConfiguredGameDir(config.game);
+                }
+            ),
+        ];
+
         this._pathResolver = pathResolver;
+        this._configProvider = configurationservice;
         this._registration = debug.registerDebugConfigurationProvider('papyrus', this);
+    }
+
+    fuck() {
+        return 'FUCK!!!!!';
     }
 
     async provideDebugConfigurations(
@@ -64,6 +89,12 @@ export class PapyrusDebugConfigurationProvider implements DebugConfigurationProv
         debugConfiguration: IPapyrusDebugConfiguration,
         _token?: CancellationToken
     ): Promise<IPapyrusDebugConfiguration | null | undefined> {
+        if (debugConfiguration.game === undefined) {
+            throw new Error('Invalid debug configuration: Missing "game" field.');
+        }
+        if (!this.DebuggerGames.includes(debugConfiguration.game)) {
+            'Invalid debug configuration: Invalid "game" field, we only support: ' + this.DebuggerGames.join(' ');
+        }
         if (debugConfiguration.game !== undefined && debugConfiguration.request !== undefined) {
             if (debugConfiguration.request === 'launch') {
                 if (debugConfiguration.launchType === 'MO2') {
@@ -74,16 +105,13 @@ export class PapyrusDebugConfigurationProvider implements DebugConfigurationProv
                         return debugConfiguration;
                     }
                 } else if (debugConfiguration.launchType === 'XSE') {
-                    if (debugConfiguration.XSELoaderPath !== undefined) {
-                        return debugConfiguration;
-                    }
+                    return debugConfiguration;
                 }
             } else if (debugConfiguration.request === 'attach') {
                 return debugConfiguration;
             }
         }
         throw new Error('Invalid debug configuration.');
-        return undefined;
     }
 
     // TODO: We might not want to do this
@@ -106,6 +134,9 @@ export class PapyrusDebugConfigurationProvider implements DebugConfigurationProv
                 switch (envVarName) {
                     case 'LOCALAPPDATA':
                         envVarValue = getLocalAppDataFolder();
+                        break;
+                    case 'USERPROFILE':
+                        envVarValue = getHomeFolder();
                         break;
                     case 'USERNAME':
                         envVarValue = getUserName();
@@ -155,27 +186,61 @@ export class PapyrusDebugConfigurationProvider implements DebugConfigurationProv
         } as MO2Config;
     }
 
+    async getConfiguredGameDir(game: PapyrusGame): Promise<string | undefined> {
+        let dir = await this._pathResolver.getInstallPath(game);
+        return dir || undefined;
+    }
+
     async resolveDebugConfigurationWithSubstitutedVariables(
         _folder: WorkspaceFolder | undefined,
         debugConfiguration: IPapyrusDebugConfiguration,
         _token?: CancellationToken
     ): Promise<IPapyrusDebugConfiguration | null | undefined> {
-        if (debugConfiguration.request === 'launch' && debugConfiguration.launcherPath) {
-            const path = await this.substituteEnvVars(debugConfiguration.launcherPath);
-            if (path === undefined) {
-                throw new Error('Invalid debug configuration.');
-            }
-            if (debugConfiguration.launchType === 'MO2') {
+        if (debugConfiguration.request === 'launch') {
+            if (debugConfiguration.launchType === 'XSE') {
+                if (debugConfiguration.launcherPath === undefined) {
+                    // get the configured game directory
+                    const installPath = await this.getConfiguredGameDir(debugConfiguration.game);
+                    if (installPath === undefined) {
+                        throw new Error(
+                            'Invalid debug configuration: No "launcherPath" specified and no game configured.'
+                        );
+                    }
+                    let xse = getScriptExtenderExecutableName(debugConfiguration.game);
+                    if (!xse) {
+                        throw new Error('Invalid debug configuration: No script extender for this game!');
+                    }
+                    if (debugConfiguration.game === PapyrusGame.starfield) {
+                        // special case for starfield; we check if SFSE_loader.exe actually exists in the game dir, and if it doesn't, then we use `Starfield.exe`
+                        if (!(await exists(path.join(installPath, xse)))) {
+                            xse = 'Starfield.exe';
+                        }
+                    } else {
+                        if (xse === undefined) {
+                            throw new Error('Invalid debug configuration: No script extender for this game!');
+                        }
+                    }
+                    debugConfiguration.launcherPath = path.join(installPath, xse);
+                }
+                return debugConfiguration;
+            } else if (debugConfiguration.launchType === 'MO2') {
+                // TODO: Auto-find and add launcherPath
+                if (!debugConfiguration.launcherPath) {
+                    throw new Error('Invalid debug configuration: No "launcherPath" specified for MO2 launcher.');
+                }
+                const laucherPath = await this.substituteEnvVars(debugConfiguration.launcherPath);
+                if (laucherPath === undefined) {
+                    throw new Error('Invalid debug configuration.');
+                }
+
                 if (debugConfiguration.mo2Config === undefined) {
                     throw new Error('Invalid debug configuration.');
                 }
                 debugConfiguration.mo2Config = await this.prepMo2Config(
-                    path,
+                    laucherPath,
                     debugConfiguration.mo2Config,
                     debugConfiguration.game
                 );
-                return debugConfiguration;
-            } else if (debugConfiguration.launchType === 'XSE') {
                 return debugConfiguration;
             }
         }
@@ -189,5 +254,6 @@ export class PapyrusDebugConfigurationProvider implements DebugConfigurationProv
 
     dispose() {
         this._registration.dispose();
+        this._registrations.map((x) => x.dispose());
     }
 }

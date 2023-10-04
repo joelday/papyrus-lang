@@ -149,6 +149,19 @@ export function getGameCustomIniName(game: PapyrusGame): string {
     }
 }
 
+export function getGamePrefsIniName(game: PapyrusGame): string {
+    switch (game) {
+        case PapyrusGame.fallout4:
+            return 'Fallout4Prefs.ini';
+        case PapyrusGame.skyrim:
+            return 'SkyrimPrefs.ini';
+        case PapyrusGame.skyrimSpecialEdition:
+            return 'SkyrimPrefs.ini';
+        case PapyrusGame.starfield:
+            return 'StarfieldPrefs.ini';
+    }
+}
+
 // TODO: Support VR
 export enum GameVariant {
     Steam = 'Steam',
@@ -185,7 +198,7 @@ export function GetUserGameFolderName(game: PapyrusGame, variant: GameVariant) {
             switch (variant) {
                 case GameVariant.Steam:
                     return 'Starfield';
-                case GameVariant.GamePass: // TODO: Starfield: verify what this is
+                case GameVariant.GamePass: // GamePass uses the same folder, fortunately.
                     return 'Starfield';
             }
     }

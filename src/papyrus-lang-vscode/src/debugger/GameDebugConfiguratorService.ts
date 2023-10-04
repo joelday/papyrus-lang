@@ -2,24 +2,15 @@
 
 import { inject, injectable, interfaces } from 'inversify';
 import { IExtensionConfigProvider } from '../ExtensionConfigProvider';
-import { take } from 'rxjs/operators';
 import { IPathResolver } from '../common/PathResolver';
-import { PapyrusGame, getGameIniName } from '../PapyrusGame';
+import { PapyrusGame } from '../PapyrusGame';
 import { ILanguageClientManager } from '../server/LanguageClientManager';
-import { ClientHostStatus } from '../server/LanguageClientHost';
-import { CheckIfDebuggingIsEnabledInIni, TurnOnDebuggingInIni } from '../common/GameHelpers';
-import { WriteChangesToIni, ParseIniFile } from '../common/INIHelpers';
-
-import * as path from 'path';
-import * as fs from 'fs';
-import { promisify } from 'util';
-
-const exists = promisify(fs.exists);
+import { CheckGameConfigForDebug, CheckValidGameUserDir, ConfigureDebug } from '../common/GameHelpers';
 
 export enum GameDebugConfigurationState {
     debugEnabled,
     debugNotEnabled,
-    gameIniMissing,
+    gameUserDirInvalid,
     gameUserDirMissing,
     gameMissing,
     gameDisabled,
@@ -46,49 +37,27 @@ export class GameDebugConfiguratorService implements IGameDebugConfiguratorServi
     }
 
     async getState(game: PapyrusGame, gameUserDir: string | undefined): Promise<GameDebugConfigurationState> {
-        const client = await this._languageClientManager.getLanguageClientHost(game);
-        const status = await client.status.pipe(take(1)).toPromise();
-        if (!gameUserDir) {
-            if (status === ClientHostStatus.disabled) {
-                return GameDebugConfigurationState.gameDisabled;
-            }
-            if (status === ClientHostStatus.missing) {
-                return GameDebugConfigurationState.gameMissing;
-            }
+        // We no longer need to check debugging settings in the ini for Skyrim or Fallout 4
+        // The debugger plugin takes care of that for us
+        if (game === PapyrusGame.skyrim || game === PapyrusGame.fallout4) {
+            return GameDebugConfigurationState.debugEnabled;
         }
         const gameUserDirPath = gameUserDir || (await this._pathResolver.getUserGamePath(game));
         if (!gameUserDirPath) {
             return GameDebugConfigurationState.gameUserDirMissing;
         }
-        const gameIniPath = path.join(gameUserDirPath, getGameIniName(game));
-        if (!(await exists(gameIniPath))) {
-            return GameDebugConfigurationState.gameIniMissing;
+
+        if (!(await CheckValidGameUserDir(game, gameUserDirPath))) {
+            return GameDebugConfigurationState.gameUserDirInvalid;
         }
-        const inidata = await ParseIniFile(gameIniPath);
-        if (!inidata) {
-            return GameDebugConfigurationState.gameIniMissing;
-        }
-        if (!CheckIfDebuggingIsEnabledInIni(game, inidata)) {
-            return GameDebugConfigurationState.debugNotEnabled;
-        }
-        return GameDebugConfigurationState.debugEnabled;
+
+        const check = await CheckGameConfigForDebug(game, gameUserDirPath);
+        return check ? GameDebugConfigurationState.debugEnabled : GameDebugConfigurationState.debugNotEnabled;
     }
 
     async configureDebug(game: PapyrusGame, gameUserDir: string | undefined): Promise<boolean> {
         const gameUserDirPath = gameUserDir || (await this._pathResolver.getUserGamePath(game));
-        if (!gameUserDirPath) {
-            return false;
-        }
-        const gameIniPath = path.join(gameUserDirPath, getGameIniName(game));
-        if (!(await exists(gameIniPath))) {
-            return false;
-        }
-        const inidata = await ParseIniFile(gameIniPath);
-        if (!inidata) {
-            return false;
-        }
-        const newinidata = TurnOnDebuggingInIni(game, inidata);
-        return await WriteChangesToIni(gameIniPath, newinidata);
+        return await ConfigureDebug(game, gameUserDirPath!);
     }
 }
 

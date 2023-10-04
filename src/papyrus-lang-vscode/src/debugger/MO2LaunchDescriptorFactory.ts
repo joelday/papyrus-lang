@@ -4,7 +4,7 @@ import { MO2Config } from './PapyrusDebugSession';
 
 import { injectable, interfaces } from 'inversify';
 import path from 'path';
-import { GetPapyrusGameFromMO2GameID, getGameINIFromMO2Profile } from './MO2Helpers';
+import { GetPapyrusGameFromMO2GameID, getUserGameDirFromMO2Profile } from './MO2Helpers';
 import * as MO2Lib from '../common/MO2Lib';
 import { LaunchCommand } from './DebugLauncherService';
 
@@ -24,12 +24,11 @@ export interface MO2ProfileData {
      */
     modListPath: string;
     /**
-     * Path to the ini file that contains the Skyrim/Fallout 4/Starfield settings.
+     * Path to the directories that that contain the Skyrim/Fallout 4/Starfield ini files.
      * Depending if the profile has local settings, this is either present in the profile folder or in the global save game folder.
-     * Should alays be named "Skyrim.ini", "Fallout4.ini", or "Starfield.ini"
      * @type {string}
      */
-    gameIniPath: string;
+    userGameDir: string;
 }
 
 export interface IMO2LaunchDescriptorFactory {
@@ -68,13 +67,13 @@ export class MO2LaunchDescriptorFactory implements IMO2LaunchDescriptorFactory {
         if (!ModsListData) {
             throw new Error(`Invalid MO2 profile: Mod list file is not parsable`);
         }
-        const gameIniPath = await getGameINIFromMO2Profile(game, gamePath, profileFolder);
+        const userGameDir = await getUserGameDirFromMO2Profile(game, gamePath, profileFolder);
         return {
             name: name,
             folderPath: profileFolder,
             settingsIniPath: settingsIniPath,
             modListPath: ModsListPath,
-            gameIniPath: gameIniPath,
+            userGameDir: userGameDir,
         } as MO2ProfileData;
     }
 

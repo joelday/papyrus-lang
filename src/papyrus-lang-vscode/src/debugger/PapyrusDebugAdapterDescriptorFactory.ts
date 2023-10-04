@@ -41,6 +41,7 @@ import * as fs from 'fs';
 import { promisify } from 'util';
 import { isMO2ButNotThisOneRunning, killAllMO2Processes } from './MO2Helpers';
 import { StarfieldDebugAdapterProxy } from './starfield/StarfieldDebugAdapterProxy';
+import { IGameDebugConfiguratorService, GameDebugConfigurationState } from './GameDebugConfiguratorService';
 const exists = promisify(fs.exists);
 
 const noopExecutable = new DebugAdapterExecutable('node', ['-e', '""']);
@@ -77,6 +78,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
     private readonly _debugLauncher: IDebugLauncherService;
     private readonly _MO2LaunchDescriptorFactory: IMO2LaunchDescriptorFactory;
     private readonly _MO2ConfiguratorService: IMO2ConfiguratorService;
+    private readonly _gameDebugConfiguratorService: IGameDebugConfiguratorService;
     private readonly _registration: Disposable;
 
     constructor(
@@ -87,7 +89,8 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
         @inject(IDebugSupportInstallService) debugSupportInstaller: IDebugSupportInstallService,
         @inject(IDebugLauncherService) debugLauncher: IDebugLauncherService,
         @inject(IMO2LaunchDescriptorFactory) mo2LaunchDescriptorFactory: IMO2LaunchDescriptorFactory,
-        @inject(IMO2ConfiguratorService) mo2ConfiguratorService: IMO2ConfiguratorService
+        @inject(IMO2ConfiguratorService) mo2ConfiguratorService: IMO2ConfiguratorService,
+        @inject(IGameDebugConfiguratorService) gameDebugConfiguratorService: IGameDebugConfiguratorService
     ) {
         this._languageClientManager = languageClientManager;
         this._creationKitInfoProvider = creationKitInfoProvider;
@@ -97,6 +100,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
         this._debugLauncher = debugLauncher;
         this._MO2LaunchDescriptorFactory = mo2LaunchDescriptorFactory;
         this._MO2ConfiguratorService = mo2ConfiguratorService;
+        this._gameDebugConfiguratorService = gameDebugConfiguratorService;
         this._registration = debug.registerDebugAdapterDescriptorFactory('papyrus', this);
     }
 
@@ -128,12 +132,52 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
         return false;
     }
 
+    private async _checkIfConfigured(game: PapyrusGame, type: 'attach' | 'launch') {
+        const installOption = `Fix Configuration`;
+        const state = await this._gameDebugConfiguratorService.getState(game);
+        if (state !== GameDebugConfigurationState.debugEnabled) {
+            const selectedInstallOption = await window.showInformationMessage(
+                `Papyrus debugging support requires the game ini to be configured correctly. Do you want to automatically fix the configuration?`,
+                installOption,
+                'Ignore',
+                'Cancel'
+            );
+            switch (selectedInstallOption) {
+                case installOption: {
+                    const result = await this._gameDebugConfiguratorService.configureDebug(game);
+                    if (result) {
+                        if (type === 'attach') {
+                            await window.showInformationMessage(
+                                `Config applied successfully! Please re-launch the game!`
+                            );
+                            return false;
+                        }
+                        return true;
+                    }
+                    return false;
+                }
+                case 'Ignore':
+                    return true;
+                case 'Cancel':
+                    return false;
+            }
+        }
+        return true;
+    }
+
     private async _ShowLaunchDebugSupportInstallMessage(
         game: PapyrusGame,
         launchType: 'MO2' | 'XSE',
-        launcher: IMO2LauncherDescriptor
+        launcher?: IMO2LauncherDescriptor
     ) {
         const installOption = `Fix Configuration`;
+        if (launchType != 'MO2') {
+            // TODO: do stuff?
+            return false;
+        }
+        if (launcher === undefined) {
+            throw new Error('Invalid launch configuration.');
+        }
         const state = await this._MO2ConfiguratorService.getStateFromConfig(launcher);
         if (state !== MO2LaunchConfigurationStatus.Ready) {
             const errorMessage = GetErrorMessageFromStatus(state);
@@ -159,7 +203,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
         return false;
     }
 
-    private async _attachEnsureGameInstalled(game: PapyrusGame, modsDir?: string) {
+    private async _attachEnsureGameDebuggerInstalled(game: PapyrusGame, modsDir?: string) {
         const installState = await this._debugSupportInstaller.getInstallState(game, modsDir);
 
         switch (installState) {
@@ -227,31 +271,31 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
             throw new Error(`'${game}' is not supported by the Papyrus debugger.`);
         }
 
-        // Starfield doesnt need the adapter proxy and doesn't support launch right now
-        //TODO: Starfield: clean up
+        let workspaceFolder = '';
+        let baseFolder = '';
+
         if (game == PapyrusGame.starfield) {
+            if (!session.configuration.ignoreConfigChecks) {
+                const state = await this._gameDebugConfiguratorService.getState(session.configuration.game);
+                if (state != GameDebugConfigurationState.debugEnabled) {
+                    const installed = await this._checkIfConfigured(
+                        session.configuration.game,
+                        session.configuration.request
+                    );
+                    if (!installed) {
+                        session.configuration.noop = true;
+                        return noopExecutable;
+                    }
+                }
+            }
             // get the workspace folder
             // TODO: Starfield: Replace this with actual name resolution
-            let workspaceFolder = '';
-            let baseFolder = '';
             if (workspace.workspaceFolders !== undefined) {
                 workspaceFolder = workspace.workspaceFolders[0].uri.fsPath;
                 if (workspace.workspaceFolders.length > 1) {
                     baseFolder = workspace.workspaceFolders[1].uri.fsPath;
                 }
             }
-
-            session.configuration.noop = false;
-            return new DebugAdapterInlineImplementation(
-                new StarfieldDebugAdapterProxy({
-                    port: session.configuration.port || getDefaultPortForGame(game),
-                    host: 'localhost',
-                    startNow: true,
-                    workspaceFolder: workspaceFolder,
-                    BaseScriptFolder: baseFolder,
-                    consoleLogLevel: 'debug', // TODO: Turn this down in production, it can kill performance
-                })
-            );
         }
 
         let launched = DebugLaunchState.success;
@@ -273,7 +317,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
             }
             launcherPath = path.normalize(launcherPath);
             if (!launcherPath || !(await exists(launcherPath))) {
-                throw new Error(`'Path does not exist!`);
+                throw new Error(`'Debug: Launcher path does not exist, check your settings!`);
             }
             const launcherArgs: string[] = session.configuration.args || [];
             let LauncherCommand: LaunchCommand;
@@ -306,7 +350,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
                     await killAllMO2Processes();
                 }
             } else if (session.configuration.launchType === 'XSE') {
-                LauncherCommand = { command: launcherPath, args: launcherArgs };
+                LauncherCommand = { command: launcherPath, args: launcherArgs, cwd: path.dirname(launcherPath) };
             } else {
                 // throw an error indicated the launch configuration is invalid
                 throw new Error(`'Invalid launch configuration.`);
@@ -322,7 +366,7 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
             launched = await this._debugLauncher.runLauncher(LauncherCommand, game, port, cancellationToken);
             wait_message.dispose();
         } else {
-            if (!(await this._attachEnsureGameInstalled(game))) {
+            if (!(await this._attachEnsureGameDebuggerInstalled(game))) {
                 session.configuration.noop = true;
                 return noopExecutable;
             }
@@ -346,6 +390,21 @@ export class PapyrusDebugAdapterDescriptorFactory implements DebugAdapterDescrip
             session.configuration.noop = true;
             return noopExecutable;
         }
+
+        if (game === PapyrusGame.starfield) {
+            session.configuration.noop = false;
+            return new DebugAdapterInlineImplementation(
+                new StarfieldDebugAdapterProxy({
+                    port: session.configuration.port || getDefaultPortForGame(game),
+                    host: 'localhost',
+                    startNow: true,
+                    workspaceFolder: workspaceFolder,
+                    BaseScriptFolder: baseFolder,
+                    consoleLogLevel: 'debug', // TODO: Turn this down in production, it can kill performance
+                })
+            );
+        }
+
         const gConfig = await this._configProvider.config.pipe(take(1)).toPromise();
         const config = gConfig[game];
         const creationKitInfo = await this._creationKitInfoProvider.infos.get(game)!.pipe(take(1)).toPromise();

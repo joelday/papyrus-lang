@@ -5,7 +5,10 @@ export function getLocalAppDataFolder() {
     return process.env.LOCALAPPDATA;
 }
 export function getHomeFolder() {
-    return process.env.HOMEPATH;
+    if (process.platform === 'win32') {
+        return process.env.USERPROFILE || process.env.HOMEPATH;
+    }
+    return process.env.HOME;
 }
 export function getUserName() {
     return process.env.USERNAME;

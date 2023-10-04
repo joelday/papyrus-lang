@@ -217,6 +217,7 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
     protected port: number;
     protected host: string;
     protected readonly _onError = new Emitter<Error>();
+    protected readonly _onExit = new Emitter<number | null>();
     protected _sendMessage = new Emitter<DebugProtocolMessage>();
     protected logClientToProxy: DAPLogLevel = 'debug';
     protected logProxyToClient: DAPLogLevel = 'trace';
@@ -341,10 +342,26 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
         }
     }
 
+    // These aren't listened to when we're running inline
+    get onError(): Event0<Error> {
+        return this._onError.event;
+    }
+
+    get onExit(): Event0<number | null> {
+        return this._onExit.event;
+    }
+
+    protected emitError(error: Error) {
+        this._onError.fire(error);
+    }
+
+    protected emitExit(code: number | null) {
+        this._onExit.fire(code);
+    }
+
     public start() {
         // set a timeout that kills the server if no connection is established within 12 seconds
         this.connectionTimeout = setTimeout(() => {
-            this._onError.fire(new Error(`annot connect to Starfield DAP server`));
             this.emitOutputEvent('Cannot connect to Starfield DAP server!', 'important');
             this.stop();
         }, this.connectionTimeoutLimit);
@@ -355,27 +372,35 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
         });
         this._socket.on('close', () => {
             if (this.connected) {
-                this.emitOutputEvent('Connection closed!', 'important');
-                this.stop();
-                this._onError.fire(new Error('connection closed'));
+                this.emitOutputEvent('Connection closed.', 'console');
+                this.emitExit(0);
             } else {
-                throw new Error('connection closed');
+                this.emitOutputEvent(`Connection closed without connecting!`, 'console');
+                this.emitError(Error('Connection closed without connecting!'));
+                this.emitExit(-1);
             }
+            this.stop();
         });
 
-        this._socket.on('error', (error) => {
-            if (this.connected) {
-                this.emitOutputEvent('Connection error!', 'important');
-                this.stop();
-                this._onError.fire(error);
+        this._socket.on('error', (error: NodeJS.ErrnoException) => {
+            if (this.connected && error.code && error.code === 'ECONNRESET') {
+                this.emitOutputEvent('Connection reset.', 'console');
+                this.emitExit(0);
             } else {
-                throw error;
+                this.emitOutputEvent(`Connection error: ${error.message}`, 'important');
+                this.emitError(error);
+                this.emitExit(error.errno !== undefined ? error.errno : 1);
             }
+            this.stop();
         });
     }
 
     public stop() {
         this.connected = false;
+        if (this.connectionTimeout) {
+            clearTimeout(this.connectionTimeout);
+        }
+
         this.sendMessageToClient(new Event('terminated'));
         this._socket?.destroy();
     }
@@ -388,6 +413,7 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
         };
         this.sendMessageToClient(event);
     }
+
     //override this
     protected handleMessageFromServer?(message: DAP.ProtocolMessage): void;
 
@@ -615,6 +641,6 @@ export abstract class DebugAdapterProxy implements VSCodeDebugAdapter {
     }
 
     public dispose() {
-        this._socket?.destroy();
+        this.stop();
     }
 }

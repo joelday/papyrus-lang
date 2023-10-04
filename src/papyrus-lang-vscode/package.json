@@ -8,7 +8,8 @@
         "onDebugInitialConfigurations",
         "onDebugResolve:papyrus",
         "onView:papyrus-projects",
-        "onDebugAdapterProtocolTracker:papyrus"
+        "onDebugAdapterProtocolTracker:papyrus",
+        "onCommand:papyrus.debugConfig.getInstallDir"
     ],
     "author": {
         "email": "joelday@gmail.com",
@@ -38,14 +39,17 @@
                     "attach": {
                         "properties": {
                             "game": {
+                                "description": "The game to debug. One of 'fallout4', 'skyrimSpecialEdition', or 'starfield'.",
                                 "type": "string",
                                 "enum": [
                                     "fallout4",
                                     "skyrimSpecialEdition",
                                     "starfield"
-                                ]
+                                ],
+                                "default": "starfield"
                             },
                             "projectPath": {
+                                "description": "The path to the PPJ file relative to workspace folder.",
                                 "type": "string"
                             }
                         },
@@ -61,12 +65,15 @@
                                     "fallout4",
                                     "skyrimSpecialEdition",
                                     "starfield"
-                                ]
+                                ],
+                                "description": "The game to debug. One of 'fallout4', 'skyrimSpecialEdition', or 'starfield'."
                             },
                             "projectPath": {
+                                "description": "The path to the PPJ file relative to workspace folder.",
                                 "type": "string"
                             },
                             "launchType": {
+                                "description": "The type of launcher to use\n\n- 'XSE':  Launches the game using SKSE/F4SE without a mod manager\n- 'MO2':  Launches the game using Mod Organizer 2",
                                 "type": "string",
                                 "enum": [
                                     "XSE",
@@ -74,18 +81,24 @@
                                 ]
                             },
                             "launcherPath": {
+                                "description": "The path to the launcher executable.\n\n- If the launch type is 'MO2', this is the path to the Mod Organizer 2 executable.\n- If the launch type is 'XSE', this is the path to the f4se/skse loader executable.\n  - You can use the '${command:getInstallDir}' as a placeholder for the game installation directory configured in the extension settings.\n\nExamples:\n- 'C:/Program Files/Mod Organizer 2/ModOrganizer.exe'\n- 'C:/Program Files (x86)/Steam/steamapps/common/Skyrim Special Edition/skse64_loader.exe'\n- '${command:getInstallDir}/Starfield.exe'\n",
                                 "type": "string"
                             },
                             "mo2Config": {
+                                "description": "ModOrganizer2 configuration. Required if launchType is 'MO2'.",
                                 "type": "object",
                                 "properties": {
+                                    "description": "ModOrganizer2 configuration properties. Required if launchType is 'MO2'.",
                                     "shortcutURI": {
+                                        "description": "The shortcut URI for the Mod Organizer 2 profile to launch\nYou can get this from the Mod Organizer 2 shortcut menu.\n\nIt is in the format: `moshortcut://<instance_name>:<EXE_title>`.\nIf the MO2 installation is portable, the instance name is blank.\n\nExamples:\n- non-portable: `moshortcut://Skyrim Special Edition:SKSE`\n- portable:     `moshortcut://:F4SE`",
                                         "type": "string"
                                     },
                                     "profile": {
+                                        "description": "The name of the Mod Organizer 2 profile to use with the selected instance. If not specified, the default profile will be used.",
                                         "type": "string"
                                     },
                                     "instanceINIPath": {
+                                        "description": "The path to the Mod Organizer 2 instance ini for this game.\nThis is only necessary to be set if the debugger has difficulty finding the MO2 instance location\n\n- If the Mod Organizer 2 exe is a portable installation, this is located in the parent folder.\n- If it is a non-portable installation, this in `%LOCALAPPDATA%/ModOrganizer/<game>/ModOrganizer.ini`\n\nExamples:\n- `C:/Users/<YOUR_USER_NAME>/AppData/Local/ModOrganizer/Fallout4/ModOrganizer.ini`\n- `C:/Modding/MO2/ModOrganizer.ini`",
                                         "type": "array"
                                     }
                                 },
@@ -95,9 +108,11 @@
                                 "additionalProperties": false
                             },
                             "args": {
+                                "description": "(optional, advanced) Additional arguments to pass to the launcher",
                                 "type": "array"
                             },
                             "ignoreConfigChecks": {
+                                "description": "Ignore debugger configuration checks and launch. The debugger will not attempt to check if the plugin and its support libraries are installed, or if the game ini configurations are configured for debugging, and launch.",
                                 "type": "boolean"
                             }
                         },
@@ -110,43 +125,103 @@
                 },
                 "configurationSnippets": [
                     {
-                        "label": "Papyrus: Attach",
+                        "label": "Papyrus: Attach (Starfield)",
                         "body": {
-                            "name": "Attach (${2:Fallout 4})",
+                            "name": "Attach (Starfield)",
                             "type": "papyrus",
-                            "game": "${3:fallout4}",
+                            "game": "starfield",
+                            "request": "attach"
+                        }
+                    },
+                    {
+                        "label": "Papyrus: Attach (Fallout 4)",
+                        "body": {
+                            "name": "Attach (Fallout 4)",
+                            "type": "papyrus",
+                            "game": "fallout4",
                             "request": "attach",
                             "projectPath": "^\"\\${workspaceFolder}/${1:fallout4.ppj}\""
                         }
                     },
                     {
-                        "label": "Papyrus: Launch SKSE/F4SE Loader)",
+                        "label": "Papyrus: Attach (Skyrim Special Edition)",
                         "body": {
-                            "name": "Launch with ${4:F4SE}_loader (${2:Fallout 4})",
+                            "name": "Attach (Skyrim Special Edition)",
                             "type": "papyrus",
-                            "game": "${3:fallout4}",
-                            "request": "launch",
-                            "projectPath": "^\"\\${workspaceFolder}/${1:fallout4.ppj}\"",
-                            "launchType": "XSE",
-                            "launcherPath": "^\"${5:C:/Program Files (x86)/Steam/steamapps/common/Fallout 4/F4SE/F4SE_loader.exe}\""
+                            "game": "skyrimSpecialEdition",
+                            "request": "attach",
+                            "projectPath": "^\"\\${workspaceFolder}/${1:skyrimSpecialEdition.ppj}\""
                         }
                     },
                     {
-                        "label": "Papyrus: Launch (ModOrganizer2 Loader)",
+                        "label": "Papyrus: Launch Starfield",
                         "body": {
-                            "name": "Launch with ModOrganizer2 (${2:Fallout 4})",
+                            "name": "Launch Starfield",
                             "type": "papyrus",
-                            "game": "${3:fallout4}",
+                            "game": "starfield",
                             "request": "launch",
-                            "launchType": "MO2",
+                            "launchType": "XSE",
+                            "launcherPath": "^\"\\${command:getInstallDir}/Starfield.exe\""
+                        }
+                    },
+                    {
+                        "label": "Papyrus: Launch F4SE loader (Fallout 4)",
+                        "body": {
+                            "name": "Launch F4SE loader (Fallout 4)",
+                            "type": "papyrus",
+                            "game": "fallout4",
+                            "request": "launch",
                             "projectPath": "^\"\\${workspaceFolder}/${1:fallout4.ppj}\"",
-                            "launcherPath": "^\"${6:C:/Modding/MO2/ModOrganizer.exe}\"",
+                            "launchType": "XSE",
+                            "launcherPath": "^\"\\${command:getInstallDir}/F4SE_loader.exe\""
+                        }
+                    },
+                    {
+                        "label": "Papyrus: Launch SKSE loader (Skyrim Special Edition)",
+                        "body": {
+                            "name": "Launch SKSE loader (Skyrim Special Edition)",
+                            "type": "papyrus",
+                            "game": "skyrimSpecialEdition",
+                            "request": "launch",
+                            "projectPath": "^\"\\${workspaceFolder}/${1:skyrimSpecialEdition.ppj}\"",
+                            "launchType": "XSE",
+                            "launcherPath": "^\"\\${command:getInstallDir}/skse64_loader.exe\""
+                        }
+                    },
+                    {
+                        "label": "Papyrus: Launch ModOrganizer2 (Fallout 4)",
+                        "body": {
+                            "name": "Launch ModOrganizer2 (Fallout 4)",
+                            "type": "papyrus",
+                            "game": "fallout4",
+                            "request": "launch",
+                            "projectPath": "^\"\\${workspaceFolder}/${1:fallout4.ppj}\"",
+                            "launchType": "MO2",
+                            "launcherPath": "\"C:/Program Files/Mod Organizer 2/ModOrganizer.exe\"",
                             "mo2Config": {
-                                "shortcutURI": "^\"${7:moshortcut://Skyrim Special Edition:SKSE}\""
+                                "shortcutURI": "moshortcut://Fallout 4:F4SE"
+                            }
+                        }
+                    },
+                    {
+                        "label": "Papyrus: Launch ModOrganizer2 (Skyrim Special Edition)",
+                        "body": {
+                            "name": "Launch ModOrganizer2 (Skyrim Special Edition)",
+                            "type": "papyrus",
+                            "game": "skyrimSpecialEdition",
+                            "request": "launch",
+                            "projectPath": "^\"\\${workspaceFolder}/${1:skyrimSpecialEdition.ppj}\"",
+                            "launchType": "MO2",
+                            "launcherPath": "\"C:/Program Files/Mod Organizer 2/ModOrganizer.exe\"",
+                            "mo2Config": {
+                                "shortcutURI": "moshortcut://Skyrim Special Edition:SKSE"
                             }
                         }
                     }
-                ]
+                ],
+                "variables": {
+                    "getInstallDir": "papyrus.debugConfig.getInstallDir"
+                }
             }
         ],
         "taskDefinitions": [
@@ -446,6 +521,16 @@
                 "title": "Attach to Skyrim Special Edition/Anniversary Edition"
             },
             {
+                "category": "Debug",
+                "command": "papyrus.starfield.attachDebugger",
+                "title": "Attach to Starfield"
+            },
+            {
+                "category": "Debug",
+                "command": "papyrus.starfield.launchDebugger",
+                "title": "Launch Starfield"
+            },
+            {
                 "category": "Papyrus",
                 "command": "papyrus.viewAssembly",
                 "title": "View Papyrus Assembly"
@@ -586,6 +671,7 @@
         "@terascope/fetch-github-release": "^0.8.7",
         "@tybys/windows-file-version-info": "^1.0.5",
         "@types/semantic-release": "^17.2.4",
+        "@ungap/structured-clone": "^1.2.0",
         "@vscode/debugadapter": "^1.63.0",
         "binary-parser": "^2.2.1",
         "deepmerge": "^4.2.2",
@@ -603,6 +689,7 @@
         "semver": "^7.3.8",
         "supports-color": "^9.4.0",
         "vscode-languageclient": "^5.2.1",
+        "wait-port": "^1.1.0",
         "winreg": "^1.2.4",
         "xml-js": "^1.6.11"
     },
@@ -617,6 +704,7 @@
         "@types/node": "^18.11.18",
         "@types/semver": "^7.3.13",
         "@types/split2": "^4.2.1",
+        "@types/ungap__structured-clone": "^0.3.0",
         "@types/vscode": "^1.74.0",
         "@types/winreg": "^1.2.31",
         "@typescript-eslint/eslint-plugin": "^6.7.3",

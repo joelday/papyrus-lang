@@ -1,9 +1,13 @@
 import { existsSync } from 'fs';
 import path from 'path';
-import { getGameIniName } from '../PapyrusGame';
 import { PapyrusGame } from '../PapyrusGame';
 import { PDSModName } from '../common/constants';
-import { DetermineGameVariant, FindUserGamePath, getAddressLibNames } from '../common/GameHelpers';
+import {
+    CheckValidGameUserDir,
+    DetermineGameVariant,
+    FindUserGamePath,
+    getAddressLibNames,
+} from '../common/GameHelpers';
 import { getEnvFromProcess, getGamePIDs, getPIDforProcessName, getPIDsforFullPath } from '../Utilities';
 import * as MO2Lib from '../common/MO2Lib';
 import { INIData, ParseIniFile } from '../common/INIHelpers';
@@ -144,7 +148,7 @@ export async function GetPossibleMO2InstancesForModFolder(
     return filteredInstances;
 }
 
-export async function getGameINIFromMO2Profile(
+export async function getUserGameDirFromMO2Profile(
     game: PapyrusGame,
     gamePath: string,
     profileFolder: string
@@ -158,39 +162,25 @@ export async function getGameINIFromMO2Profile(
     if (!settingsIniData) {
         throw new Error(`Could not get settings ini data`);
     }
-    const gameIniName = getGameIniName(game);
-    let gameIniPath: string;
+
     if (settingsIniData.General.LocalSettings === false) {
         // We don't have local game ini settings, so we need to use the global ones
         const variant = await DetermineGameVariant(game, gamePath);
-        const gameSaveDir = await FindUserGamePath(game, variant);
-        if (!gameSaveDir || !existsSync(gameSaveDir)) {
+        const gameSaveDir = (await FindUserGamePath(game, variant)) || '';
+        if (!CheckValidGameUserDir(game, gameSaveDir)) {
             throw new Error(
                 `MO2 profile does not have local game INI settings, but could not find the global game save directory at ${gameSaveDir} (Try running the game once to generate the ini file)`
             );
         }
-        gameIniPath = path.join(gameSaveDir, gameIniName);
-        if (!existsSync(gameIniPath)) {
-            throw new Error(
-                `MO2 profile does not have local game INI settings, but could not find the global game ${game} ini @ ${gameIniPath} (Try running the game once to generate the ini file)`
-            );
-        }
+        profileFolder = gameSaveDir;
     } else {
-        gameIniPath = path.join(profileFolder, gameIniName);
         // TODO: This is fixable by running `ModOrganizer.exe refresh`
-        if (!existsSync(gameIniPath)) {
-            throw new Error(
-                `MO2 profile has local game INI settings, but could not find the local ${game} ini @ ${gameIniPath}`
-            );
+        if (!CheckValidGameUserDir(game, profileFolder)) {
+            throw new Error(`MO2 profile has local game INI settings, but could not find the local ${game} inis`);
         }
     }
 
-    // We don't save this here, we just use it to check if the game ini is parsable
-    const gameIniData = await ParseIniFile(gameIniPath);
-    if (!gameIniData) {
-        throw new Error(`Game ini file is not parsable, try re-running the game to re-generate the ini file`);
-    }
-    return gameIniPath;
+    return profileFolder;
 }
 
 export async function getMO2ProfileSettingsData(settingsIniPath: string): Promise<INIData> {

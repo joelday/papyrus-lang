@@ -805,7 +805,7 @@ export function ModListToText(modlist: Array<ModListItem>) {
 
 export function WriteChangesToModListFile(modlistPath: string, modlist: Array<ModListItem>) {
     const modlistContents = ModListToText(modlist);
-    fs.rmSync(modlistPath, { force: true });
+    // fs.rmSync(modlistPath, { force: true });
     if (!openSync(modlistPath, 'w')) {
         return false;
     }

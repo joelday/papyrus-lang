@@ -2,6 +2,10 @@ import * as ini from 'ini';
 import * as fs from 'fs';
 import { promisify } from 'util';
 const readFile = promisify(fs.readFile);
+const open = promisify(fs.open);
+const writeFile = promisify(fs.writeFile);
+const exists = promisify(fs.exists);
+const lstat = promisify(fs.lstat);
 
 export interface INIData {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,7 +51,7 @@ export function SerializeIniArray(data: INIData[]): INIData {
 }
 
 export async function ParseIniFile(IniPath: string): Promise<INIData | undefined> {
-    if (!fs.existsSync(IniPath) || !fs.lstatSync(IniPath).isFile()) {
+    if (!(await exists(IniPath)) || !(await lstat(IniPath)).isFile()) {
         return undefined;
     }
     const IniText = await readFile(IniPath, 'utf-8');
@@ -58,10 +62,10 @@ export async function ParseIniFile(IniPath: string): Promise<INIData | undefined
 }
 
 export async function WriteChangesToIni(gameIniPath: string, skyrimIni: INIData) {
-    const file = fs.openSync(gameIniPath, 'w');
+    const file = await open(gameIniPath, 'w');
     if (!file) {
         return false;
     }
-    fs.writeFileSync(file, ini.stringify(skyrimIni));
-    return false;
+    await writeFile(file, ini.stringify(skyrimIni));
+    return true;
 }

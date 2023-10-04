@@ -72,15 +72,18 @@ export interface IPapyrusDebugConfiguration extends DebugConfiguration {
     launchType?: 'XSE' | 'MO2';
 
     /**
-     * The path to the launcher executable
+     * The path to the launcher executable.
+     *
+     *
      *
      * - If the launch type is 'MO2', this is the path to the Mod Organizer 2 executable.
      * - If the launch type is 'XSE', this is the path to the f4se/skse loader executable.
+     *   - You can use the '${command:getInstallDir}' as a placeholder for the game installation directory configured in the extension settings.
      *
      * Examples:
      * - "C:/Program Files/Mod Organizer 2/ModOrganizer.exe"
      * - "C:/Program Files (x86)/Steam/steamapps/common/Skyrim Special Edition/skse64_loader.exe"
-     * - "C:/Program Files (x86)/Steam/steamapps/common/Fallout 4/f4se_loader.exe"
+     * - "${command:getInstallDir}/Starfield.exe"
      *
      */
     launcherPath?: string;

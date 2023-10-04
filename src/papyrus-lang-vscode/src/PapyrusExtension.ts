@@ -30,6 +30,7 @@ import { IDebugLauncherService, DebugLauncherService } from './debugger/DebugLau
 import { IAddressLibraryInstallService, AddressLibraryInstallService } from './debugger/AddressLibInstallService';
 import { IMO2LaunchDescriptorFactory, MO2LaunchDescriptorFactory } from './debugger/MO2LaunchDescriptorFactory';
 import { IMO2ConfiguratorService, MO2ConfiguratorService } from './debugger/MO2ConfiguratorService';
+import { IGameDebugConfiguratorService, GameDebugConfiguratorService } from './debugger/GameDebugConfiguratorService';
 
 class PapyrusExtension implements Disposable {
     private readonly _serviceContainer: Container;
@@ -74,6 +75,7 @@ class PapyrusExtension implements Disposable {
         this._serviceContainer.bind(IAddressLibraryInstallService).to(AddressLibraryInstallService);
         this._serviceContainer.bind(IMO2LaunchDescriptorFactory).to(MO2LaunchDescriptorFactory);
         this._serviceContainer.bind(IMO2ConfiguratorService).to(MO2ConfiguratorService);
+        this._serviceContainer.bind(IGameDebugConfiguratorService).to(GameDebugConfiguratorService);
 
         this._configProvider = this._serviceContainer.get(IExtensionConfigProvider);
         this._clientManager = this._serviceContainer.get(ILanguageClientManager);

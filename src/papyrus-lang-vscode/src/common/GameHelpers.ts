@@ -6,6 +6,9 @@ import {
     GetUserGameFolderName,
     getScriptExtenderName,
     getInstalledPathRegVal,
+    getGameIniName,
+    getGameCustomIniName,
+    getGamePrefsIniName,
 } from '../PapyrusGame';
 import * as fs from 'fs';
 import { promisify } from 'util';
@@ -16,8 +19,9 @@ import {
     AddressLibrarySKSEAEModName,
     AddressLibrarySKSEModName,
 } from './constants';
-import { INIData } from './INIHelpers';
+import { INIData, ParseIniFile, WriteChangesToIni } from './INIHelpers';
 import { getHomeFolder, getRegistryValueData } from './OSHelpers';
+import structuredClone from '@ungap/structured-clone';
 
 const exists = promisify(fs.exists);
 const readdir = promisify(fs.readdir);
@@ -55,20 +59,97 @@ export function getAddressLibNames(game: PapyrusGame): AddressLibraryName[] {
     return [];
 }
 
-export function CheckIfDebuggingIsEnabledInIni(game: PapyrusGame, iniData: INIData) {
-    let check =
-        iniData.Papyrus.bLoadDebugInformation === 1 &&
-        iniData.Papyrus.bEnableTrace === 1 &&
-        iniData.Papyrus.bEnableLogging === 1;
+/**
+ * Checks if this is, in fact, a valid game user dir
+ */
+export async function CheckValidGameUserDir(game: PapyrusGame, userPath: string): Promise<boolean> {
+    if (!userPath || !(await exists(userPath))) {
+        return false;
+    }
+    const gameIniPath = path.join(userPath, getGameIniName(game));
+    const customIni = path.join(userPath, getGameCustomIniName(game));
+    const prefsIni = path.join(userPath, getGamePrefsIniName(game));
+    const someInisExist = (await exists(gameIniPath)) || (await exists(customIni)) || (await exists(prefsIni));
+    // each game creates at LEAST the prefsIni file when starting for the first time; if it doesn't exist, it's not a valid game user dir
+    return someInisExist;
+}
+
+/**
+ * Checks game configs for user debugging settings
+ * Checks both the game's base ini and the custom ini
+ *
+ * @param game - the game to check
+ * @param userPath - the path to the user's game folder containing the ini files
+ */
+export async function CheckGameConfigForDebug(game: PapyrusGame, userPath: string): Promise<boolean> {
+    if (!(await CheckValidGameUserDir(game, userPath))) return false;
+
+    // Starfield ignores Starfield.ini in the user's user dir, so we have to check ONLY the custom ini
+    if (game !== PapyrusGame.starfield) {
+        const gameIniPath = path.join(userPath, getGameIniName(game));
+
+        if (await CheckIniFileForDebug(game, gameIniPath)) {
+            return true;
+        }
+    }
+    const customIni = path.join(userPath, getGameCustomIniName(game));
+    return await CheckIniFileForDebug(game, customIni);
+}
+
+/**
+ * Check <game>.ini (or <game>Custom.ini) for user debugging settings
+ */
+export async function CheckIniFileForDebug(game: PapyrusGame, iniPath: string): Promise<boolean> {
+    if (fs.existsSync(iniPath)) {
+        const iniData: INIData | undefined = await ParseIniFile(iniPath);
+        if (iniData) {
+            if (CheckINIDataForDebug(game, iniData)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+export function CheckINIDataForDebug(game: PapyrusGame, iniData: INIData) {
+    let check = iniData && iniData.Papyrus && iniData.Papyrus.bLoadDebugInformation == '1';
+    // We don't necessarily need these
+    // && iniData.Papyrus.bEnableTrace == '1' && iniData.Papyrus.bEnableLogging == '1';
     if (game == PapyrusGame.starfield) {
-        check = check && iniData.Papyrus.bEnableRemoteDebugging === 1 && iniData.Papyrus.iRemoteDebuggingPort === 20548; // TODO: Starfield: make this dynamic
+        check = check && iniData.Papyrus.bEnableRemoteDebugging == '1';
+        check = check && iniData.Papyrus.iRemoteDebuggingPort == '20548'; // TODO: Starfield: make this dynamic; we should just read the set port from the ini
     }
     return check;
 }
 
-export function TurnOnDebuggingInIni(game: PapyrusGame, iniData: INIData) {
-    const _ini = structuredClone(iniData);
+export async function ConfigureDebug(game: PapyrusGame, gameUserDir: string): Promise<boolean> {
+    const customIniPath = path.join(gameUserDir, getGameCustomIniName(game));
+    // Double check to make sure that the user hasn't already enabled debugging
+    if (await CheckIniFileForDebug(game, customIniPath)) {
+        return true;
+    }
+    let iniData: INIData | undefined;
+    if (!(await exists(customIniPath))) {
+        // we need to make it
+        iniData = {};
+        iniData.Papyrus = {};
+    } else {
+        iniData = await ParseIniFile(customIniPath);
+        if (!iniData) {
+            // Don't try and recover, just fail
+            // If it's a corrupt game ini file, the user needs to fix it
+            return false;
+        }
+    }
+    const newinidata = TurnOnDebuggingInIni(game, iniData);
+    return await WriteChangesToIni(customIniPath, newinidata);
+}
 
+export function TurnOnDebuggingInIni(game: PapyrusGame, iniData: INIData) {
+    const _ini = structuredClone(iniData) || {};
+    if (!_ini.Papyrus) {
+        _ini.Papyrus = {};
+    }
     _ini.Papyrus.bLoadDebugInformation = 1;
     _ini.Papyrus.bEnableTrace = 1;
     _ini.Papyrus.bEnableLogging = 1;

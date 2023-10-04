@@ -19,8 +19,7 @@ import * as MO2Lib from '../common/MO2Lib';
 import { CancellationTokenSource } from 'vscode-languageclient';
 import { CancellationToken } from 'vscode';
 import { spawn } from 'child_process';
-import { ParseIniFile } from '../common/INIHelpers';
-import { CheckIfDebuggingIsEnabledInIni, TurnOnDebuggingInIni } from '../common/GameHelpers';
+import { CheckGameConfigForDebug, ConfigureDebug } from '../common/GameHelpers';
 import { PapyrusGame } from '../PapyrusGame';
 
 export enum MO2LaunchConfigurationStatus {
@@ -215,15 +214,11 @@ export class MO2ConfiguratorService implements IMO2ConfiguratorService {
     private async checkINIConfiguration(
         launchDescriptor: MO2LauncherDescriptor
     ): Promise<MO2LaunchConfigurationStatus> {
-        const gameIniPath = launchDescriptor.profileToLaunchData.gameIniPath;
-        const gameIni = await ParseIniFile(gameIniPath);
-        if (!gameIni) {
-            return MO2LaunchConfigurationStatus.IniNotConfigured;
-        }
-        if (!CheckIfDebuggingIsEnabledInIni(launchDescriptor.game, gameIni)) {
-            return MO2LaunchConfigurationStatus.IniNotConfigured;
-        }
-        return MO2LaunchConfigurationStatus.Ready;
+        const check = await CheckGameConfigForDebug(
+            launchDescriptor.game,
+            launchDescriptor.profileToLaunchData.userGameDir
+        );
+        return check ? MO2LaunchConfigurationStatus.Ready : MO2LaunchConfigurationStatus.IniNotConfigured;
     }
 
     public async fixDebuggerConfiguration(
@@ -307,12 +302,12 @@ export class MO2ConfiguratorService implements IMO2ConfiguratorService {
 
                 case MO2LaunchConfigurationStatus.IniNotConfigured:
                     {
-                        const gameIniPath = launchDescriptor.profileToLaunchData.gameIniPath;
-                        const gameIni = await ParseIniFile(gameIniPath);
-                        if (!gameIni) {
-                            return false;
-                        }
-                        if (!(await TurnOnDebuggingInIni(launchDescriptor.game, gameIni))) {
+                        if (
+                            !(await ConfigureDebug(
+                                launchDescriptor.game,
+                                launchDescriptor.profileToLaunchData.userGameDir
+                            ))
+                        ) {
                             return false;
                         }
                     }

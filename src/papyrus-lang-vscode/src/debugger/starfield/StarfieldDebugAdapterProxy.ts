@@ -257,7 +257,6 @@ export class StarfieldDebugAdapterProxy extends DebugAdapterProxy {
             response.body = {};
         }
         response.body.error = msg;
-        this._onError.fire(new Error(response.message));
         this.log(
             'error',
             `***PROXY->CLIENT - Request '${response.command}' (seq: ${response.request_seq}) Failed: ${response.message}`

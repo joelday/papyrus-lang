@@ -52,7 +52,7 @@ export class InstallDebugSupportCommand extends GameCommandBase {
             }
             const launchType = launchArgs[0] as string;
             if (launchType === 'XSE') {
-                // do stuff
+                // TODO: do stuff
             }
             if (launchArgs.length > 1 && launchType === 'MO2') {
                 return launchArgs[1] as IMO2LauncherDescriptor;
@@ -63,6 +63,10 @@ export class InstallDebugSupportCommand extends GameCommandBase {
 
     protected async onExecute(game: PapyrusGame, ...args: [any | undefined]) {
         const launcherDescriptor = this.getLauncherDescriptor(...args);
+        if (launcherDescriptor === undefined) {
+            window.showErrorMessage(`An unspecified error occured.`);
+            return;
+        }
         const installed = await window.withProgress(
             {
                 cancellable: true,
@@ -98,6 +102,7 @@ export class InstallDebugSupportCommand extends GameCommandBase {
                     window.showErrorMessage(
                         `Failed to install Papyrus debugger support for ${getDisplayNameForGame(game)}: ${error}`
                     );
+                    console.error(error);
                 }
 
                 return false;
