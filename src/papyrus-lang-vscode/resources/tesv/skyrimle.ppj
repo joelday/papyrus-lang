@@ -1,16 +1,16 @@
 <?xml version='1.0'?><!-- Game is either sse, tesv, or fo4 -->
-<PapyrusProject xmlns="PapyrusProject.xsd" 
-    Flags="TESV_Papyrus_Flags.flg" 
-    Game="tesv" 
-    Output="Scripts" 
-    Optimize="false" 
-    Release="false" 
+<PapyrusProject xmlns="PapyrusProject.xsd"
+    Flags="TESV_Papyrus_Flags.flg"
+    Game="tesv"
+    Output="Scripts"
+    Optimize="false"
+    Release="false"
     Final="false">
     <Imports>
-        <Import>.\Source\Scripts</Import>
+        <Import>.\Scripts\Source</Import>
         <Import>${SKYRIMLE_PATH}</Import>
     </Imports>
     <Folders>
-        <Folder>.\Source\Scripts</Folder>
+        <Folder>.\Scripts\Source</Folder>
     </Folders>
 </PapyrusProject>
