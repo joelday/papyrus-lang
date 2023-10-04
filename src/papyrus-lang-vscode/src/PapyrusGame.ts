@@ -59,7 +59,8 @@ export function getGames(): PapyrusGame[] {
     return (Object.keys(PapyrusGame) as (keyof typeof PapyrusGame)[]).map((k) => PapyrusGame[k]);
 }
 
-const commonOldRegPrefix = `\\SOFTWARE\\${process.arch === 'x64' ? 'WOW6432Node\\' : ''}Bethesda Softworks\\`;
+export const commonOldRegPrefix = `\\SOFTWARE\\${process.arch === 'x64' ? 'WOW6432Node\\' : ''}Bethesda Softworks\\`;
+export const commonGOGRegPrefix = `\\SOFTWARE\\${process.arch === 'x64' ? 'WOW6432Node\\' : ''}GOG.com\\Games\\`;
 
 export function getRegistryKeyForGame(game: PapyrusGame) {
     switch (game) {
@@ -71,6 +72,25 @@ export function getRegistryKeyForGame(game: PapyrusGame) {
             return commonOldRegPrefix + 'Skyrim Special Edition';
         case PapyrusGame.starfield:
             return '\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Steam App 1716740';
+    }
+}
+
+export function getGOGIdsForGame(game: PapyrusGame) {
+    switch (game) {
+        case PapyrusGame.skyrimSpecialEdition:
+            return [
+                // Anniversary Upgrade DLC/patch
+                '1162721350',
+                // Package
+                '1711230643',
+                // Game?
+                '1801825368',
+            ];
+        case PapyrusGame.fallout4:
+            return ['1998527297'];
+        case PapyrusGame.skyrim:
+        case PapyrusGame.starfield:
+            return [];
     }
 }
 
@@ -181,7 +201,14 @@ export enum GameVariant {
 export function GetUserGameFolderName(game: PapyrusGame, variant: GameVariant) {
     switch (game) {
         case PapyrusGame.fallout4:
-            return 'Fallout4';
+            switch (variant) {
+                case GameVariant.Steam:
+                case GameVariant.GOG: // they use the same folders, fortunately
+                    return 'Fallout4';
+                default:
+                    return 'Fallout4';
+            }
+            break;
         case PapyrusGame.skyrim:
             return 'Skyrim';
         case PapyrusGame.skyrimSpecialEdition:
@@ -192,13 +219,16 @@ export function GetUserGameFolderName(game: PapyrusGame, variant: GameVariant) {
                     return 'Skyrim Special Edition GOG';
                 case GameVariant.Epic:
                     return 'Skyrim Special Edition EPIC';
+                default:
+                    return 'Skyrim Special Edition';
             }
             break;
         case PapyrusGame.starfield:
             switch (variant) {
                 case GameVariant.Steam:
-                    return 'Starfield';
                 case GameVariant.GamePass: // GamePass uses the same folder, fortunately.
+                    return 'Starfield';
+                default:
                     return 'Starfield';
             }
     }

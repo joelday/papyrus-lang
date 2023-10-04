@@ -9,6 +9,8 @@ import {
     getGameIniName,
     getGameCustomIniName,
     getGamePrefsIniName,
+    commonGOGRegPrefix,
+    getGOGIdsForGame,
 } from '../PapyrusGame';
 import * as fs from 'fs';
 import { promisify } from 'util';
@@ -243,14 +245,11 @@ async function findSkyrimSEEpic(): Promise<string | null> {
     return null;
 }
 
-async function findSkyrimSEGOG(): Promise<string | null> {
-    const keynames = [
-        // check Skyrim AE first
-        `\\SOFTWARE\\${process.arch === 'x64' ? 'WOW6432Node\\' : ''}GOG.com\\Games\\1162721350`,
-        // If AE isn't installed, check Skyrim SE
-        `\\SOFTWARE\\${process.arch === 'x64' ? 'WOW6432Node\\' : ''}GOG.com\\Games\\1711230643`,
-    ];
-    for (const key of keynames) {
+async function findGameGogPath(game: PapyrusGame): Promise<string | null> {
+    const prefix = commonGOGRegPrefix;
+    const gameIds = getGOGIdsForGame(game);
+    for (const id of gameIds) {
+        const key = prefix + id;
         const gogpath = await getRegistryValueData(key, 'path');
         if (gogpath && (await exists(gogpath))) {
             return gogpath;
@@ -272,18 +271,29 @@ async function FindGameSteamPath(game: PapyrusGame): Promise<string | null> {
 export async function FindGamePath(game: PapyrusGame) {
     switch (game) {
         case PapyrusGame.fallout4:
+            {
+                let path = await FindGameSteamPath(game);
+                if (path) {
+                    return path;
+                }
+                path = await findGameGogPath(game);
+                if (path) {
+                    return path;
+                }
+            }
+            break;
         case PapyrusGame.skyrim:
-            return FindGameSteamPath(game);
+            return await FindGameSteamPath(game);
         // TODO: support gamepass version of starfield
         case PapyrusGame.starfield:
-            return FindGameSteamPath(game);
+            return await FindGameSteamPath(game);
         case PapyrusGame.skyrimSpecialEdition:
             {
                 let path = await FindGameSteamPath(game);
                 if (path) {
                     return path;
                 }
-                path = await findSkyrimSEGOG();
+                path = await findGameGogPath(game);
                 if (path) {
                     return path;
                 }
