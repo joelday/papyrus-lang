@@ -52,7 +52,7 @@
                 <key>1</key>
                 <dict>
                     <key>name</key>
-                    <string>support.type.other.scriptname-declaration.papyrus</string>
+                    <string>keyword.language.scriptname-declaration.papyrus</string>
                 </dict>
                 <key>2</key>
                 <dict>
@@ -321,7 +321,7 @@
             <key>match</key>
             <string>(?i)\b(endproperty)\b</string>
             <key>name</key>
-            <string>keyword.control.propertyend.papyrus</string>
+            <string>keyword.other.property.propertyend.papyrus</string>
         </dict>
         <dict>
             <key>include</key>
