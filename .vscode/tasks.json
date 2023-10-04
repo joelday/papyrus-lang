@@ -15,7 +15,13 @@
           "cake"
         ]
       },
-      "problemMatcher": ["$tsc", "$msCompile"]
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$tsc",
+        "$msCompile"
+      ]
     },
     {
       "label": "updateBin",
@@ -26,9 +32,38 @@
           "--target=\"update-bin\""
         ]
       },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "command": "./build.sh",
-      "args": ["--target=\"update-bin\""],
-      "problemMatcher": ["$tsc", "$msCompile"]
+      "args": [
+        "--target=\"update-bin\""
+      ],
+      "problemMatcher": [
+        "$tsc",
+        "$msCompile"
+      ]
+    },
+    {
+      "label": "buildExtensionAndUpdateBin",
+      "windows": {
+        "command": "dotnet",
+        "args": [
+          "cake",
+          "--target=\"build-extension-and-update-bin\""
+        ]
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "command": "./build.sh",
+      "args": [
+        "--target=\"build-extension-and-update-bin\""
+      ],
+      "problemMatcher": [
+        "$tsc",
+        "$msCompile"
+      ]
     },
     {
       "label": "buildExtension",
@@ -39,9 +74,28 @@
           "--target=\"build-extension\""
         ]
       },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "command": "./build.sh",
-      "args": ["--target=\"build-extension\""],
-      "problemMatcher": ["$tsc", "$msCompile"]
+      "args": [
+        "--target=\"build-extension\""
+      ],
+      "problemMatcher": [
+        "$tsc",
+        "$msCompile"
+      ]
+    },
+    {
+      "label": "tsc",
+      "type": "shell",
+      "command": "tsc",
+      "options": {
+        "cwd": "${workspaceFolder}/src/papyrus-lang-vscode"
+      },
+      "problemMatcher": [
+        "$tsc"
+      ]
     }
   ]
 }

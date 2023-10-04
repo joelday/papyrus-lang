@@ -3,7 +3,7 @@ name: "Build"
 on:
   push:
     branches:
-      - '**'
+      - "**"
 
 jobs:
   build:
@@ -15,7 +15,7 @@ jobs:
       - name: git credentials
         uses: oleksiyrudenko/gha-git-credentials@v2-latest
         with:
-          token: '${{ secrets.GH_TOKEN }}'
+          token: "${{ secrets.GH_TOKEN }}"
           global: true
 
       - name: Checkout
@@ -98,3 +98,11 @@ jobs:
           # TODO: Cleanup workflows for various event types in general
           RELEASE: ${{( github.ref == 'refs/heads/main' || github.ref == 'refs/heads/prerelease') && github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}
           PRERELEASE: ${{ github.ref == 'refs/heads/prerelease' && github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}
+
+      - name: Upload Artifact
+        if: success()
+        uses: actions/upload-artifact@v2
+        continue-on-error: true
+        with:
+          name: artifact
+          path: c:/repo/src/papyrus-lang-vscode/papyrus-lang-*.vsix

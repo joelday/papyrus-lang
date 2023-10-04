@@ -1,5 +1,6 @@
 debug-bin
 debug-plugin
+debug-address-library
 pyro
 out
 node_modules

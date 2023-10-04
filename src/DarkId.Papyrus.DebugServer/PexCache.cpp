@@ -80,7 +80,7 @@ namespace DarkId::Papyrus::DebugServer
 		}
 		data.name = normname;
 		data.path = headerSrcName;
-		data.sourceReference = sourceReference;
+		data.sourceReference = sourceReference; // TODO: Remember to remove this when we get script references from the extension working
 		return true;
 	}
 

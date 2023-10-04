@@ -13,7 +13,26 @@
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
       ],
-      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
+      "outFiles": [
+        "${workspaceFolder}/src/papyrus-lang-vscode/dist/*.js"
+      ],
+    },
+    {
+      "name": "Launch (Build extension and build and copy binaries only)",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "preLaunchTask": "buildExtensionAndUpdateBin",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+      ],
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceFolder}/src/papyrus-lang-vscode/dist/*.js"
+      ],
+      "cwd": "${workspaceFolder}/src/papyrus-lang-vscode",
+      "internalConsoleOptions": "openOnSessionStart",
+      "outputCapture": "console"
     },
     {
       "name": "Launch (Build and copy binaries only)",
@@ -24,18 +43,29 @@
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
       ],
-      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceFolder}/src/papyrus-lang-vscode/dist/*.js"
+      ],
+      "cwd": "${workspaceFolder}/src/papyrus-lang-vscode",
+      "internalConsoleOptions": "openOnSessionStart",
+      "outputCapture": "console"
     },
     {
       "name": "Launch (Build extension only)",
       "type": "extensionHost",
       "request": "launch",
+      "pauseForSourceMap": true,
       "runtimeExecutable": "${execPath}",
       "preLaunchTask": "buildExtension",
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
       ],
-      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
+      "outFiles": [
+        "${workspaceFolder}/src/papyrus-lang-vscode/dist/*.js"
+      ],
+      "sourceMaps": true,
+      "internalConsoleOptions": "openOnSessionStart"
     },
     {
       "name": "Launch (No build)",
@@ -45,7 +75,11 @@
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
       ],
-      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
+      "outFiles": [
+        "${workspaceFolder}/src/papyrus-lang-vscode/dist/*.js"
+      ],
+      "sourceMaps": true,
+      "internalConsoleOptions": "openOnSessionStart"
     }
   ]
 }

@@ -11,9 +11,9 @@
     <key>firstLineMatch</key>
     <string>(?i)^scriptname</string>
     <key>foldingStartMarker</key>
-    <string>(?i)^\s*(if|while|property|struct|group|state|event|(\S+\s+)?function)</string>
+    <string>(?i)^\s*(if|while|property|struct|group|state|event|guard|(\S+\s+)?function)</string>
     <key>foldingStopMarker</key>
-    <string>(?i)^\s*(endif|endwhile|endproperty|endstruct|endgroup|endstate|endevent|endfunction)</string>
+    <string>(?i)^\s*(endif|endwhile|endproperty|endstruct|endgroup|endstate|endevent|endguard|endfunction)</string>
     <key>name</key>
     <string>papyrus</string>
     <key>patterns</key>
@@ -139,6 +139,12 @@
                     <string>keyword.operator.assignment.papyrus</string>
                 </dict>
             </array>
+        </dict>
+        <dict>
+            <key>match</key>
+            <string>(?i)\b(guard)\b</string>
+            <key>name</key>
+            <string>keyword.control.guardstart.papyrus</string>
         </dict>
         <dict>
             <key>begin</key>
@@ -316,6 +322,12 @@
             <string>(?i)\b(endevent)\b</string>
             <key>name</key>
             <string>keyword.control.eventend.papyrus</string>
+        </dict>
+        <dict>
+            <key>match</key>
+            <string>(?i)\b(endguard)\b</string>
+            <key>name</key>
+            <string>keyword.control.endguard.papyrus</string>
         </dict>
         <dict>
             <key>match</key>

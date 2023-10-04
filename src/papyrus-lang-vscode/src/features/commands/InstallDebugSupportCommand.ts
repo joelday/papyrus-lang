@@ -1,9 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { IDebugSupportInstallService, DebugSupportInstallState } from '../../debugger/DebugSupportInstallService';
 import { window, ProgressLocation } from 'vscode';
 import { PapyrusGame, getDisplayNameForGame } from '../../PapyrusGame';
 import { GameCommandBase } from './GameCommandBase';
-import { getGameIsRunning, waitWhile } from '../../Utilities';
+import { getGameIsRunning } from '../../Utilities';
+import { waitWhile } from '../../VsCodeUtilities';
 import { inject, injectable } from 'inversify';
+import { IMO2ConfiguratorService } from '../../debugger/MO2ConfiguratorService';
+import { IMO2LauncherDescriptor } from '../../debugger/MO2LaunchDescriptorFactory';
 
 export function showGameDisabledMessage(game: PapyrusGame) {
     window.showErrorMessage(
@@ -22,14 +26,47 @@ export function showGameMissingMessage(game: PapyrusGame) {
 @injectable()
 export class InstallDebugSupportCommand extends GameCommandBase {
     private readonly _installer: IDebugSupportInstallService;
-
-    constructor(@inject(IDebugSupportInstallService) installer: IDebugSupportInstallService) {
-        super('installDebuggerSupport', [PapyrusGame.fallout4, PapyrusGame.skyrimSpecialEdition]);
+    private readonly _mo2ConfiguratorService: IMO2ConfiguratorService;
+    constructor(
+        @inject(IDebugSupportInstallService) installer: IDebugSupportInstallService,
+        @inject(IMO2ConfiguratorService) mo2ConfiguratorService: IMO2ConfiguratorService
+    ) {
+        super('installDebuggerSupport', [
+            PapyrusGame.fallout4,
+            PapyrusGame.skyrimSpecialEdition,
+            PapyrusGame.starfield,
+        ]);
 
         this._installer = installer;
+        this._mo2ConfiguratorService = mo2ConfiguratorService;
     }
 
-    protected async onExecute(game: PapyrusGame) {
+    // TODO: Fix the args
+    protected getLauncherDescriptor(...args: [any | undefined]): IMO2LauncherDescriptor | undefined {
+        // If we have args, it's a debugger launch.
+        if (args.length > 0) {
+            // args 0 indicates the launch type
+            const launchArgs: any[] = args[0];
+            if (launchArgs.length < 1) {
+                return;
+            }
+            const launchType = launchArgs[0] as string;
+            if (launchType === 'XSE') {
+                // TODO: do stuff
+            }
+            if (launchArgs.length > 1 && launchType === 'MO2') {
+                return launchArgs[1] as IMO2LauncherDescriptor;
+            }
+        }
+        return undefined;
+    }
+
+    protected async onExecute(game: PapyrusGame, ...args: [any | undefined]) {
+        const launcherDescriptor = this.getLauncherDescriptor(...args);
+        if (launcherDescriptor === undefined) {
+            window.showErrorMessage(`An unspecified error occured.`);
+            return;
+        }
         const installed = await window.withProgress(
             {
                 cancellable: true,
@@ -58,18 +95,23 @@ export class InstallDebugSupportCommand extends GameCommandBase {
                         return false;
                     }
 
-                    return await this._installer.installPlugin(game, token);
+                    return launcherDescriptor
+                        ? await this._mo2ConfiguratorService.fixDebuggerConfiguration(launcherDescriptor, token)
+                        : await this._installer.installPlugin(game, token);
                 } catch (error) {
                     window.showErrorMessage(
                         `Failed to install Papyrus debugger support for ${getDisplayNameForGame(game)}: ${error}`
                     );
+                    console.error(error);
                 }
 
                 return false;
             }
         );
 
-        const currentStatus = await this._installer.getInstallState(game);
+        const currentStatus = launcherDescriptor
+            ? await this._mo2ConfiguratorService.getStateFromConfig(launcherDescriptor)
+            : await this._installer.getInstallState(game);
 
         if (installed) {
             if (currentStatus === DebugSupportInstallState.installedAsMod) {
