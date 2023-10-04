@@ -645,6 +645,10 @@
             "url": "https://github.com/joelday"
         },
         {
+            "name": "nikitalita",
+            "url": "https:/github.com/nikitalita"
+        },
+        {
             "email": "ScrivenerMods@gmail.com",
             "name": "Scrivener07",
             "url": "https://github.com/Scrivener07"
@@ -772,7 +776,7 @@
         "semantic-release": "npm run copy-license && semantic-release",
         "lint": "eslint ."
     },
-    "version": "3.0.0",
+    "version": "3.3.0",
     "prettier": {
         "tabWidth": 4,
         "singleQuote": true,
