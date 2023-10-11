@@ -542,7 +542,7 @@
         "@typescript-eslint/eslint-plugin": "^6.7.3",
         "@typescript-eslint/parser": "^6.7.3",
         "@vscode/test-electron": "2.2.0",
-        "@vscode/vsce": "^2.16.0",
+        "@vscode/vsce": "^2.19.0",
         "cpr": "^3.0.1",
         "eslint": "^8.50.0",
         "eslint-config-prettier": "^9.0.0",
