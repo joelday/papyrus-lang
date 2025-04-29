@@ -75,6 +75,10 @@ namespace DarkId.Papyrus.Common
             {
                 uri.Insert(0, "file:");
             }
+            else if (uri.Length >= 2 && uri[0] == '/' && uri[1] != '/' && Type.GetType("Mono.Runtime") != null)
+            {
+                uri.Insert(0, "file://");
+            }
             else if (uri.Length >= 2 && uri[0] == '/' && uri[1] != '/')
             {
                 uri.Insert(0, "file:/");
