@@ -155,6 +155,73 @@ internal sealed partial class BinaryExpressionSyntax : ExpressionSyntax
 }
 
 [SyntaxNode]
+internal sealed partial class ParenthesizedExpressionSyntax : ExpressionSyntax
+{
+    public SyntaxToken OpenParenToken { get; }
+    public partial ExpressionSyntax Expression { get; }
+    public SyntaxToken CloseParenToken { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class MemberAccessExpressionSyntax : ExpressionSyntax
+{
+    public partial ExpressionSyntax Expression { get; }
+    public SyntaxToken DotToken { get; }
+    public partial IdentifierNameSyntax Name { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class InvocationExpressionSyntax : ExpressionSyntax
+{
+    public partial ExpressionSyntax Expression { get; }
+    public partial ArgumentListSyntax ArgumentList { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class ArgumentListSyntax : SyntaxNode
+{
+    public SyntaxToken OpenParenToken { get; }
+    public partial SyntaxList<ArgumentSyntax> Arguments { get; }
+    public SyntaxToken CloseParenToken { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class ArgumentSyntax : SyntaxNode
+{
+    public SyntaxToken CommaToken { get; }
+    public partial IdentifierNameSyntax? Name { get; }
+    public SyntaxToken EqualsToken { get; }
+    public partial ExpressionSyntax Expression { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class ElementAccessExpressionSyntax : ExpressionSyntax
+{
+    public partial ExpressionSyntax Expression { get; }
+    public SyntaxToken OpenBracketToken { get; }
+    public partial ExpressionSyntax Argument { get; }
+    public SyntaxToken CloseBracketToken { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class CastExpressionSyntax : ExpressionSyntax
+{
+    public partial ExpressionSyntax Expression { get; }
+    public SyntaxToken OperatorToken { get; }
+    public partial TypeNameSyntax Type { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class NewExpressionSyntax : ExpressionSyntax
+{
+    public SyntaxToken NewKeyword { get; }
+    public partial TypeNameSyntax TypeName { get; }
+    public SyntaxToken OpenBracketToken { get; }
+    public partial ExpressionSyntax? Size { get; }
+    public SyntaxToken CloseBracketToken { get; }
+}
+
+[SyntaxNode]
 internal sealed partial class EqualsValueClauseSyntax : SyntaxNode
 {
     public SyntaxToken EqualsToken { get; }

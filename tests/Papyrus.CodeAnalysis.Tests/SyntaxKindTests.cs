@@ -72,6 +72,14 @@ public sealed class SyntaxKindTests
     [InlineData("ExpressionStatement")]
     [InlineData("NameExpression")]
     [InlineData("BinaryExpression")]
+    [InlineData("ParenthesizedExpression")]
+    [InlineData("MemberAccessExpression")]
+    [InlineData("InvocationExpression")]
+    [InlineData("ArgumentList")]
+    [InlineData("Argument")]
+    [InlineData("ElementAccessExpression")]
+    [InlineData("CastExpression")]
+    [InlineData("NewExpression")]
     public void Contains_core_script_header_member(string name)
     {
         Assert.True(Enum.TryParse<SyntaxKind>(name, out var kind), "Missing SyntaxKind." + name);

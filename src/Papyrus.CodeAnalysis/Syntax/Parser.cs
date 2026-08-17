@@ -403,7 +403,7 @@ internal sealed class Parser
         }
 
         var equals = Take();
-        return SyntaxFactory.EqualsValueClause(equals, ParsePrimaryExpression());
+        return SyntaxFactory.EqualsValueClause(equals, ParseExpression());
     }
 
     private List<StatementSyntax> ParseStatements(StatementScope scope)
@@ -554,11 +554,11 @@ internal sealed class Parser
 
     private AssignmentStatementSyntax ParseAssignmentStatement()
     {
-        var left = ParseExpression(stopAtAssignment: true);
+        var left = ParseExpression();
         var operatorToken = IsAssignmentOperator(_current.Kind)
             ? Take()
             : Missing(SyntaxKind.EqualsToken);
-        var right = ParseLineExpression();
+        var right = ParseExpression();
         return SyntaxFactory.AssignmentStatement(left, operatorToken, right, EatEndOfLine());
     }
 
@@ -586,38 +586,132 @@ internal sealed class Parser
         return SyntaxFactory.SkippedStatement(EatEndOfLine());
     }
 
-    private ExpressionSyntax ParseLineExpression()
-        => ParseExpression(stopAtAssignment: false);
+    private ExpressionSyntax ParseLineExpression() => ParseExpression();
 
-    private ExpressionSyntax ParseExpression(bool stopAtAssignment)
-    {
-        var expression = ParseBinaryExpression(stopAtAssignment);
-        SkipExpressionRemainder(stopAtAssignment);
-        return expression;
-    }
+    private ExpressionSyntax ParseExpression() => ParseLogicalOrExpression();
 
-    private ExpressionSyntax ParseBinaryExpression(bool stopAtAssignment)
+    private ExpressionSyntax ParseLogicalOrExpression()
     {
-        var left = ParsePrimaryExpression();
-        while (IsBinaryOperator(_current.Kind)
-            && !(stopAtAssignment && IsAssignmentOperator(_current.Kind)))
+        var left = ParseLogicalAndExpression();
+        while (_current.Kind == SyntaxKind.BarBarToken)
         {
             var operatorToken = Take();
-            var right = ParsePrimaryExpression();
-            left = SyntaxFactory.BinaryExpression(left, operatorToken, right);
+            left = SyntaxFactory.BinaryExpression(left, operatorToken, ParseLogicalAndExpression());
         }
 
         return left;
     }
 
-    private ExpressionSyntax ParsePrimaryExpression()
+    private ExpressionSyntax ParseLogicalAndExpression()
+    {
+        var left = ParseComparisonExpression();
+        while (_current.Kind == SyntaxKind.AmpersandAmpersandToken)
+        {
+            var operatorToken = Take();
+            left = SyntaxFactory.BinaryExpression(left, operatorToken, ParseComparisonExpression());
+        }
+
+        return left;
+    }
+
+    private ExpressionSyntax ParseComparisonExpression()
+    {
+        var left = ParseAdditiveExpression();
+        while (IsComparisonOperator(_current.Kind))
+        {
+            var operatorToken = Take();
+            left = SyntaxFactory.BinaryExpression(left, operatorToken, ParseAdditiveExpression());
+        }
+
+        return left;
+    }
+
+    private ExpressionSyntax ParseAdditiveExpression()
+    {
+        var left = ParseMultiplicativeExpression();
+        while (_current.Kind is SyntaxKind.PlusToken or SyntaxKind.MinusToken)
+        {
+            var operatorToken = Take();
+            left = SyntaxFactory.BinaryExpression(left, operatorToken, ParseMultiplicativeExpression());
+        }
+
+        return left;
+    }
+
+    private ExpressionSyntax ParseMultiplicativeExpression()
+    {
+        var left = ParseUnaryExpression();
+        while (_current.Kind is SyntaxKind.AsteriskToken or SyntaxKind.SlashToken or SyntaxKind.PercentToken)
+        {
+            var operatorToken = Take();
+            left = SyntaxFactory.BinaryExpression(left, operatorToken, ParseUnaryExpression());
+        }
+
+        return left;
+    }
+
+    private ExpressionSyntax ParseUnaryExpression()
     {
         if (_current.Kind is SyntaxKind.MinusToken or SyntaxKind.ExclamationToken)
         {
             var operatorToken = Take();
-            return SyntaxFactory.PrefixUnaryExpression(operatorToken, ParsePrimaryExpression());
+            return SyntaxFactory.PrefixUnaryExpression(operatorToken, ParseUnaryExpression());
         }
 
+        return ParseCastExpression();
+    }
+
+    private ExpressionSyntax ParseCastExpression()
+    {
+        var expression = ParsePostfixExpression();
+        if (_current.Kind is SyntaxKind.AsKeyword or SyntaxKind.IsKeyword)
+        {
+            var operatorToken = Take();
+            return SyntaxFactory.CastExpression(expression, operatorToken, ParseTypeName());
+        }
+
+        return expression;
+    }
+
+    private ExpressionSyntax ParsePostfixExpression()
+    {
+        var expression = ParsePrimaryExpression();
+        while (true)
+        {
+            if (_current.Kind == SyntaxKind.DotToken)
+            {
+                var dot = Take();
+                expression = SyntaxFactory.MemberAccessExpression(expression, dot, ParseMemberName());
+                continue;
+            }
+
+            if (_current.Kind == SyntaxKind.OpenParenToken && IsInvocable(expression))
+            {
+                expression = SyntaxFactory.InvocationExpression(expression, ParseArgumentList());
+                continue;
+            }
+
+            if (_current.Kind == SyntaxKind.OpenBracketToken)
+            {
+                var openBracket = Take();
+                var argument = ParseExpression();
+                var closeBracket = Eat(SyntaxKind.CloseBracketToken);
+                expression = SyntaxFactory.ElementAccessExpression(
+                    expression,
+                    openBracket,
+                    argument,
+                    closeBracket);
+                continue;
+            }
+
+            break;
+        }
+
+        return expression;
+    }
+
+    private ExpressionSyntax ParsePrimaryExpression()
+    {
         if (IsLiteral(_current.Kind))
         {
             return SyntaxFactory.LiteralExpression(Take());
@@ -628,27 +722,108 @@ internal sealed class Parser
             return SyntaxFactory.NameExpression(ParseName());
         }
 
-        return SyntaxFactory.LiteralExpression(Missing(SyntaxKind.IntegerLiteralToken));
-    }
-
-    private void SkipExpressionRemainder(bool stopAtAssignment)
-    {
-        var depth = 0;
-        while (!IsExpressionRemainderStop(_current.Kind, depth, stopAtAssignment))
+        if (_current.Kind == SyntaxKind.LengthKeyword)
         {
-            if (_current.Kind is SyntaxKind.OpenParenToken or SyntaxKind.OpenBracketToken)
-            {
-                depth++;
-            }
-            else if (depth > 0
-                && _current.Kind is SyntaxKind.CloseParenToken or SyntaxKind.CloseBracketToken)
-            {
-                depth--;
-            }
-
-            Skip();
+            return SyntaxFactory.NameExpression(SyntaxFactory.IdentifierName(Take()));
         }
+
+        if (_current.Kind == SyntaxKind.NewKeyword)
+        {
+            return ParseNewExpression();
+        }
+
+        if (_current.Kind == SyntaxKind.OpenParenToken)
+        {
+            return ParseParenthesizedExpression();
+        }
+
+        return MissingExpression();
     }
+
+    private ExpressionSyntax ParseNewExpression()
+    {
+        var newKeyword = Take();
+        var typeName = ParseTypeName();
+        if (_current.Kind != SyntaxKind.OpenBracketToken)
+        {
+            return SyntaxFactory.NewExpression(
+                newKeyword,
+                typeName,
+                default,
+                size: null,
+                default);
+        }
+
+        var openBracket = Take();
+        var size = ParseExpression();
+        var closeBracket = Eat(SyntaxKind.CloseBracketToken);
+        return SyntaxFactory.NewExpression(newKeyword, typeName, openBracket, size, closeBracket);
+    }
+
+    private ExpressionSyntax ParseParenthesizedExpression()
+    {
+        var openParen = Take();
+        var expression = ParseExpression();
+        var closeParen = Eat(SyntaxKind.CloseParenToken);
+        return SyntaxFactory.ParenthesizedExpression(openParen, expression, closeParen);
+    }
+
+    private ArgumentListSyntax ParseArgumentList()
+    {
+        var openParen = Eat(SyntaxKind.OpenParenToken);
+        var arguments = new List<ArgumentSyntax>();
+        if (!openParen.IsMissing
+            && _current.Kind != SyntaxKind.CloseParenToken
+            && !IsArgumentListStop(_current.Kind))
+        {
+            arguments.Add(ParseArgument(comma: default));
+            while (_current.Kind == SyntaxKind.CommaToken)
+            {
+                var comma = Take();
+                arguments.Add(ParseArgument(comma));
+            }
+        }
+
+        if (openParen.IsMissing && _current.Kind != SyntaxKind.CloseParenToken)
+        {
+            return SyntaxFactory.ArgumentList(
+                openParen,
+                SyntaxFactory.List(arguments),
+                Missing(SyntaxKind.CloseParenToken));
+        }
+
+        var closeParen = Eat(SyntaxKind.CloseParenToken);
+        return SyntaxFactory.ArgumentList(openParen, SyntaxFactory.List(arguments), closeParen);
+    }
+
+    private ArgumentSyntax ParseArgument(SyntaxToken comma)
+    {
+        IdentifierNameSyntax? name = null;
+        var equals = default(SyntaxToken);
+        if (IsNameToken(_current.Kind) && PeekToken(1).Kind == SyntaxKind.EqualsToken)
+        {
+            name = ParseIdentifierName();
+            equals = Take();
+        }
+
+        return SyntaxFactory.Argument(comma, name, equals, ParseExpression());
+    }
+
+    private IdentifierNameSyntax ParseMemberName()
+    {
+        if (IsMemberNameToken(_current.Kind))
+        {
+            return SyntaxFactory.IdentifierName(Take());
+        }
+
+        return SyntaxFactory.IdentifierName(Missing(SyntaxKind.IdentifierToken));
+    }
+
+    private static ExpressionSyntax MissingExpression()
+        => SyntaxFactory.LiteralExpression(Missing(SyntaxKind.IntegerLiteralToken));
+
+    private static bool IsInvocable(ExpressionSyntax expression)
+        => expression is NameExpressionSyntax or MemberAccessExpressionSyntax;
 
     private TypeNameSyntax? TryParseFunctionReturnType()
     {
@@ -674,10 +849,12 @@ internal sealed class Parser
 
         var openBracket = default(SyntaxToken);
         var closeBracket = default(SyntaxToken);
-        if (_current.Kind == SyntaxKind.OpenBracketToken)
+        // typename allows only empty `[]`; `[n]` belongs to `new Type[n]`.
+        if (_current.Kind == SyntaxKind.OpenBracketToken
+            && PeekToken(1).Kind == SyntaxKind.CloseBracketToken)
         {
             openBracket = Take();
-            closeBracket = Eat(SyntaxKind.CloseBracketToken);
+            closeBracket = Take();
         }
 
         return SyntaxFactory.TypeName(name, hashToken, structName, openBracket, closeBracket);
@@ -1151,20 +1328,16 @@ internal sealed class Parser
             or SyntaxKind.SlashEqualsToken
             or SyntaxKind.PercentEqualsToken;
 
-    private static bool IsBinaryOperator(SyntaxKind kind)
-        => kind is SyntaxKind.BarBarToken
-            or SyntaxKind.AmpersandAmpersandToken
-            or SyntaxKind.EqualsEqualsToken
+    private static bool IsComparisonOperator(SyntaxKind kind)
+        => kind is SyntaxKind.EqualsEqualsToken
             or SyntaxKind.ExclamationEqualsToken
             or SyntaxKind.LessThanToken
             or SyntaxKind.GreaterThanToken
             or SyntaxKind.LessThanEqualsToken
-            or SyntaxKind.GreaterThanEqualsToken
-            or SyntaxKind.PlusToken
-            or SyntaxKind.MinusToken
-            or SyntaxKind.AsteriskToken
-            or SyntaxKind.SlashToken
-            or SyntaxKind.PercentToken;
+            or SyntaxKind.GreaterThanEqualsToken;
+
+    private static bool IsMemberNameToken(SyntaxKind kind)
+        => IsNameToken(kind) || kind == SyntaxKind.LengthKeyword;
 
     private static bool IsExpressionStart(SyntaxKind kind)
         => IsLiteral(kind)
@@ -1172,7 +1345,10 @@ internal sealed class Parser
             || kind is SyntaxKind.MinusToken
                 or SyntaxKind.ExclamationToken
                 or SyntaxKind.OpenParenToken
-                or SyntaxKind.NewKeyword;
+                or SyntaxKind.NewKeyword
+                or SyntaxKind.AsKeyword
+                or SyntaxKind.IsKeyword
+                or SyntaxKind.LengthKeyword;
 
     private static bool IsStatementKeyword(SyntaxKind kind)
         => kind is SyntaxKind.IfKeyword
@@ -1181,33 +1357,12 @@ internal sealed class Parser
             or SyntaxKind.ElseKeyword
             or SyntaxKind.ElseIfKeyword;
 
-    private static bool IsExpressionRemainderStop(SyntaxKind kind, int depth, bool stopAtAssignment)
-    {
-        if (kind is SyntaxKind.EndOfLineToken or SyntaxKind.EndOfFileToken)
-        {
-            return true;
-        }
-
-        if (depth != 0)
-        {
-            return false;
-        }
-
-        if (stopAtAssignment && IsAssignmentOperator(kind))
-        {
-            return true;
-        }
-
-        return IsStatementKeyword(kind)
-            || IsEndKeyword(kind)
-            || kind is SyntaxKind.FunctionKeyword
-                or SyntaxKind.EventKeyword
-                or SyntaxKind.StateKeyword
-                or SyntaxKind.PropertyKeyword
-                or SyntaxKind.ImportKeyword
-                or SyntaxKind.AutoKeyword
-                or SyntaxKind.DocCommentToken;
-    }
+    private static bool IsArgumentListStop(SyntaxKind kind)
+        => kind is SyntaxKind.CloseParenToken
+            or SyntaxKind.EndOfLineToken
+            or SyntaxKind.EndOfFileToken
+            || IsStatementKeyword(kind)
+            || IsEndKeyword(kind);
 
     private static bool IsParameterListStop(SyntaxKind kind)
         => kind is SyntaxKind.CloseParenToken

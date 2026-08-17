@@ -419,8 +419,12 @@ public sealed class ParserTests
         var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
         Assert.Equal(1, function.Statements.Count);
         var exprStmt = Assert.IsType<ExpressionStatementSyntax>(function.Statements.Get(0));
-        var name = Assert.IsType<NameExpressionSyntax>(exprStmt.Expression);
+        var call = Assert.IsType<InvocationExpressionSyntax>(exprStmt.Expression);
+        var name = Assert.IsType<NameExpressionSyntax>(call.Expression);
         Assert.Equal("Foo", ((IdentifierNameSyntax)name.Name).Identifier.Text);
+        Assert.False(call.ArgumentList.OpenParenToken.IsMissing);
+        Assert.False(call.ArgumentList.CloseParenToken.IsMissing);
+        Assert.Empty(call.ArgumentList.Arguments);
     }
 
     [Theory]
@@ -470,6 +474,100 @@ public sealed class ParserTests
         Assert.Equal(SyntaxKind.EqualsEqualsToken, binary.OperatorToken.Kind);
         Assert.Equal("x", ((IdentifierNameSyntax)((NameExpressionSyntax)binary.Left).Name).Identifier.Text);
         Assert.Equal("0", ((LiteralExpressionSyntax)binary.Right).Token.Text);
+    }
+
+    [Fact]
+    public void Additive_does_not_bind_tighter_than_multiplicative()
+    {
+        const string source = "ScriptName Foo\nFunction Bar()\n  Int x = 1+2*3\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var declare = Assert.IsType<DeclareStatementSyntax>(function.Statements.Get(0));
+        Assert.NotNull(declare.EqualsValue);
+        var add = Assert.IsType<BinaryExpressionSyntax>(declare.EqualsValue.Value);
+        Assert.Equal(SyntaxKind.PlusToken, add.OperatorToken.Kind);
+        Assert.Equal("1", ((LiteralExpressionSyntax)add.Left).Token.Text);
+        var mul = Assert.IsType<BinaryExpressionSyntax>(add.Right);
+        Assert.Equal(SyntaxKind.AsteriskToken, mul.OperatorToken.Kind);
+        Assert.Equal("2", ((LiteralExpressionSyntax)mul.Left).Token.Text);
+        Assert.Equal("3", ((LiteralExpressionSyntax)mul.Right).Token.Text);
+    }
+
+    [Fact]
+    public void Parse_as_cast_expression()
+    {
+        const string source = "ScriptName Foo\nFunction Bar()\n  x = y as Int\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var assign = Assert.IsType<AssignmentStatementSyntax>(function.Statements.Get(0));
+        var cast = Assert.IsType<CastExpressionSyntax>(assign.Right);
+        Assert.Equal("y", ((IdentifierNameSyntax)((NameExpressionSyntax)cast.Expression).Name).Identifier.Text);
+        Assert.Equal(SyntaxKind.AsKeyword, cast.OperatorToken.Kind);
+        Assert.Equal("Int", ((IdentifierNameSyntax)cast.Type.Name).Identifier.Text);
+    }
+
+    [Fact]
+    public void Parse_new_array_expression()
+    {
+        const string source = "ScriptName Foo\nFunction Bar()\n  x = new Int[5]\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var assign = Assert.IsType<AssignmentStatementSyntax>(function.Statements.Get(0));
+        var created = Assert.IsType<NewExpressionSyntax>(assign.Right);
+        Assert.False(created.NewKeyword.IsMissing);
+        Assert.Equal("Int", ((IdentifierNameSyntax)created.TypeName.Name).Identifier.Text);
+        Assert.Equal(SyntaxKind.None, created.TypeName.OpenBracketToken.Kind);
+        Assert.False(created.OpenBracketToken.IsMissing);
+        Assert.NotNull(created.Size);
+        Assert.Equal("5", ((LiteralExpressionSyntax)created.Size).Token.Text);
+        Assert.False(created.CloseBracketToken.IsMissing);
+    }
+
+    [Fact]
+    public void Member_access_with_missing_name_is_well_formed()
+    {
+        const string source = "ScriptName Foo\nFunction Bar()\n  Foo.\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var exprStmt = Assert.IsType<ExpressionStatementSyntax>(function.Statements.Get(0));
+        var member = Assert.IsType<MemberAccessExpressionSyntax>(exprStmt.Expression);
+        Assert.Equal("Foo", ((IdentifierNameSyntax)((NameExpressionSyntax)member.Expression).Name).Identifier.Text);
+        Assert.False(member.DotToken.IsMissing);
+        Assert.True(member.Name.IsMissing);
+        Assert.True(member.Name.Identifier.IsMissing);
+        Assert.Equal(0, member.Name.Identifier.FullWidth);
+        Assert.False(member.IsMissing);
+    }
+
+    [Fact]
+    public void Logical_or_binds_looser_than_logical_and()
+    {
+        const string source = "ScriptName Foo\nFunction Bar()\n  x = a && b || c\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var assign = Assert.IsType<AssignmentStatementSyntax>(function.Statements.Get(0));
+        var or = Assert.IsType<BinaryExpressionSyntax>(assign.Right);
+        Assert.Equal(SyntaxKind.BarBarToken, or.OperatorToken.Kind);
+        var and = Assert.IsType<BinaryExpressionSyntax>(or.Left);
+        Assert.Equal(SyntaxKind.AmpersandAmpersandToken, and.OperatorToken.Kind);
+        Assert.Equal("a", ((IdentifierNameSyntax)((NameExpressionSyntax)and.Left).Name).Identifier.Text);
+        Assert.Equal("b", ((IdentifierNameSyntax)((NameExpressionSyntax)and.Right).Name).Identifier.Text);
+        Assert.Equal("c", ((IdentifierNameSyntax)((NameExpressionSyntax)or.Right).Name).Identifier.Text);
     }
 
     [Fact]
