@@ -132,6 +132,17 @@ public sealed class PexHashHarnessTests
     }
 
     [Fact]
+    public void Parse_MalformedOrEmptyJson_ThrowsInvalidOperation()
+    {
+        var empty = Assert.Throws<InvalidOperationException>(() => BaselineFile.Parse("  "));
+        Assert.Contains("empty", empty.Message, StringComparison.Ordinal);
+
+        var bad = Assert.Throws<InvalidOperationException>(() => BaselineFile.Parse("{ not json"));
+        Assert.Contains("invalid baseline JSON", bad.Message, StringComparison.Ordinal);
+        Assert.IsType<System.Text.Json.JsonException>(bad.InnerException);
+    }
+
+    [Fact]
     public void ParseHashList_IgnoresComments()
     {
         Dictionary<string, string> parsed = BaselineFile.ParseHashList(

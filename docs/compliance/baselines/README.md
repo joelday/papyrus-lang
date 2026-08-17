@@ -52,7 +52,7 @@ Copy this into a text file and pass it as `--attestation`. Every field is requir
 
 ```
 Machine OS: <OS name and version>
-papyrusc version: <papyrusc --version, or auto>
+papyrusc version: <output of papyrusc --version, or auto>
 CK compiler path SHA-256: <sha256 of the CK / PapyrusCompiler binary; not the path>
 CK file version: <FileVersion of that binary, or n/a>
 Statement: The CK binary / hashed .pex files came from a legitimate game/CK install that I have a license to use.

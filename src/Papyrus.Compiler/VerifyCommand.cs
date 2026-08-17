@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using System.Reflection;
+using System.Text.Json;
 using Papyrus.CodeAnalysis.Testing;
 using Papyrus.Pex;
 
@@ -73,15 +73,11 @@ internal static class VerifyCommand
             if (options.WriteBaselines)
                 return WriteBaselines(options, gameName, entries, stdout, stderr);
 
-            if (!string.IsNullOrWhiteSpace(options.Baseline))
-                return Compare(options.Baseline, options.Game, entries, stdout, stderr);
-
-            foreach (var entry in entries)
-                stdout.WriteLine($"{entry.Sha256}  {entry.RelativePath}");
-            stdout.WriteLine($"Hashed {entries.Length} .pex file(s). Does not compile.");
-            return 0;
+            return Compare(options.Baseline!, options.Game, entries, stdout, stderr);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or PexFormatException or InvalidOperationException or DirectoryNotFoundException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or PexFormatException
+            or InvalidOperationException or DirectoryNotFoundException or JsonException
+            or ArgumentException or NotSupportedException)
         {
             stderr.WriteLine($"error: {ex.Message}");
             return 1;
@@ -170,13 +166,23 @@ internal static class VerifyCommand
         {
             note = new AttestationNote(
                 note.Os,
-                Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0",
+                Cli.Version,
                 note.CkCompilerPathSha256,
                 note.CkFileVersion,
                 note.Statement);
         }
 
-        string dest = Path.GetFullPath(options.Dest!);
+        string dest;
+        try
+        {
+            dest = Path.GetFullPath(options.Dest!);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            stderr.WriteLine($"error: {ex.Message}");
+            return 1;
+        }
+
         BaselineFile.WriteBaselines(dest, gameName, entries, note);
         stdout.WriteLine($"Wrote {entries.Length} hash(es) to {dest}");
         return 0;

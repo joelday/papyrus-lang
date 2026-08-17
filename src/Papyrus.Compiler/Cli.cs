@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 using Papyrus.CodeAnalysis.Testing;
 
 namespace Papyrus.Compiler;
@@ -12,8 +13,9 @@ internal static class Cli
 
           papyrusc corpus acquire --game <game> --source <path> [--dest <path>] [--force]
           papyrusc hash <path> [--game <game>]
-          papyrusc verify --source <path> [--game <game>] [--baseline <file>]
-          papyrusc verify --write-baselines --source <path> --out <file> --attestation <file> [--game <game>]
+          papyrusc verify --source <path> --baseline <file> [--game <game>]
+          papyrusc verify --write-baselines --source <path> --out <file> --attestation <file> --game <game>
+          papyrusc --version
 
         corpus acquire
           --game     skyrimse | fallout4 | starfield
@@ -29,15 +31,27 @@ internal static class Cli
 
         verify
           Compare hashes of existing .pex to a committed baseline. Does not compile.
-          --write-baselines is maintainer-only and requires --attestation.
+          --baseline is required unless --write-baselines.
+          --write-baselines is maintainer-only and requires --attestation and --game.
           See docs/compliance/baselines/README.md.
         """;
+
+    internal static string Version =>
+        typeof(Cli).Assembly.GetName().Version?.ToString()
+        ?? typeof(Cli).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+        ?? "0.0.0";
 
     internal static int Run(string[] args, TextWriter stdout, TextWriter stderr)
     {
         if (args.Length == 0 || WantsHelp(args))
         {
             stdout.WriteLine(HelpText);
+            return 0;
+        }
+
+        if (WantsVersion(args))
+        {
+            stdout.WriteLine(Version);
             return 0;
         }
 
@@ -98,6 +112,20 @@ internal static class Cli
             {
                 return true;
             }
+        }
+
+        return false;
+    }
+
+    private static bool WantsVersion(string[] args)
+    {
+        if (args[0] is "version" or "--version" or "-V")
+            return true;
+
+        foreach (var arg in args)
+        {
+            if (arg is "--version" or "-V")
+                return true;
         }
 
         return false;
@@ -351,6 +379,11 @@ internal static class Cli
                 error = "error: --game is required with --write-baselines";
                 return false;
             }
+        }
+        else if (string.IsNullOrWhiteSpace(baseline))
+        {
+            error = "error: --baseline is required (use papyrusc hash to print hashes)";
+            return false;
         }
 
         options = new VerifyCommandOptions(source, game, baseline, dest, attestation, writeBaselines);

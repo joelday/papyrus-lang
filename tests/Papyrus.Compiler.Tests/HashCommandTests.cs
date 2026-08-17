@@ -18,7 +18,20 @@ public sealed class HashCommandTests
         Assert.Contains("hash", stdout, StringComparison.Ordinal);
         Assert.Contains("--write-baselines", stdout, StringComparison.Ordinal);
         Assert.Contains("attestation", stdout, StringComparison.Ordinal);
+        Assert.Contains(
+            "papyrusc verify --write-baselines --source <path> --out <file> --attestation <file> --game <game>",
+            stdout,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "--write-baselines --source <path> --out <file> --attestation <file> [--game <game>]",
+            stdout,
+            StringComparison.Ordinal);
         Assert.Empty(stderr);
+
+        var version = Run(out var versionOut, out var versionErr, "--version");
+        Assert.Equal(0, version);
+        Assert.Equal(Cli.Version, versionOut.Trim());
+        Assert.Empty(versionErr);
     }
 
     [Fact]
@@ -191,17 +204,65 @@ public sealed class HashCommandTests
     }
 
     [Fact]
-    public void BaselineAlias_HashesExistingPex()
+    public void Verify_WithoutBaseline_ExitsNonZero()
     {
         using var root = new TempDir();
         File.WriteAllBytes(Path.Combine(root.Path, "a.pex"), EmptySkyrimPex());
 
-        var code = Run(out var stdout, out var stderr, "baseline", "--source", root.Path);
+        var code = Run(out _, out var stderr, "verify", "--source", root.Path);
 
-        Assert.Equal(0, code);
-        Assert.Empty(stderr);
-        Assert.Contains("a.pex", stdout, StringComparison.Ordinal);
-        Assert.Contains("Does not compile", stdout, StringComparison.Ordinal);
+        Assert.Equal(1, code);
+        Assert.Contains("--baseline is required", stderr, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BaselineAlias_WithoutBaseline_ExitsNonZero()
+    {
+        using var root = new TempDir();
+        File.WriteAllBytes(Path.Combine(root.Path, "a.pex"), EmptySkyrimPex());
+
+        var code = Run(out _, out var stderr, "baseline", "--source", root.Path);
+
+        Assert.Equal(1, code);
+        Assert.Contains("--baseline is required", stderr, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Verify_MalformedBaseline_ExitsNonZero()
+    {
+        using var root = new TempDir();
+        File.WriteAllBytes(Path.Combine(root.Path, "Actor.pex"), EmptySkyrimPex());
+        var baseline = Path.Combine(root.Path, "bad.json");
+        File.WriteAllText(baseline, "{ not json");
+
+        var code = Run(
+            out _,
+            out var stderr,
+            "verify",
+            "--source", root.Path,
+            "--baseline", baseline);
+
+        Assert.Equal(1, code);
+        Assert.Contains("invalid baseline JSON", stderr, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Verify_EmptyBaseline_ExitsNonZero()
+    {
+        using var root = new TempDir();
+        File.WriteAllBytes(Path.Combine(root.Path, "Actor.pex"), EmptySkyrimPex());
+        var baseline = Path.Combine(root.Path, "empty.json");
+        File.WriteAllText(baseline, "   \n");
+
+        var code = Run(
+            out _,
+            out var stderr,
+            "verify",
+            "--source", root.Path,
+            "--baseline", baseline);
+
+        Assert.Equal(1, code);
+        Assert.Contains("baseline JSON is empty", stderr, StringComparison.Ordinal);
     }
 
     private static byte[] EmptySkyrimPex()

@@ -34,8 +34,19 @@ public static class BaselineFile
 
     public static BaselineDocument Parse(string json)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(json);
-        BaselineDocument? document = JsonSerializer.Deserialize(json, BaselineJsonContext.Default.BaselineDocument);
+        if (string.IsNullOrWhiteSpace(json))
+            throw new InvalidOperationException("baseline JSON is empty.");
+
+        BaselineDocument? document;
+        try
+        {
+            document = JsonSerializer.Deserialize(json, BaselineJsonContext.Default.BaselineDocument);
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException($"invalid baseline JSON: {ex.Message}", ex);
+        }
+
         if (document is null)
             throw new InvalidOperationException("baseline JSON is empty.");
 
