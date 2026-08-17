@@ -1,4 +1,6 @@
 using System.Collections.Immutable;
+using System.Threading;
+using Papyrus.CodeAnalysis.Syntax;
 
 namespace Papyrus.CodeAnalysis.Symbols;
 
@@ -75,55 +77,131 @@ internal sealed class GuardSymbol : Symbol, IGuardSymbol
 
 internal sealed class FunctionSymbol : Symbol, IFunctionSymbol
 {
+    private ITypeSymbol _returnType;
+    private ImmutableArray<IParameterSymbol> _parameters;
+    private ImmutableArray<IVariableSymbol> _locals;
+
     public FunctionSymbol(
         PapyrusName name,
         ISymbol containingSymbol,
         IScriptSymbol? containingScript,
         ITypeSymbol returnType,
         bool isGlobal,
-        bool isNative)
+        bool isNative,
+        FunctionDeclarationSyntax? declaration = null)
         : base(name, SymbolKind.Function, containingSymbol, containingScript, isNative)
     {
-        ReturnType = returnType;
-        Parameters = ImmutableArray<IParameterSymbol>.Empty;
+        _returnType = returnType;
+        _parameters = ImmutableArray<IParameterSymbol>.Empty;
+        _locals = ImmutableArray<IVariableSymbol>.Empty;
         IsGlobal = isGlobal;
+        Declaration = declaration;
     }
 
-    public ITypeSymbol ReturnType { get; }
+    internal FunctionDeclarationSyntax? Declaration { get; }
 
-    public ImmutableArray<IParameterSymbol> Parameters { get; private set; }
+    public ITypeSymbol ReturnType
+    {
+        get
+        {
+            EnsurePart(CompletionPart.MemberSignatures);
+            return _returnType;
+        }
+        internal set => _returnType = value;
+    }
+
+    public ImmutableArray<IParameterSymbol> Parameters
+    {
+        get
+        {
+            EnsurePart(CompletionPart.MemberSignatures);
+            return _parameters;
+        }
+    }
+
+    public ImmutableArray<IVariableSymbol> Locals
+    {
+        get
+        {
+            EnsurePart(CompletionPart.MemberBodies);
+            return _locals;
+        }
+    }
 
     public bool IsGlobal { get; }
 
     internal void SetParameters(ImmutableArray<IParameterSymbol> parameters)
     {
-        Parameters = parameters.IsDefault ? ImmutableArray<IParameterSymbol>.Empty : parameters;
+        _parameters = parameters.IsDefault ? ImmutableArray<IParameterSymbol>.Empty : parameters;
+    }
+
+    internal void SetLocals(ImmutableArray<IVariableSymbol> locals)
+    {
+        _locals = locals.IsDefault ? ImmutableArray<IVariableSymbol>.Empty : locals;
     }
 }
 
 internal sealed class EventSymbol : Symbol, IEventSymbol
 {
+    private ITypeSymbol _returnType;
+    private ImmutableArray<IParameterSymbol> _parameters;
+    private ImmutableArray<IVariableSymbol> _locals;
+
     public EventSymbol(
         PapyrusName name,
         ISymbol containingSymbol,
         IScriptSymbol? containingScript,
         ITypeSymbol returnType,
-        bool isNative)
+        bool isNative,
+        EventDeclarationSyntax? declaration = null)
         : base(name, SymbolKind.Event, containingSymbol, containingScript, isNative)
     {
-        ReturnType = returnType;
-        Parameters = ImmutableArray<IParameterSymbol>.Empty;
+        _returnType = returnType;
+        _parameters = ImmutableArray<IParameterSymbol>.Empty;
+        _locals = ImmutableArray<IVariableSymbol>.Empty;
+        Declaration = declaration;
     }
 
-    public ITypeSymbol ReturnType { get; }
+    internal EventDeclarationSyntax? Declaration { get; }
 
-    public ImmutableArray<IParameterSymbol> Parameters { get; private set; }
+    public ITypeSymbol ReturnType
+    {
+        get
+        {
+            EnsurePart(CompletionPart.MemberSignatures);
+            return _returnType;
+        }
+        internal set => _returnType = value;
+    }
+
+    public ImmutableArray<IParameterSymbol> Parameters
+    {
+        get
+        {
+            EnsurePart(CompletionPart.MemberSignatures);
+            return _parameters;
+        }
+    }
+
+    public ImmutableArray<IVariableSymbol> Locals
+    {
+        get
+        {
+            EnsurePart(CompletionPart.MemberBodies);
+            return _locals;
+        }
+    }
 
     public bool IsGlobal => false;
 
     internal void SetParameters(ImmutableArray<IParameterSymbol> parameters)
     {
-        Parameters = parameters.IsDefault ? ImmutableArray<IParameterSymbol>.Empty : parameters;
+        _parameters = parameters.IsDefault ? ImmutableArray<IParameterSymbol>.Empty : parameters;
+    }
+
+    internal void SetLocals(ImmutableArray<IVariableSymbol> locals)
+    {
+        _locals = locals.IsDefault ? ImmutableArray<IVariableSymbol>.Empty : locals;
     }
 }
 
@@ -137,42 +215,88 @@ internal sealed class CustomEventSymbol : Symbol, ICustomEventSymbol
 
 internal sealed class PropertySymbol : Symbol, IPropertySymbol
 {
+    private ITypeSymbol _type;
+    private IFunctionSymbol? _getMethod;
+    private IFunctionSymbol? _setMethod;
+
     public PropertySymbol(
         PapyrusName name,
         ISymbol containingSymbol,
         IScriptSymbol? containingScript,
         ITypeSymbol type,
-        bool isAuto)
+        bool isAuto,
+        PropertyDeclarationSyntax? declaration = null)
         : base(name, SymbolKind.Property, containingSymbol, containingScript, isNative: false)
     {
-        Type = type;
+        _type = type;
         IsAuto = isAuto;
+        Declaration = declaration;
     }
 
-    public ITypeSymbol Type { get; }
+    internal PropertyDeclarationSyntax? Declaration { get; }
+
+    public ITypeSymbol Type
+    {
+        get
+        {
+            EnsurePart(CompletionPart.MemberSignatures);
+            return _type;
+        }
+        internal set => _type = value;
+    }
 
     public bool IsAuto { get; }
 
-    public IFunctionSymbol? GetMethod { get; internal set; }
+    public IFunctionSymbol? GetMethod
+    {
+        get
+        {
+            EnsurePart(CompletionPart.MemberSignatures);
+            return _getMethod;
+        }
+        internal set => _getMethod = value;
+    }
 
-    public IFunctionSymbol? SetMethod { get; internal set; }
+    public IFunctionSymbol? SetMethod
+    {
+        get
+        {
+            EnsurePart(CompletionPart.MemberSignatures);
+            return _setMethod;
+        }
+        internal set => _setMethod = value;
+    }
 }
 
 internal sealed class VariableSymbol : Symbol, IVariableSymbol
 {
+    private ITypeSymbol _type;
+
     public VariableSymbol(
         PapyrusName name,
         ISymbol containingSymbol,
         IScriptSymbol? containingScript,
         ITypeSymbol type,
-        bool isConst)
+        bool isConst,
+        VariableDeclarationSyntax? declaration = null)
         : base(name, SymbolKind.Variable, containingSymbol, containingScript, isNative: false)
     {
-        Type = type;
+        _type = type;
         IsConst = isConst;
+        Declaration = declaration;
     }
 
-    public ITypeSymbol Type { get; }
+    internal VariableDeclarationSyntax? Declaration { get; }
+
+    public ITypeSymbol Type
+    {
+        get
+        {
+            EnsurePart(CompletionPart.MemberSignatures);
+            return _type;
+        }
+        internal set => _type = value;
+    }
 
     public bool IsConst { get; }
 }

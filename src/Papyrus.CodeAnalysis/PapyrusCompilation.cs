@@ -14,6 +14,7 @@ public sealed class PapyrusCompilation
     public const string UnresolvedScriptDiagnosticId = "PAP1000";
     public const string UnresolvedBaseTypeDiagnosticId = "PAP1001";
     public const string CyclicBaseTypeDiagnosticId = "PAP1002";
+    public const string UnresolvedTypeDiagnosticId = "PAP1003";
 
     private readonly PapyrusParseOptions _options;
     private readonly ImmutableDictionary<QualifiedName, SyntaxTree> _overrides;
@@ -68,10 +69,46 @@ public sealed class PapyrusCompilation
         var script = _scripts.GetOrAdd(name, n => CreateScript(n, GetOrAddCached(n)));
         if (script is SourceScriptSymbol source)
         {
-            source.ForceComplete(CompletionPart.Members | CompletionPart.BaseType, CancellationToken.None);
+            source.ForceComplete(CompletionPart.All, CancellationToken.None);
         }
 
         return script;
+    }
+
+    internal IScriptSymbol GetScriptForType(QualifiedName name)
+    {
+        name = Intern(name);
+        if (!_scripts.TryGetValue(name, out var script))
+        {
+            if (!CanResolve(name))
+            {
+                return CreateErrorScript(name);
+            }
+
+            script = _scripts.GetOrAdd(name, n => CreateScript(n, GetOrAddCached(n)));
+        }
+
+        if (script is SourceScriptSymbol source)
+        {
+            source.ForceComplete(CompletionPart.Members, CancellationToken.None);
+        }
+
+        return script;
+    }
+
+    internal TypeName GetInternedTypeName(TypeNameSyntax syntax)
+    {
+        var name = GetInternedQualifiedName(syntax.Name);
+        PapyrusName? structName = null;
+        if (syntax.HashToken.Kind == SyntaxKind.HashToken
+            && !syntax.StructName.IsMissing
+            && syntax.StructName.Text.Length > 0)
+        {
+            structName = Names.Get(syntax.StructName.Text);
+        }
+
+        var isArray = syntax.OpenBracketToken.Kind == SyntaxKind.OpenBracketToken;
+        return new TypeName(name, isArray, structName);
     }
 
     public SyntaxTree GetSyntaxTree(QualifiedName name)
@@ -220,6 +257,21 @@ public sealed class PapyrusCompilation
     }
 
     internal QualifiedName GetInternedQualifiedName(NameSyntax name) => Intern(ToQualifiedName(name));
+
+    private bool CanResolve(QualifiedName name)
+    {
+        if (_overrides.ContainsKey(name) || _cache.ContainsKey(name))
+        {
+            return true;
+        }
+
+        if (Resolver.TryResolve(name, out _, out _))
+        {
+            return true;
+        }
+
+        return Resolver.TryResolvePex(name.ToString(), out _);
+    }
 
     private static PapyrusName SimpleName(QualifiedName name)
     {

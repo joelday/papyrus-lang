@@ -9,9 +9,8 @@ namespace Papyrus.CodeAnalysis.Symbols;
 
 internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
 {
-    private const int NotStarted = 0;
-    private const int InProgress = 1;
-    private const int Completed = 2;
+    [ThreadStatic]
+    private static HashSet<(SourceScriptSymbol Symbol, CompletionPart Part)>? t_completing;
 
     [ThreadStatic]
     private static List<SourceScriptSymbol>? t_completingBaseTypes;
@@ -20,10 +19,12 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
     private readonly SyntaxTree _tree;
     private readonly ImmutableArray<SyntaxReference> _declaringSyntaxReferences;
     private readonly ITypeSymbol _unboundType;
+    private readonly CompletionSlot _members = new();
+    private readonly CompletionSlot _baseTypeSlot = new();
+    private readonly CompletionSlot _signatures = new();
+    private readonly CompletionSlot _bodies = new();
     private IScriptSymbol? _baseType;
     private ImmutableArray<Diagnostic> _bindingDiagnostics = ImmutableArray<Diagnostic>.Empty;
-    private int _membersState;
-    private int _baseTypeState;
     private bool _cyclicBase;
 
     public SourceScriptSymbol(
@@ -83,65 +84,127 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
 
     internal void ForceComplete(CompletionPart part, CancellationToken cancellationToken)
     {
-        if ((part & CompletionPart.Members) != 0)
+        if ((part & (CompletionPart.Members | CompletionPart.MemberSignatures | CompletionPart.MemberBodies)) != 0)
         {
-            CompleteMembers(cancellationToken);
+            CompletePart(CompletionPart.Members, _members, ComputeMembers, cancellationToken);
         }
 
         if ((part & CompletionPart.BaseType) != 0)
         {
-            CompleteBaseType(cancellationToken);
+            CompletePart(CompletionPart.BaseType, _baseTypeSlot, ComputeBaseType, cancellationToken);
+        }
+
+        if ((part & (CompletionPart.MemberSignatures | CompletionPart.MemberBodies)) != 0)
+        {
+            CompletePart(CompletionPart.MemberSignatures, _signatures, ComputeSignatures, cancellationToken);
+        }
+
+        if ((part & CompletionPart.MemberBodies) != 0)
+        {
+            CompletePart(CompletionPart.MemberBodies, _bodies, ComputeBodies, cancellationToken);
         }
     }
 
-    private void CompleteMembers(CancellationToken cancellationToken)
+    private void CompletePart(
+        CompletionPart part,
+        CompletionSlot slot,
+        Action<CancellationToken> compute,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (Volatile.Read(ref _membersState) == Completed)
+        if (slot.IsFinished)
         {
             return;
         }
 
-        if (Interlocked.CompareExchange(ref _membersState, InProgress, NotStarted) != NotStarted)
+        if (!TryEnterCompleting(part))
         {
+            OnReentered(part);
             return;
         }
 
         try
         {
-            SetMembers(BindMembers(cancellationToken));
+            if (slot.TryStart())
+            {
+                var error = false;
+                try
+                {
+                    compute(cancellationToken);
+                }
+                catch
+                {
+                    error = true;
+                    throw;
+                }
+                finally
+                {
+                    slot.Finish(error);
+                }
+
+                return;
+            }
         }
         finally
         {
-            Interlocked.Exchange(ref _membersState, Completed);
+            LeaveCompleting(part);
+        }
+
+        if (slot.IsFinished)
+        {
+            return;
+        }
+
+        slot.Wait(cancellationToken);
+    }
+
+    private bool TryEnterCompleting(CompletionPart part)
+    {
+        var set = t_completing ??= new HashSet<(SourceScriptSymbol, CompletionPart)>();
+        return set.Add((this, part));
+    }
+
+    private void LeaveCompleting(CompletionPart part)
+    {
+        t_completing?.Remove((this, part));
+    }
+
+    private void OnReentered(CompletionPart part)
+    {
+        // Mutual field types re-enter MemberSignatures legally; only extends is a cycle.
+        if (part != CompletionPart.BaseType)
+        {
+            return;
+        }
+
+        var stack = t_completingBaseTypes;
+        if (stack is null)
+        {
+            _cyclicBase = true;
+            return;
+        }
+
+        var cycleIndex = stack.IndexOf(this);
+        if (cycleIndex < 0)
+        {
+            _cyclicBase = true;
+            return;
+        }
+
+        for (var i = cycleIndex; i < stack.Count; i++)
+        {
+            stack[i]._cyclicBase = true;
         }
     }
 
-    private void CompleteBaseType(CancellationToken cancellationToken)
+    private void ComputeMembers(CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (Volatile.Read(ref _baseTypeState) == Completed)
-        {
-            return;
-        }
+        SetMembers(BindMembers(cancellationToken));
+    }
 
+    private void ComputeBaseType(CancellationToken cancellationToken)
+    {
         var stack = t_completingBaseTypes ??= new List<SourceScriptSymbol>();
-        var cycleIndex = stack.IndexOf(this);
-        if (cycleIndex >= 0)
-        {
-            for (var i = cycleIndex; i < stack.Count; i++)
-            {
-                stack[i]._cyclicBase = true;
-            }
-
-            return;
-        }
-
-        if (Interlocked.CompareExchange(ref _baseTypeState, InProgress, NotStarted) != NotStarted)
-        {
-            return;
-        }
-
         stack.Add(this);
         try
         {
@@ -150,8 +213,17 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
         finally
         {
             stack.RemoveAt(stack.Count - 1);
-            Interlocked.Exchange(ref _baseTypeState, Completed);
         }
+    }
+
+    private void ComputeSignatures(CancellationToken cancellationToken)
+    {
+        BindMemberSignatures(cancellationToken);
+    }
+
+    private void ComputeBodies(CancellationToken cancellationToken)
+    {
+        BindMemberBodies(cancellationToken);
     }
 
     private ImmutableArray<ISymbol> BindMembers(CancellationToken cancellationToken)
@@ -226,7 +298,8 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
             this,
             _unboundType,
             isGlobal: HasFlag(syntax.Flags, SyntaxKind.GlobalKeyword),
-            isNative: HasFlag(syntax.Flags, SyntaxKind.NativeKeyword)));
+            isNative: HasFlag(syntax.Flags, SyntaxKind.NativeKeyword),
+            syntax));
     }
 
     private void AddEvent(
@@ -244,7 +317,8 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
             container,
             this,
             _unboundType,
-            isNative: HasFlag(syntax.Flags, SyntaxKind.NativeKeyword)));
+            isNative: HasFlag(syntax.Flags, SyntaxKind.NativeKeyword),
+            syntax));
     }
 
     private void AddProperty(
@@ -263,7 +337,8 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
             this,
             _unboundType,
             isAuto: HasFlag(syntax.Flags, SyntaxKind.AutoKeyword)
-                || HasFlag(syntax.Flags, SyntaxKind.AutoReadOnlyKeyword)));
+                || HasFlag(syntax.Flags, SyntaxKind.AutoReadOnlyKeyword),
+            syntax));
     }
 
     private void AddVariable(
@@ -281,7 +356,8 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
             container,
             this,
             _unboundType,
-            isConst: HasFlag(syntax.Flags, SyntaxKind.ConstKeyword)));
+            isConst: HasFlag(syntax.Flags, SyntaxKind.ConstKeyword),
+            syntax));
     }
 
     private void AddState(
@@ -374,6 +450,387 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
         builder.Add(new GuardSymbol(name, this));
     }
 
+    private void BindMemberSignatures(CancellationToken cancellationToken)
+    {
+        var members = base.GetMembers();
+        for (var i = 0; i < members.Length; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            BindMemberSignature(members[i], cancellationToken);
+        }
+    }
+
+    private void BindMemberSignature(ISymbol member, CancellationToken cancellationToken)
+    {
+        switch (member)
+        {
+            case FunctionSymbol function when function.Declaration is { } syntax:
+                BindFunctionSignature(function, syntax, cancellationToken);
+                break;
+            case EventSymbol ev when ev.Declaration is { } syntax:
+                BindEventSignature(ev, syntax, cancellationToken);
+                break;
+            case PropertySymbol property when property.Declaration is { } syntax:
+                BindPropertySignature(property, syntax, cancellationToken);
+                break;
+            case VariableSymbol variable when variable.Declaration is { } syntax:
+                variable.Type = BindType(syntax.TypeName, syntax.TypeName.Span);
+                break;
+            case StateSymbol state:
+                BindChildSignatures(state.GetMembers(), cancellationToken);
+                break;
+            case StructSymbol struc:
+                BindChildSignatures(struc.GetMembers(), cancellationToken);
+                break;
+        }
+    }
+
+    private void BindChildSignatures(ImmutableArray<ISymbol> members, CancellationToken cancellationToken)
+    {
+        for (var i = 0; i < members.Length; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            BindMemberSignature(members[i], cancellationToken);
+        }
+    }
+
+    private void BindFunctionSignature(
+        FunctionSymbol function,
+        FunctionDeclarationSyntax syntax,
+        CancellationToken cancellationToken)
+    {
+        function.ReturnType = syntax.ReturnType is null
+            ? _unboundType
+            : BindType(syntax.ReturnType, syntax.ReturnType.Span);
+        function.SetParameters(BindParameters(function, syntax.ParameterList, cancellationToken));
+    }
+
+    private void BindEventSignature(
+        EventSymbol ev,
+        EventDeclarationSyntax syntax,
+        CancellationToken cancellationToken)
+    {
+        ev.ReturnType = _unboundType;
+        ev.SetParameters(BindParameters(ev, syntax.ParameterList, cancellationToken));
+    }
+
+    private void BindPropertySignature(
+        PropertySymbol property,
+        PropertyDeclarationSyntax syntax,
+        CancellationToken cancellationToken)
+    {
+        property.Type = BindType(syntax.TypeName, syntax.TypeName.Span);
+        if (property.IsAuto)
+        {
+            return;
+        }
+
+        var accessors = syntax.Accessors;
+        var count = accessors.Count;
+        for (var i = 0; i < count; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var accessor = accessors.Get(i);
+            if (!TryGetName(accessor.Name, out var name))
+            {
+                continue;
+            }
+
+            var function = new FunctionSymbol(
+                name,
+                property,
+                this,
+                _unboundType,
+                isGlobal: false,
+                isNative: HasFlag(accessor.Flags, SyntaxKind.NativeKeyword),
+                accessor);
+            BindFunctionSignature(function, accessor, cancellationToken);
+            if (name.Equals(_compilation.Names.Get("Get")))
+            {
+                property.GetMethod = function;
+            }
+            else if (name.Equals(_compilation.Names.Get("Set")))
+            {
+                property.SetMethod = function;
+            }
+        }
+    }
+
+    private ImmutableArray<IParameterSymbol> BindParameters(
+        ISymbol container,
+        ParameterListSyntax list,
+        CancellationToken cancellationToken)
+    {
+        var parameters = list.Parameters;
+        var count = parameters.Count;
+        if (count == 0)
+        {
+            return ImmutableArray<IParameterSymbol>.Empty;
+        }
+
+        var builder = ImmutableArray.CreateBuilder<IParameterSymbol>(count);
+        for (var i = 0; i < count; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var parameter = parameters.Get(i);
+            if (!TryGetName(parameter.Name, out var name))
+            {
+                continue;
+            }
+
+            builder.Add(new ParameterSymbol(
+                name,
+                container,
+                this,
+                BindType(parameter.TypeName, parameter.TypeName.Span),
+                parameter.EqualsValue is not null));
+        }
+
+        return builder.ToImmutable();
+    }
+
+    private void BindMemberBodies(CancellationToken cancellationToken)
+    {
+        var members = base.GetMembers();
+        for (var i = 0; i < members.Length; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            BindMemberBody(members[i], cancellationToken);
+        }
+    }
+
+    private void BindMemberBody(ISymbol member, CancellationToken cancellationToken)
+    {
+        switch (member)
+        {
+            case FunctionSymbol function when function.Declaration is { } syntax:
+                function.SetLocals(BindLocals(function, syntax.Statements, cancellationToken));
+                break;
+            case EventSymbol ev when ev.Declaration is { } syntax:
+                ev.SetLocals(BindLocals(ev, syntax.Statements, cancellationToken));
+                break;
+            case PropertySymbol property:
+                if (property.GetMethod is FunctionSymbol getMethod)
+                {
+                    BindMemberBody(getMethod, cancellationToken);
+                }
+
+                if (property.SetMethod is FunctionSymbol setMethod)
+                {
+                    BindMemberBody(setMethod, cancellationToken);
+                }
+
+                break;
+            case StateSymbol state:
+                var stateMembers = state.GetMembers();
+                for (var i = 0; i < stateMembers.Length; i++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    BindMemberBody(stateMembers[i], cancellationToken);
+                }
+
+                break;
+        }
+    }
+
+    private ImmutableArray<IVariableSymbol> BindLocals(
+        ISymbol container,
+        SyntaxList<StatementSyntax> statements,
+        CancellationToken cancellationToken)
+    {
+        var builder = ImmutableArray.CreateBuilder<IVariableSymbol>();
+        CollectLocals(container, statements, builder, cancellationToken);
+        return builder.ToImmutable();
+    }
+
+    private void CollectLocals(
+        ISymbol container,
+        SyntaxList<StatementSyntax> statements,
+        ImmutableArray<IVariableSymbol>.Builder builder,
+        CancellationToken cancellationToken)
+    {
+        var count = statements.Count;
+        for (var i = 0; i < count; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            switch (statements.Get(i))
+            {
+                case DeclareStatementSyntax declare:
+                    if (TryGetName(declare.Name, out var name))
+                    {
+                        builder.Add(new VariableSymbol(
+                            name,
+                            container,
+                            this,
+                            BindType(declare.TypeName, declare.TypeName.Span),
+                            isConst: false));
+                    }
+
+                    break;
+                case IfStatementSyntax ifStatement:
+                    CollectLocals(container, ifStatement.Statements, builder, cancellationToken);
+                    var elseIfs = ifStatement.ElseIfClauses;
+                    for (var e = 0; e < elseIfs.Count; e++)
+                    {
+                        CollectLocals(container, elseIfs.Get(e).Statements, builder, cancellationToken);
+                    }
+
+                    if (ifStatement.ElseClause is { } elseClause)
+                    {
+                        CollectLocals(container, elseClause.Statements, builder, cancellationToken);
+                    }
+
+                    break;
+                case WhileStatementSyntax whileStatement:
+                    CollectLocals(container, whileStatement.Statements, builder, cancellationToken);
+                    break;
+                case GuardStatementSyntax guard:
+                    CollectLocals(container, guard.Statements, builder, cancellationToken);
+                    break;
+                case TryGuardStatementSyntax tryGuard:
+                    CollectLocals(container, tryGuard.Statements, builder, cancellationToken);
+                    break;
+            }
+        }
+    }
+
+    private ITypeSymbol BindType(TypeNameSyntax syntax, TextSpan span)
+    {
+        if (syntax.Name.IsMissing)
+        {
+            AddDiagnostic(
+                PapyrusCompilation.UnresolvedTypeDiagnosticId,
+                "Type could not be resolved.",
+                span);
+            return CreateError(default);
+        }
+
+        return BindType(_compilation.GetInternedTypeName(syntax), syntax.Span);
+    }
+
+    private ITypeSymbol BindType(TypeName typeName, TextSpan span)
+    {
+        if (typeName.IsArray)
+        {
+            var element = BindType(new TypeName(typeName.Name, isArray: false, typeName.StructName), span);
+            return new ArrayTypeSymbol(element, _compilation.Names, _compilation.Dialect);
+        }
+
+        if (TryGetIntrinsic(typeName, out var intrinsic))
+        {
+            return intrinsic;
+        }
+
+        if (typeName.StructName is { } structName)
+        {
+            return BindStructType(typeName.Name, structName, span);
+        }
+
+        if (typeName.Name.Parts.Length == 1)
+        {
+            var localStruct = FindStruct(this, typeName.Name.Parts[0]);
+            if (localStruct is not null)
+            {
+                return localStruct;
+            }
+        }
+
+        if (typeName.Name.Parts.IsDefaultOrEmpty)
+        {
+            AddDiagnostic(
+                PapyrusCompilation.UnresolvedTypeDiagnosticId,
+                "Type could not be resolved.",
+                span);
+            return CreateError(typeName.Name);
+        }
+
+        var script = typeName.Name.Equals(QualifiedName)
+            ? this
+            : _compilation.GetScriptForType(typeName.Name);
+        if (script.TypeKind == TypeKind.Error)
+        {
+            AddDiagnostic(
+                PapyrusCompilation.UnresolvedTypeDiagnosticId,
+                "Type '" + typeName + "' could not be resolved.",
+                span);
+            return script;
+        }
+
+        return script;
+    }
+
+    private ITypeSymbol BindStructType(QualifiedName scriptName, PapyrusName structName, TextSpan span)
+    {
+        IScriptSymbol script;
+        if (scriptName.Parts.IsDefaultOrEmpty || scriptName.Equals(QualifiedName))
+        {
+            script = this;
+        }
+        else
+        {
+            script = _compilation.GetScriptForType(scriptName);
+        }
+
+        if (script.TypeKind != TypeKind.Error)
+        {
+            var struc = FindStruct(script, structName);
+            if (struc is not null)
+            {
+                return struc;
+            }
+        }
+
+        AddDiagnostic(
+            PapyrusCompilation.UnresolvedTypeDiagnosticId,
+            "Type '" + new TypeName(scriptName, isArray: false, structName) + "' could not be resolved.",
+            span);
+        return CreateError(scriptName, structName);
+    }
+
+    private IStructSymbol? FindStruct(IScriptSymbol script, PapyrusName structName)
+    {
+        var members = ReferenceEquals(script, this) ? GetDeclaredMembers() : script.GetMembers();
+        for (var i = 0; i < members.Length; i++)
+        {
+            if (members[i] is IStructSymbol struc && struc.Name.Equals(structName))
+            {
+                return struc;
+            }
+        }
+
+        return null;
+    }
+
+    private ImmutableArray<ISymbol> GetDeclaredMembers() => base.GetMembers();
+
+    private bool TryGetIntrinsic(TypeName typeName, out ITypeSymbol intrinsic)
+    {
+        intrinsic = null!;
+        if (typeName.IsArray || typeName.StructName is not null || typeName.Name.Parts.Length != 1)
+        {
+            return false;
+        }
+
+        var text = typeName.Name.Parts[0].Text;
+        if (!IsIntrinsicName(text))
+        {
+            return false;
+        }
+
+        intrinsic = IntrinsicTypeSymbol.Create(_compilation.Names, text);
+        return true;
+    }
+
+    private static bool IsIntrinsicName(string text)
+    {
+        return text.Equals("Int", StringComparison.OrdinalIgnoreCase)
+            || text.Equals("Float", StringComparison.OrdinalIgnoreCase)
+            || text.Equals("String", StringComparison.OrdinalIgnoreCase)
+            || text.Equals("Bool", StringComparison.OrdinalIgnoreCase)
+            || text.Equals("None", StringComparison.OrdinalIgnoreCase)
+            || text.Equals("Var", StringComparison.OrdinalIgnoreCase);
+    }
+
     private void BindBaseType(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -432,16 +889,17 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
             span);
     }
 
-    private ScriptSymbol CreateError(QualifiedName name)
+    private static ScriptSymbol CreateError(QualifiedName name, PapyrusName? structName = null)
     {
         var parts = name.Parts.IsDefault ? ImmutableArray<PapyrusName>.Empty : name.Parts;
-        var simple = parts.IsEmpty ? PapyrusName.Empty : parts[^1];
-        return new ScriptSymbol(simple, name, new TypeName(name), isError: true);
+        var simple = structName ?? (parts.IsEmpty ? PapyrusName.Empty : parts[^1]);
+        return new ScriptSymbol(simple, name, new TypeName(name, isArray: false, structName), isError: true);
     }
 
     private void AddDiagnostic(string id, string message, TextSpan span)
     {
-        _bindingDiagnostics = _bindingDiagnostics.Add(new Diagnostic(new DiagnosticInfo(id, message), span, _tree));
+        var diagnostic = new Diagnostic(new DiagnosticInfo(id, message), span, _tree);
+        ImmutableInterlocked.Update(ref _bindingDiagnostics, static (existing, d) => existing.Add(d), diagnostic);
     }
 
     private bool TryGetName(IdentifierNameSyntax syntax, out PapyrusName name)

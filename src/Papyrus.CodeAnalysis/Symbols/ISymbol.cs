@@ -31,6 +31,7 @@ public interface IFunctionSymbol : ISymbol
 {
     ITypeSymbol ReturnType { get; }
     ImmutableArray<IParameterSymbol> Parameters { get; }
+    ImmutableArray<IVariableSymbol> Locals { get; }
     bool IsGlobal { get; }
 }
 

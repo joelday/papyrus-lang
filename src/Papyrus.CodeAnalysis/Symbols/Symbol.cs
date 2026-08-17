@@ -1,6 +1,7 @@
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Threading;
 
 namespace Papyrus.CodeAnalysis.Symbols;
 
@@ -37,6 +38,14 @@ internal abstract class Symbol : ISymbol
     public virtual ImmutableArray<ISymbol> GetMembers() => ImmutableArray<ISymbol>.Empty;
 
     public virtual ImmutableArray<ISymbol> GetMembers(PapyrusName name) => ImmutableArray<ISymbol>.Empty;
+
+    protected void EnsurePart(CompletionPart part)
+    {
+        if (ContainingScript is SourceScriptSymbol source)
+        {
+            source.ForceComplete(part, CancellationToken.None);
+        }
+    }
 }
 
 internal abstract class MemberOwnerSymbol : Symbol
