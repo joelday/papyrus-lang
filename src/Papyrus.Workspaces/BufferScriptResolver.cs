@@ -79,15 +79,34 @@ public sealed class BufferScriptResolver : ScriptResolver
             return true;
         }
 
-        var relative = name.ToRelativePath();
-        foreach (var pair in _buffersByPath)
+        if (TryResolvePathBuffer(name.ToRelativePath(), out text, out displayPath))
         {
-            if (PathEndsWith(pair.Key, relative))
+            return true;
+        }
+
+        if (_inner is FileSystemScriptResolver fileSystem)
+        {
+            foreach (var candidate in fileSystem.CandidateSourcePaths(name))
             {
-                text = pair.Value;
-                displayPath = pair.Key;
-                return true;
+                if (TryResolvePathBuffer(candidate, out text, out displayPath))
+                {
+                    return true;
+                }
             }
+        }
+
+        text = null!;
+        displayPath = string.Empty;
+        return false;
+    }
+
+    private bool TryResolvePathBuffer(string path, out SourceText text, out string displayPath)
+    {
+        var normalized = NormalizePath(path);
+        if (_buffersByPath.TryGetValue(normalized, out text!))
+        {
+            displayPath = normalized;
+            return true;
         }
 
         text = null!;
@@ -115,18 +134,5 @@ public sealed class BufferScriptResolver : ScriptResolver
         }
 
         return path.Replace('\\', '/');
-    }
-
-    private static bool PathEndsWith(string path, string relative)
-    {
-        var normalized = path.Replace('\\', '/').TrimEnd('/');
-        var suffix = relative.Replace('\\', '/').TrimStart('/');
-        if (!normalized.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        return normalized.Length == suffix.Length
-            || normalized[normalized.Length - suffix.Length - 1] == '/';
     }
 }

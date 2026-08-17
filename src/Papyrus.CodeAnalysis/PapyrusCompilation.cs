@@ -5,6 +5,7 @@ using System.Threading;
 using Papyrus.CodeAnalysis.Symbols;
 using Papyrus.CodeAnalysis.Syntax;
 using Papyrus.CodeAnalysis.Text;
+using Papyrus.Pex;
 
 namespace Papyrus.CodeAnalysis;
 
@@ -14,7 +15,7 @@ public sealed class PapyrusCompilation
 
     private readonly PapyrusParseOptions _options;
     private readonly ImmutableDictionary<QualifiedName, SyntaxTree> _overrides;
-    private readonly ConcurrentDictionary<QualifiedName, SyntaxTree> _trees;
+    private readonly ConcurrentDictionary<QualifiedName, CachedScript> _cache;
     private readonly ConcurrentDictionary<QualifiedName, IScriptSymbol> _scripts;
 
     private PapyrusCompilation(
@@ -23,7 +24,7 @@ public sealed class PapyrusCompilation
         NameTable names,
         PapyrusParseOptions options,
         ImmutableDictionary<QualifiedName, SyntaxTree> overrides,
-        ConcurrentDictionary<QualifiedName, SyntaxTree> trees,
+        ConcurrentDictionary<QualifiedName, CachedScript> cache,
         ConcurrentDictionary<QualifiedName, IScriptSymbol> scripts)
     {
         Dialect = dialect;
@@ -31,7 +32,7 @@ public sealed class PapyrusCompilation
         Names = names;
         _options = options;
         _overrides = overrides;
-        _trees = trees;
+        _cache = cache;
         _scripts = scripts;
     }
 
@@ -55,20 +56,20 @@ public sealed class PapyrusCompilation
             new NameTable(),
             options ?? PapyrusParseOptions.Default,
             ImmutableDictionary<QualifiedName, SyntaxTree>.Empty,
-            new ConcurrentDictionary<QualifiedName, SyntaxTree>(),
+            new ConcurrentDictionary<QualifiedName, CachedScript>(),
             new ConcurrentDictionary<QualifiedName, IScriptSymbol>());
     }
 
     public IScriptSymbol GetScript(QualifiedName name)
     {
         name = Intern(name);
-        return _scripts.GetOrAdd(name, CreateScript);
+        return _scripts.GetOrAdd(name, n => CreateScript(n, GetOrAddCached(n)));
     }
 
     public SyntaxTree GetSyntaxTree(QualifiedName name)
     {
         name = Intern(name);
-        return _trees.GetOrAdd(name, LoadSyntaxTree);
+        return GetOrAddCached(name).Tree;
     }
 
     public PapyrusCompilation WithSyntaxTree(SyntaxTree tree)
@@ -94,10 +95,10 @@ public sealed class PapyrusCompilation
         cancellationToken.ThrowIfCancellationRequested();
 
         var builder = ImmutableArray.CreateBuilder<Diagnostic>();
-        foreach (var tree in _trees.Values)
+        foreach (var cached in _cache.Values)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            builder.AddRange(tree.GetDiagnostics(cancellationToken));
+            builder.AddRange(cached.Tree.GetDiagnostics(cancellationToken));
         }
 
         return builder.ToImmutable();
@@ -106,16 +107,16 @@ public sealed class PapyrusCompilation
     private PapyrusCompilation ReplaceTree(QualifiedName name, SyntaxTree tree)
     {
         var overrides = _overrides.SetItem(name, tree);
-        var trees = new ConcurrentDictionary<QualifiedName, SyntaxTree>();
-        foreach (var pair in _trees)
+        var cache = new ConcurrentDictionary<QualifiedName, CachedScript>();
+        foreach (var pair in _cache)
         {
             if (!pair.Key.Equals(name))
             {
-                trees.TryAdd(pair.Key, pair.Value);
+                cache.TryAdd(pair.Key, pair.Value);
             }
         }
 
-        trees[name] = tree;
+        cache[name] = CachedScript.Source(tree);
 
         var scripts = new ConcurrentDictionary<QualifiedName, IScriptSymbol>();
         foreach (var pair in _scripts)
@@ -128,48 +129,42 @@ public sealed class PapyrusCompilation
 
         scripts[name] = CreateSourceScript(name, tree);
 
-        return new PapyrusCompilation(Dialect, Resolver, Names, _options, overrides, trees, scripts);
+        return new PapyrusCompilation(Dialect, Resolver, Names, _options, overrides, cache, scripts);
     }
 
-    private IScriptSymbol CreateScript(QualifiedName name)
-    {
-        if (HasSource(name))
-        {
-            return CreateSourceScript(name, GetSyntaxTree(name));
-        }
+    private CachedScript GetOrAddCached(QualifiedName name) => _cache.GetOrAdd(name, LoadCached);
 
-        if (Resolver.TryResolvePex(name.ToString(), out var metadata) && metadata is not null)
-        {
-            return PexSymbolAdapter.ToScriptSymbol(metadata, Names, Dialect);
-        }
-
-        _ = GetSyntaxTree(name);
-        return CreateErrorScript(name);
-    }
-
-    private SyntaxTree LoadSyntaxTree(QualifiedName name)
+    private CachedScript LoadCached(QualifiedName name)
     {
         if (_overrides.TryGetValue(name, out var overrideTree))
         {
-            return overrideTree;
+            return CachedScript.Source(overrideTree);
         }
 
         if (Resolver.TryResolve(name, out var text, out _))
         {
-            return SyntaxTree.Parse(text, Dialect, _options);
+            return CachedScript.Source(SyntaxTree.Parse(text, Dialect, _options));
         }
 
-        if (Resolver.TryResolvePex(name.ToString(), out _))
+        if (Resolver.TryResolvePex(name.ToString(), out var metadata) && metadata is not null)
         {
-            return SyntaxTree.Parse(SourceText.From(string.Empty), Dialect, _options);
+            return CachedScript.FromPex(
+                SyntaxTree.Parse(SourceText.From(string.Empty), Dialect, _options),
+                metadata);
         }
 
-        return CreateUnresolvedTree(name);
+        return CachedScript.Missing(CreateUnresolvedTree(name));
     }
 
-    private bool HasSource(QualifiedName name)
+    private IScriptSymbol CreateScript(QualifiedName name, CachedScript cached)
     {
-        return _overrides.ContainsKey(name) || Resolver.TryResolve(name, out _, out _);
+        return cached.Kind switch
+        {
+            ScriptKind.Source => CreateSourceScript(name, cached.Tree),
+            ScriptKind.Pex when cached.Pex is not null
+                => PexSymbolAdapter.ToScriptSymbol(cached.Pex, Names, Dialect),
+            _ => CreateErrorScript(name),
+        };
     }
 
     private SyntaxTree CreateUnresolvedTree(QualifiedName name)
@@ -261,5 +256,35 @@ public sealed class PapyrusCompilation
 
                 break;
         }
+    }
+
+    private enum ScriptKind
+    {
+        Source,
+        Pex,
+        Missing,
+    }
+
+    private readonly struct CachedScript
+    {
+        private CachedScript(ScriptKind kind, SyntaxTree tree, PexScriptMetadata? pex)
+        {
+            Kind = kind;
+            Tree = tree;
+            Pex = pex;
+        }
+
+        public ScriptKind Kind { get; }
+
+        public SyntaxTree Tree { get; }
+
+        public PexScriptMetadata? Pex { get; }
+
+        public static CachedScript Source(SyntaxTree tree) => new(ScriptKind.Source, tree, pex: null);
+
+        public static CachedScript FromPex(SyntaxTree tree, PexScriptMetadata metadata)
+            => new(ScriptKind.Pex, tree, metadata);
+
+        public static CachedScript Missing(SyntaxTree tree) => new(ScriptKind.Missing, tree, pex: null);
     }
 }

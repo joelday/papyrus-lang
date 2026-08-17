@@ -10,6 +10,10 @@ namespace Papyrus.Workspaces;
 
 public sealed class FileSystemScriptResolver : ScriptResolver
 {
+    /// <param name="game">
+    /// Null allows namespaced lookup via <see cref="QualifiedName.ToRelativePath"/>.
+    /// Skyrim and SSE reject multi-part names.
+    /// </param>
     public FileSystemScriptResolver(
         IEnumerable<string> includeDirectories,
         string? outputDirectory = null,
@@ -88,7 +92,7 @@ public sealed class FileSystemScriptResolver : ScriptResolver
         var relativePex = Path.ChangeExtension(relativeSource, ".pex");
         for (var i = 0; i < IncludeDirectories.Length; i++)
         {
-            if (TryReadPex(Path.Combine(IncludeDirectories[i], relativePex), out metadata))
+            if (TryReadMatchingPex(Path.Combine(IncludeDirectories[i], relativePex), colonName, out metadata))
             {
                 return true;
             }
@@ -96,22 +100,36 @@ public sealed class FileSystemScriptResolver : ScriptResolver
 
         if (OutputDirectory is not null)
         {
-            if (TryReadPex(Path.Combine(OutputDirectory, relativePex), out metadata))
+            if (TryReadMatchingPex(Path.Combine(OutputDirectory, relativePex), colonName, out metadata))
             {
                 return true;
             }
 
             var parts = name.Parts.IsDefault ? ImmutableArray<PapyrusName>.Empty : name.Parts;
-            if (!parts.IsEmpty)
+            if (parts.Length > 1
+                && TryReadMatchingPex(Path.Combine(OutputDirectory, parts[^1].Text + ".pex"), colonName, out metadata))
             {
-                if (TryReadPex(Path.Combine(OutputDirectory, parts[^1].Text + ".pex"), out metadata))
-                {
-                    return true;
-                }
+                return true;
             }
         }
 
         return false;
+    }
+
+    internal ImmutableArray<string> CandidateSourcePaths(QualifiedName name)
+    {
+        if (!TryGetRelativeSourcePath(name, out var relativePath))
+        {
+            return ImmutableArray<string>.Empty;
+        }
+
+        var builder = ImmutableArray.CreateBuilder<string>(IncludeDirectories.Length);
+        for (var i = 0; i < IncludeDirectories.Length; i++)
+        {
+            builder.Add(Path.Combine(IncludeDirectories[i], relativePath));
+        }
+
+        return builder.MoveToImmutable();
     }
 
     private bool TryGetRelativeSourcePath(QualifiedName name, out string relativePath)
@@ -133,7 +151,6 @@ public sealed class FileSystemScriptResolver : ScriptResolver
         return true;
     }
 
-    // Only Skyrim treats ':' as illegal; an unspecified game still uses ToRelativePath().
     private bool SupportsNamespaces => Game is not (GameId.Skyrim or GameId.SkyrimSpecialEdition);
 
     private bool TryReadSource(string path, out SourceText text)
@@ -157,6 +174,22 @@ public sealed class FileSystemScriptResolver : ScriptResolver
         {
             return false;
         }
+    }
+
+    private bool TryReadMatchingPex(string path, string colonName, out PexScriptMetadata metadata)
+    {
+        if (!TryReadPex(path, out metadata))
+        {
+            return false;
+        }
+
+        if (metadata.Name.Text.Equals(colonName, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        metadata = null!;
+        return false;
     }
 
     private bool TryReadPex(string path, out PexScriptMetadata metadata)

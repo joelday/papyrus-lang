@@ -38,7 +38,7 @@ public sealed class BufferScriptResolverTests
     }
 
     [Fact]
-    public void Path_buffer_can_resolve_when_disk_is_missing()
+    public void Path_buffer_matches_exact_relative_path_only()
     {
         var resolver = new BufferScriptResolver(new MemoryScriptResolver())
             .WithBuffer("A/B/Script.psc", SourceText.From("ScriptName A:B:Script\n"));
@@ -46,6 +46,36 @@ public sealed class BufferScriptResolverTests
         Assert.True(resolver.TryResolve(QualifiedName.Parse("A:B:Script"), out var text, out var path));
         Assert.Equal("ScriptName A:B:Script\n", text.ToString());
         Assert.Equal("A/B/Script.psc", path.Replace('\\', '/'));
+        Assert.False(resolver.TryResolve(QualifiedName.Parse("B:Script"), out _, out _));
+        Assert.False(resolver.TryResolve(QualifiedName.Parse("Script"), out _, out _));
+    }
+
+    [Fact]
+    public void Path_buffer_matches_include_candidate_when_disk_is_missing()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "papyrus-buffer-missing-" + Path.GetRandomFileName());
+        Directory.CreateDirectory(root);
+        try
+        {
+            var unsaved = Path.Combine(root, "A", "B", "Script.psc");
+            var resolver = new BufferScriptResolver(
+                    new FileSystemScriptResolver([root], game: GameId.Fallout4))
+                .WithBuffer(unsaved, SourceText.From("ScriptName A:B:Script\n"));
+
+            Assert.True(resolver.TryResolve(QualifiedName.Parse("A:B:Script"), out var text, out _));
+            Assert.Equal("ScriptName A:B:Script\n", text.ToString());
+            Assert.False(resolver.TryResolve(QualifiedName.Parse("Script"), out _, out _));
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(root, recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+        }
     }
 
     [Fact]

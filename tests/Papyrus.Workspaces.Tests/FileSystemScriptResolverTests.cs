@@ -103,6 +103,23 @@ public sealed class FileSystemScriptResolverTests : IDisposable
     }
 
     [Fact]
+    public void TryResolvePex_rejects_file_whose_object_name_does_not_match()
+    {
+        var scripts = Path.Combine(_root, "scripts");
+        var output = Path.Combine(_root, "out");
+        Directory.CreateDirectory(Path.Combine(scripts, "A"));
+        Directory.CreateDirectory(output);
+        File.WriteAllBytes(Path.Combine(scripts, "A", "Script.pex"), WriteScriptPex("Other"));
+        File.WriteAllBytes(Path.Combine(output, "Script.pex"), WriteScriptPex("B:Script"));
+
+        var resolver = new FileSystemScriptResolver([scripts], output, GameId.Fallout4);
+
+        Assert.False(resolver.TryResolvePex("A:Script", out _));
+        Assert.True(resolver.TryResolvePex("B:Script", out var metadata));
+        Assert.Equal("B:Script", metadata.Name.Text);
+    }
+
+    [Fact]
     public void FromProject_uses_import_then_folder_order()
     {
         var import = Path.Combine(_root, "import");
