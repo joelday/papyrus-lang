@@ -212,6 +212,27 @@ public sealed class PexSymbolAdapterTests
         Assert.IsAssignableFrom<IFunctionSymbol>(SingleMember(array, names, "RemoveLast"));
         Assert.IsAssignableFrom<IFunctionSymbol>(SingleMember(array, names, "Clear"));
         Assert.Empty(array.GetMembers(names.Get("FindStruct")));
+        Assert.Empty(array.GetMembers(names.Get("RFindStruct")));
+    }
+
+    [Fact]
+    public void ArrayOfStruct_Fo4Plus_HasFindStructMembers()
+    {
+        var names = new NameTable();
+        var script = PexSymbolAdapter.ToScriptSymbol(
+            PexReflector.Reflect(BuildFallout4Script()),
+            names,
+            PapyrusDialect.Fallout4);
+        var pair = Assert.IsAssignableFrom<IStructSymbol>(SingleMember(script, names, "Pair"));
+
+        var fo4 = new ArrayTypeSymbol(pair, names, PapyrusDialect.Fallout4);
+        Assert.Same(pair, fo4.GetArrayElementType());
+        AssertFindStruct(Assert.IsAssignableFrom<IFunctionSymbol>(SingleMember(fo4, names, "FindStruct")));
+        AssertFindStruct(Assert.IsAssignableFrom<IFunctionSymbol>(SingleMember(fo4, names, "RFindStruct")));
+
+        var skyrim = new ArrayTypeSymbol(pair, names, PapyrusDialect.SkyrimSe);
+        Assert.Empty(skyrim.GetMembers(names.Get("FindStruct")));
+        Assert.Empty(skyrim.GetMembers(names.Get("RFindStruct")));
     }
 
     [Fact]
@@ -345,6 +366,23 @@ public sealed class PexSymbolAdapterTests
     private static ISymbol SingleMember(ISymbol container, NameTable names, string name)
     {
         return Assert.Single(container.GetMembers(names.Get(name)));
+    }
+
+    private static void AssertFindStruct(IFunctionSymbol function)
+    {
+        Assert.Equal("Int", function.ReturnType.Name.Text);
+        Assert.True(function.IsNative);
+        Assert.Equal(3, function.Parameters.Length);
+        Assert.Equal("asVarName", function.Parameters[0].Name.Text);
+        Assert.Equal("String", function.Parameters[0].Type.Name.Text);
+        Assert.False(function.Parameters[0].HasDefaultValue);
+        Assert.Equal("akElement", function.Parameters[1].Name.Text);
+        Assert.Equal("Var", function.Parameters[1].Type.Name.Text);
+        Assert.Equal(TypeKind.Var, function.Parameters[1].Type.TypeKind);
+        Assert.False(function.Parameters[1].HasDefaultValue);
+        Assert.Equal("aiStartIndex", function.Parameters[2].Name.Text);
+        Assert.Equal("Int", function.Parameters[2].Type.Name.Text);
+        Assert.True(function.Parameters[2].HasDefaultValue);
     }
 
     private static PexFile BuildSkyrimScript()
