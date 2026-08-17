@@ -104,7 +104,7 @@ public sealed class GreenRedTreeTests
 
         Assert.NotNull(name);
         Assert.Same(name, declaration.GetCachedSlot(2));
-        Assert.Equal("Hello", name.Identifier.Text);
+        Assert.Equal("Hello", ((IdentifierNameSyntax)name).Identifier.Text);
         Assert.Null(declaration.ExtendsClause);
         Assert.Null(declaration.GetCachedSlot(3));
     }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
@@ -9,6 +10,7 @@ namespace Papyrus.CodeAnalysis.Syntax;
 internal sealed class Parser
 {
     private readonly Lexer _lexer;
+    private readonly PapyrusDialect _dialect;
     private readonly CancellationToken _cancellationToken;
     private readonly List<SyntaxToken> _skipped = new();
     private readonly List<SyntaxToken> _ahead = new();
@@ -20,7 +22,9 @@ internal sealed class Parser
         PapyrusParseOptions options,
         CancellationToken cancellationToken)
     {
-        _lexer = new Lexer(text, dialect, options);
+        options ??= PapyrusParseOptions.Default;
+        _dialect = dialect ?? PapyrusDialect.FromOptions(options);
+        _lexer = new Lexer(text, _dialect, options);
         _cancellationToken = cancellationToken;
         _current = _lexer.Lex();
     }
@@ -37,7 +41,7 @@ internal sealed class Parser
         }
 
         var scriptNameKeyword = Eat(SyntaxKind.ScriptNameKeyword);
-        var name = ParseIdentifierName();
+        var name = _dialect.SupportsNamespaces ? ParseName() : ParseIdentifierName();
 
         ExtendsClauseSyntax? extendsClause = null;
         if (_current.Kind == SyntaxKind.ExtendsKeyword)
@@ -68,10 +72,49 @@ internal sealed class Parser
         var flags = new List<FlagSyntax>();
         while (IsFlag(_current.Kind))
         {
-            flags.Add(SyntaxFactory.Flag(Take()));
+            flags.Add(SyntaxFactory.Flag(TakeFlag()));
         }
 
         return flags;
+    }
+
+    private SyntaxToken TakeFlag()
+    {
+        var token = Take();
+        if (token.Kind != SyntaxKind.IdentifierToken)
+        {
+            return token;
+        }
+
+        var kind = FlagKeywordKind(token.Text);
+        return kind == SyntaxKind.None ? token : WithKind(token, kind);
+    }
+
+    private static SyntaxKind FlagKeywordKind(string text)
+    {
+        // Hidden / Conditional are .flg user flags, so the lexer emits identifiers.
+        if (text.Equals("Hidden", StringComparison.OrdinalIgnoreCase))
+        {
+            return SyntaxKind.HiddenKeyword;
+        }
+
+        if (text.Equals("Conditional", StringComparison.OrdinalIgnoreCase))
+        {
+            return SyntaxKind.ConditionalKeyword;
+        }
+
+        return SyntaxKind.None;
+    }
+
+    private static SyntaxToken WithKind(SyntaxToken token, SyntaxKind kind)
+    {
+        if (token.Node is not GreenToken green)
+        {
+            return token;
+        }
+
+        var updated = SyntaxTokenCache.Get(kind, green.Text, green.Leading, green.Trailing, green.IsMissing);
+        return new SyntaxToken(updated, token.Parent, token.Position);
     }
 
     private ExtendsClauseSyntax ParseExtendsClause()
@@ -145,6 +188,26 @@ internal sealed class Parser
             return ParseState(docComment);
         }
 
+        if (_dialect.SupportsStructs && _current.Kind == SyntaxKind.StructKeyword)
+        {
+            return ParseStruct(docComment);
+        }
+
+        if (_dialect.SupportsGroups && _current.Kind == SyntaxKind.GroupKeyword)
+        {
+            return ParseGroup(docComment);
+        }
+
+        if (_dialect.SupportsCustomEvents && _current.Kind == SyntaxKind.CustomEventKeyword)
+        {
+            return ParseCustomEvent(docComment);
+        }
+
+        if (_dialect.SupportsGuards && _current.Kind == SyntaxKind.GuardKeyword)
+        {
+            return ParseGuard(docComment);
+        }
+
         if (_current.Kind == SyntaxKind.FunctionKeyword)
         {
             return ParseFunction(docComment, returnType: null);
@@ -191,6 +254,151 @@ internal sealed class Parser
             SyntaxFactory.List(members),
             endState);
     }
+
+    private StructDeclarationSyntax ParseStruct(SyntaxToken docComment)
+    {
+        var structKeyword = Eat(SyntaxKind.StructKeyword);
+        var name = ParseIdentifierName();
+        var endOfLine = EatEndOfLine();
+        var members = ParseStructMembers();
+        var endStruct = Eat(SyntaxKind.EndStructKeyword);
+        return SyntaxFactory.StructDeclaration(
+            docComment,
+            structKeyword,
+            name,
+            endOfLine,
+            SyntaxFactory.List(members),
+            endStruct);
+    }
+
+    private List<VariableDeclarationSyntax> ParseStructMembers()
+    {
+        var members = new List<VariableDeclarationSyntax>();
+        while (!_cancellationToken.IsCancellationRequested)
+        {
+            SkipEndOfLines();
+            if (_cancellationToken.IsCancellationRequested
+                || _current.Kind == SyntaxKind.EndStructKeyword
+                || _current.Kind == SyntaxKind.EndOfFileToken
+                || IsEndKeyword(_current.Kind)
+                || IsDialectMemberKeyword(_current.Kind)
+                || IsNonVariableMemberStart(_current.Kind))
+            {
+                break;
+            }
+
+            if (_current.Kind == SyntaxKind.DocCommentToken)
+            {
+                if (!LooksLikeVariableDeclarationAt(SkipDocCommentLookahead(0)))
+                {
+                    break;
+                }
+
+                var docComment = Take();
+                SkipEndOfLines();
+                members.Add(ParseVariable(docComment, ParseTypeName()));
+                continue;
+            }
+
+            if (LooksLikeTypedDeclaration() || (LooksLikeDeclarationStart() && !LooksLikeVariableDeclaration()))
+            {
+                break;
+            }
+
+            if (IsTypeStart(_current.Kind))
+            {
+                members.Add(ParseVariable(docComment: default, ParseTypeName()));
+                continue;
+            }
+
+            Skip();
+        }
+
+        return members;
+    }
+
+    private GroupDeclarationSyntax ParseGroup(SyntaxToken docComment)
+    {
+        var groupKeyword = Eat(SyntaxKind.GroupKeyword);
+        var name = ParseIdentifierName();
+        var flags = ParseFlags();
+        var endOfLine = EatEndOfLine();
+        var members = ParseGroupMembers();
+        var endGroup = Eat(SyntaxKind.EndGroupKeyword);
+        return SyntaxFactory.GroupDeclaration(
+            docComment,
+            groupKeyword,
+            name,
+            SyntaxFactory.List(flags),
+            endOfLine,
+            SyntaxFactory.List(members),
+            endGroup);
+    }
+
+    private List<PropertyDeclarationSyntax> ParseGroupMembers()
+    {
+        var members = new List<PropertyDeclarationSyntax>();
+        while (!_cancellationToken.IsCancellationRequested)
+        {
+            SkipEndOfLines();
+            if (_cancellationToken.IsCancellationRequested
+                || _current.Kind == SyntaxKind.EndGroupKeyword
+                || _current.Kind == SyntaxKind.EndOfFileToken
+                || IsEndKeyword(_current.Kind)
+                || IsDialectMemberKeyword(_current.Kind)
+                || IsNonPropertyMemberStart(_current.Kind))
+            {
+                break;
+            }
+
+            if (_current.Kind == SyntaxKind.DocCommentToken)
+            {
+                if (!LooksLikePropertyDeclarationAt(SkipDocCommentLookahead(0)))
+                {
+                    break;
+                }
+
+                var docComment = Take();
+                SkipEndOfLines();
+                members.Add(ParseProperty(docComment, TryParsePropertyType()));
+                continue;
+            }
+
+            if (LooksLikeDeclarationStart() && !LooksLikePropertyDeclaration())
+            {
+                break;
+            }
+
+            if (_current.Kind == SyntaxKind.PropertyKeyword || IsTypeStart(_current.Kind))
+            {
+                members.Add(ParseProperty(docComment: default, TryParsePropertyType()));
+                continue;
+            }
+
+            Skip();
+        }
+
+        return members;
+    }
+
+    private CustomEventDeclarationSyntax ParseCustomEvent(SyntaxToken docComment)
+    {
+        var customEventKeyword = Eat(SyntaxKind.CustomEventKeyword);
+        var name = ParseIdentifierName();
+        var endOfLine = EatEndOfLine();
+        return SyntaxFactory.CustomEventDeclaration(docComment, customEventKeyword, name, endOfLine);
+    }
+
+    private GuardDeclarationSyntax ParseGuard(SyntaxToken docComment)
+    {
+        var guardKeyword = Eat(SyntaxKind.GuardKeyword);
+        var name = ParseIdentifierName();
+        var endOfLine = EatEndOfLine();
+        return SyntaxFactory.GuardDeclaration(docComment, guardKeyword, name, endOfLine);
+    }
+
+    private TypeNameSyntax TryParsePropertyType()
+        => _current.Kind == SyntaxKind.PropertyKeyword ? MissingTypeName() : ParseTypeName();
 
     private FunctionDeclarationSyntax ParseFunction(SyntaxToken docComment, TypeNameSyntax? returnType)
     {
@@ -307,7 +515,10 @@ internal sealed class Parser
                     or SyntaxKind.EndOfFileToken
                     or SyntaxKind.EndStateKeyword
                     or SyntaxKind.EndFunctionKeyword
-                    or SyntaxKind.EndEventKeyword)
+                    or SyntaxKind.EndEventKeyword
+                    or SyntaxKind.EndStructKeyword
+                    or SyntaxKind.EndGroupKeyword
+                    or SyntaxKind.EndGuardKeyword)
             {
                 break;
             }
@@ -427,6 +638,11 @@ internal sealed class Parser
 
     private StatementSyntax ParseStatement()
     {
+        if (_dialect.SupportsGuards
+            && _current.Kind is SyntaxKind.GuardKeyword or SyntaxKind.TryGuardKeyword)
+        {
+            return ParseGuardOrTryGuardStatement();
+        }
         if (_current.Kind == SyntaxKind.IfKeyword)
         {
             return ParseIfStatement();
@@ -567,6 +783,69 @@ internal sealed class Parser
         var expression = ParseLineExpression();
         return SyntaxFactory.ExpressionStatement(expression, EatEndOfLine());
     }
+
+    private StatementSyntax ParseGuardOrTryGuardStatement()
+    {
+        if (_current.Kind == SyntaxKind.TryGuardKeyword)
+        {
+            var tryGuardKeyword = Take();
+            var lockParameters = ParseLockParameters();
+            var endOfLine = EatEndOfLine();
+            var body = ParseStatements(StatementScope.Guard);
+            var endGuard = Eat(SyntaxKind.EndGuardKeyword);
+            return SyntaxFactory.TryGuardStatement(
+                tryGuardKeyword,
+                SyntaxFactory.List(lockParameters),
+                endOfLine,
+                SyntaxFactory.List(body),
+                endGuard);
+        }
+
+        var guardKeyword = Eat(SyntaxKind.GuardKeyword);
+        var parameters = ParseLockParameters();
+        var headerEndOfLine = EatEndOfLine();
+        var statements = ParseStatements(StatementScope.Guard);
+        var endGuardKeyword = Eat(SyntaxKind.EndGuardKeyword);
+        return SyntaxFactory.GuardStatement(
+            guardKeyword,
+            SyntaxFactory.List(parameters),
+            headerEndOfLine,
+            SyntaxFactory.List(statements),
+            endGuardKeyword);
+    }
+
+    private List<LockParameterSyntax> ParseLockParameters()
+    {
+        var parameters = new List<LockParameterSyntax>();
+        if (IsLockParameterListStop(_current.Kind))
+        {
+            parameters.Add(SyntaxFactory.LockParameter(default, SyntaxFactory.IdentifierName(Missing(SyntaxKind.IdentifierToken))));
+            return parameters;
+        }
+
+        parameters.Add(ParseLockParameter(comma: default));
+        while (_current.Kind == SyntaxKind.CommaToken)
+        {
+            var comma = Take();
+            parameters.Add(ParseLockParameter(comma));
+        }
+
+        return parameters;
+    }
+
+    private LockParameterSyntax ParseLockParameter(SyntaxToken comma)
+    {
+        var name = ParseIdentifierName();
+        while (!IsLockParameterListStop(_current.Kind) && _current.Kind != SyntaxKind.CommaToken)
+        {
+            Skip();
+        }
+
+        return SyntaxFactory.LockParameter(comma, name);
+    }
+
+    private static bool IsLockParameterListStop(SyntaxKind kind)
+        => IsLineTerminator(kind) || kind == SyntaxKind.EndGuardKeyword;
 
     private SkippedStatementSyntax ParseSkippedStatement()
     {
@@ -1029,7 +1308,56 @@ internal sealed class Parser
             return true;
         }
 
+        if (IsDialectMemberKeyword(_current.Kind))
+        {
+            return true;
+        }
+
         return LooksLikeTypedDeclaration();
+    }
+
+    private bool LooksLikeVariableDeclaration()
+        => LooksLikeVariableDeclarationAt(0);
+
+    private bool LooksLikeVariableDeclarationAt(int index)
+    {
+        if (!IsTypeStart(PeekToken(index).Kind))
+        {
+            return false;
+        }
+
+        var afterType = PeekToken(SkipTypeLookahead(index)).Kind;
+        if (afterType is SyntaxKind.FunctionKeyword or SyntaxKind.PropertyKeyword
+            || IsDialectMemberKeyword(afterType)
+            || IsEndKeyword(afterType)
+            || IsNonVariableMemberStart(afterType))
+        {
+            return false;
+        }
+
+        return IsNameToken(afterType)
+            || afterType is SyntaxKind.EqualsToken
+            || IsKnownFlagKeyword(afterType)
+            || afterType is SyntaxKind.EndOfLineToken;
+    }
+
+    private bool LooksLikePropertyDeclaration()
+        => LooksLikePropertyDeclarationAt(0);
+
+    private bool LooksLikePropertyDeclarationAt(int index)
+    {
+        var kind = PeekToken(index).Kind;
+        if (kind == SyntaxKind.PropertyKeyword)
+        {
+            return true;
+        }
+
+        if (!IsTypeStart(kind))
+        {
+            return false;
+        }
+
+        return PeekToken(SkipTypeLookahead(index)).Kind == SyntaxKind.PropertyKeyword;
     }
 
     private bool LooksLikeFunctionDeclaration()
@@ -1240,14 +1568,41 @@ internal sealed class Parser
         return false;
     }
 
-    private static bool IsMemberStart(SyntaxKind kind)
+    private bool IsMemberStart(SyntaxKind kind)
         => kind is SyntaxKind.DocCommentToken
             or SyntaxKind.AutoKeyword
             or SyntaxKind.StateKeyword
             or SyntaxKind.FunctionKeyword
             or SyntaxKind.EventKeyword
             or SyntaxKind.PropertyKeyword
-            || IsTypeStart(kind);
+            || IsTypeStart(kind)
+            || IsDialectMemberKeyword(kind);
+
+    private bool IsDialectMemberKeyword(SyntaxKind kind)
+        => IsFo4MemberKeyword(kind) || IsStarfieldMemberKeyword(kind);
+
+    private bool IsFo4MemberKeyword(SyntaxKind kind)
+        => (_dialect.SupportsStructs && kind == SyntaxKind.StructKeyword)
+            || (_dialect.SupportsGroups && kind == SyntaxKind.GroupKeyword)
+            || (_dialect.SupportsCustomEvents && kind == SyntaxKind.CustomEventKeyword);
+
+    private bool IsStarfieldMemberKeyword(SyntaxKind kind)
+        => _dialect.SupportsGuards && kind == SyntaxKind.GuardKeyword;
+
+    private static bool IsNonVariableMemberStart(SyntaxKind kind)
+        => kind is SyntaxKind.FunctionKeyword
+            or SyntaxKind.EventKeyword
+            or SyntaxKind.StateKeyword
+            or SyntaxKind.AutoKeyword
+            or SyntaxKind.PropertyKeyword
+            or SyntaxKind.ImportKeyword;
+
+    private static bool IsNonPropertyMemberStart(SyntaxKind kind)
+        => kind is SyntaxKind.FunctionKeyword
+            or SyntaxKind.EventKeyword
+            or SyntaxKind.StateKeyword
+            or SyntaxKind.AutoKeyword
+            or SyntaxKind.ImportKeyword;
 
     private static bool IsTypeStart(SyntaxKind kind) => IsNameToken(kind);
 
@@ -1291,13 +1646,18 @@ internal sealed class Parser
             or SyntaxKind.EndStateKeyword
             or SyntaxKind.EndPropertyKeyword
             or SyntaxKind.EndIfKeyword
-            or SyntaxKind.EndWhileKeyword;
+            or SyntaxKind.EndWhileKeyword
+            or SyntaxKind.EndStructKeyword
+            or SyntaxKind.EndGroupKeyword
+            or SyntaxKind.EndGuardKeyword;
 
     private static bool IsMemberEndKeyword(SyntaxKind kind)
         => kind is SyntaxKind.EndFunctionKeyword
             or SyntaxKind.EndEventKeyword
             or SyntaxKind.EndStateKeyword
-            or SyntaxKind.EndPropertyKeyword;
+            or SyntaxKind.EndPropertyKeyword
+            or SyntaxKind.EndStructKeyword
+            or SyntaxKind.EndGroupKeyword;
 
     private static bool IsStatementListStop(StatementScope scope, SyntaxKind kind)
     {
@@ -1316,6 +1676,7 @@ internal sealed class Parser
                 or SyntaxKind.EndIfKeyword
                 or SyntaxKind.ElseIfKeyword
                 or SyntaxKind.ElseKeyword,
+            StatementScope.Guard => kind is SyntaxKind.EndGuardKeyword,
             _ => false,
         };
     }
@@ -1372,6 +1733,11 @@ internal sealed class Parser
             or SyntaxKind.EventKeyword
             or SyntaxKind.StateKeyword
             or SyntaxKind.PropertyKeyword
+            or SyntaxKind.StructKeyword
+            or SyntaxKind.GroupKeyword
+            or SyntaxKind.CustomEventKeyword
+            or SyntaxKind.GuardKeyword
+            or SyntaxKind.TryGuardKeyword
             || IsKnownFlagKeyword(kind)
             || IsEndKeyword(kind);
 
@@ -1404,7 +1770,15 @@ internal sealed class Parser
             or SyntaxKind.FloatKeyword
             or SyntaxKind.StringKeyword
             or SyntaxKind.BoolKeyword
-            or SyntaxKind.VarKeyword;
+            or SyntaxKind.VarKeyword
+            or SyntaxKind.StructKeyword
+            or SyntaxKind.EndStructKeyword
+            or SyntaxKind.GroupKeyword
+            or SyntaxKind.EndGroupKeyword
+            or SyntaxKind.CustomEventKeyword
+            or SyntaxKind.GuardKeyword
+            or SyntaxKind.EndGuardKeyword
+            or SyntaxKind.TryGuardKeyword;
 
     private enum StatementScope
     {
@@ -1412,5 +1786,6 @@ internal sealed class Parser
         Event,
         If,
         While,
+        Guard,
     }
 }

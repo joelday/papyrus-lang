@@ -263,3 +263,16 @@ internal readonly partial struct GuardKeyword;
 
 [SyntaxToken]
 internal readonly partial struct TryGuardKeyword;
+
+[SyntaxToken]
+internal readonly partial struct LockKeyword;
+
+[SyntaxToken]
+internal readonly partial struct EndLockKeyword;
+
+[SyntaxToken]
+internal readonly partial struct TryLockKeyword;
+
+[SyntaxToken]
+internal readonly partial struct UnlockKeyword;
+
