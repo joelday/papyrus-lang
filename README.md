@@ -1,6 +1,7 @@
 # 📜 Papyrus Language Tools
 
 [![](https://vsmarketplacebadge.apphb.com/version-short/joelday.papyrus-lang-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=joelday.papyrus-lang-vscode)
+[![NuGet](https://img.shields.io/nuget/vpre/Papyrus.Pex.svg?label=Papyrus.Pex)](https://www.nuget.org/packages/Papyrus.Pex)
 [![Discord](https://img.shields.io/discord/558746231665328139.svg?color=%23738ADB)](https://discord.gg/E4dWujQ)
 
 ## Advanced language tools for the Papyrus scripting language.
@@ -10,6 +11,8 @@ You can now write mods for Fallout 4 and Skyrim with the aid of modern code edit
 ## Building
 
 This repo requires .NET SDK 10 / Visual Studio 2026 (`global.json` pins 10.0.201). Build the new compiler with `dotnet build Papyrus.sln`. Build the shipping DarkId tree with `dotnet msbuild DarkId.Papyrus.sln` (SDK-bundled MSBuild 18), not VS 2022 MSBuild.
+
+[`Papyrus.Pex`](https://www.nuget.org/packages/Papyrus.Pex) is an unstable 0.x NuGet package (no compatibility promise). See [docs/packages.md](docs/packages.md).
 
 ## ✒ Visual Studio Code Extension
 
