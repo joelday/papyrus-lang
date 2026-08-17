@@ -19,9 +19,9 @@ namespace DarkId::Papyrus::DebugServer
 			std::string message;
 		};
 
-		// `flavor` selects a key inside `{ "se": ..., "ae": ... }` objects (`se`, `ae`, `vr`, `f4`).
+		// `flavor` selects a key inside `{ "se": ..., "ae": ... }` objects (`se`, `ae`, `vr`, `f4`, `sf`).
 		// Numeric JSON values are used as-is. Version strings like `1-6-640-0` and `1.6.640.0` both match
-		// `skyrimse-1.6.640.json`.
+		// `skyrimse-1.6.640.json`. Starfield `1.16.244.0` matches `starfield-1.16.244.json`.
 		static bool Load(
 			std::string_view game,
 			std::string_view version,

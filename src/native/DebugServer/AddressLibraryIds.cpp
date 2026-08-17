@@ -538,7 +538,7 @@ namespace DarkId::Papyrus::DebugServer
 
 		if (game.empty())
 		{
-			error.message = "Papyrus Debug Server: Address Library load requires a game name (e.g. skyrimse, fallout4).";
+			error.message = "Papyrus Debug Server: Address Library load requires a game name (e.g. skyrimse, fallout4, starfield).";
 			return false;
 		}
 		if (version.empty())

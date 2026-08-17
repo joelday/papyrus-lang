@@ -229,6 +229,14 @@ Task("copy-debug-plugin")
                 $"src/DarkId.Papyrus.DebugServer/bin/DarkId.Papyrus.DebugServer.Fallout4/x64/{configuration}/DarkId.Papyrus.DebugServer.Fallout4.dll",
                 "./src/papyrus-lang-vscode/debug-plugin");
 
+            // Starfield is an opt-in vcxproj (CommonLibSF not yet in CI). Copy only if built.
+            var starfieldDll =
+                $"src/DarkId.Papyrus.DebugServer/bin/DarkId.Papyrus.DebugServer.Starfield/x64/{configuration}/DarkId.Papyrus.DebugServer.Starfield.dll";
+            if (FileExists(starfieldDll))
+            {
+                CopyFileToDirectory(starfieldDll, "./src/papyrus-lang-vscode/debug-plugin");
+            }
+
             CopyFiles("src/native/DebugServer/data/*.json", "./src/papyrus-lang-vscode/debug-plugin/data");
         }
         catch (Exception)
