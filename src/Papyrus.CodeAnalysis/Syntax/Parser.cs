@@ -312,6 +312,19 @@ internal sealed class Parser
                 break;
             }
 
+            if (_current.Kind == SyntaxKind.DocCommentToken)
+            {
+                if (!LooksLikeFunctionDeclarationAt(SkipDocCommentLookahead(0)))
+                {
+                    break;
+                }
+
+                var docComment = Take();
+                SkipEndOfLines();
+                accessors.Add(ParseFunction(docComment, TryParseFunctionReturnType()));
+                continue;
+            }
+
             if (LooksLikeDeclarationStart() && !LooksLikeFunctionDeclaration())
             {
                 break;
@@ -319,20 +332,7 @@ internal sealed class Parser
 
             if (_current.Kind == SyntaxKind.FunctionKeyword || IsTypeStart(_current.Kind))
             {
-                var docComment = default(SyntaxToken);
-                if (_current.Kind == SyntaxKind.DocCommentToken)
-                {
-                    docComment = Take();
-                    SkipEndOfLines();
-                }
-
-                TypeNameSyntax? returnType = null;
-                if (_current.Kind != SyntaxKind.FunctionKeyword)
-                {
-                    returnType = ParseTypeName();
-                }
-
-                accessors.Add(ParseFunction(docComment, returnType));
+                accessors.Add(ParseFunction(docComment: default, TryParseFunctionReturnType()));
                 continue;
             }
 
@@ -450,12 +450,29 @@ internal sealed class Parser
 
     private SkippedStatementSyntax ParseSkippedStatement()
     {
+        // Type keywords are line terminators for declaration recovery, but soup
+        // must still consume them (`Int x`, `as Int`, `new Int[5]`).
+        if (!IsStatementStop(_current.Kind))
+        {
+            Skip();
+        }
+
         while (!IsStatementStop(_current.Kind))
         {
             Skip();
         }
 
         return SyntaxFactory.SkippedStatement(EatEndOfLine());
+    }
+
+    private TypeNameSyntax? TryParseFunctionReturnType()
+    {
+        if (_current.Kind == SyntaxKind.FunctionKeyword)
+        {
+            return null;
+        }
+
+        return ParseTypeName();
     }
 
     private TypeNameSyntax ParseTypeName()
@@ -654,18 +671,38 @@ internal sealed class Parser
     }
 
     private bool LooksLikeFunctionDeclaration()
+        => LooksLikeFunctionDeclarationAt(0);
+
+    private bool LooksLikeFunctionDeclarationAt(int index)
     {
-        if (_current.Kind == SyntaxKind.FunctionKeyword)
+        var kind = PeekToken(index).Kind;
+        if (kind == SyntaxKind.FunctionKeyword)
         {
             return true;
         }
 
-        if (!IsTypeStart(_current.Kind))
+        if (!IsTypeStart(kind))
         {
             return false;
         }
 
-        return PeekToken(SkipTypeLookahead(0)).Kind == SyntaxKind.FunctionKeyword;
+        return PeekToken(SkipTypeLookahead(index)).Kind == SyntaxKind.FunctionKeyword;
+    }
+
+    private int SkipDocCommentLookahead(int index)
+    {
+        if (PeekToken(index).Kind != SyntaxKind.DocCommentToken)
+        {
+            return index;
+        }
+
+        index++;
+        while (PeekToken(index).Kind == SyntaxKind.EndOfLineToken)
+        {
+            index++;
+        }
+
+        return index;
     }
 
     private bool LooksLikeTypedDeclaration()
@@ -863,7 +900,8 @@ internal sealed class Parser
             || IsEndKeyword(kind);
 
     private static bool IsStatementStop(SyntaxKind kind)
-        => IsLineTerminator(kind) || IsEndKeyword(kind);
+        => kind is SyntaxKind.EndOfLineToken or SyntaxKind.EndOfFileToken
+            || IsEndKeyword(kind);
 
     private static bool IsLineTerminator(SyntaxKind kind)
         => kind is SyntaxKind.EndOfLineToken
