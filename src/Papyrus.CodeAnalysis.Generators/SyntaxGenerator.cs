@@ -124,7 +124,8 @@ public sealed class SyntaxGenerator : IIncrementalGenerator
                 var isToken = typeName == "SyntaxToken"
                     || typeName.EndsWith("Token", StringComparison.Ordinal)
                     || typeName.EndsWith("Keyword", StringComparison.Ordinal);
-                children.Add(new ChildSlot(property.Name, typeName, isToken));
+                var isOptional = !isToken && property.NullableAnnotation == NullableAnnotation.Annotated;
+                children.Add(new ChildSlot(property.Name, typeName, isToken, isOptional));
             }
         }
 

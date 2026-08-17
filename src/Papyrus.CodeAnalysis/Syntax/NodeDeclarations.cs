@@ -17,15 +17,15 @@ internal sealed partial class IdentifierNameSyntax : NameSyntax
 [SyntaxNode]
 internal sealed partial class QualifiedNameSyntax : NameSyntax
 {
-    public NameSyntax Left { get; } = null!;
+    public partial NameSyntax Left { get; }
     public SyntaxToken ColonToken { get; }
-    public IdentifierNameSyntax Right { get; } = null!;
+    public partial IdentifierNameSyntax Right { get; }
 }
 
 [SyntaxNode]
 internal sealed partial class TypeNameSyntax : SyntaxNode
 {
-    public NameSyntax Name { get; } = null!;
+    public partial NameSyntax Name { get; }
     public SyntaxToken HashToken { get; }
     public SyntaxToken StructName { get; }
     public SyntaxToken OpenBracketToken { get; }
@@ -36,7 +36,7 @@ internal sealed partial class TypeNameSyntax : SyntaxNode
 internal sealed partial class ExtendsClauseSyntax : SyntaxNode
 {
     public SyntaxToken ExtendsKeyword { get; }
-    public TypeNameSyntax TypeName { get; } = null!;
+    public partial TypeNameSyntax TypeName { get; }
 }
 
 [SyntaxNode]
@@ -44,8 +44,8 @@ internal sealed partial class ScriptDeclarationSyntax : SyntaxNode
 {
     public SyntaxToken DocComment { get; }
     public SyntaxToken ScriptNameKeyword { get; }
-    public IdentifierNameSyntax Name { get; } = null!;
-    public ExtendsClauseSyntax ExtendsClause { get; } = null!;
+    public partial IdentifierNameSyntax Name { get; }
+    public partial ExtendsClauseSyntax? ExtendsClause { get; }
     public SyntaxToken NativeKeyword { get; }
     public SyntaxToken HiddenKeyword { get; }
     public SyntaxToken ConditionalKeyword { get; }

@@ -91,4 +91,33 @@ internal abstract class GreenNode
 
         return 0;
     }
+
+    internal static void IncludeChild(ref NodeFlags flags, ref int present, ref int missing, GreenNode? child)
+    {
+        if (child is null)
+        {
+            return;
+        }
+
+        present++;
+        if (child.ContainsDiagnostics)
+        {
+            flags |= NodeFlags.ContainsDiagnostics;
+        }
+
+        if (child.IsMissing)
+        {
+            missing++;
+        }
+    }
+
+    internal static NodeFlags FinishFlags(NodeFlags flags, int present, int missing)
+    {
+        if (present > 0 && missing == present)
+        {
+            flags |= NodeFlags.IsMissing;
+        }
+
+        return flags;
+    }
 }

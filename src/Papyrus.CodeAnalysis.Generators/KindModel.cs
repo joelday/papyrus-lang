@@ -13,11 +13,12 @@ internal enum KindCategory
 
 internal readonly struct ChildSlot : IEquatable<ChildSlot>
 {
-    public ChildSlot(string name, string typeName, bool isToken)
+    public ChildSlot(string name, string typeName, bool isToken, bool isOptional)
     {
         Name = name;
         TypeName = typeName;
         IsToken = isToken;
+        IsOptional = isOptional;
     }
 
     public string Name { get; }
@@ -26,11 +27,14 @@ internal readonly struct ChildSlot : IEquatable<ChildSlot>
 
     public bool IsToken { get; }
 
+    public bool IsOptional { get; }
+
     public bool Equals(ChildSlot other)
     {
         return string.Equals(Name, other.Name, StringComparison.Ordinal)
             && string.Equals(TypeName, other.TypeName, StringComparison.Ordinal)
-            && IsToken == other.IsToken;
+            && IsToken == other.IsToken
+            && IsOptional == other.IsOptional;
     }
 
     public override bool Equals(object? obj) => obj is ChildSlot other && Equals(other);
@@ -43,6 +47,7 @@ internal readonly struct ChildSlot : IEquatable<ChildSlot>
             hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(Name);
             hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(TypeName);
             hash = (hash * 31) + (IsToken ? 1 : 0);
+            hash = (hash * 31) + (IsOptional ? 1 : 0);
             return hash;
         }
     }

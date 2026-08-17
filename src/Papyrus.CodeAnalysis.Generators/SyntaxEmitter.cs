@@ -375,20 +375,16 @@ internal static class SyntaxEmitter
             builder.AppendLine(")");
             builder.AppendLine("    {");
             builder.AppendLine("        var flags = diagnostics is { Length: > 0 } ? NodeFlags.ContainsDiagnostics : NodeFlags.None;");
+            builder.AppendLine("        var present = 0;");
+            builder.AppendLine("        var missing = 0;");
             foreach (var child in node.Children)
             {
-                var camel = ToCamelCase(child.Name);
-                builder.Append("        if (");
-                builder.Append(camel);
-                builder.Append(" is not null && ");
-                builder.Append(camel);
-                builder.AppendLine(".ContainsDiagnostics)");
-                builder.AppendLine("        {");
-                builder.AppendLine("            flags |= NodeFlags.ContainsDiagnostics;");
-                builder.AppendLine("        }");
+                builder.Append("        GreenNode.IncludeChild(ref flags, ref present, ref missing, ");
+                builder.Append(ToCamelCase(child.Name));
+                builder.AppendLine(");");
             }
 
-            builder.AppendLine("        return flags;");
+            builder.AppendLine("        return GreenNode.FinishFlags(flags, present, missing);");
             builder.AppendLine("    }");
             builder.AppendLine("}");
         }
@@ -425,9 +421,24 @@ internal static class SyntaxEmitter
             builder.AppendLine(" green, SyntaxNode? parent, int position)");
             builder.AppendLine("        : base(green, parent, position)");
             builder.AppendLine("    {");
-            builder.AppendLine("        var current = position;");
+            var hasTokenChild = false;
             foreach (var child in node.Children)
             {
+                if (child.IsToken)
+                {
+                    hasTokenChild = true;
+                    break;
+                }
+            }
+
+            if (hasTokenChild)
+            {
+                builder.AppendLine("        var current = position;");
+            }
+
+            for (var i = 0; i < node.Children.Length; i++)
+            {
+                var child = node.Children[i];
                 var field = "green." + child.Name;
                 if (child.IsToken)
                 {
@@ -436,31 +447,51 @@ internal static class SyntaxEmitter
                     builder.Append(" = new SyntaxToken(");
                     builder.Append(field);
                     builder.AppendLine(", this, current);");
+                }
+
+                if (hasTokenChild && i + 1 < node.Children.Length)
+                {
                     builder.Append("        current += ");
                     builder.Append(field);
                     builder.AppendLine("?.FullWidth ?? 0;");
                 }
-                else
-                {
-                    builder.Append("        if (");
-                    builder.Append(field);
-                    builder.AppendLine(" is not null)");
-                    builder.AppendLine("        {");
-                    builder.Append("            ");
-                    builder.Append(child.Name);
-                    builder.Append(" = (");
-                    builder.Append(child.TypeName);
-                    builder.Append(")");
-                    builder.Append(field);
-                    builder.AppendLine(".CreateRed(this, current);");
-                    builder.Append("            current += ");
-                    builder.Append(field);
-                    builder.AppendLine(".FullWidth;");
-                    builder.AppendLine("        }");
-                }
             }
 
             builder.AppendLine("    }");
+
+            for (var i = 0; i < node.Children.Length; i++)
+            {
+                var child = node.Children[i];
+                if (child.IsToken)
+                {
+                    continue;
+                }
+
+                builder.AppendLine();
+                builder.Append("    private ");
+                builder.Append(child.TypeName);
+                builder.Append("? _");
+                builder.Append(ToCamelCase(child.Name));
+                builder.AppendLine(";");
+                builder.Append("    public partial ");
+                builder.Append(RedParameterType(child));
+                builder.Append(" ");
+                builder.Append(child.Name);
+                builder.AppendLine();
+                builder.AppendLine("    {");
+                builder.Append("        get => GetRed<");
+                builder.Append(child.TypeName);
+                builder.Append(">(");
+                builder.Append(i);
+                builder.Append(")");
+                if (!child.IsOptional)
+                {
+                    builder.Append("!");
+                }
+
+                builder.AppendLine(";");
+                builder.AppendLine("    }");
+            }
             builder.AppendLine();
             builder.Append("    public ");
             builder.Append(typeName);
@@ -561,8 +592,8 @@ internal static class SyntaxEmitter
 
                     builder.Append("            case ");
                     builder.Append(i);
-                    builder.Append(": return ");
-                    builder.Append(node.Children[i].Name);
+                    builder.Append(": return _");
+                    builder.Append(ToCamelCase(node.Children[i].Name));
                     builder.AppendLine(";");
                 }
 
@@ -574,7 +605,35 @@ internal static class SyntaxEmitter
             builder.AppendLine();
             builder.AppendLine("    public override void SetCachedSlot(int index, SyntaxNode node)");
             builder.AppendLine("    {");
-            builder.AppendLine("    }");
+            if (!hasNodeChildren)
+            {
+                builder.AppendLine("    }");
+            }
+            else
+            {
+                builder.AppendLine("        switch (index)");
+                builder.AppendLine("        {");
+                for (var i = 0; i < node.Children.Length; i++)
+                {
+                    if (node.Children[i].IsToken)
+                    {
+                        continue;
+                    }
+
+                    builder.Append("            case ");
+                    builder.Append(i);
+                    builder.AppendLine(":");
+                    builder.Append("                _");
+                    builder.Append(ToCamelCase(node.Children[i].Name));
+                    builder.Append(" = (");
+                    builder.Append(node.Children[i].TypeName);
+                    builder.AppendLine(")node;");
+                    builder.AppendLine("                break;");
+                }
+
+                builder.AppendLine("        }");
+                builder.AppendLine("    }");
+            }
             builder.AppendLine("}");
         }
 
@@ -701,10 +760,24 @@ internal static class SyntaxEmitter
     }
 
     private static string RedParameterType(ChildSlot child)
-        => child.IsToken ? "SyntaxToken" : child.TypeName;
+    {
+        if (child.IsToken)
+        {
+            return "SyntaxToken";
+        }
+
+        return child.IsOptional ? child.TypeName + "?" : child.TypeName;
+    }
 
     private static string FactoryParameterType(ChildSlot child)
-        => child.IsToken ? "SyntaxToken" : child.TypeName + "?";
+    {
+        if (child.IsToken)
+        {
+            return "SyntaxToken";
+        }
+
+        return child.IsOptional ? child.TypeName + "?" : child.TypeName;
+    }
 
     private static string ToCamelCase(string name)
     {

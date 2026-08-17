@@ -20,7 +20,7 @@ public readonly struct SyntaxToken : IEquatable<SyntaxToken>
 
     public SyntaxKind Kind => Node?.Kind ?? SyntaxKind.None;
 
-    public bool IsMissing => Node is null || Node.IsMissing;
+    public bool IsMissing => Node is not null && Node.IsMissing;
 
     public int FullWidth => Node?.FullWidth ?? 0;
 

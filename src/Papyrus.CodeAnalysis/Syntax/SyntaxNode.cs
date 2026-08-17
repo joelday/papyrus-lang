@@ -67,4 +67,33 @@ public abstract class SyntaxNode
     {
         _syntaxTree = tree;
     }
+
+    internal T? GetRed<T>(int slot) where T : SyntaxNode
+    {
+        if (GetCachedSlot(slot) is T cached)
+        {
+            return cached;
+        }
+
+        var green = Green.GetSlot(slot);
+        if (green is null)
+        {
+            return null;
+        }
+
+        var red = (T)green.CreateRed(this, _position + GetChildStartOffset(slot));
+        SetCachedSlot(slot, red);
+        return red;
+    }
+
+    private int GetChildStartOffset(int slot)
+    {
+        var offset = 0;
+        for (var i = 0; i < slot; i++)
+        {
+            offset += Green.GetSlot(i)?.FullWidth ?? 0;
+        }
+
+        return offset;
+    }
 }
