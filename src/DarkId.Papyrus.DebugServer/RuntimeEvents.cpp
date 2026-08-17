@@ -1,6 +1,7 @@
 #define XBYAK_NO_OP_NAMES
 
 #include "RuntimeEvents.h"
+#include "ConfigHooks.h"
 
 #include <xbyak/xbyak.h>
 
@@ -222,14 +223,14 @@ namespace DarkId::Papyrus::DebugServer
 					// We install near the beginning of the loop
 					// The installation target is the `jz` instruction that jumps if the freeze state is 1
 					// CAVE_SIZE = 6
-					auto vmprocess_reloc = RELOCATION_ID(98520, 105176);
+					auto vmprocess_reloc = Game_Offset::CodeTaskletProcess();
 
 					// TODO: Find VR offsets, using SE offsets as placeholders
 					auto cave_start_var_offset = REL::VariantOffset(0xD6, 0xCA, 0xD6);
 					auto cave_end_var_offset = REL::Offset(cave_start_var_offset.offset() + 6);
 
-					REL::Relocation<std::uintptr_t> cave_start_reloc{vmprocess_reloc, cave_start_var_offset};
-					REL::Relocation<std::uintptr_t> cave_end_reloc{vmprocess_reloc, cave_end_var_offset};
+					REL::Relocation<std::uintptr_t> cave_start_reloc{vmprocess_reloc, cave_start_var_offset.offset()};
+					REL::Relocation<std::uintptr_t> cave_end_reloc{vmprocess_reloc, cave_end_var_offset.offset()};
 					std::size_t CAVE_START = cave_start_var_offset.offset();
 					std::size_t CAVE_END = cave_end_var_offset.offset();
 					std::size_t CAVE_SIZE = CAVE_END - CAVE_START;
@@ -367,14 +368,14 @@ namespace DarkId::Papyrus::DebugServer
 					// We install near the beginning of the loop
 					// The installation target is the `jz` instruction that jumps if the freeze state is 1
 					// CAVE_SIZE = 6
-					auto vmprocess_reloc = RELOCATION_ID(98520, 105176);
+					auto vmprocess_reloc = Game_Offset::CodeTaskletProcess();
 
 					// TODO: Find VR offsets, using SE offsets as placeholders
 					auto cave_start_var_offset = REL::VariantOffset(0xD6, 0xCA, 0xD6);
 					auto cave_end_var_offset = REL::Offset(cave_start_var_offset.offset() + 6);
 
-					REL::Relocation<std::uintptr_t> cave_start_reloc{vmprocess_reloc, cave_start_var_offset};
-					REL::Relocation<std::uintptr_t> cave_end_reloc{vmprocess_reloc, cave_end_var_offset};
+					REL::Relocation<std::uintptr_t> cave_start_reloc{vmprocess_reloc, cave_start_var_offset.offset()};
+					REL::Relocation<std::uintptr_t> cave_end_reloc{vmprocess_reloc, cave_end_var_offset.offset()};
 					std::size_t CAVE_START = cave_start_var_offset.offset();
 					std::size_t CAVE_END = cave_end_var_offset.offset();
 					std::size_t CAVE_SIZE = CAVE_END - CAVE_START;
@@ -424,9 +425,9 @@ namespace DarkId::Papyrus::DebugServer
 					// 1_5_97   HOOK_TARGET = 0x1D4;
 					// 1_6_640  HOOK_TARGET = 0x1D9;
 					// TODO: Find VR offsets, using SE offsets as placeholders
-					auto create_stack_reloc = RELOCATION_ID(98146, 104870);
+					auto create_stack_reloc = Game_Offset::CreateStack();
 					auto create_stack_hook_target_offset = REL::VariantOffset(0x1D4, 0x1D9, 0x1D4);
-					REL::Relocation<std::uintptr_t> create_stack_hook_target{create_stack_reloc, create_stack_hook_target_offset};
+					REL::Relocation<std::uintptr_t> create_stack_hook_target{create_stack_reloc, create_stack_hook_target_offset.offset()};
 
 					struct Patch : Xbyak::CodeGenerator
 					{
@@ -468,9 +469,10 @@ namespace DarkId::Papyrus::DebugServer
 					// TODO: Find VR offsets (they should be the same since SE and AE are the same)
 					auto cave_start_var_offset = REL::VariantOffset(0x0, 0x0, 0x0);
 					auto cave_end_var_offset = REL::VariantOffset(0x9, 0x9, 0x9);
-					REL::Relocation<std::uintptr_t> func_base_reloc{RELOCATION_ID(98149, 104873)};
-					REL::Relocation<std::uintptr_t> cave_start_reloc{RELOCATION_ID(98149, 104873), cave_start_var_offset};
-					REL::Relocation<std::uintptr_t> cave_end_reloc{RELOCATION_ID(98149, 104873), cave_end_var_offset};
+					auto cleanup_stack_reloc = Game_Offset::CleanupStack();
+					REL::Relocation<std::uintptr_t> func_base_reloc{cleanup_stack_reloc};
+					REL::Relocation<std::uintptr_t> cave_start_reloc{cleanup_stack_reloc, cave_start_var_offset.offset()};
+					REL::Relocation<std::uintptr_t> cave_end_reloc{cleanup_stack_reloc, cave_end_var_offset.offset()};
 					std::size_t CAVE_START = cave_start_var_offset.offset();
 					std::size_t CAVE_END = cave_end_var_offset.offset();
 					std::size_t CAVE_SIZE = CAVE_END - CAVE_START;
@@ -514,12 +516,13 @@ namespace DarkId::Papyrus::DebugServer
 			}
 		}
 #elif FALLOUT
-		// BSScript::Internal::CodeTasklet::Process 14276E9E0
-		auto vmprocess_reloc = REL::ID(614585);
-		// hooks at 14276EADD
-		auto cave_start_offset = REL::Offset(0xFD);
-		// REL::ID(614585) + REL::Offset(0xFD) == 14276EADD
-		REL::Relocation<uintptr_t> InstructionExecute(vmprocess_reloc, cave_start_offset.offset());
+		// Constructed in CommitHooks after Address Library JSON is loaded. Static REL::ID
+		// lookup here would run at DLL init and crash before the version file is checked.
+		REL::Relocation<uintptr_t>& InstructionExecute()
+		{
+			static REL::Relocation<uintptr_t> reloc{ Game_Offset::CodeTaskletProcess(), REL::Offset(0xFD).offset() };
+			return reloc;
+		}
 		void InstructionExecute_Hook(RE::BSScript::Internal::CodeTasklet *tasklet, RE::BSScript::Internal::CodeTasklet::OpCode opCode)
 		{
 			if (tasklet->topFrame)
@@ -531,7 +534,11 @@ namespace DarkId::Papyrus::DebugServer
 		// TODO: There's a second CreateStack() @ 1427422C0, do we need to hook that?
 		// Probably not, it's only used by LoadStackTable() and the first CreateStack*()
 		typedef bool (*_CreateStack)(RE::BSScript::Internal::VirtualMachine *vm, std::uint64_t unk1, std::uint64_t unk2, std::uint64_t unk3, RE::BSTSmartPointer<RE::BSScript::Stack> &stack);
-		REL::Relocation<_CreateStack> CreateStack(REL::ID(107558)); // REL::ID(107558)
+		REL::Relocation<_CreateStack>& CreateStack()
+		{
+			static REL::Relocation<_CreateStack> reloc{ Game_Offset::CreateStack() };
+			return reloc;
+		}
 		_CreateStack CreateStack_Original = nullptr;
 
 		bool CreateStack_Hook(RE::BSScript::Internal::VirtualMachine *vm, std::uint64_t unk1, std::uint64_t unk2, std::uint64_t unk3, RE::BSTSmartPointer<RE::BSScript::Stack> &stack)
@@ -546,7 +553,11 @@ namespace DarkId::Papyrus::DebugServer
 			return result;
 		}
 		typedef void (*_CleanupStack)(RE::BSScript::Internal::VirtualMachine *vm, RE::BSScript::Stack *stack);
-		REL::Relocation<_CleanupStack> CleanupStack(REL::ID(38511)); // REL::ID(38511)
+		REL::Relocation<_CleanupStack>& CleanupStack()
+		{
+			static REL::Relocation<_CleanupStack> reloc{ Game_Offset::CleanupStack() };
+			return reloc;
+		}
 		_CleanupStack CleanupStack_Original = nullptr;
 
 		void CleanupStack_Hook(RE::BSScript::Internal::VirtualMachine *vm, RE::BSScript::Stack *stack)
@@ -610,14 +621,14 @@ namespace DarkId::Papyrus::DebugServer
 							dq(funcAddr);
 
 							L(retnLabel);
-							dq(InstructionExecute.address() + 0x15);
+							dq(InstructionExecute().address() + 0x15);
 						}
 					};
 					auto patch = InstructionExecute_Code(XSE::stl::unrestricted_cast<std::uintptr_t>(InstructionExecute_Hook));
 					auto &trampoline = XSE::GetTrampoline();
 					XSE::AllocTrampoline(patch.getSize() + 14);
 					auto result = trampoline.allocate(patch);
-					trampoline.write_branch<6>(InstructionExecute.address(), (std::uintptr_t)result);
+					trampoline.write_branch<6>(InstructionExecute().address(), (std::uintptr_t)result);
 
 					// void* codeBuf = g_localTrampoline.StartAlloc();
 					// InstructionExecute_Code code(codeBuf, (uintptr_t)InstructionExecute_Hook);
@@ -638,7 +649,7 @@ namespace DarkId::Papyrus::DebugServer
 							jmp(ptr[rip + retnLabel]);
 
 							L(retnLabel);
-							dq(CreateStack.address() + 5);
+							dq(CreateStack().address() + 5);
 						}
 					};
 					auto patch = CreateStack_Code();
@@ -646,7 +657,7 @@ namespace DarkId::Papyrus::DebugServer
 					XSE::AllocTrampoline(patch.getSize() + 14);
 					auto result = trampoline.allocate(patch);
 					CreateStack_Original = (_CreateStack)result;
-					trampoline.write_branch<5>(CreateStack.address(), (std::uintptr_t)CreateStack_Hook);
+					trampoline.write_branch<5>(CreateStack().address(), (std::uintptr_t)CreateStack_Hook);
 
 					// void* codeBuf = g_localTrampoline.StartAlloc();
 					// CreateStack_Code code(codeBuf);
@@ -668,7 +679,7 @@ namespace DarkId::Papyrus::DebugServer
 							jmp(ptr[rip + retnLabel]);
 
 							L(retnLabel);
-							dq(CleanupStack.address() + 9);
+							dq(CleanupStack().address() + 9);
 						}
 					};
 					auto patch = CleanupStack_Code();
@@ -676,7 +687,7 @@ namespace DarkId::Papyrus::DebugServer
 					XSE::AllocTrampoline(patch.getSize() + 14);
 					auto result = trampoline.allocate(patch);
 					CleanupStack_Original = (_CleanupStack)result;
-					trampoline.write_branch<5>(CleanupStack.address(), (std::uintptr_t)CleanupStack_Hook);
+					trampoline.write_branch<5>(CleanupStack().address(), (std::uintptr_t)CleanupStack_Hook);
 
 					// void* codeBuf = g_localTrampoline.StartAlloc();
 					// CleanupStack_Code code(codeBuf);

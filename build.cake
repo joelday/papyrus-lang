@@ -217,6 +217,7 @@ Task("copy-debug-plugin")
         try
         {
             CreateDirectory("./src/papyrus-lang-vscode/debug-plugin");
+            CreateDirectory("./src/papyrus-lang-vscode/debug-plugin/data");
 
             var configuration = isRelease ? "Release" : "Debug";
 
@@ -227,6 +228,8 @@ Task("copy-debug-plugin")
             CopyFileToDirectory(
                 $"src/DarkId.Papyrus.DebugServer/bin/DarkId.Papyrus.DebugServer.Fallout4/x64/{configuration}/DarkId.Papyrus.DebugServer.Fallout4.dll",
                 "./src/papyrus-lang-vscode/debug-plugin");
+
+            CopyFiles("src/native/DebugServer/data/*.json", "./src/papyrus-lang-vscode/debug-plugin/data");
         }
         catch (Exception)
         {
