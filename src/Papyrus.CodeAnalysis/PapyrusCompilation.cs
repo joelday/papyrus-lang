@@ -18,6 +18,8 @@ public sealed class PapyrusCompilation
     public const string UnresolvedBaseTypeDiagnosticId = DiagnosticCatalog.UnresolvedBaseTypeId;
     public const string CyclicBaseTypeDiagnosticId = DiagnosticCatalog.CyclicBaseTypeId;
     public const string UnresolvedTypeDiagnosticId = DiagnosticCatalog.UnresolvedTypeId;
+    public const string InvalidIsOperatorDiagnosticId = DiagnosticCatalog.InvalidIsOperatorId;
+    public const string CannotConvertDiagnosticId = DiagnosticCatalog.CannotConvertId;
 
     private readonly PapyrusParseOptions _options;
     private readonly ImmutableDictionary<QualifiedName, SyntaxTree> _overrides;

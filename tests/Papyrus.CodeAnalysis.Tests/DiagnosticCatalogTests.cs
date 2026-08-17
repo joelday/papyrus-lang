@@ -18,18 +18,24 @@ public sealed class DiagnosticCatalogTests
         Assert.Contains(PapyrusCompilation.UnresolvedBaseTypeDiagnosticId, ids);
         Assert.Contains(PapyrusCompilation.CyclicBaseTypeDiagnosticId, ids);
         Assert.Contains(PapyrusCompilation.UnresolvedTypeDiagnosticId, ids);
+        Assert.Contains(PapyrusCompilation.InvalidIsOperatorDiagnosticId, ids);
+        Assert.Contains(PapyrusCompilation.CannotConvertDiagnosticId, ids);
         Assert.Contains(DiagnosticCatalog.InternalErrorId, ids);
 
         Assert.Equal("PAP1000", DiagnosticCatalog.UnresolvedScript.Id);
         Assert.Equal("PAP1001", DiagnosticCatalog.UnresolvedBaseType.Id);
         Assert.Equal("PAP1002", DiagnosticCatalog.CyclicBaseType.Id);
         Assert.Equal("PAP1003", DiagnosticCatalog.UnresolvedType.Id);
+        Assert.Equal("PAP1004", DiagnosticCatalog.InvalidIsOperator.Id);
+        Assert.Equal("PAP1005", DiagnosticCatalog.CannotConvert.Id);
         Assert.Equal("PAP9999", DiagnosticCatalog.InternalError.Id);
 
         Assert.Equal(PapyrusCompilation.UnresolvedScriptDiagnosticId, DiagnosticCatalog.UnresolvedScript.Id);
         Assert.Equal(PapyrusCompilation.UnresolvedBaseTypeDiagnosticId, DiagnosticCatalog.UnresolvedBaseType.Id);
         Assert.Equal(PapyrusCompilation.CyclicBaseTypeDiagnosticId, DiagnosticCatalog.CyclicBaseType.Id);
         Assert.Equal(PapyrusCompilation.UnresolvedTypeDiagnosticId, DiagnosticCatalog.UnresolvedType.Id);
+        Assert.Equal(PapyrusCompilation.InvalidIsOperatorDiagnosticId, DiagnosticCatalog.InvalidIsOperator.Id);
+        Assert.Equal(PapyrusCompilation.CannotConvertDiagnosticId, DiagnosticCatalog.CannotConvert.Id);
     }
 
     [Fact]

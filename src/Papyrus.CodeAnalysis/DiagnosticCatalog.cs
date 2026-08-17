@@ -11,6 +11,8 @@ public static class DiagnosticCatalog
     public const string UnresolvedBaseTypeId = "PAP1001";
     public const string CyclicBaseTypeId = "PAP1002";
     public const string UnresolvedTypeId = "PAP1003";
+    public const string InvalidIsOperatorId = "PAP1004";
+    public const string CannotConvertId = "PAP1005";
     public const string InternalErrorId = "PAP9999";
 
     public const string BindingCategory = "Binding";
@@ -49,6 +51,22 @@ public static class DiagnosticCatalog
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    public static DiagnosticDescriptor InvalidIsOperator { get; } = new(
+        InvalidIsOperatorId,
+        "Is operator is not supported",
+        "The 'is' operator is not supported in this dialect.",
+        TypeCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor CannotConvert { get; } = new(
+        CannotConvertId,
+        "Cannot convert type",
+        "Cannot convert '{0}' to '{1}'.",
+        TypeCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static DiagnosticDescriptor InternalError { get; } = new(
         InternalErrorId,
         "Internal compiler error",
@@ -63,6 +81,8 @@ public static class DiagnosticCatalog
         UnresolvedBaseType,
         CyclicBaseType,
         UnresolvedType,
+        InvalidIsOperator,
+        CannotConvert,
         InternalError,
     ];
 
