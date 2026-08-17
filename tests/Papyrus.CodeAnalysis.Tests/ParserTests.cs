@@ -1065,6 +1065,40 @@ public sealed class ParserTests
     }
 
     [Fact]
+    public void Parse_guard_inside_if_round_trips()
+    {
+        const string source =
+            "ScriptName Foo\nGuard Mutex\nFunction F()\nIf True\nGuard Mutex\n  Return\nEndGuard\nEndIf\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Starfield);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(1));
+        var ifStatement = Assert.IsType<IfStatementSyntax>(function.Statements.Get(0));
+        var statement = Assert.IsType<GuardStatementSyntax>(ifStatement.Statements.Get(0));
+        Assert.Equal("Mutex", statement.LockParameters.Get(0).Name.Identifier.Text);
+        Assert.False(statement.EndGuardKeyword.IsMissing);
+        Assert.False(ifStatement.EndIfKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Parse_try_guard_inside_while_round_trips()
+    {
+        const string source =
+            "ScriptName Foo\nGuard Mutex\nFunction F()\nWhile True\nTryGuard Mutex\n  Return\nEndGuard\nEndWhile\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Starfield);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(1));
+        var whileStatement = Assert.IsType<WhileStatementSyntax>(function.Statements.Get(0));
+        var statement = Assert.IsType<TryGuardStatementSyntax>(whileStatement.Statements.Get(0));
+        Assert.Equal("Mutex", statement.LockParameters.Get(0).Name.Identifier.Text);
+        Assert.False(statement.EndGuardKeyword.IsMissing);
+        Assert.False(whileStatement.EndWhileKeyword.IsMissing);
+    }
+
+    [Fact]
     public void Parse_try_guard_statement_round_trips()
     {
         const string source = "ScriptName Foo\nGuard A\nGuard B\nFunction F()\nTryGuard A, B\n  Return\nEndGuard\nEndFunction\n";
@@ -1114,6 +1148,78 @@ public sealed class ParserTests
         var second = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(1));
         Assert.Equal("G", second.Name.Identifier.Text);
         Assert.False(second.EndFunctionKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Missing_end_guard_does_not_swallow_endif()
+    {
+        const string source = "ScriptName Foo\nFunction F()\nIf True\nGuard Mutex\n  Return\nEndIf\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Starfield);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var ifStatement = Assert.IsType<IfStatementSyntax>(function.Statements.Get(0));
+        var statement = Assert.IsType<GuardStatementSyntax>(ifStatement.Statements.Get(0));
+        Assert.True(statement.EndGuardKeyword.IsMissing);
+        Assert.False(ifStatement.EndIfKeyword.IsMissing);
+        Assert.False(function.EndFunctionKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Missing_end_guard_does_not_swallow_else()
+    {
+        const string source =
+            "ScriptName Foo\nFunction F()\nIf True\nGuard Mutex\n  Return\nElse\n  Return\nEndIf\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Starfield);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var ifStatement = Assert.IsType<IfStatementSyntax>(function.Statements.Get(0));
+        var statement = Assert.IsType<GuardStatementSyntax>(ifStatement.Statements.Get(0));
+        Assert.True(statement.EndGuardKeyword.IsMissing);
+        Assert.NotNull(ifStatement.ElseClause);
+        Assert.Equal(1, ifStatement.ElseClause.Statements.Count);
+        Assert.IsType<ReturnStatementSyntax>(ifStatement.ElseClause.Statements.Get(0));
+        Assert.False(ifStatement.EndIfKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Missing_end_guard_does_not_swallow_endwhile()
+    {
+        const string source = "ScriptName Foo\nFunction F()\nWhile True\nGuard Mutex\n  Return\nEndWhile\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Starfield);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var whileStatement = Assert.IsType<WhileStatementSyntax>(function.Statements.Get(0));
+        var statement = Assert.IsType<GuardStatementSyntax>(whileStatement.Statements.Get(0));
+        Assert.True(statement.EndGuardKeyword.IsMissing);
+        Assert.False(whileStatement.EndWhileKeyword.IsMissing);
+        Assert.False(function.EndFunctionKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Well_formed_script_with_comments_and_line_continuation_round_trips()
+    {
+        const string source =
+            "ScriptName Foo ; line comment\n" +
+            ";/ block comment /;\n" +
+            "Function F()\n" +
+            "  Return \\\n" +
+            "    1\n" +
+            "EndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var ret = Assert.IsType<ReturnStatementSyntax>(function.Statements.Get(0));
+        Assert.Equal("1", ((LiteralExpressionSyntax)ret.Expression!).Token.Text);
+        Assert.Contains("\\", ((LiteralExpressionSyntax)ret.Expression).Token.ToFullString(), StringComparison.Ordinal);
+        Assert.False(function.EndFunctionKeyword.IsMissing);
     }
 
     [Fact]

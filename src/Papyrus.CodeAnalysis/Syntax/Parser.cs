@@ -1676,12 +1676,18 @@ internal sealed class Parser
             StatementScope.If => kind is SyntaxKind.ElseIfKeyword
                 or SyntaxKind.ElseKeyword
                 or SyntaxKind.EndIfKeyword
-                or SyntaxKind.EndWhileKeyword,
+                or SyntaxKind.EndWhileKeyword
+                or SyntaxKind.EndGuardKeyword,
             StatementScope.While => kind is SyntaxKind.EndWhileKeyword
                 or SyntaxKind.EndIfKeyword
                 or SyntaxKind.ElseIfKeyword
-                or SyntaxKind.ElseKeyword,
-            StatementScope.Guard => kind is SyntaxKind.EndGuardKeyword,
+                or SyntaxKind.ElseKeyword
+                or SyntaxKind.EndGuardKeyword,
+            StatementScope.Guard => kind is SyntaxKind.EndGuardKeyword
+                or SyntaxKind.EndIfKeyword
+                or SyntaxKind.EndWhileKeyword
+                or SyntaxKind.ElseKeyword
+                or SyntaxKind.ElseIfKeyword,
             _ => false,
         };
     }
