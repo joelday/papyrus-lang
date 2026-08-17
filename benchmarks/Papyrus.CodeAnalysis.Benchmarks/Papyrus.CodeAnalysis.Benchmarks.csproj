@@ -1,2 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Short-job parse bench; default run must not require a Bethesda corpus. -->
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Papyrus.CodeAnalysis\Papyrus.CodeAnalysis.csproj" />
+    <ProjectReference Include="..\..\src\Papyrus.CodeAnalysis.Testing\Papyrus.CodeAnalysis.Testing.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\tests\Papyrus.CodeAnalysis.Tests\Fixtures\Parse\**\*.psc"
+          LinkBase="Fixtures\Parse"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
