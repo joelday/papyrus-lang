@@ -52,6 +52,12 @@ internal sealed class ExpressionTypeBinder
             case ElementAccessExpressionSyntax elementAccess:
                 return BindElementAccess(elementAccess);
 
+            case BinaryExpressionSyntax binary:
+                return BindBinary(binary);
+
+            case PrefixUnaryExpressionSyntax unary:
+                return BindUnary(unary);
+
             default:
                 return new Conversion(ConversionKind.Identity, ErrorType());
         }
@@ -115,6 +121,68 @@ internal sealed class ExpressionTypeBinder
 
         return new Conversion(ConversionKind.Identity, element);
     }
+
+    private Conversion BindBinary(BinaryExpressionSyntax binary)
+    {
+        var left = Infer(binary.Left);
+        var right = Infer(binary.Right);
+        var names = _compilation.Names;
+        switch (binary.OperatorToken.Kind)
+        {
+            case SyntaxKind.EqualsEqualsToken:
+            case SyntaxKind.ExclamationEqualsToken:
+            case SyntaxKind.LessThanToken:
+            case SyntaxKind.LessThanEqualsToken:
+            case SyntaxKind.GreaterThanToken:
+            case SyntaxKind.GreaterThanEqualsToken:
+            case SyntaxKind.AmpersandAmpersandToken:
+            case SyntaxKind.BarBarToken:
+                return new Conversion(ConversionKind.Identity, IntrinsicTypeSymbol.Create(names, "Bool"));
+
+            case SyntaxKind.PlusToken:
+                if (IsNamed(left.ResultType, "String") || IsNamed(right.ResultType, "String"))
+                {
+                    return new Conversion(ConversionKind.Identity, IntrinsicTypeSymbol.Create(names, "String"));
+                }
+
+                return new Conversion(ConversionKind.Identity, NumericResult(left.ResultType, right.ResultType));
+
+            case SyntaxKind.MinusToken:
+            case SyntaxKind.AsteriskToken:
+            case SyntaxKind.SlashToken:
+                return new Conversion(ConversionKind.Identity, NumericResult(left.ResultType, right.ResultType));
+
+            case SyntaxKind.PercentToken:
+                return new Conversion(ConversionKind.Identity, IntrinsicTypeSymbol.Create(names, "Int"));
+
+            default:
+                return new Conversion(ConversionKind.Identity, ErrorType());
+        }
+    }
+
+    private Conversion BindUnary(PrefixUnaryExpressionSyntax unary)
+    {
+        if (unary.OperatorToken.Kind == SyntaxKind.ExclamationToken)
+        {
+            return new Conversion(ConversionKind.Identity, IntrinsicTypeSymbol.Create(_compilation.Names, "Bool"));
+        }
+
+        return Infer(unary.Operand);
+    }
+
+    private ITypeSymbol NumericResult(ITypeSymbol left, ITypeSymbol right)
+    {
+        if (IsNamed(left, "Float") || IsNamed(right, "Float"))
+        {
+            return IntrinsicTypeSymbol.Create(_compilation.Names, "Float");
+        }
+
+        return IntrinsicTypeSymbol.Create(_compilation.Names, "Int");
+    }
+
+    private static bool IsNamed(ITypeSymbol type, string name)
+        => type.TypeKind != TypeKind.Error
+            && type.Name.Text.Equals(name, StringComparison.OrdinalIgnoreCase);
 
     private Conversion BindElementAccess(ElementAccessExpressionSyntax elementAccess)
     {

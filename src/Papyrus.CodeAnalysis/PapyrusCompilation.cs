@@ -137,6 +137,12 @@ public sealed class PapyrusCompilation
         return GetOrAddCached(name).Tree;
     }
 
+    public SemanticModel GetSemanticModel(SyntaxTree tree)
+    {
+        ArgumentNullException.ThrowIfNull(tree);
+        return new SemanticModel(this, tree);
+    }
+
     public PapyrusCompilation WithSyntaxTree(SyntaxTree tree)
     {
         ArgumentNullException.ThrowIfNull(tree);
