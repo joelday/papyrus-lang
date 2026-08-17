@@ -374,17 +374,17 @@ internal static class SyntaxEmitter
 
             builder.AppendLine(")");
             builder.AppendLine("    {");
-            builder.AppendLine("        var flags = diagnostics is { Length: > 0 } ? NodeFlags.ContainsDiagnostics : NodeFlags.None;");
+            builder.AppendLine("        var nodeFlags = diagnostics is { Length: > 0 } ? NodeFlags.ContainsDiagnostics : NodeFlags.None;");
             builder.AppendLine("        var present = 0;");
             builder.AppendLine("        var missing = 0;");
             foreach (var child in node.Children)
             {
-                builder.Append("        GreenNode.IncludeChild(ref flags, ref present, ref missing, ");
+                builder.Append("        GreenNode.IncludeChild(ref nodeFlags, ref present, ref missing, ");
                 builder.Append(ToCamelCase(child.Name));
                 builder.AppendLine(");");
             }
 
-            builder.AppendLine("        return GreenNode.FinishFlags(flags, present, missing);");
+            builder.AppendLine("        return GreenNode.FinishFlags(nodeFlags, present, missing);");
             builder.AppendLine("    }");
             builder.AppendLine("}");
         }

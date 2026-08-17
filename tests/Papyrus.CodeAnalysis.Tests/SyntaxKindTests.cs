@@ -37,6 +37,7 @@ public sealed class SyntaxKindTests
     [InlineData("TypeName")]
     [InlineData("ExtendsClause")]
     [InlineData("ScriptDeclaration")]
+    [InlineData("Flag")]
     [InlineData("ImportKeyword")]
     [InlineData("ImportDeclaration")]
     public void Contains_core_script_header_member(string name)

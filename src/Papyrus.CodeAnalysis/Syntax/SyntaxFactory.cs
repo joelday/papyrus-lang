@@ -67,12 +67,30 @@ internal static partial class SyntaxFactory
             scriptNameKeyword,
             name,
             extendsClause,
-            nativeKeyword,
-            hiddenKeyword,
-            conditionalKeyword,
+            Flags(nativeKeyword, hiddenKeyword, conditionalKeyword),
             endOfLineToken,
             imports: default,
             endOfFileToken: default);
+    }
+
+    private static SyntaxList<FlagSyntax> Flags(
+        SyntaxToken nativeKeyword,
+        SyntaxToken hiddenKeyword,
+        SyntaxToken conditionalKeyword)
+    {
+        var flags = new List<FlagSyntax>();
+        AddFlag(flags, nativeKeyword);
+        AddFlag(flags, hiddenKeyword);
+        AddFlag(flags, conditionalKeyword);
+        return List(flags);
+    }
+
+    private static void AddFlag(List<FlagSyntax> flags, SyntaxToken token)
+    {
+        if (token.Kind != SyntaxKind.None)
+        {
+            flags.Add(Flag(token));
+        }
     }
 
     public static SyntaxList<T> List<T>(IReadOnlyList<T> items) where T : SyntaxNode

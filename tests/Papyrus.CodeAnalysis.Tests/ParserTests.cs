@@ -1,3 +1,5 @@
+using System;
+using System.Threading;
 using Papyrus.CodeAnalysis;
 using Papyrus.CodeAnalysis.Syntax;
 using Papyrus.CodeAnalysis.Text;
@@ -106,5 +108,51 @@ public sealed class ParserTests
 
         Assert.Equal(source, tree.GetRoot().ToFullString());
         Assert.Same(PapyrusDialect.SkyrimSe, tree.Dialect);
+    }
+
+    [Theory]
+    [InlineData("ScriptName Foo Hidden Native\n")]
+    [InlineData("ScriptName Foo Conditional Hidden\n")]
+    [InlineData("ScriptName Foo Conditional Native Hidden\n")]
+    public void Out_of_order_flags_are_named_and_round_trip(string source)
+    {
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        if (source.Contains("Native", StringComparison.Ordinal))
+        {
+            Assert.Equal(SyntaxKind.NativeKeyword, root.NativeKeyword.Kind);
+            Assert.Equal("Native", root.NativeKeyword.Text);
+        }
+
+        if (source.Contains("Hidden", StringComparison.Ordinal))
+        {
+            Assert.Equal(SyntaxKind.HiddenKeyword, root.HiddenKeyword.Kind);
+            Assert.Equal("Hidden", root.HiddenKeyword.Text);
+        }
+
+        if (source.Contains("Conditional", StringComparison.Ordinal))
+        {
+            Assert.Equal(SyntaxKind.ConditionalKeyword, root.ConditionalKeyword.Kind);
+            Assert.Equal("Conditional", root.ConditionalKeyword.Text);
+        }
+    }
+
+    [Fact]
+    public void Cancelled_parse_keeps_remaining_tokens_on_eof()
+    {
+        const string source = "ScriptName Foo\nImport Utility\nFunction Bar()\n";
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var tree = SyntaxTree.Parse(SourceText.From(source), PapyrusDialect.SkyrimSe, options: null, cts.Token);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        Assert.Equal(SyntaxKind.EndOfFileToken, root.EndOfFileToken.Kind);
+        Assert.Empty(root.Imports);
+        Assert.Contains("Import", root.EndOfFileToken.ToFullString(), StringComparison.Ordinal);
+        Assert.Contains("Function", root.EndOfFileToken.ToFullString(), StringComparison.Ordinal);
     }
 }

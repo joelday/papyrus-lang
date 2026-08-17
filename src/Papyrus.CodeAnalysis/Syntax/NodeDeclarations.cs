@@ -40,6 +40,12 @@ internal sealed partial class ExtendsClauseSyntax : SyntaxNode
 }
 
 [SyntaxNode]
+internal sealed partial class FlagSyntax : SyntaxNode
+{
+    public SyntaxToken FlagToken { get; }
+}
+
+[SyntaxNode]
 internal sealed partial class ImportDeclarationSyntax : SyntaxNode
 {
     public SyntaxToken ImportKeyword { get; }
@@ -54,10 +60,29 @@ internal sealed partial class ScriptDeclarationSyntax : SyntaxNode
     public SyntaxToken ScriptNameKeyword { get; }
     public partial IdentifierNameSyntax Name { get; }
     public partial ExtendsClauseSyntax? ExtendsClause { get; }
-    public SyntaxToken NativeKeyword { get; }
-    public SyntaxToken HiddenKeyword { get; }
-    public SyntaxToken ConditionalKeyword { get; }
+    public partial SyntaxList<FlagSyntax> Flags { get; }
     public SyntaxToken EndOfLineToken { get; }
     public partial SyntaxList<ImportDeclarationSyntax> Imports { get; }
     public SyntaxToken EndOfFileToken { get; }
+
+    public SyntaxToken NativeKeyword => FlagToken(SyntaxKind.NativeKeyword);
+
+    public SyntaxToken HiddenKeyword => FlagToken(SyntaxKind.HiddenKeyword);
+
+    public SyntaxToken ConditionalKeyword => FlagToken(SyntaxKind.ConditionalKeyword);
+
+    private SyntaxToken FlagToken(SyntaxKind kind)
+    {
+        var count = Flags.Count;
+        for (var i = 0; i < count; i++)
+        {
+            var token = Flags.Get(i).FlagToken;
+            if (token.Kind == kind)
+            {
+                return token;
+            }
+        }
+
+        return default;
+    }
 }

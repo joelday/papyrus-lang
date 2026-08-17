@@ -118,7 +118,8 @@ public sealed class SyntaxGenerator : IIncrementalGenerator
                 && !property.IsStatic
                 && property.GetMethod is not null
                 && property.Parameters.Length == 0
-                && property.ContainingType.Equals(type, SymbolEqualityComparer.Default))
+                && property.ContainingType.Equals(type, SymbolEqualityComparer.Default)
+                && !HasImplementedGetter(property))
             {
                 var typeName = property.Type.Name;
                 var isList = false;
@@ -150,6 +151,37 @@ public sealed class SyntaxGenerator : IIncrementalGenerator
             children.ToImmutableArray(),
             type.Name,
             baseTypeName);
+    }
+
+    private static bool HasImplementedGetter(IPropertySymbol property)
+    {
+        foreach (var reference in property.DeclaringSyntaxReferences)
+        {
+            if (reference.GetSyntax() is not PropertyDeclarationSyntax syntax)
+            {
+                continue;
+            }
+
+            if (syntax.ExpressionBody is not null)
+            {
+                return true;
+            }
+
+            if (syntax.AccessorList is null)
+            {
+                continue;
+            }
+
+            foreach (var accessor in syntax.AccessorList.Accessors)
+            {
+                if (accessor.Body is not null || accessor.ExpressionBody is not null)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static string? ReadTextArgument(ImmutableArray<AttributeData> attributes)

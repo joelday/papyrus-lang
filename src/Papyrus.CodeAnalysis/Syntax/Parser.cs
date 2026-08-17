@@ -44,9 +44,7 @@ internal sealed class Parser
             extendsClause = ParseExtendsClause();
         }
 
-        var nativeKeyword = TryEat(SyntaxKind.NativeKeyword);
-        var hiddenKeyword = TryEat(SyntaxKind.HiddenKeyword);
-        var conditionalKeyword = TryEat(SyntaxKind.ConditionalKeyword);
+        var flags = ParseFlags();
         var endOfLineToken = EatEndOfLine();
         var imports = ParseImports();
         var endOfFileToken = EatRemainder();
@@ -56,12 +54,21 @@ internal sealed class Parser
             scriptNameKeyword,
             name,
             extendsClause,
-            nativeKeyword,
-            hiddenKeyword,
-            conditionalKeyword,
+            SyntaxFactory.List(flags),
             endOfLineToken,
             SyntaxFactory.List(imports),
             endOfFileToken);
+    }
+
+    private List<FlagSyntax> ParseFlags()
+    {
+        var flags = new List<FlagSyntax>();
+        while (IsScriptFlag(_current.Kind))
+        {
+            flags.Add(SyntaxFactory.Flag(Take()));
+        }
+
+        return flags;
     }
 
     private ExtendsClauseSyntax ParseExtendsClause()
@@ -77,7 +84,7 @@ internal sealed class Parser
         while (!_cancellationToken.IsCancellationRequested)
         {
             SkipEndOfLines();
-            if (_current.Kind != SyntaxKind.ImportKeyword)
+            if (_cancellationToken.IsCancellationRequested || _current.Kind != SyntaxKind.ImportKeyword)
             {
                 break;
             }
@@ -152,16 +159,6 @@ internal sealed class Parser
         return Missing(kind);
     }
 
-    private SyntaxToken TryEat(SyntaxKind kind)
-    {
-        if (_current.Kind == kind)
-        {
-            return Take();
-        }
-
-        return default;
-    }
-
     private SyntaxToken EatEndOfLine()
     {
         if (_current.Kind == SyntaxKind.EndOfLineToken)
@@ -189,7 +186,7 @@ internal sealed class Parser
 
     private SyntaxToken EatRemainder()
     {
-        while (_current.Kind != SyntaxKind.EndOfFileToken && !_cancellationToken.IsCancellationRequested)
+        while (_current.Kind != SyntaxKind.EndOfFileToken)
         {
             Skip();
         }
@@ -199,7 +196,7 @@ internal sealed class Parser
 
     private void SkipEndOfLines()
     {
-        while (_current.Kind == SyntaxKind.EndOfLineToken && !_cancellationToken.IsCancellationRequested)
+        while (_current.Kind == SyntaxKind.EndOfLineToken)
         {
             Skip();
         }
@@ -288,6 +285,9 @@ internal sealed class Parser
     }
 
     private static SyntaxToken Missing(SyntaxKind kind) => SyntaxFactory.MissingToken(kind);
+
+    private static bool IsScriptFlag(SyntaxKind kind)
+        => kind is SyntaxKind.NativeKeyword or SyntaxKind.HiddenKeyword or SyntaxKind.ConditionalKeyword;
 
     private static bool IsLineTerminator(SyntaxKind kind)
         => kind is SyntaxKind.EndOfLineToken or SyntaxKind.ImportKeyword or SyntaxKind.EndOfFileToken;
