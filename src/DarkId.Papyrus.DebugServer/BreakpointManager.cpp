@@ -115,7 +115,7 @@ namespace DarkId::Papyrus::DebugServer
 	// TODO: Upstream this
 	uint32_t GetInstructionNumberForOffset(RE::BSScript::ByteCode::PackedInstructionStream* stream, uint32_t IP) {
 		using func_t = decltype(&GetInstructionNumberForOffset);
-		REL::Relocation<func_t> func{ Game_Offset::GetInstructionNumberForOffset };
+		REL::Relocation<func_t> func{ Game_Offset::GetInstructionNumberForOffset() };
 		return func(stream, IP);
 	}
 

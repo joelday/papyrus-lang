@@ -1,0 +1,16 @@
+{
+  "GetVariable": 84986,
+  "GetPageForFrame": 138020,
+  "Object_ctor": 137778,
+  "GameVM_Singleton": 937585,
+  "GameVM_BindEverythingToScript": 117899,
+  "NativeFunctionBase_Call": 138074,
+  "NativeFunctionBase_GetParam": 138061,
+  "NativeFunctionBase_GetSourceFilename": 138065,
+  "NativeFunctionBase_GetParamInfo": 138067,
+  "VTABLE_CodeTasklet": 481606,
+  "RTTI_CodeTasklet": 870890,
+  "VTABLE_VirtualMachine": 481117,
+  "VTABLE_CompiledScriptLoader": 480919,
+  "VTABLE_IVirtualMachine": 480577
+}

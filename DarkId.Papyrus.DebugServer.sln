@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DarkId.Papyrus.DebugServer.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DarkId.Papyrus.DebugServer.Fallout4", "src\DarkId.Papyrus.DebugServer\DarkId.Papyrus.DebugServer.Fallout4.vcxproj", "{69BB4564-BAE0-4D6B-9D36-752C987B1FA6}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DarkId.Papyrus.DebugServer.Starfield", "src\DarkId.Papyrus.DebugServer\DarkId.Papyrus.DebugServer.Starfield.vcxproj", "{34205AEC-BEF4-42DC-BE17-CF22978EDE11}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -27,6 +29,10 @@ Global
 		{69BB4564-BAE0-4D6B-9D36-752C987B1FA6}.Release|x64.ActiveCfg = Release|x64
 		{69BB4564-BAE0-4D6B-9D36-752C987B1FA6}.Release|x64.Build.0 = Release|x64
 		{69BB4564-BAE0-4D6B-9D36-752C987B1FA6}.Release|x86.ActiveCfg = Release|x64
+		{34205AEC-BEF4-42DC-BE17-CF22978EDE11}.Debug|x64.ActiveCfg = Debug|x64
+		{34205AEC-BEF4-42DC-BE17-CF22978EDE11}.Debug|x86.ActiveCfg = Debug|x64
+		{34205AEC-BEF4-42DC-BE17-CF22978EDE11}.Release|x64.ActiveCfg = Release|x64
+		{34205AEC-BEF4-42DC-BE17-CF22978EDE11}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

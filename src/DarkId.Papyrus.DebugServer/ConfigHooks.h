@@ -1,39 +1,39 @@
 #pragma once
 #include <xbyak/xbyak.h>
 #include "GameInterfaces.h"
+#include "AddressLibraryIds.h"
 #include <REL/Relocation.h>
+#include <string_view>
 
 namespace DarkId::Papyrus::DebugServer
 {
 	namespace Game_Offset {
+		inline REL::ID Id(std::string_view name)
+		{
+			return REL::ID(AddressLibraryIds::Get(name));
+		}
+
+		inline REL::ID pPapyrusEnableLogging() { return Id("pPapyrusEnableLogging"); }
+		inline REL::ID pPapyrusEnableTrace() { return Id("pPapyrusEnableTrace"); }
+		inline REL::ID pControlsBackgroundMouse() { return Id("pControlsBackgroundMouse"); }
+		inline REL::ID pControlsBackgroundMouseDynamicInitializer() { return Id("pControlsBackgroundMouseDynamicInitializer"); }
+		inline REL::ID GetInstructionNumberForOffset() { return Id("GetInstructionNumberForOffset"); }
+		inline REL::ID VM_ctor() { return Id("VM_ctor"); }
+		inline REL::ID CodeTaskletProcess() { return Id("CodeTaskletProcess"); }
+		inline REL::ID CreateStack() { return Id("CreateStack"); }
+		inline REL::ID CleanupStack() { return Id("CleanupStack"); }
+
 #ifdef SKYRIM
-		// Where the bEnableLogging skyrim.ini setting is stored; this is overwritten when the ini is loaded
-		constexpr auto pPapyrusEnableLogging = RELOCATION_ID(510627, 383715);        // 1.5.97: 141DF5AE8,   1.6.640: 141E88DC8
-		constexpr auto pPapyrusEnableTrace = RELOCATION_ID(510667, 383766);          // 1.5.97: 141DF5C60,   1.6.640: 141E88F88
-		constexpr auto pPapyrusLoadDebugInformation = RELOCATION_ID(510650, 383743); // 1.5.97: 141DF5BC0,   1.6.640: 141E88EA0
-		constexpr auto pControlsBackgroundMouse = RELOCATION_ID(511920, 388493);     // pcontrols background mouse
-		constexpr auto pControlsBackgroundMouseDynamicInitializer = RELOCATION_ID(9099, 9144);  // 1.5.97: 1400D9320, 1.6.640: 1400E1020
+		inline REL::ID pPapyrusLoadDebugInformation() { return Id("pPapyrusLoadDebugInformation"); }
+		inline REL::ID InitWindows() { return Id("InitWindows"); }
+		inline REL::ID bsrendererBegin() { return Id("bsrendererBegin"); }
 		constexpr auto pControlsBackgroundMouseDynamicInitializerEndOffset = REL::VariantOffset(0x68, 0x65, 0x68); // the atexit call (TODO: Figure out the Skyrim VR offset)
-		constexpr auto InitWindows = RELOCATION_ID(75591, 77226);
 		constexpr auto InitWindows_CreateWindowExA_Offset = REL::VariantOffset(0x163, 0x22C, 0x163);
-		constexpr auto bsrendererBegin = RELOCATION_ID(75460, 77245);
 		constexpr auto bsrendererBegin_GetClientRect_Offset = REL::VariantOffset(0x192, 0x18B, 0x192);
 		constexpr auto ExpectedCreateWindowsExA_Offset = REL::VariantOffset(0x79779F, 0x84C34E, 0x000000);
-
-		// BSScript__ByteCode__PackedInstructionStream__GetInstructionNumberForOffset
-		constexpr auto GetInstructionNumberForOffset = RELOCATION_ID(97807, 104551); // 1.5.97: 1248FA0, 1.6.640: 141371400
 #else // FALLOUT
-		// Where the bEnableLogging fallout4.ini setting is stored; this is overwritten when the ini is loaded
-		constexpr auto pPapyrusEnableLogging = REL::ID(1272228); // 14380E140
-		// Where the bEnableTrace fallout4.ini setting is stored; overwritten on ini load
-		constexpr auto pPapyrusEnableTrace = REL::ID(218028); // 143818DC0
-		constexpr auto pControlsBackgroundMouse = REL::ID(187076); //143846670
-		constexpr auto pControlsBackgroundMouseDynamicInitializer = REL::ID(267843); //142AEDB40
+		inline REL::ID pCurrentRenderWindow() { return Id("pCurrentRenderWindow"); }
 		constexpr auto pControlsBackgroundMouseDynamicInitializerEndOffset = REL::Offset(0x59);
-		// BSScript__ByteCode__PackedInstructionStream__GetInstructionNumberForOffset
-
-		constexpr auto GetInstructionNumberForOffset = REL::ID(1126425); //14278A1B0
-
 #endif
 	}
 	// Modified hook from PapyrusTweaks by NightFallStorm with permission
@@ -64,13 +64,15 @@ namespace DarkId::Papyrus::DebugServer
 			// - 1.5.97: 0x604 (0x140920AA4)
 			// - 1.6.640: 0x664 (0x14095FD44)
 			// The hook target is the same address as asm instruction `call  <label_of_CompiledScriptLoader()>`
-			return REL::Relocation<std::uintptr_t>(RELOCATION_ID(53108, 53919), REL::VariantOffset(0x604, 0x664, 0x604));
+			return REL::Relocation<std::uintptr_t>(
+				Game_Offset::VM_ctor(),
+				REL::VariantOffset(0x604, 0x664, 0x604).offset());
 #else
 			// Fallout 4:
 			// GameVM::GameVM(): offset at 0x001370D60 (0x141370D60)
 			// Hooks at GameVM() offset 0x1C4 (0x141370F24)
 			// The hook target is the same address as asm instruction `call <label_of_CompiledScriptLoader()>`
-			return REL::Relocation<std::uintptr_t>(REL::ID(35833), REL::Offset(0x1C4).offset());
+			return REL::Relocation<std::uintptr_t>(Game_Offset::VM_ctor(), REL::Offset(0x1C4).offset());
 #endif
 
 		}
@@ -90,7 +92,7 @@ namespace DarkId::Papyrus::DebugServer
 
 		// hooks into RE::BSWin32MouseDevice::Initialize() by overwriting the vtable entry with this
 		static inline void thunk(RE::BSWin32MouseDevice* _this) {
-			bool* pBackgroundMouse = (bool*)Game_Offset::pControlsBackgroundMouse.address();
+			bool* pBackgroundMouse = (bool*)Game_Offset::pControlsBackgroundMouse().address();
 			if (!*pBackgroundMouse) {
 				*pBackgroundMouse = true;
 			}
@@ -118,7 +120,7 @@ namespace DarkId::Papyrus::DebugServer
 		// we install into the call to `atexit`, so the thunk is thunking `int atexit(void(__cdecl*)())`
 		static inline int thunk(void(__cdecl* atexitfunc)()) {
 			auto result = func(atexitfunc);
-			bool* pBackgroundMouse = (bool*)Game_Offset::pControlsBackgroundMouse.address();
+			bool* pBackgroundMouse = (bool*)Game_Offset::pControlsBackgroundMouse().address();
 			*pBackgroundMouse = true;
 			return result;
 	    }
@@ -126,10 +128,10 @@ namespace DarkId::Papyrus::DebugServer
 
 		static inline void Install() {
 			// Set it here too in case it's not in the settings.ini
-			bool* pBackgroundMouse = (bool*)Game_Offset::pControlsBackgroundMouse.address();
+			bool* pBackgroundMouse = (bool*)Game_Offset::pControlsBackgroundMouse().address();
 			*pBackgroundMouse = true;
 			REL::Relocation<std::uintptr_t> target(
-				Game_Offset::pControlsBackgroundMouseDynamicInitializer.address() +
+				Game_Offset::pControlsBackgroundMouseDynamicInitializer().address() +
 				Game_Offset::pControlsBackgroundMouseDynamicInitializerEndOffset.offset());
 			stl::write_thunk_branch<5,ForceEnableBackgroundMouse>(target.address());
 			logger::info("ForceEnableBackgroundMouse hooked at address {:x}", target.address());
@@ -142,7 +144,7 @@ namespace DarkId::Papyrus::DebugServer
 	struct DyanmicallySetBackgroundMouse {
 		static inline bool Set(bool enabled) {
 
-			bool* pBackgroundMouse = (bool*)Game_Offset::pControlsBackgroundMouse.address();
+			bool* pBackgroundMouse = (bool*)Game_Offset::pControlsBackgroundMouse().address();
 			if (*pBackgroundMouse != enabled) {
 				*pBackgroundMouse = enabled;
 #if SKYRIM

@@ -1,0 +1,12 @@
+{
+  "pPapyrusEnableLogging": 1272228,
+  "pPapyrusEnableTrace": 218028,
+  "pControlsBackgroundMouse": 187076,
+  "pControlsBackgroundMouseDynamicInitializer": 267843,
+  "GetInstructionNumberForOffset": 1126425,
+  "VM_ctor": 35833,
+  "CodeTaskletProcess": 614585,
+  "CreateStack": 107558,
+  "CleanupStack": 38511,
+  "pCurrentRenderWindow": 91810
+}

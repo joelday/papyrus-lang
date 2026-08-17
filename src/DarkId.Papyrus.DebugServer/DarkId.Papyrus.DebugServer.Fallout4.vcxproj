@@ -111,7 +111,7 @@
       <PrecompiledHeaderFile>pdsPCH.h</PrecompiledHeaderFile>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>
-        $(ProjectDir);$(ProjectDir)..\..\dependencies;$(ProjectDir)..\..\dependencies\MetaStuff\include;$(VcpkgInstalledDir)\$(VcpkgTriplet)\include\Champollion;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+        $(ProjectDir);$(ProjectDir)..\native\DebugServer;$(ProjectDir)..\..\dependencies;$(ProjectDir)..\..\dependencies\MetaStuff\include;$(VcpkgInstalledDir)\$(VcpkgTriplet)\include\Champollion;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <EnableModules>true</EnableModules>
       <BuildStlModules>true</BuildStlModules>
     </ClCompile>
@@ -168,7 +168,7 @@
       <PrecompiledHeaderFile>pdsPCH.h</PrecompiledHeaderFile>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>
-        $(ProjectDir);$(ProjectDir)..\..\dependencies;$(ProjectDir)..\..\dependencies\MetaStuff\include;$(VcpkgInstalledDir)\$(VcpkgTriplet)\include\Champollion;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+        $(ProjectDir);$(ProjectDir)..\native\DebugServer;$(ProjectDir)..\..\dependencies;$(ProjectDir)..\..\dependencies\MetaStuff\include;$(VcpkgInstalledDir)\$(VcpkgTriplet)\include\Champollion;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ScanSourceForModuleDependencies>true</ScanSourceForModuleDependencies>
       <BuildStlModules>true</BuildStlModules>
     </ClCompile>
@@ -197,6 +197,12 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\native\DebugServer\AddressLibraryIds.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'"></ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'"></ForcedIncludeFiles>
+    </ClCompile>
     <ClCompile Include="ArrayStateNode.cpp" />
     <ClCompile Include="BreakpointManager.cpp" />
     <ClCompile Include="DebugExecutionManager.cpp" />
@@ -232,6 +238,10 @@
     <ResourceCompile Include="version.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\native\DebugServer\data\*.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\native\DebugServer\AddressLibraryIds.h" />
     <ClInclude Include="ArrayStateNode.h" />
     <ClInclude Include="BreakpointManager.h" />
     <ClInclude Include="DebugExecutionManager.h" />
@@ -268,6 +278,14 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <Target Name="CopyAddressLibraryData" AfterTargets="Build">
+    <ItemGroup>
+      <_AddressLibraryJson Include="$(ProjectDir)..\native\DebugServer\data\*.json" />
+    </ItemGroup>
+    <MakeDir Directories="$(OutDir)data" />
+    <Copy SourceFiles="@(_AddressLibraryJson)" DestinationFolder="$(OutDir)data" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_AddressLibraryJson)" DestinationFolder="$(F4SEPluginPath)\data" SkipUnchangedFiles="true" Condition="'$(F4SEPluginPath)' != ''" />
+  </Target>
   <Target Name="AfterBuild" Condition="'$(Configuration)' == 'Debug' AND $(F4SEPluginPath) != ''">
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(F4SEPluginPath)" />
     <Copy SourceFiles="$(TargetDir)\$(TargetName).pdb" DestinationFolder="$(F4SEPluginPath)" />
