@@ -62,6 +62,16 @@ public sealed class SyntaxKindTests
     [InlineData("LiteralExpression")]
     [InlineData("PrefixUnaryExpression")]
     [InlineData("SkippedStatement")]
+    [InlineData("IfStatement")]
+    [InlineData("ElseIfClause")]
+    [InlineData("ElseClause")]
+    [InlineData("WhileStatement")]
+    [InlineData("ReturnStatement")]
+    [InlineData("DeclareStatement")]
+    [InlineData("AssignmentStatement")]
+    [InlineData("ExpressionStatement")]
+    [InlineData("NameExpression")]
+    [InlineData("BinaryExpression")]
     public void Contains_core_script_header_member(string name)
     {
         Assert.True(Enum.TryParse<SyntaxKind>(name, out var kind), "Missing SyntaxKind." + name);

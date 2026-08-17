@@ -196,7 +196,9 @@ public sealed class ParserTests
         Assert.NotNull(defaultValue);
         Assert.Equal("\"z\"", ((LiteralExpressionSyntax)defaultValue.Value).Token.Text);
         Assert.Equal(1, function.Statements.Count);
-        Assert.IsType<SkippedStatementSyntax>(function.Statements.Get(0));
+        var ret = Assert.IsType<ReturnStatementSyntax>(function.Statements.Get(0));
+        var returned = Assert.IsType<NameExpressionSyntax>(ret.Expression);
+        Assert.Equal("x", ((IdentifierNameSyntax)returned.Name).Identifier.Text);
     }
 
     [Fact]
@@ -271,6 +273,168 @@ public sealed class ParserTests
         Assert.True(tree.TryGetRoot(out var root));
         var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
         Assert.Equal(1, function.Statements.Count);
+        var declare = Assert.IsType<DeclareStatementSyntax>(function.Statements.Get(0));
+        Assert.Equal("Var", ((IdentifierNameSyntax)declare.TypeName.Name).Identifier.Text);
+        Assert.Equal("v", declare.Name.Identifier.Text);
+        Assert.False(function.EndFunctionKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Parse_if_elseif_else_inside_function()
+    {
+        const string source =
+            "ScriptName Foo\n" +
+            "Function Bar()\n" +
+            "  If x\n" +
+            "    Return 1\n" +
+            "  ElseIf y\n" +
+            "    Return 2\n" +
+            "  Else\n" +
+            "    Return\n" +
+            "  EndIf\n" +
+            "EndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var ifStatement = Assert.IsType<IfStatementSyntax>(function.Statements.Get(0));
+        Assert.False(ifStatement.IfKeyword.IsMissing);
+        Assert.Equal("x", ((IdentifierNameSyntax)((NameExpressionSyntax)ifStatement.Condition).Name).Identifier.Text);
+        Assert.Equal(1, ifStatement.Statements.Count);
+        Assert.IsType<ReturnStatementSyntax>(ifStatement.Statements.Get(0));
+        Assert.Equal(1, ifStatement.ElseIfClauses.Count);
+        Assert.Equal("y", ((IdentifierNameSyntax)((NameExpressionSyntax)ifStatement.ElseIfClauses.Get(0).Condition).Name).Identifier.Text);
+        Assert.NotNull(ifStatement.ElseClause);
+        Assert.Equal(1, ifStatement.ElseClause.Statements.Count);
+        var bareReturn = Assert.IsType<ReturnStatementSyntax>(ifStatement.ElseClause.Statements.Get(0));
+        Assert.Null(bareReturn.Expression);
+        Assert.False(ifStatement.EndIfKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Parse_nested_if_inside_function()
+    {
+        const string source =
+            "ScriptName Foo\n" +
+            "Function Bar()\n" +
+            "  If a\n" +
+            "    If b\n" +
+            "      Return\n" +
+            "    EndIf\n" +
+            "  EndIf\n" +
+            "EndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var outer = Assert.IsType<IfStatementSyntax>(function.Statements.Get(0));
+        var inner = Assert.IsType<IfStatementSyntax>(outer.Statements.Get(0));
+        Assert.Equal("b", ((IdentifierNameSyntax)((NameExpressionSyntax)inner.Condition).Name).Identifier.Text);
+        Assert.False(inner.EndIfKeyword.IsMissing);
+        Assert.False(outer.EndIfKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Missing_endif_produces_missing_token_and_does_not_swallow_endfunction()
+    {
+        const string source = "ScriptName Foo\nFunction Bar()\n  If x\n    Return\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var ifStatement = Assert.IsType<IfStatementSyntax>(function.Statements.Get(0));
+        Assert.True(ifStatement.EndIfKeyword.IsMissing);
+        Assert.Equal(0, ifStatement.EndIfKeyword.FullWidth);
+        Assert.False(function.EndFunctionKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Parse_while_inside_function()
+    {
+        const string source =
+            "ScriptName Foo\n" +
+            "Function Bar()\n" +
+            "  While x == 1\n" +
+            "    Return\n" +
+            "  EndWhile\n" +
+            "EndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var whileStatement = Assert.IsType<WhileStatementSyntax>(function.Statements.Get(0));
+        Assert.False(whileStatement.WhileKeyword.IsMissing);
+        var condition = Assert.IsType<BinaryExpressionSyntax>(whileStatement.Condition);
+        Assert.Equal(SyntaxKind.EqualsEqualsToken, condition.OperatorToken.Kind);
+        Assert.Equal(1, whileStatement.Statements.Count);
+        Assert.IsType<ReturnStatementSyntax>(whileStatement.Statements.Get(0));
+        Assert.False(whileStatement.EndWhileKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Parse_declare_and_assign_inside_function()
+    {
+        const string source =
+            "ScriptName Foo\n" +
+            "Function Bar()\n" +
+            "  Int x = 1\n" +
+            "  x = 2\n" +
+            "  x += 3\n" +
+            "EndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal(3, function.Statements.Count);
+
+        var declare = Assert.IsType<DeclareStatementSyntax>(function.Statements.Get(0));
+        Assert.Equal("Int", ((IdentifierNameSyntax)declare.TypeName.Name).Identifier.Text);
+        Assert.Equal("x", declare.Name.Identifier.Text);
+        Assert.NotNull(declare.EqualsValue);
+        Assert.Equal("1", ((LiteralExpressionSyntax)declare.EqualsValue.Value).Token.Text);
+
+        var assign = Assert.IsType<AssignmentStatementSyntax>(function.Statements.Get(1));
+        Assert.Equal("x", ((IdentifierNameSyntax)((NameExpressionSyntax)assign.Left).Name).Identifier.Text);
+        Assert.Equal(SyntaxKind.EqualsToken, assign.OperatorToken.Kind);
+        Assert.Equal("2", ((LiteralExpressionSyntax)assign.Right).Token.Text);
+
+        var compound = Assert.IsType<AssignmentStatementSyntax>(function.Statements.Get(2));
+        Assert.Equal(SyntaxKind.PlusEqualsToken, compound.OperatorToken.Kind);
+        Assert.Equal("3", ((LiteralExpressionSyntax)compound.Right).Token.Text);
+    }
+
+    [Fact]
+    public void Parse_expression_statement_call_inside_function()
+    {
+        const string source = "ScriptName Foo\nFunction Bar()\n  Foo()\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal(1, function.Statements.Count);
+        var exprStmt = Assert.IsType<ExpressionStatementSyntax>(function.Statements.Get(0));
+        var name = Assert.IsType<NameExpressionSyntax>(exprStmt.Expression);
+        Assert.Equal("Foo", ((IdentifierNameSyntax)name.Name).Identifier.Text);
+    }
+
+    [Theory]
+    [InlineData("ScriptName Foo\nFunction F()\nInt x = 1\nEndFunction\n")]
+    [InlineData("ScriptName Foo\nFunction F()\n  Int x = 1\nEndFunction\n")]
+    public void Local_int_declare_parses_as_declare_statement(string source)
+    {
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var declare = Assert.IsType<DeclareStatementSyntax>(function.Statements.Get(0));
+        Assert.Equal("x", declare.Name.Identifier.Text);
         Assert.False(function.EndFunctionKeyword.IsMissing);
     }
 

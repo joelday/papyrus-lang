@@ -211,7 +211,7 @@ internal sealed class Parser
         }
         else
         {
-            statements = SyntaxFactory.List(ParseSkippedStatements(SyntaxKind.EndFunctionKeyword));
+            statements = SyntaxFactory.List(ParseStatements(StatementScope.Function));
             endFunction = Eat(SyntaxKind.EndFunctionKeyword);
         }
 
@@ -246,7 +246,7 @@ internal sealed class Parser
         }
         else
         {
-            statements = SyntaxFactory.List(ParseSkippedStatements(SyntaxKind.EndEventKeyword));
+            statements = SyntaxFactory.List(ParseStatements(StatementScope.Event));
             endEvent = Eat(SyntaxKind.EndEventKeyword);
         }
 
@@ -403,56 +403,172 @@ internal sealed class Parser
         }
 
         var equals = Take();
-        return SyntaxFactory.EqualsValueClause(equals, ParseSignatureExpression());
+        return SyntaxFactory.EqualsValueClause(equals, ParsePrimaryExpression());
     }
 
-    private ExpressionSyntax ParseSignatureExpression()
-    {
-        if (_current.Kind == SyntaxKind.MinusToken)
-        {
-            var operatorToken = Take();
-            return SyntaxFactory.PrefixUnaryExpression(operatorToken, ParseLiteralExpression());
-        }
-
-        return ParseLiteralExpression();
-    }
-
-    private LiteralExpressionSyntax ParseLiteralExpression()
-    {
-        if (IsLiteral(_current.Kind))
-        {
-            return SyntaxFactory.LiteralExpression(Take());
-        }
-
-        return SyntaxFactory.LiteralExpression(Missing(SyntaxKind.IntegerLiteralToken));
-    }
-
-    private List<StatementSyntax> ParseSkippedStatements(SyntaxKind terminator)
+    private List<StatementSyntax> ParseStatements(StatementScope scope)
     {
         var statements = new List<StatementSyntax>();
         while (!_cancellationToken.IsCancellationRequested)
         {
             SkipEndOfLines();
             if (_cancellationToken.IsCancellationRequested
-                || _current.Kind == terminator
-                || _current.Kind == SyntaxKind.EndOfFileToken
-                || IsEndKeyword(_current.Kind)
+                || IsStatementListStop(scope, _current.Kind)
                 || LooksLikeDeclarationStart())
             {
                 break;
             }
 
-            statements.Add(ParseSkippedStatement());
+            statements.Add(ParseStatement());
         }
 
         return statements;
     }
 
+    private StatementSyntax ParseStatement()
+    {
+        if (_current.Kind == SyntaxKind.IfKeyword)
+        {
+            return ParseIfStatement();
+        }
+
+        if (_current.Kind == SyntaxKind.WhileKeyword)
+        {
+            return ParseWhileStatement();
+        }
+
+        if (_current.Kind == SyntaxKind.ReturnKeyword)
+        {
+            return ParseReturnStatement();
+        }
+
+        if (LooksLikeLocalDeclare())
+        {
+            return ParseDeclareStatement();
+        }
+
+        if (LooksLikeAssignment())
+        {
+            return ParseAssignmentStatement();
+        }
+
+        if (IsExpressionStart(_current.Kind))
+        {
+            return ParseExpressionStatement();
+        }
+
+        return ParseSkippedStatement();
+    }
+
+    private IfStatementSyntax ParseIfStatement()
+    {
+        var ifKeyword = Take();
+        var condition = ParseLineExpression();
+        var endOfLine = EatEndOfLine();
+        var statements = ParseStatements(StatementScope.If);
+
+        var elseIfClauses = new List<ElseIfClauseSyntax>();
+        while (_current.Kind == SyntaxKind.ElseIfKeyword)
+        {
+            elseIfClauses.Add(ParseElseIfClause());
+        }
+
+        ElseClauseSyntax? elseClause = null;
+        if (_current.Kind == SyntaxKind.ElseKeyword)
+        {
+            elseClause = ParseElseClause();
+        }
+
+        var endIf = Eat(SyntaxKind.EndIfKeyword);
+        return SyntaxFactory.IfStatement(
+            ifKeyword,
+            condition,
+            endOfLine,
+            SyntaxFactory.List(statements),
+            SyntaxFactory.List(elseIfClauses),
+            elseClause,
+            endIf);
+    }
+
+    private ElseIfClauseSyntax ParseElseIfClause()
+    {
+        var elseIfKeyword = Take();
+        var condition = ParseLineExpression();
+        var endOfLine = EatEndOfLine();
+        var statements = ParseStatements(StatementScope.If);
+        return SyntaxFactory.ElseIfClause(
+            elseIfKeyword,
+            condition,
+            endOfLine,
+            SyntaxFactory.List(statements));
+    }
+
+    private ElseClauseSyntax ParseElseClause()
+    {
+        var elseKeyword = Take();
+        var endOfLine = EatEndOfLine();
+        var statements = ParseStatements(StatementScope.If);
+        return SyntaxFactory.ElseClause(elseKeyword, endOfLine, SyntaxFactory.List(statements));
+    }
+
+    private WhileStatementSyntax ParseWhileStatement()
+    {
+        var whileKeyword = Take();
+        var condition = ParseLineExpression();
+        var endOfLine = EatEndOfLine();
+        var statements = ParseStatements(StatementScope.While);
+        var endWhile = Eat(SyntaxKind.EndWhileKeyword);
+        return SyntaxFactory.WhileStatement(
+            whileKeyword,
+            condition,
+            endOfLine,
+            SyntaxFactory.List(statements),
+            endWhile);
+    }
+
+    private ReturnStatementSyntax ParseReturnStatement()
+    {
+        var returnKeyword = Take();
+        ExpressionSyntax? expression = null;
+        if (!IsLineTerminator(_current.Kind) && !IsStatementKeyword(_current.Kind))
+        {
+            expression = ParseLineExpression();
+        }
+
+        return SyntaxFactory.ReturnStatement(returnKeyword, expression, EatEndOfLine());
+    }
+
+    private DeclareStatementSyntax ParseDeclareStatement()
+    {
+        var typeName = ParseTypeName();
+        var name = ParseIdentifierName();
+        var equalsValue = TryParseEqualsValue();
+        SkipExpressionRemainder(stopAtAssignment: false);
+        return SyntaxFactory.DeclareStatement(typeName, name, equalsValue, EatEndOfLine());
+    }
+
+    private AssignmentStatementSyntax ParseAssignmentStatement()
+    {
+        var left = ParseExpression(stopAtAssignment: true);
+        var operatorToken = IsAssignmentOperator(_current.Kind)
+            ? Take()
+            : Missing(SyntaxKind.EqualsToken);
+        var right = ParseLineExpression();
+        return SyntaxFactory.AssignmentStatement(left, operatorToken, right, EatEndOfLine());
+    }
+
+    private ExpressionStatementSyntax ParseExpressionStatement()
+    {
+        var expression = ParseLineExpression();
+        return SyntaxFactory.ExpressionStatement(expression, EatEndOfLine());
+    }
+
     private SkippedStatementSyntax ParseSkippedStatement()
     {
-        // Type keywords are line terminators for declaration recovery, but soup
-        // must still consume them (`Int x`, `as Int`, `new Int[5]`).
-        if (!IsStatementStop(_current.Kind))
+        // Always consume the current token so stray EndIf/EndWhile cannot
+        // sit at a list-stop boundary and spin. Type keywords are member
+        // terminators, but soup still has to eat `Int x` / `as Int`.
+        if (_current.Kind is not SyntaxKind.EndOfLineToken and not SyntaxKind.EndOfFileToken)
         {
             Skip();
         }
@@ -463,6 +579,70 @@ internal sealed class Parser
         }
 
         return SyntaxFactory.SkippedStatement(EatEndOfLine());
+    }
+
+    private ExpressionSyntax ParseLineExpression()
+        => ParseExpression(stopAtAssignment: false);
+
+    private ExpressionSyntax ParseExpression(bool stopAtAssignment)
+    {
+        var expression = ParseBinaryExpression(stopAtAssignment);
+        SkipExpressionRemainder(stopAtAssignment);
+        return expression;
+    }
+
+    private ExpressionSyntax ParseBinaryExpression(bool stopAtAssignment)
+    {
+        var left = ParsePrimaryExpression();
+        while (IsBinaryOperator(_current.Kind)
+            && !(stopAtAssignment && IsAssignmentOperator(_current.Kind)))
+        {
+            var operatorToken = Take();
+            var right = ParsePrimaryExpression();
+            left = SyntaxFactory.BinaryExpression(left, operatorToken, right);
+        }
+
+        return left;
+    }
+
+    private ExpressionSyntax ParsePrimaryExpression()
+    {
+        if (_current.Kind is SyntaxKind.MinusToken or SyntaxKind.ExclamationToken)
+        {
+            var operatorToken = Take();
+            return SyntaxFactory.PrefixUnaryExpression(operatorToken, ParsePrimaryExpression());
+        }
+
+        if (IsLiteral(_current.Kind))
+        {
+            return SyntaxFactory.LiteralExpression(Take());
+        }
+
+        if (IsNameToken(_current.Kind))
+        {
+            return SyntaxFactory.NameExpression(ParseName());
+        }
+
+        return SyntaxFactory.LiteralExpression(Missing(SyntaxKind.IntegerLiteralToken));
+    }
+
+    private void SkipExpressionRemainder(bool stopAtAssignment)
+    {
+        var depth = 0;
+        while (!IsExpressionRemainderStop(_current.Kind, depth, stopAtAssignment))
+        {
+            if (_current.Kind is SyntaxKind.OpenParenToken or SyntaxKind.OpenBracketToken)
+            {
+                depth++;
+            }
+            else if (depth > 0
+                && _current.Kind is SyntaxKind.CloseParenToken or SyntaxKind.CloseBracketToken)
+            {
+                depth--;
+            }
+
+            Skip();
+        }
     }
 
     private TypeNameSyntax? TryParseFunctionReturnType()
@@ -716,6 +896,47 @@ internal sealed class Parser
         return next is SyntaxKind.FunctionKeyword or SyntaxKind.PropertyKeyword;
     }
 
+    private bool LooksLikeLocalDeclare()
+    {
+        if (!IsTypeStart(_current.Kind))
+        {
+            return false;
+        }
+
+        return IsNameToken(PeekToken(SkipTypeLookahead(0)).Kind);
+    }
+
+    private bool LooksLikeAssignment()
+    {
+        var depth = 0;
+        for (var i = 0; ; i++)
+        {
+            var kind = PeekToken(i).Kind;
+            if (kind is SyntaxKind.EndOfLineToken or SyntaxKind.EndOfFileToken
+                || IsStatementKeyword(kind)
+                || IsEndKeyword(kind))
+            {
+                return false;
+            }
+
+            if (kind is SyntaxKind.OpenParenToken or SyntaxKind.OpenBracketToken)
+            {
+                depth++;
+            }
+            else if (kind is SyntaxKind.CloseParenToken or SyntaxKind.CloseBracketToken)
+            {
+                if (depth > 0)
+                {
+                    depth--;
+                }
+            }
+            else if (depth == 0 && IsAssignmentOperator(kind))
+            {
+                return true;
+            }
+        }
+    }
+
     private int SkipTypeLookahead(int index)
     {
         if (!IsNameToken(PeekToken(index).Kind))
@@ -886,7 +1107,102 @@ internal sealed class Parser
         => kind is SyntaxKind.EndFunctionKeyword
             or SyntaxKind.EndEventKeyword
             or SyntaxKind.EndStateKeyword
+            or SyntaxKind.EndPropertyKeyword
+            or SyntaxKind.EndIfKeyword
+            or SyntaxKind.EndWhileKeyword;
+
+    private static bool IsMemberEndKeyword(SyntaxKind kind)
+        => kind is SyntaxKind.EndFunctionKeyword
+            or SyntaxKind.EndEventKeyword
+            or SyntaxKind.EndStateKeyword
             or SyntaxKind.EndPropertyKeyword;
+
+    private static bool IsStatementListStop(StatementScope scope, SyntaxKind kind)
+    {
+        if (kind == SyntaxKind.EndOfFileToken || IsMemberEndKeyword(kind))
+        {
+            return true;
+        }
+
+        return scope switch
+        {
+            StatementScope.If => kind is SyntaxKind.ElseIfKeyword
+                or SyntaxKind.ElseKeyword
+                or SyntaxKind.EndIfKeyword
+                or SyntaxKind.EndWhileKeyword,
+            StatementScope.While => kind is SyntaxKind.EndWhileKeyword
+                or SyntaxKind.EndIfKeyword
+                or SyntaxKind.ElseIfKeyword
+                or SyntaxKind.ElseKeyword,
+            _ => false,
+        };
+    }
+
+    private static bool IsAssignmentOperator(SyntaxKind kind)
+        => kind is SyntaxKind.EqualsToken
+            or SyntaxKind.PlusEqualsToken
+            or SyntaxKind.MinusEqualsToken
+            or SyntaxKind.AsteriskEqualsToken
+            or SyntaxKind.SlashEqualsToken
+            or SyntaxKind.PercentEqualsToken;
+
+    private static bool IsBinaryOperator(SyntaxKind kind)
+        => kind is SyntaxKind.BarBarToken
+            or SyntaxKind.AmpersandAmpersandToken
+            or SyntaxKind.EqualsEqualsToken
+            or SyntaxKind.ExclamationEqualsToken
+            or SyntaxKind.LessThanToken
+            or SyntaxKind.GreaterThanToken
+            or SyntaxKind.LessThanEqualsToken
+            or SyntaxKind.GreaterThanEqualsToken
+            or SyntaxKind.PlusToken
+            or SyntaxKind.MinusToken
+            or SyntaxKind.AsteriskToken
+            or SyntaxKind.SlashToken
+            or SyntaxKind.PercentToken;
+
+    private static bool IsExpressionStart(SyntaxKind kind)
+        => IsLiteral(kind)
+            || IsNameToken(kind)
+            || kind is SyntaxKind.MinusToken
+                or SyntaxKind.ExclamationToken
+                or SyntaxKind.OpenParenToken
+                or SyntaxKind.NewKeyword;
+
+    private static bool IsStatementKeyword(SyntaxKind kind)
+        => kind is SyntaxKind.IfKeyword
+            or SyntaxKind.WhileKeyword
+            or SyntaxKind.ReturnKeyword
+            or SyntaxKind.ElseKeyword
+            or SyntaxKind.ElseIfKeyword;
+
+    private static bool IsExpressionRemainderStop(SyntaxKind kind, int depth, bool stopAtAssignment)
+    {
+        if (kind is SyntaxKind.EndOfLineToken or SyntaxKind.EndOfFileToken)
+        {
+            return true;
+        }
+
+        if (depth != 0)
+        {
+            return false;
+        }
+
+        if (stopAtAssignment && IsAssignmentOperator(kind))
+        {
+            return true;
+        }
+
+        return IsStatementKeyword(kind)
+            || IsEndKeyword(kind)
+            || kind is SyntaxKind.FunctionKeyword
+                or SyntaxKind.EventKeyword
+                or SyntaxKind.StateKeyword
+                or SyntaxKind.PropertyKeyword
+                or SyntaxKind.ImportKeyword
+                or SyntaxKind.AutoKeyword
+                or SyntaxKind.DocCommentToken;
+    }
 
     private static bool IsParameterListStop(SyntaxKind kind)
         => kind is SyntaxKind.CloseParenToken
@@ -901,7 +1217,7 @@ internal sealed class Parser
 
     private static bool IsStatementStop(SyntaxKind kind)
         => kind is SyntaxKind.EndOfLineToken or SyntaxKind.EndOfFileToken
-            || IsEndKeyword(kind);
+            || IsMemberEndKeyword(kind);
 
     private static bool IsLineTerminator(SyntaxKind kind)
         => kind is SyntaxKind.EndOfLineToken
@@ -917,9 +1233,24 @@ internal sealed class Parser
             or SyntaxKind.EndPropertyKeyword
             or SyntaxKind.AutoKeyword
             or SyntaxKind.DocCommentToken
+            or SyntaxKind.IfKeyword
+            or SyntaxKind.WhileKeyword
+            or SyntaxKind.ReturnKeyword
+            or SyntaxKind.ElseKeyword
+            or SyntaxKind.ElseIfKeyword
+            or SyntaxKind.EndIfKeyword
+            or SyntaxKind.EndWhileKeyword
             or SyntaxKind.IntKeyword
             or SyntaxKind.FloatKeyword
             or SyntaxKind.StringKeyword
             or SyntaxKind.BoolKeyword
             or SyntaxKind.VarKeyword;
+
+    private enum StatementScope
+    {
+        Function,
+        Event,
+        If,
+        While,
+    }
 }

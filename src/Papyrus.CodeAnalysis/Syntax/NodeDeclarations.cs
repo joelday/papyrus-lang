@@ -141,6 +141,20 @@ internal sealed partial class PrefixUnaryExpressionSyntax : ExpressionSyntax
 }
 
 [SyntaxNode]
+internal sealed partial class NameExpressionSyntax : ExpressionSyntax
+{
+    public partial NameSyntax Name { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class BinaryExpressionSyntax : ExpressionSyntax
+{
+    public partial ExpressionSyntax Left { get; }
+    public SyntaxToken OperatorToken { get; }
+    public partial ExpressionSyntax Right { get; }
+}
+
+[SyntaxNode]
 internal sealed partial class EqualsValueClauseSyntax : SyntaxNode
 {
     public SyntaxToken EqualsToken { get; }
@@ -167,6 +181,78 @@ internal sealed partial class ParameterListSyntax : SyntaxNode
 [SyntaxNode]
 internal sealed partial class SkippedStatementSyntax : StatementSyntax
 {
+    public SyntaxToken EndOfLineToken { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class IfStatementSyntax : StatementSyntax
+{
+    public SyntaxToken IfKeyword { get; }
+    public partial ExpressionSyntax Condition { get; }
+    public SyntaxToken EndOfLineToken { get; }
+    public partial SyntaxList<StatementSyntax> Statements { get; }
+    public partial SyntaxList<ElseIfClauseSyntax> ElseIfClauses { get; }
+    public partial ElseClauseSyntax? ElseClause { get; }
+    public SyntaxToken EndIfKeyword { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class ElseIfClauseSyntax : SyntaxNode
+{
+    public SyntaxToken ElseIfKeyword { get; }
+    public partial ExpressionSyntax Condition { get; }
+    public SyntaxToken EndOfLineToken { get; }
+    public partial SyntaxList<StatementSyntax> Statements { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class ElseClauseSyntax : SyntaxNode
+{
+    public SyntaxToken ElseKeyword { get; }
+    public SyntaxToken EndOfLineToken { get; }
+    public partial SyntaxList<StatementSyntax> Statements { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class WhileStatementSyntax : StatementSyntax
+{
+    public SyntaxToken WhileKeyword { get; }
+    public partial ExpressionSyntax Condition { get; }
+    public SyntaxToken EndOfLineToken { get; }
+    public partial SyntaxList<StatementSyntax> Statements { get; }
+    public SyntaxToken EndWhileKeyword { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class ReturnStatementSyntax : StatementSyntax
+{
+    public SyntaxToken ReturnKeyword { get; }
+    public partial ExpressionSyntax? Expression { get; }
+    public SyntaxToken EndOfLineToken { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class DeclareStatementSyntax : StatementSyntax
+{
+    public partial TypeNameSyntax TypeName { get; }
+    public partial IdentifierNameSyntax Name { get; }
+    public partial EqualsValueClauseSyntax? EqualsValue { get; }
+    public SyntaxToken EndOfLineToken { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class AssignmentStatementSyntax : StatementSyntax
+{
+    public partial ExpressionSyntax Left { get; }
+    public SyntaxToken OperatorToken { get; }
+    public partial ExpressionSyntax Right { get; }
+    public SyntaxToken EndOfLineToken { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class ExpressionStatementSyntax : StatementSyntax
+{
+    public partial ExpressionSyntax Expression { get; }
     public SyntaxToken EndOfLineToken { get; }
 }
 
