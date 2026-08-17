@@ -10,11 +10,13 @@ internal sealed class ScriptSymbol : MemberOwnerSymbol, IScriptSymbol
         PapyrusName name,
         QualifiedName qualifiedName,
         TypeName typeName,
-        ImmutableArray<SyntaxReference> declaringSyntaxReferences = default)
+        ImmutableArray<SyntaxReference> declaringSyntaxReferences = default,
+        bool isError = false)
         : base(name, SymbolKind.Script, containingSymbol: null, containingScript: null, isNative: false)
     {
         QualifiedName = qualifiedName;
         TypeName = typeName;
+        TypeKind = isError ? TypeKind.Error : TypeKind.Script;
         _declaringSyntaxReferences = declaringSyntaxReferences.IsDefault
             ? ImmutableArray<SyntaxReference>.Empty
             : declaringSyntaxReferences;
@@ -28,7 +30,9 @@ internal sealed class ScriptSymbol : MemberOwnerSymbol, IScriptSymbol
 
     public TypeName TypeName { get; }
 
-    public TypeKind TypeKind => TypeKind.Script;
+    public TypeKind TypeKind { get; }
+
+    internal bool IsError => TypeKind == TypeKind.Error;
 
     public IScriptSymbol? BaseType { get; internal set; }
 
@@ -94,6 +98,40 @@ internal sealed class FunctionSymbol : Symbol, IFunctionSymbol
     internal void SetParameters(ImmutableArray<IParameterSymbol> parameters)
     {
         Parameters = parameters.IsDefault ? ImmutableArray<IParameterSymbol>.Empty : parameters;
+    }
+}
+
+internal sealed class EventSymbol : Symbol, IEventSymbol
+{
+    public EventSymbol(
+        PapyrusName name,
+        ISymbol containingSymbol,
+        IScriptSymbol? containingScript,
+        ITypeSymbol returnType,
+        bool isNative)
+        : base(name, SymbolKind.Event, containingSymbol, containingScript, isNative)
+    {
+        ReturnType = returnType;
+        Parameters = ImmutableArray<IParameterSymbol>.Empty;
+    }
+
+    public ITypeSymbol ReturnType { get; }
+
+    public ImmutableArray<IParameterSymbol> Parameters { get; private set; }
+
+    public bool IsGlobal => false;
+
+    internal void SetParameters(ImmutableArray<IParameterSymbol> parameters)
+    {
+        Parameters = parameters.IsDefault ? ImmutableArray<IParameterSymbol>.Empty : parameters;
+    }
+}
+
+internal sealed class CustomEventSymbol : Symbol, ICustomEventSymbol
+{
+    public CustomEventSymbol(PapyrusName name, IScriptSymbol containingScript)
+        : base(name, SymbolKind.CustomEvent, containingScript, containingScript, isNative: false)
+    {
     }
 }
 

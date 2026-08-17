@@ -12,6 +12,8 @@ namespace Papyrus.CodeAnalysis;
 public sealed class PapyrusCompilation
 {
     public const string UnresolvedScriptDiagnosticId = "PAP1000";
+    public const string UnresolvedBaseTypeDiagnosticId = "PAP1001";
+    public const string CyclicBaseTypeDiagnosticId = "PAP1002";
 
     private readonly PapyrusParseOptions _options;
     private readonly ImmutableDictionary<QualifiedName, SyntaxTree> _overrides;
@@ -63,7 +65,13 @@ public sealed class PapyrusCompilation
     public IScriptSymbol GetScript(QualifiedName name)
     {
         name = Intern(name);
-        return _scripts.GetOrAdd(name, n => CreateScript(n, GetOrAddCached(n)));
+        var script = _scripts.GetOrAdd(name, n => CreateScript(n, GetOrAddCached(n)));
+        if (script is SourceScriptSymbol source)
+        {
+            source.ForceComplete(CompletionPart.Members | CompletionPart.BaseType, CancellationToken.None);
+        }
+
+        return script;
     }
 
     public SyntaxTree GetSyntaxTree(QualifiedName name)
@@ -99,6 +107,15 @@ public sealed class PapyrusCompilation
         {
             cancellationToken.ThrowIfCancellationRequested();
             builder.AddRange(cached.Tree.GetDiagnostics(cancellationToken));
+        }
+
+        foreach (var script in _scripts.Values)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (script is SourceScriptSymbol source)
+            {
+                builder.AddRange(source.GetBindingDiagnostics());
+            }
         }
 
         return builder.ToImmutable();
@@ -179,19 +196,30 @@ public sealed class PapyrusCompilation
     private IScriptSymbol CreateSourceScript(QualifiedName name, SyntaxTree tree)
     {
         var references = ImmutableArray<SyntaxReference>.Empty;
+        var isNative = false;
         if (tree.TryGetRoot(out var root))
         {
             var span = root.Name.IsMissing ? root.Span : root.Name.Span;
             references = ImmutableArray.Create(new SyntaxReference(tree, span));
+            isNative = root.NativeKeyword.Kind == SyntaxKind.NativeKeyword;
         }
 
-        return new ScriptSymbol(SimpleName(name), name, new TypeName(name), references);
+        return new SourceScriptSymbol(
+            this,
+            tree,
+            SimpleName(name),
+            name,
+            new TypeName(name),
+            references,
+            isNative);
     }
 
     private static IScriptSymbol CreateErrorScript(QualifiedName name)
     {
-        return new ScriptSymbol(SimpleName(name), name, new TypeName(name));
+        return new ScriptSymbol(SimpleName(name), name, new TypeName(name), isError: true);
     }
+
+    internal QualifiedName GetInternedQualifiedName(NameSyntax name) => Intern(ToQualifiedName(name));
 
     private static PapyrusName SimpleName(QualifiedName name)
     {

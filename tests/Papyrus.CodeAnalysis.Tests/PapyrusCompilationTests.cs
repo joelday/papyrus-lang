@@ -21,7 +21,7 @@ public sealed class PapyrusCompilationTests
     }
 
     [Fact]
-    public void GetScript_source_has_name_weak_syntax_and_empty_members()
+    public void GetScript_source_has_name_weak_syntax_and_declared_members()
     {
         var name = QualifiedName.Parse("Foo");
         var compilation = PapyrusCompilation.Create(
@@ -36,7 +36,7 @@ public sealed class PapyrusCompilationTests
         Assert.Equal("Foo", script.Name.Text);
         Assert.Equal("Foo", script.QualifiedName.ToString());
         Assert.Equal(SymbolKind.Script, script.Kind);
-        Assert.Empty(script.GetMembers());
+        Assert.Equal("Bar", Assert.Single(script.GetMembers()).Name.Text);
         Assert.Null(script.BaseType);
         var reference = Assert.Single(script.DeclaringSyntaxReferences);
         Assert.Same(compilation.GetSyntaxTree(name), reference.SyntaxTree);
@@ -129,7 +129,7 @@ public sealed class PapyrusCompilationTests
         Assert.Same(originalTree, original.GetSyntaxTree(name));
         Assert.NotSame(originalTree, updated.GetSyntaxTree(name));
         Assert.Equal("ScriptName Foo\nFunction Go()\nEndFunction\n", updated.GetSyntaxTree(name).GetText().ToString());
-        Assert.Empty(updated.GetScript(name).GetMembers());
+        Assert.Equal("Go", Assert.Single(updated.GetScript(name).GetMembers()).Name.Text);
         Assert.Same(original.Names, updated.Names);
         Assert.Same(original.Resolver, updated.Resolver);
     }
