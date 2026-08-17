@@ -18,6 +18,40 @@ const exists = promisify(fs.exists);
 const copyFile = promisify(fs.copyFile);
 const readdir = promisify(fs.readdir);
 
+function getPluginDataDir(pluginPath: string): string {
+    return path.join(path.dirname(pluginPath), 'data');
+}
+
+async function listJsonFileNames(directoryPath: string): Promise<string[]> {
+    if (!(await exists(directoryPath))) {
+        return [];
+    }
+
+    return (await readdir(directoryPath)).filter((fileName) => fileName.endsWith('.json')).sort();
+}
+
+// Extra installed JSON files are allowed (a new game version can be a dropped data file).
+// Missing or changed bundled files must prompt a recopy.
+async function bundledDataIsInstalled(bundledDataDir: string, installedDataDir: string): Promise<boolean> {
+    const bundledJson = await listJsonFileNames(bundledDataDir);
+    if (bundledJson.length === 0) {
+        return false;
+    }
+
+    for (const fileName of bundledJson) {
+        const installedPath = path.join(installedDataDir, fileName);
+        if (!(await exists(installedPath))) {
+            return false;
+        }
+
+        if ((await md5File(path.join(bundledDataDir, fileName))) !== (await md5File(installedPath))) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 export enum DebugSupportInstallState {
     notInstalled,
     installed,
@@ -75,9 +109,13 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
         }
 
         const installedHash = await md5File(installedPluginPath);
-        const bundledHash = await md5File(await this._pathResolver.getDebugPluginBundledPath(game));
+        const bundledHash = await md5File(bundledPluginPath);
 
         if (installedHash !== bundledHash) {
+            return DebugSupportInstallState.incorrectVersion;
+        }
+
+        if (!(await bundledDataIsInstalled(getPluginDataDir(bundledPluginPath), getPluginDataDir(installedPluginPath)))) {
             return DebugSupportInstallState.incorrectVersion;
         }
 
@@ -100,18 +138,22 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
             return false;
         }
 
+        const bundledDataDir = getPluginDataDir(bundledPluginPath);
+        const bundledJson = await listJsonFileNames(bundledDataDir);
+        if (bundledJson.length === 0) {
+            throw new Error(
+                `Address Library data files are missing from the extension bundle (${bundledDataDir}). ` +
+                    'The debug plugin cannot start without versioned ID JSON.'
+            );
+        }
+
         await mkdirIfNeeded(path.dirname(pluginInstallPath));
         await copyFile(bundledPluginPath, pluginInstallPath);
 
-        const bundledDataDir = path.join(path.dirname(bundledPluginPath), 'data');
-        if (await exists(bundledDataDir)) {
-            const installDataDir = path.join(path.dirname(pluginInstallPath), 'data');
-            await mkdirIfNeeded(installDataDir);
-            for (const file of await readdir(bundledDataDir)) {
-                if (file.endsWith('.json')) {
-                    await copyFile(path.join(bundledDataDir, file), path.join(installDataDir, file));
-                }
-            }
+        const installDataDir = getPluginDataDir(pluginInstallPath);
+        await mkdirIfNeeded(installDataDir);
+        for (const fileName of bundledJson) {
+            await copyFile(path.join(bundledDataDir, fileName), path.join(installDataDir, fileName));
         }
 
         return true;
