@@ -1,15 +1,19 @@
 namespace Papyrus.CodeAnalysis.Syntax;
 
+internal abstract partial class NameSyntax
+{
+}
+
 [SyntaxNode]
-internal sealed partial class IdentifierNameSyntax
+internal sealed partial class IdentifierNameSyntax : NameSyntax
 {
     public IdentifierToken Identifier { get; }
 }
 
 [SyntaxNode]
-internal sealed partial class QualifiedNameSyntax
+internal sealed partial class QualifiedNameSyntax : NameSyntax
 {
-    public IdentifierNameSyntax Left { get; } = null!;
+    public NameSyntax Left { get; } = null!;
     public ColonToken ColonToken { get; }
     public IdentifierNameSyntax Right { get; } = null!;
 }
@@ -17,7 +21,7 @@ internal sealed partial class QualifiedNameSyntax
 [SyntaxNode]
 internal sealed partial class TypeNameSyntax
 {
-    public QualifiedNameSyntax Name { get; } = null!;
+    public NameSyntax Name { get; } = null!;
     public HashToken HashToken { get; }
     public IdentifierToken StructName { get; }
     public OpenBracketToken OpenBracketToken { get; }

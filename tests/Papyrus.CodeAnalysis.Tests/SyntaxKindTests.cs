@@ -31,6 +31,11 @@ public sealed class SyntaxKindTests
     [InlineData("BlockCommentTrivia")]
     [InlineData("LineContinuationTrivia")]
     [InlineData("SkippedTokensTrivia")]
+    [InlineData("List")]
+    [InlineData("IdentifierName")]
+    [InlineData("QualifiedName")]
+    [InlineData("TypeName")]
+    [InlineData("ExtendsClause")]
     [InlineData("ScriptDeclaration")]
     public void Contains_core_script_header_member(string name)
     {
