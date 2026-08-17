@@ -155,4 +155,237 @@ public sealed class ParserTests
         Assert.Contains("Import", root.EndOfFileToken.ToFullString(), StringComparison.Ordinal);
         Assert.Contains("Function", root.EndOfFileToken.ToFullString(), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Parse_empty_function_round_trips()
+    {
+        const string source = "ScriptName Foo\nFunction Bar()\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        Assert.Equal(1, root.Members.Count);
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("Bar", function.Name.Identifier.Text);
+        Assert.Null(function.ReturnType);
+        Assert.False(function.FunctionKeyword.IsMissing);
+        Assert.False(function.ParameterList.OpenParenToken.IsMissing);
+        Assert.False(function.ParameterList.CloseParenToken.IsMissing);
+        Assert.Empty(function.ParameterList.Parameters);
+        Assert.Empty(function.Statements);
+        Assert.False(function.EndFunctionKeyword.IsMissing);
+        Assert.Equal(SyntaxKind.EndFunctionKeyword, function.EndFunctionKeyword.Kind);
+    }
+
+    [Fact]
+    public void Parse_typed_function_with_parameters_and_body_round_trips()
+    {
+        const string source = "ScriptName Foo\nInt Function Bar(Int x, String y = \"z\")\n  Return x\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        Assert.NotNull(function.ReturnType);
+        Assert.Equal("Int", ((IdentifierNameSyntax)function.ReturnType.Name).Identifier.Text);
+        Assert.Equal(2, function.ParameterList.Parameters.Count);
+        Assert.Equal("x", function.ParameterList.Parameters.Get(0).Name.Identifier.Text);
+        Assert.Equal("y", function.ParameterList.Parameters.Get(1).Name.Identifier.Text);
+        Assert.Equal(SyntaxKind.CommaToken, function.ParameterList.Parameters.Get(1).CommaToken.Kind);
+        var defaultValue = function.ParameterList.Parameters.Get(1).EqualsValue;
+        Assert.NotNull(defaultValue);
+        Assert.Equal("\"z\"", ((LiteralExpressionSyntax)defaultValue.Value).Token.Text);
+        Assert.Equal(1, function.Statements.Count);
+        Assert.IsType<SkippedStatementSyntax>(function.Statements.Get(0));
+    }
+
+    [Fact]
+    public void Parse_native_function_has_no_end_function()
+    {
+        const string source = "ScriptName Foo\nInt Function NativeFunction() Native\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal(SyntaxKind.NativeKeyword, function.NativeKeyword.Kind);
+        Assert.Equal(SyntaxKind.None, function.EndFunctionKeyword.Kind);
+        Assert.Empty(function.Statements);
+    }
+
+    [Fact]
+    public void Missing_end_function_produces_missing_token_and_does_not_throw()
+    {
+        const string source = "ScriptName Foo\nFunction Bar()\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        Assert.True(function.EndFunctionKeyword.IsMissing);
+        Assert.Equal(0, function.EndFunctionKeyword.FullWidth);
+    }
+
+    [Fact]
+    public void Missing_end_function_does_not_swallow_the_next_function()
+    {
+        const string source = "ScriptName Foo\nFunction Bar()\nInt Function Baz()\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        Assert.Equal(2, root.Members.Count);
+        var bar = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var baz = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(1));
+        Assert.Equal("Bar", bar.Name.Identifier.Text);
+        Assert.True(bar.EndFunctionKeyword.IsMissing);
+        Assert.Equal("Baz", baz.Name.Identifier.Text);
+        Assert.False(baz.EndFunctionKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Parse_event_round_trips()
+    {
+        const string source = "ScriptName Foo\nEvent OnInit()\nEndEvent\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var ev = Assert.IsType<EventDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("OnInit", ev.Name.Identifier.Text);
+        Assert.False(ev.EndEventKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Parse_auto_property_round_trips()
+    {
+        const string source = "ScriptName Foo\nInt Property Value Auto\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var property = Assert.IsType<PropertyDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("Int", ((IdentifierNameSyntax)property.TypeName.Name).Identifier.Text);
+        Assert.Equal("Value", property.Name.Identifier.Text);
+        Assert.Equal(SyntaxKind.AutoKeyword, property.AutoKeyword.Kind);
+        Assert.Equal(SyntaxKind.None, property.EndPropertyKeyword.Kind);
+        Assert.Empty(property.Accessors);
+    }
+
+    [Fact]
+    public void Parse_auto_property_with_initializer_round_trips()
+    {
+        const string source = "ScriptName Foo\nInt Property Value = 5 Auto\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var property = Assert.IsType<PropertyDeclarationSyntax>(root.Members.Get(0));
+        Assert.NotNull(property.EqualsValue);
+        Assert.Equal("5", ((LiteralExpressionSyntax)property.EqualsValue.Value).Token.Text);
+        Assert.Equal(SyntaxKind.AutoKeyword, property.AutoKeyword.Kind);
+    }
+
+    [Fact]
+    public void Parse_full_property_round_trips()
+    {
+        const string source = "ScriptName Foo\nInt Property Value\nInt Function Get()\nEndFunction\nEndProperty\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var property = Assert.IsType<PropertyDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal(SyntaxKind.None, property.AutoKeyword.Kind);
+        Assert.Equal(1, property.Accessors.Count);
+        Assert.Equal("Get", property.Accessors.Get(0).Name.Identifier.Text);
+        Assert.False(property.EndPropertyKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Parse_variable_round_trips()
+    {
+        const string source = "ScriptName Foo\nInt Count = -1 Conditional\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var variable = Assert.IsType<VariableDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("Count", variable.Name.Identifier.Text);
+        Assert.NotNull(variable.EqualsValue);
+        var unary = Assert.IsType<PrefixUnaryExpressionSyntax>(variable.EqualsValue.Value);
+        Assert.Equal(SyntaxKind.MinusToken, unary.OperatorToken.Kind);
+        Assert.Equal("-1", unary.ToFullString().Trim());
+        Assert.Equal(SyntaxKind.ConditionalKeyword, variable.ConditionalKeyword.Kind);
+    }
+
+    [Fact]
+    public void Parse_state_round_trips()
+    {
+        const string source = "ScriptName Foo\nState Combat\nFunction OnUpdate()\nEndFunction\nEndState\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var state = Assert.IsType<StateDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("Combat", state.Name.Identifier.Text);
+        Assert.Equal(SyntaxKind.None, state.AutoKeyword.Kind);
+        Assert.Equal(1, state.Members.Count);
+        var function = Assert.IsType<FunctionDeclarationSyntax>(state.Members.Get(0));
+        Assert.Equal("OnUpdate", function.Name.Identifier.Text);
+        Assert.False(state.EndStateKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Parse_auto_state_round_trips()
+    {
+        const string source = "ScriptName Foo\nAuto State Default\nEvent OnInit()\nEndEvent\nEndState\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var state = Assert.IsType<StateDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal(SyntaxKind.AutoKeyword, state.AutoKeyword.Kind);
+        Assert.Equal("Default", state.Name.Identifier.Text);
+        Assert.Equal(1, state.Members.Count);
+        Assert.IsType<EventDeclarationSyntax>(state.Members.Get(0));
+    }
+
+    [Fact]
+    public void Parse_doc_comment_attaches_to_function()
+    {
+        const string source = "ScriptName Foo\n{A function}\nFunction Bar()\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("{A function}", function.DocComment.Text);
+    }
+
+    [Fact]
+    public void Parse_mixed_members_round_trips()
+    {
+        const string source =
+            "ScriptName Foo Hidden\n" +
+            "Import Utility\n" +
+            "Int Count = 0\n" +
+            "Int Property Value Auto\n" +
+            "Function Bar(Int x = 1) Global\n" +
+            "  Count = x\n" +
+            "EndFunction\n" +
+            "Auto State Default\n" +
+            "Event OnInit()\n" +
+            "EndEvent\n" +
+            "EndState\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        Assert.Equal(1, root.Imports.Count);
+        Assert.Equal(4, root.Members.Count);
+        Assert.IsType<VariableDeclarationSyntax>(root.Members.Get(0));
+        Assert.IsType<PropertyDeclarationSyntax>(root.Members.Get(1));
+        Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(2));
+        Assert.IsType<StateDeclarationSyntax>(root.Members.Get(3));
+    }
 }

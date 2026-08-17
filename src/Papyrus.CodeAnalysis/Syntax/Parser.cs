@@ -11,6 +11,7 @@ internal sealed class Parser
     private readonly Lexer _lexer;
     private readonly CancellationToken _cancellationToken;
     private readonly List<SyntaxToken> _skipped = new();
+    private readonly List<SyntaxToken> _ahead = new();
     private SyntaxToken _current;
 
     public Parser(
@@ -47,6 +48,7 @@ internal sealed class Parser
         var flags = ParseFlags();
         var endOfLineToken = EatEndOfLine();
         var imports = ParseImports();
+        var members = ParseMembers(SyntaxKind.EndOfFileToken);
         var endOfFileToken = EatRemainder();
 
         return SyntaxFactory.ScriptDeclaration(
@@ -57,13 +59,14 @@ internal sealed class Parser
             SyntaxFactory.List(flags),
             endOfLineToken,
             SyntaxFactory.List(imports),
+            SyntaxFactory.List(members),
             endOfFileToken);
     }
 
     private List<FlagSyntax> ParseFlags()
     {
         var flags = new List<FlagSyntax>();
-        while (IsScriptFlag(_current.Kind))
+        while (IsFlag(_current.Kind))
         {
             flags.Add(SyntaxFactory.Flag(Take()));
         }
@@ -103,6 +106,358 @@ internal sealed class Parser
         return SyntaxFactory.ImportDeclaration(keyword, name, endOfLine);
     }
 
+    private List<MemberDeclarationSyntax> ParseMembers(SyntaxKind terminator)
+    {
+        var members = new List<MemberDeclarationSyntax>();
+        while (!_cancellationToken.IsCancellationRequested)
+        {
+            SkipEndOfLines();
+            if (_cancellationToken.IsCancellationRequested
+                || _current.Kind == SyntaxKind.EndOfFileToken
+                || _current.Kind == terminator)
+            {
+                break;
+            }
+
+            if (IsMemberStart(_current.Kind))
+            {
+                members.Add(ParseMember());
+                continue;
+            }
+
+            Skip();
+        }
+
+        return members;
+    }
+
+    private MemberDeclarationSyntax ParseMember()
+    {
+        var docComment = default(SyntaxToken);
+        if (_current.Kind == SyntaxKind.DocCommentToken)
+        {
+            docComment = Take();
+            SkipEndOfLines();
+        }
+
+        if (_current.Kind is SyntaxKind.AutoKeyword or SyntaxKind.StateKeyword)
+        {
+            return ParseState(docComment);
+        }
+
+        if (_current.Kind == SyntaxKind.FunctionKeyword)
+        {
+            return ParseFunction(docComment, returnType: null);
+        }
+
+        if (_current.Kind == SyntaxKind.EventKeyword)
+        {
+            return ParseEvent(docComment);
+        }
+
+        if (_current.Kind == SyntaxKind.PropertyKeyword)
+        {
+            return ParseProperty(docComment, MissingTypeName());
+        }
+
+        var typeName = ParseTypeName();
+        if (_current.Kind == SyntaxKind.FunctionKeyword)
+        {
+            return ParseFunction(docComment, typeName);
+        }
+
+        if (_current.Kind == SyntaxKind.PropertyKeyword)
+        {
+            return ParseProperty(docComment, typeName);
+        }
+
+        return ParseVariable(docComment, typeName);
+    }
+
+    private StateDeclarationSyntax ParseState(SyntaxToken docComment)
+    {
+        var autoKeyword = _current.Kind == SyntaxKind.AutoKeyword ? Take() : default;
+        var stateKeyword = Eat(SyntaxKind.StateKeyword);
+        var name = ParseIdentifierName();
+        var endOfLine = EatEndOfLine();
+        var members = ParseMembers(SyntaxKind.EndStateKeyword);
+        var endState = Eat(SyntaxKind.EndStateKeyword);
+        return SyntaxFactory.StateDeclaration(
+            docComment,
+            autoKeyword,
+            stateKeyword,
+            name,
+            endOfLine,
+            SyntaxFactory.List(members),
+            endState);
+    }
+
+    private FunctionDeclarationSyntax ParseFunction(SyntaxToken docComment, TypeNameSyntax? returnType)
+    {
+        var functionKeyword = Eat(SyntaxKind.FunctionKeyword);
+        var name = ParseIdentifierName();
+        var parameterList = ParseParameterList();
+        var flags = ParseFlags();
+        var endOfLine = EatEndOfLine();
+
+        var statements = default(SyntaxList<StatementSyntax>);
+        var endFunction = default(SyntaxToken);
+        if (HasFlag(flags, SyntaxKind.NativeKeyword))
+        {
+            if (_current.Kind == SyntaxKind.EndFunctionKeyword)
+            {
+                endFunction = Take();
+            }
+        }
+        else
+        {
+            statements = SyntaxFactory.List(ParseSkippedStatements(SyntaxKind.EndFunctionKeyword));
+            endFunction = Eat(SyntaxKind.EndFunctionKeyword);
+        }
+
+        return SyntaxFactory.FunctionDeclaration(
+            docComment,
+            returnType,
+            functionKeyword,
+            name,
+            parameterList,
+            SyntaxFactory.List(flags),
+            endOfLine,
+            statements,
+            endFunction);
+    }
+
+    private EventDeclarationSyntax ParseEvent(SyntaxToken docComment)
+    {
+        var eventKeyword = Eat(SyntaxKind.EventKeyword);
+        var name = ParseIdentifierName();
+        var parameterList = ParseParameterList();
+        var flags = ParseFlags();
+        var endOfLine = EatEndOfLine();
+
+        var statements = default(SyntaxList<StatementSyntax>);
+        var endEvent = default(SyntaxToken);
+        if (HasFlag(flags, SyntaxKind.NativeKeyword))
+        {
+            if (_current.Kind == SyntaxKind.EndEventKeyword)
+            {
+                endEvent = Take();
+            }
+        }
+        else
+        {
+            statements = SyntaxFactory.List(ParseSkippedStatements(SyntaxKind.EndEventKeyword));
+            endEvent = Eat(SyntaxKind.EndEventKeyword);
+        }
+
+        return SyntaxFactory.EventDeclaration(
+            docComment,
+            eventKeyword,
+            name,
+            parameterList,
+            SyntaxFactory.List(flags),
+            endOfLine,
+            statements,
+            endEvent);
+    }
+
+    private PropertyDeclarationSyntax ParseProperty(SyntaxToken docComment, TypeNameSyntax typeName)
+    {
+        var propertyKeyword = Eat(SyntaxKind.PropertyKeyword);
+        var name = ParseIdentifierName();
+        var equalsValue = TryParseEqualsValue();
+        var flags = ParseFlags();
+        var endOfLine = EatEndOfLine();
+
+        var accessors = default(SyntaxList<FunctionDeclarationSyntax>);
+        var endProperty = default(SyntaxToken);
+        if (HasFlag(flags, SyntaxKind.AutoKeyword) || HasFlag(flags, SyntaxKind.AutoReadOnlyKeyword))
+        {
+            if (_current.Kind == SyntaxKind.EndPropertyKeyword)
+            {
+                endProperty = Take();
+            }
+        }
+        else
+        {
+            accessors = SyntaxFactory.List(ParsePropertyAccessors());
+            endProperty = Eat(SyntaxKind.EndPropertyKeyword);
+        }
+
+        return SyntaxFactory.PropertyDeclaration(
+            docComment,
+            typeName,
+            propertyKeyword,
+            name,
+            equalsValue,
+            SyntaxFactory.List(flags),
+            endOfLine,
+            accessors,
+            endProperty);
+    }
+
+    private List<FunctionDeclarationSyntax> ParsePropertyAccessors()
+    {
+        var accessors = new List<FunctionDeclarationSyntax>();
+        while (!_cancellationToken.IsCancellationRequested)
+        {
+            SkipEndOfLines();
+            if (_cancellationToken.IsCancellationRequested
+                || _current.Kind is SyntaxKind.EndPropertyKeyword
+                    or SyntaxKind.EndOfFileToken
+                    or SyntaxKind.EndStateKeyword
+                    or SyntaxKind.EndFunctionKeyword
+                    or SyntaxKind.EndEventKeyword)
+            {
+                break;
+            }
+
+            if (LooksLikeDeclarationStart() && !LooksLikeFunctionDeclaration())
+            {
+                break;
+            }
+
+            if (_current.Kind == SyntaxKind.FunctionKeyword || IsTypeStart(_current.Kind))
+            {
+                var docComment = default(SyntaxToken);
+                if (_current.Kind == SyntaxKind.DocCommentToken)
+                {
+                    docComment = Take();
+                    SkipEndOfLines();
+                }
+
+                TypeNameSyntax? returnType = null;
+                if (_current.Kind != SyntaxKind.FunctionKeyword)
+                {
+                    returnType = ParseTypeName();
+                }
+
+                accessors.Add(ParseFunction(docComment, returnType));
+                continue;
+            }
+
+            Skip();
+        }
+
+        return accessors;
+    }
+
+    private VariableDeclarationSyntax ParseVariable(SyntaxToken docComment, TypeNameSyntax typeName)
+    {
+        var name = ParseIdentifierName();
+        var equalsValue = TryParseEqualsValue();
+        SkipUntilFlagOrLineEnd();
+        var flags = ParseFlags();
+        var endOfLine = EatEndOfLine();
+        return SyntaxFactory.VariableDeclaration(
+            docComment,
+            typeName,
+            name,
+            equalsValue,
+            SyntaxFactory.List(flags),
+            endOfLine);
+    }
+
+    private ParameterListSyntax ParseParameterList()
+    {
+        var openParen = Eat(SyntaxKind.OpenParenToken);
+        var parameters = new List<ParameterSyntax>();
+        if (!openParen.IsMissing
+            && _current.Kind != SyntaxKind.CloseParenToken
+            && !IsParameterListStop(_current.Kind))
+        {
+            parameters.Add(ParseParameter(comma: default));
+            while (_current.Kind == SyntaxKind.CommaToken)
+            {
+                var comma = Take();
+                parameters.Add(ParseParameter(comma));
+            }
+        }
+
+        if (openParen.IsMissing && _current.Kind != SyntaxKind.CloseParenToken)
+        {
+            return SyntaxFactory.ParameterList(
+                openParen,
+                SyntaxFactory.List(parameters),
+                Missing(SyntaxKind.CloseParenToken));
+        }
+
+        var closeParen = Eat(SyntaxKind.CloseParenToken);
+        return SyntaxFactory.ParameterList(openParen, SyntaxFactory.List(parameters), closeParen);
+    }
+
+    private ParameterSyntax ParseParameter(SyntaxToken comma)
+    {
+        var typeName = ParseTypeName();
+        var name = ParseIdentifierName();
+        var equalsValue = TryParseEqualsValue();
+        SkipUntilParameterDelimiter();
+        return SyntaxFactory.Parameter(comma, typeName, name, equalsValue);
+    }
+
+    private EqualsValueClauseSyntax? TryParseEqualsValue()
+    {
+        if (_current.Kind != SyntaxKind.EqualsToken)
+        {
+            return null;
+        }
+
+        var equals = Take();
+        return SyntaxFactory.EqualsValueClause(equals, ParseSignatureExpression());
+    }
+
+    private ExpressionSyntax ParseSignatureExpression()
+    {
+        if (_current.Kind == SyntaxKind.MinusToken)
+        {
+            var operatorToken = Take();
+            return SyntaxFactory.PrefixUnaryExpression(operatorToken, ParseLiteralExpression());
+        }
+
+        return ParseLiteralExpression();
+    }
+
+    private LiteralExpressionSyntax ParseLiteralExpression()
+    {
+        if (IsLiteral(_current.Kind))
+        {
+            return SyntaxFactory.LiteralExpression(Take());
+        }
+
+        return SyntaxFactory.LiteralExpression(Missing(SyntaxKind.IntegerLiteralToken));
+    }
+
+    private List<StatementSyntax> ParseSkippedStatements(SyntaxKind terminator)
+    {
+        var statements = new List<StatementSyntax>();
+        while (!_cancellationToken.IsCancellationRequested)
+        {
+            SkipEndOfLines();
+            if (_cancellationToken.IsCancellationRequested
+                || _current.Kind == terminator
+                || _current.Kind == SyntaxKind.EndOfFileToken
+                || IsEndKeyword(_current.Kind)
+                || LooksLikeDeclarationStart())
+            {
+                break;
+            }
+
+            statements.Add(ParseSkippedStatement());
+        }
+
+        return statements;
+    }
+
+    private SkippedStatementSyntax ParseSkippedStatement()
+    {
+        while (!IsStatementStop(_current.Kind))
+        {
+            Skip();
+        }
+
+        return SyntaxFactory.SkippedStatement(EatEndOfLine());
+    }
+
     private TypeNameSyntax ParseTypeName()
     {
         var name = ParseName();
@@ -126,6 +481,14 @@ internal sealed class Parser
         return SyntaxFactory.TypeName(name, hashToken, structName, openBracket, closeBracket);
     }
 
+    private TypeNameSyntax MissingTypeName()
+        => SyntaxFactory.TypeName(
+            SyntaxFactory.IdentifierName(Missing(SyntaxKind.IdentifierToken)),
+            default,
+            default,
+            default,
+            default);
+
     private NameSyntax ParseName()
     {
         NameSyntax left = ParseIdentifierName();
@@ -141,7 +504,7 @@ internal sealed class Parser
 
     private IdentifierNameSyntax ParseIdentifierName()
     {
-        if (_current.Kind == SyntaxKind.IdentifierToken)
+        if (IsNameToken(_current.Kind))
         {
             return SyntaxFactory.IdentifierName(Take());
         }
@@ -202,10 +565,26 @@ internal sealed class Parser
         }
     }
 
+    private void SkipUntilFlagOrLineEnd()
+    {
+        while (!IsFlag(_current.Kind) && !IsLineTerminator(_current.Kind))
+        {
+            Skip();
+        }
+    }
+
+    private void SkipUntilParameterDelimiter()
+    {
+        while (_current.Kind != SyntaxKind.CommaToken && !IsParameterListStop(_current.Kind))
+        {
+            Skip();
+        }
+    }
+
     private SyntaxToken Take()
     {
         var token = AttachSkipped(_current);
-        _current = _lexer.Lex();
+        _current = NextToken();
         return token;
     }
 
@@ -217,7 +596,129 @@ internal sealed class Parser
         }
 
         _skipped.Add(_current);
-        _current = _lexer.Lex();
+        _current = NextToken();
+    }
+
+    private SyntaxToken NextToken()
+    {
+        if (_ahead.Count == 0)
+        {
+            return _lexer.Lex();
+        }
+
+        var token = _ahead[0];
+        _ahead.RemoveAt(0);
+        return token;
+    }
+
+    private SyntaxToken PeekToken(int distance)
+    {
+        if (distance == 0)
+        {
+            return _current;
+        }
+
+        while (_ahead.Count < distance)
+        {
+            var next = _lexer.Lex();
+            _ahead.Add(next);
+            if (next.Kind == SyntaxKind.EndOfFileToken)
+            {
+                break;
+            }
+        }
+
+        var index = distance - 1;
+        if (index >= _ahead.Count)
+        {
+            return _ahead.Count > 0 ? _ahead[_ahead.Count - 1] : _current;
+        }
+
+        return _ahead[index];
+    }
+
+    private bool LooksLikeDeclarationStart()
+    {
+        if (_current.Kind is SyntaxKind.FunctionKeyword
+            or SyntaxKind.EventKeyword
+            or SyntaxKind.StateKeyword
+            or SyntaxKind.AutoKeyword
+            or SyntaxKind.PropertyKeyword
+            or SyntaxKind.ImportKeyword
+            or SyntaxKind.DocCommentToken)
+        {
+            return true;
+        }
+
+        return LooksLikeTypedDeclaration();
+    }
+
+    private bool LooksLikeFunctionDeclaration()
+    {
+        if (_current.Kind == SyntaxKind.FunctionKeyword)
+        {
+            return true;
+        }
+
+        if (!IsTypeStart(_current.Kind))
+        {
+            return false;
+        }
+
+        return PeekToken(SkipTypeLookahead(0)).Kind == SyntaxKind.FunctionKeyword;
+    }
+
+    private bool LooksLikeTypedDeclaration()
+    {
+        if (!IsTypeStart(_current.Kind))
+        {
+            return false;
+        }
+
+        var next = PeekToken(SkipTypeLookahead(0)).Kind;
+        return next is SyntaxKind.FunctionKeyword or SyntaxKind.PropertyKeyword;
+    }
+
+    private int SkipTypeLookahead(int index)
+    {
+        if (!IsNameToken(PeekToken(index).Kind))
+        {
+            return index;
+        }
+
+        index++;
+        while (PeekToken(index).Kind == SyntaxKind.ColonToken)
+        {
+            index++;
+            if (IsNameToken(PeekToken(index).Kind))
+            {
+                index++;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        if (PeekToken(index).Kind == SyntaxKind.HashToken)
+        {
+            index++;
+            if (PeekToken(index).Kind == SyntaxKind.IdentifierToken)
+            {
+                index++;
+            }
+        }
+
+        if (PeekToken(index).Kind == SyntaxKind.OpenBracketToken)
+        {
+            index++;
+            if (PeekToken(index).Kind == SyntaxKind.CloseBracketToken)
+            {
+                index++;
+            }
+        }
+
+        return index;
     }
 
     private SyntaxToken AttachSkipped(SyntaxToken token)
@@ -286,9 +787,101 @@ internal sealed class Parser
 
     private static SyntaxToken Missing(SyntaxKind kind) => SyntaxFactory.MissingToken(kind);
 
-    private static bool IsScriptFlag(SyntaxKind kind)
-        => kind is SyntaxKind.NativeKeyword or SyntaxKind.HiddenKeyword or SyntaxKind.ConditionalKeyword;
+    private static bool HasFlag(List<FlagSyntax> flags, SyntaxKind kind)
+    {
+        for (var i = 0; i < flags.Count; i++)
+        {
+            if (flags[i].FlagToken.Kind == kind)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsMemberStart(SyntaxKind kind)
+        => kind is SyntaxKind.DocCommentToken
+            or SyntaxKind.AutoKeyword
+            or SyntaxKind.StateKeyword
+            or SyntaxKind.FunctionKeyword
+            or SyntaxKind.EventKeyword
+            or SyntaxKind.PropertyKeyword
+            || IsTypeStart(kind);
+
+    private static bool IsTypeStart(SyntaxKind kind) => IsNameToken(kind);
+
+    private static bool IsNameToken(SyntaxKind kind)
+        => kind is SyntaxKind.IdentifierToken
+            or SyntaxKind.IntKeyword
+            or SyntaxKind.FloatKeyword
+            or SyntaxKind.StringKeyword
+            or SyntaxKind.BoolKeyword
+            or SyntaxKind.VarKeyword
+            or SyntaxKind.CustomEventNameKeyword
+            or SyntaxKind.ScriptEventNameKeyword;
+
+    private static bool IsKnownFlagKeyword(SyntaxKind kind)
+        => kind is SyntaxKind.NativeKeyword
+            or SyntaxKind.HiddenKeyword
+            or SyntaxKind.ConditionalKeyword
+            or SyntaxKind.GlobalKeyword
+            or SyntaxKind.AutoKeyword
+            or SyntaxKind.AutoReadOnlyKeyword
+            or SyntaxKind.ConstKeyword
+            or SyntaxKind.MandatoryKeyword
+            or SyntaxKind.DebugOnlyKeyword
+            or SyntaxKind.BetaOnlyKeyword;
+
+    private static bool IsFlag(SyntaxKind kind)
+        => IsKnownFlagKeyword(kind) || kind == SyntaxKind.IdentifierToken;
+
+    private static bool IsLiteral(SyntaxKind kind)
+        => kind is SyntaxKind.IntegerLiteralToken
+            or SyntaxKind.HexLiteralToken
+            or SyntaxKind.FloatLiteralToken
+            or SyntaxKind.StringLiteralToken
+            or SyntaxKind.TrueKeyword
+            or SyntaxKind.FalseKeyword
+            or SyntaxKind.NoneKeyword;
+
+    private static bool IsEndKeyword(SyntaxKind kind)
+        => kind is SyntaxKind.EndFunctionKeyword
+            or SyntaxKind.EndEventKeyword
+            or SyntaxKind.EndStateKeyword
+            or SyntaxKind.EndPropertyKeyword;
+
+    private static bool IsParameterListStop(SyntaxKind kind)
+        => kind is SyntaxKind.CloseParenToken
+            or SyntaxKind.EndOfLineToken
+            or SyntaxKind.EndOfFileToken
+            or SyntaxKind.FunctionKeyword
+            or SyntaxKind.EventKeyword
+            or SyntaxKind.StateKeyword
+            or SyntaxKind.PropertyKeyword
+            || IsKnownFlagKeyword(kind)
+            || IsEndKeyword(kind);
+
+    private static bool IsStatementStop(SyntaxKind kind)
+        => IsLineTerminator(kind) || IsEndKeyword(kind);
 
     private static bool IsLineTerminator(SyntaxKind kind)
-        => kind is SyntaxKind.EndOfLineToken or SyntaxKind.ImportKeyword or SyntaxKind.EndOfFileToken;
+        => kind is SyntaxKind.EndOfLineToken
+            or SyntaxKind.EndOfFileToken
+            or SyntaxKind.ImportKeyword
+            or SyntaxKind.FunctionKeyword
+            or SyntaxKind.EndFunctionKeyword
+            or SyntaxKind.EventKeyword
+            or SyntaxKind.EndEventKeyword
+            or SyntaxKind.StateKeyword
+            or SyntaxKind.EndStateKeyword
+            or SyntaxKind.PropertyKeyword
+            or SyntaxKind.EndPropertyKeyword
+            or SyntaxKind.AutoKeyword
+            or SyntaxKind.DocCommentToken
+            or SyntaxKind.IntKeyword
+            or SyntaxKind.FloatKeyword
+            or SyntaxKind.StringKeyword
+            or SyntaxKind.BoolKeyword
+            or SyntaxKind.VarKeyword;
 }

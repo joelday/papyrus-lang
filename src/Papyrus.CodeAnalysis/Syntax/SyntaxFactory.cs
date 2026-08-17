@@ -70,6 +70,7 @@ internal static partial class SyntaxFactory
             Flags(nativeKeyword, hiddenKeyword, conditionalKeyword),
             endOfLineToken,
             imports: default,
+            members: default,
             endOfFileToken: default);
     }
 
