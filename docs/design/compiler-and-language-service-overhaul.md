@@ -146,7 +146,7 @@ A version-bump of OmniSharp, a net8 retarget, or a 64-bit host cannot happen whi
 | K10 | **`Papyrus.CodeAnalysis` has no I/O and no `System.Reflection`.** Enforced by architecture test. NativeAOT for every shipped binary. | Confirmed (architecture) | Makes the compiler testable, in-process-hostable, and AOT-clean. No-reflection is a phase-0 discipline, not a publish-time surprise. |
 | K11 | **`Papyrus.Pex` is standalone.** Milestone-one test is read/write byte-identical over the vanilla PEX corpora, before any parser exists. | Confirmed (architecture) | Independently valuable; establishes the oracle everything downstream is measured against. |
 | K12 | **Drop OmniSharp 0.10.0.** Default replacement: `StreamJsonRpc` + `System.IO.Pipelines` + source-generated STJ, thin typed LSP layer. Reversible because handlers sit behind our interfaces. | Confirmed lean (alternative noted) | OmniSharp 0.10.0 handler contracts already changed upstream; a version bump is a rewrite. Its MediatR dispatch fights NativeAOT. |
-| K13 | **Incrementality investment goes into the symbol layer, not the parser.** Green trees make a `Blender` possible later. | Confirmed (architecture) | **Hypothesis (unmeasured):** vanilla median is hundreds of lines and a span lexer + RD parser reparses a typical script in well under 1 ms. P0.09 / P1.10 measure this. Re-binding the dependency graph is expected to be the expensive part. |
+| K13 | **Incrementality investment goes into the symbol layer, not the parser.** Green trees make a `Blender` possible later. | Confirmed (architecture) | Committed-fixture parse is well under 1 ms; `Blender` is **OUT** ([blender-decision.md](blender-decision.md)). Maintainer corpus not yet measured. Re-binding the dependency graph is expected to be the expensive part. |
 | K14 | **`PapyrusName` compares strings.** Replaces `ObjectIdentifier`'s hash-code-only equality. | Confirmed (architecture) | Hash-code equality silently aliases scripts. Deterministic and project-breaking. |
 | K15 | **Deterministic emit.** No timestamps in output, stable ordering, no parallelism that affects bytes. Temps pooled per type, matching CK reuse order. | Confirmed (architecture) | Required for byte-identical baselines. Temp reuse order is the schedule-risk center; the differential harness exists for it. |
 | K16 | **Keep the C++ xSE plugin.** Replace `DebugAdapterProxy`. Add SFSE. Move Address Library IDs to versioned data. | Confirmed (architecture) | The plugin must be in-process. The proxy's hand-rolled DAP framing is independently replaceable. |
@@ -513,7 +513,7 @@ No semantic information reaches the parser. `A.B.C` parses as a qualified name /
 
 #### Incremental reparse
 
-The green tree makes Roslyn's `Blender` possible, and we build the tree so it stays possible. **Hypothesis (unmeasured in this tree):** vanilla median script is low hundreds of lines; a span lexer + recursive-descent parser will reparse a typical script in well under 1 ms. P0.09 / P1.10 measure median size, parse time, and RSS on a maintainer corpus and *then* set the Blender gate. The expensive part of a Papyrus keystroke is expected to be re-binding the dependency graph, not parse. The `Blender` is built only if that measured keystroke number says it is needed.
+The green tree makes Roslyn's `Blender` possible, and we build the tree so it stays possible. Committed-fixture parse is well under 1 ms ([blender-decision.md](blender-decision.md)); `Blender` is not built. A maintainer corpus has not been measured; revisit only if that run shows parse as the keystroke bottleneck. The expensive part of a Papyrus keystroke is expected to be re-binding the dependency graph, not parse.
 
 #### Names
 
@@ -1059,7 +1059,7 @@ These are design invariants, each with an enforcement mechanism.
 - Source text: segmented representation for large files.
 - Nothing retains a token stream after parsing.
 
-**Hypothesis, not a CI gate until measured:** the full Skyrim SE vanilla source tree is on the order of a few thousand scripts; a reasonable first memory budget is well under 1 GB resident. P0.09 / P1.10 measure script count, median lines, parse time, and RSS on a maintainer corpus and *then* write the number into CI. Do not fail public CI on an unmeasured 1 GB cap.
+Committed-fixture parse RSS is process-wide and well under a gigabyte; see [blender-decision.md](blender-decision.md). Script count and RSS on a full maintainer corpus are still unmeasured. The full Skyrim SE vanilla source tree is on the order of a few thousand scripts.
 
 **6. Corpus-plus-fuzzing.**
 

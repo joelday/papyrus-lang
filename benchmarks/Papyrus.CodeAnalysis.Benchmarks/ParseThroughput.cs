@@ -20,13 +20,11 @@ internal static class ParseThroughput
         Usage: Papyrus.CodeAnalysis.Benchmarks [--corpus <path>]
 
           Measures SyntaxTree.Parse over committed Fixtures/Parse.
-          Optional maintainer corpus: --corpus, PAPYRUS_CORPUS, or ./corpus
-          if that directory contains .psc files. Bethesda sources are not
-          required and are never downloaded.
+          Optional extra suite: --corpus, PAPYRUS_CORPUS, ./corpus, or the
+          repo corpus/ directory when that path contains .psc files.
 
-          Reports median/mean parse time, line counts, and process-wide RSS.
-          Does not fail on RSS size. This is a short in-process job, not a
-          BenchmarkDotNet CI run.
+          Reports median/mean parse time, line counts, and process-wide RSS
+          (WorkingSet64 of the whole process).
         """;
 
     internal static int Run(string[] args, TextWriter stdout, TextWriter stderr)
@@ -136,7 +134,6 @@ internal static class ParseThroughput
             "Iterations: " + WarmupIterations + " warmup + " + TimedIterations + " timed per script");
         stdout.WriteLine(
             "RSS: Process.WorkingSet64 after one retained parse of the suite (process-wide; includes runtime).");
-        stdout.WriteLine("Public CI does not fail on RSS size.");
         stdout.WriteLine("Runtime: " + Environment.Version + " / " + Environment.OSVersion);
         stdout.WriteLine();
     }
@@ -313,23 +310,39 @@ internal static class ParseThroughput
             stderr.WriteLine("warning: PAPYRUS_CORPUS is set but is not a directory of .psc files: " + env);
         }
 
-        foreach (var start in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
+        var cwdCorpus = Path.Combine(Directory.GetCurrentDirectory(), "corpus");
+        if (HasPsc(cwdCorpus))
         {
-            var dir = new DirectoryInfo(start);
-            while (dir is not null)
-            {
-                var candidate = Path.Combine(dir.FullName, "corpus");
-                if (HasPsc(candidate))
-                {
-                    corpus = candidate;
-                    return true;
-                }
+            corpus = cwdCorpus;
+            return true;
+        }
 
-                dir = dir.Parent;
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var candidate = Path.Combine(dir.FullName, "corpus");
+            if (HasPsc(candidate))
+            {
+                corpus = candidate;
+                return true;
             }
+
+            if (IsRepoRoot(dir.FullName))
+            {
+                break;
+            }
+
+            dir = dir.Parent;
         }
 
         return true;
+    }
+
+    private static bool IsRepoRoot(string path)
+    {
+        return File.Exists(Path.Combine(path, "Papyrus.sln"))
+            || Directory.Exists(Path.Combine(path, ".git"))
+            || File.Exists(Path.Combine(path, ".git"));
     }
 
     private static bool HasPsc(string path)

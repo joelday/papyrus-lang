@@ -1,6 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <!-- Short-job parse bench; default run must not require a Bethesda corpus. -->
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <ItemGroup>
