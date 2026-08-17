@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Immutable;
 using Papyrus.CodeAnalysis;
 using Papyrus.Pex;
@@ -17,7 +18,8 @@ public sealed class PapyrusProject
         bool optimize,
         bool release,
         bool final,
-        AsmKind? asm = null)
+        AsmKind? asm = null,
+        string? path = null)
     {
         Game = game;
         Imports = imports;
@@ -30,6 +32,7 @@ public sealed class PapyrusProject
         Release = release;
         Final = final;
         Asm = asm;
+        Path = path;
     }
 
     public GameId? Game { get; }
@@ -63,6 +66,35 @@ public sealed class PapyrusProject
     public bool Final { get; }
 
     public AsmKind? Asm { get; }
+
+    public string? Path { get; }
+
+    public ProjectId Id => ProjectId.Create(Path ?? throw new InvalidOperationException("Project has no path."));
+
+    public PapyrusProject WithPath(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        var full = System.IO.Path.GetFullPath(path);
+        if (Path is not null && string.Equals(Path, full, StringComparison.OrdinalIgnoreCase))
+        {
+            return this;
+        }
+
+        return new PapyrusProject(
+            Game,
+            Imports,
+            Folders,
+            Scripts,
+            Variables,
+            Output,
+            Flags,
+            Optimize,
+            Release,
+            Final,
+            Asm,
+            full);
+    }
 }
 
 public sealed class ProjectFolder
