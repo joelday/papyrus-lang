@@ -13,7 +13,13 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Papyrus.CodeAnalysis\Papyrus.CodeAnalysis.csproj" />
+    <ProjectReference Include="..\..\src\Papyrus.CodeAnalysis.Testing\Papyrus.CodeAnalysis.Testing.csproj" />
     <ProjectReference Include="..\..\src\Papyrus.Pex\Papyrus.Pex.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Fixtures\Parse\**\*.psc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>
 
