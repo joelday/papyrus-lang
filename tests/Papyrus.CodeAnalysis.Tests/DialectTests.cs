@@ -49,7 +49,8 @@ public sealed class DialectTests
         Assert.False(PapyrusDialect.SkyrimSe.Keywords.ContainsKey("hidden"));
         Assert.False(PapyrusDialect.SkyrimSe.Keywords.ContainsKey("conditional"));
         Assert.False(PapyrusDialect.Fallout4.Keywords.ContainsKey("hidden"));
-        Assert.False(PapyrusDialect.Starfield.Keywords.ContainsKey("mandatory"));
+        Assert.False(PapyrusDialect.Starfield.Keywords.ContainsKey("hidden"));
+        Assert.False(PapyrusDialect.Starfield.Keywords.ContainsKey("conditional"));
     }
 
     [Fact]

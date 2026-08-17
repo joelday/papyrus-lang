@@ -47,7 +47,6 @@ public sealed class SyntaxKindTests
     [InlineData("Flag")]
     [InlineData("ImportKeyword")]
     [InlineData("ImportDeclaration")]
-    [InlineData("FunctionKeyword")]
     [InlineData("EndFunctionKeyword")]
     [InlineData("EventKeyword")]
     [InlineData("EndEventKeyword")]
@@ -69,6 +68,13 @@ public sealed class SyntaxKindTests
     [InlineData("LiteralExpression")]
     [InlineData("PrefixUnaryExpression")]
     [InlineData("SkippedStatement")]
+    [InlineData("StructDeclaration")]
+    [InlineData("GroupDeclaration")]
+    [InlineData("CustomEventDeclaration")]
+    [InlineData("EndStructKeyword")]
+    [InlineData("GroupKeyword")]
+    [InlineData("EndGroupKeyword")]
+    [InlineData("CustomEventKeyword")]
     public void Contains_core_script_header_member(string name)
     {
         Assert.True(Enum.TryParse<SyntaxKind>(name, out var kind), "Missing SyntaxKind." + name);

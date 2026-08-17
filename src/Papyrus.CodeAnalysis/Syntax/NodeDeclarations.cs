@@ -58,7 +58,7 @@ internal sealed partial class ScriptDeclarationSyntax : SyntaxNode
 {
     public SyntaxToken DocComment { get; }
     public SyntaxToken ScriptNameKeyword { get; }
-    public partial IdentifierNameSyntax Name { get; }
+    public partial NameSyntax Name { get; }
     public partial ExtendsClauseSyntax? ExtendsClause { get; }
     public partial SyntaxList<FlagSyntax> Flags { get; }
     public SyntaxToken EndOfLineToken { get; }
@@ -246,4 +246,36 @@ internal sealed partial class StateDeclarationSyntax : MemberDeclarationSyntax
     public SyntaxToken EndOfLineToken { get; }
     public partial SyntaxList<MemberDeclarationSyntax> Members { get; }
     public SyntaxToken EndStateKeyword { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class StructDeclarationSyntax : MemberDeclarationSyntax
+{
+    public SyntaxToken DocComment { get; }
+    public SyntaxToken StructKeyword { get; }
+    public partial IdentifierNameSyntax Name { get; }
+    public SyntaxToken EndOfLineToken { get; }
+    public partial SyntaxList<VariableDeclarationSyntax> Members { get; }
+    public SyntaxToken EndStructKeyword { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class GroupDeclarationSyntax : MemberDeclarationSyntax
+{
+    public SyntaxToken DocComment { get; }
+    public SyntaxToken GroupKeyword { get; }
+    public partial IdentifierNameSyntax Name { get; }
+    public partial SyntaxList<FlagSyntax> Flags { get; }
+    public SyntaxToken EndOfLineToken { get; }
+    public partial SyntaxList<PropertyDeclarationSyntax> Members { get; }
+    public SyntaxToken EndGroupKeyword { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class CustomEventDeclarationSyntax : MemberDeclarationSyntax
+{
+    public SyntaxToken DocComment { get; }
+    public SyntaxToken CustomEventKeyword { get; }
+    public partial IdentifierNameSyntax Name { get; }
+    public SyntaxToken EndOfLineToken { get; }
 }

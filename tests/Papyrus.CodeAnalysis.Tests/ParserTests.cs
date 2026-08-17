@@ -19,7 +19,7 @@ public sealed class ParserTests
         Assert.True(tree.TryGetRoot(out var root));
         Assert.Equal(SyntaxKind.ScriptDeclaration, root.Kind);
         Assert.False(root.ScriptNameKeyword.IsMissing);
-        Assert.Equal("Foo", root.Name.Identifier.Text);
+        Assert.Equal("Foo", ((IdentifierNameSyntax)root.Name).Identifier.Text);
         Assert.Null(root.ExtendsClause);
         Assert.Empty(root.Imports);
     }
@@ -32,7 +32,7 @@ public sealed class ParserTests
 
         Assert.Equal(source, tree.GetRoot().ToFullString());
         Assert.True(tree.TryGetRoot(out var root));
-        Assert.Equal("Foo", root.Name.Identifier.Text);
+        Assert.Equal("Foo", ((IdentifierNameSyntax)root.Name).Identifier.Text);
         Assert.NotNull(root.ExtendsClause);
         Assert.Equal("Bar", ((IdentifierNameSyntax)root.ExtendsClause.TypeName.Name).Identifier.Text);
     }
@@ -46,7 +46,7 @@ public sealed class ParserTests
         Assert.True(tree.TryGetRoot(out var root));
         Assert.True(root.ScriptNameKeyword.IsMissing);
         Assert.Equal(0, root.ScriptNameKeyword.FullWidth);
-        Assert.Equal("Foo", root.Name.Identifier.Text);
+        Assert.Equal("Foo", ((IdentifierNameSyntax)root.Name).Identifier.Text);
         Assert.False(root.Name.IsMissing);
     }
 
@@ -450,5 +450,249 @@ public sealed class ParserTests
         Assert.IsType<PropertyDeclarationSyntax>(root.Members.Get(1));
         Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(2));
         Assert.IsType<StateDeclarationSyntax>(root.Members.Get(3));
+    }
+
+    [Fact]
+    public void Parse_namespaced_script_name_round_trips()
+    {
+        const string source = "ScriptName A:B:Foo\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Fallout4);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var qualified = Assert.IsType<QualifiedNameSyntax>(root.Name);
+        var left = Assert.IsType<QualifiedNameSyntax>(qualified.Left);
+        Assert.Equal("A", ((IdentifierNameSyntax)left.Left).Identifier.Text);
+        Assert.Equal("B", left.Right.Identifier.Text);
+        Assert.Equal("Foo", qualified.Right.Identifier.Text);
+    }
+
+    [Fact]
+    public void Parse_namespaced_script_name_extends_and_import_round_trips()
+    {
+        const string source = "ScriptName A:B:Foo Extends A:B:Bar\nImport A:B:Utility\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Fallout4);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        Assert.IsType<QualifiedNameSyntax>(root.Name);
+        Assert.NotNull(root.ExtendsClause);
+        Assert.IsType<QualifiedNameSyntax>(root.ExtendsClause.TypeName.Name);
+        Assert.Equal(1, root.Imports.Count);
+        Assert.IsType<QualifiedNameSyntax>(root.Imports.Get(0).Name.Name);
+    }
+
+    [Fact]
+    public void Skyrim_does_not_parse_colon_as_script_namespace()
+    {
+        const string source = "ScriptName A:B:Foo\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var name = Assert.IsType<IdentifierNameSyntax>(root.Name);
+        Assert.Equal("A", name.Identifier.Text);
+    }
+
+    [Fact]
+    public void Parse_struct_round_trips()
+    {
+        const string source = "ScriptName Foo\nStruct Point\nFloat X\nFloat Y = 0.0\nEndStruct\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Fallout4);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var structure = Assert.IsType<StructDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("Point", structure.Name.Identifier.Text);
+        Assert.Equal(2, structure.Members.Count);
+        Assert.Equal("X", structure.Members.Get(0).Name.Identifier.Text);
+        Assert.Equal("Y", structure.Members.Get(1).Name.Identifier.Text);
+        Assert.NotNull(structure.Members.Get(1).EqualsValue);
+        Assert.False(structure.EndStructKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Parse_struct_doc_comment_and_member_docs_round_trip()
+    {
+        const string source = "ScriptName Foo\n{A point}\nStruct Point\n{x}\nFloat X\nEndStruct\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Fallout4);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var structure = Assert.IsType<StructDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("{A point}", structure.DocComment.Text);
+        Assert.Equal("{x}", structure.Members.Get(0).DocComment.Text);
+    }
+
+    [Fact]
+    public void Missing_end_struct_does_not_swallow_the_next_function()
+    {
+        const string source = "ScriptName Foo\nStruct Point\nFloat X\nInt Function Bar()\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Fallout4);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        Assert.Equal(2, root.Members.Count);
+        var structure = Assert.IsType<StructDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("Point", structure.Name.Identifier.Text);
+        Assert.Equal(1, structure.Members.Count);
+        Assert.True(structure.EndStructKeyword.IsMissing);
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(1));
+        Assert.Equal("Bar", function.Name.Identifier.Text);
+    }
+
+    [Fact]
+    public void Skyrim_struct_is_an_identifier_not_a_declaration()
+    {
+        const string source = "ScriptName Foo\nStruct Name\nInt X\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        Assert.Equal(2, root.Members.Count);
+        var variable = Assert.IsType<VariableDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("Struct", ((IdentifierNameSyntax)variable.TypeName.Name).Identifier.Text);
+        Assert.Equal("Name", variable.Name.Identifier.Text);
+        Assert.IsType<VariableDeclarationSyntax>(root.Members.Get(1));
+    }
+
+    [Fact]
+    public void Parse_group_round_trips()
+    {
+        const string source = "ScriptName Foo\nGroup Stats Collapsed\nInt Property Health Auto\nInt Property Magicka Auto\nEndGroup\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Fallout4);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var group = Assert.IsType<GroupDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("Stats", group.Name.Identifier.Text);
+        Assert.Equal(1, group.Flags.Count);
+        Assert.Equal("Collapsed", group.Flags.Get(0).FlagToken.Text);
+        Assert.Equal(2, group.Members.Count);
+        Assert.Equal("Health", group.Members.Get(0).Name.Identifier.Text);
+        Assert.Equal("Magicka", group.Members.Get(1).Name.Identifier.Text);
+        Assert.False(group.EndGroupKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Parse_group_property_doc_comment_round_trips()
+    {
+        const string source = "ScriptName Foo\nGroup Stats\n{hp}\nInt Property Health Auto\nEndGroup\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Fallout4);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var group = Assert.IsType<GroupDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal(1, group.Members.Count);
+        Assert.Equal("{hp}", group.Members.Get(0).DocComment.Text);
+    }
+
+    [Fact]
+    public void Missing_end_group_does_not_swallow_the_next_function()
+    {
+        const string source = "ScriptName Foo\nGroup Stats\nInt Property Health Auto\nFunction Bar()\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Fallout4);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        Assert.Equal(2, root.Members.Count);
+        var group = Assert.IsType<GroupDeclarationSyntax>(root.Members.Get(0));
+        Assert.True(group.EndGroupKeyword.IsMissing);
+        Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(1));
+    }
+
+    [Fact]
+    public void Parse_custom_event_round_trips()
+    {
+        const string source = "ScriptName Foo\nCustomEvent OnSomething\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Fallout4);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var customEvent = Assert.IsType<CustomEventDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("OnSomething", customEvent.Name.Identifier.Text);
+        Assert.False(customEvent.CustomEventKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Parse_custom_event_doc_comment_round_trips()
+    {
+        const string source = "ScriptName Foo\n{Fired when X}\nCustomEvent OnSomething\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Fallout4);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var customEvent = Assert.IsType<CustomEventDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("{Fired when X}", customEvent.DocComment.Text);
+    }
+
+    [Fact]
+    public void Skyrim_custom_event_is_an_identifier_not_a_declaration()
+    {
+        const string source = "ScriptName Foo\nCustomEvent OnSomething\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var variable = Assert.IsType<VariableDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("CustomEvent", ((IdentifierNameSyntax)variable.TypeName.Name).Identifier.Text);
+        Assert.Equal("OnSomething", variable.Name.Identifier.Text);
+    }
+
+    [Fact]
+    public void Parse_fo4_mixed_members_round_trips()
+    {
+        const string source =
+            "ScriptName A:B:Foo Hidden\n" +
+            "Import A:B:Utility\n" +
+            "CustomEvent OnSomething\n" +
+            "Struct Point\n" +
+            "Float X\n" +
+            "Float Y\n" +
+            "EndStruct\n" +
+            "Group Stats\n" +
+            "Int Property Health Auto\n" +
+            "EndGroup\n" +
+            "Function Bar()\n" +
+            "EndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Fallout4);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        Assert.IsType<QualifiedNameSyntax>(root.Name);
+        Assert.Equal(1, root.Imports.Count);
+        Assert.Equal(4, root.Members.Count);
+        Assert.IsType<CustomEventDeclarationSyntax>(root.Members.Get(0));
+        Assert.IsType<StructDeclarationSyntax>(root.Members.Get(1));
+        Assert.IsType<GroupDeclarationSyntax>(root.Members.Get(2));
+        Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(3));
+    }
+
+    [Fact]
+    public void Starfield_parses_fo4_constructs_but_not_guard()
+    {
+        const string source = "ScriptName A:Foo\nStruct Point\nInt X\nEndStruct\nGuard\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Starfield);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        Assert.IsType<QualifiedNameSyntax>(root.Name);
+        Assert.Equal(1, root.Members.Count);
+        Assert.IsType<StructDeclarationSyntax>(root.Members.Get(0));
+    }
+
+    [Theory]
+    [InlineData("ScriptName A:B:Foo\n")]
+    [InlineData("ScriptName Foo\nStruct Point\nFloat X = 1.0\nEndStruct\n")]
+    [InlineData("ScriptName Foo\nGroup Stats Collapsed\nInt Property Health Auto\nEndGroup\n")]
+    [InlineData("ScriptName Foo\nCustomEvent OnSomething\n")]
+    [InlineData("ScriptName BaseScript Extends ScriptObject\nCustomEvent baseScriptCustomEvent\nGroup PropertyGroup\nInt Property GroupProperty Auto\nEndGroup\nStruct StructA\nInt structIntVariable\nString structStringVariable\nScriptObject object\nEndStruct\n")]
+    public void Well_formed_fo4_snippets_round_trip(string source)
+    {
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Fallout4);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        Assert.False(root.IsMissing);
     }
 }
