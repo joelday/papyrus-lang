@@ -71,3 +71,87 @@ public enum PexOpCode : byte
 
     Invalid = 0xFF,
 }
+
+/// <summary>
+/// Operand widths from Caprica <c>PexInstruction.h</c> / <c>PexFunctionBuilder.h</c> OPCODES.
+/// Shared by the reader and writer so the two cannot drift.
+/// </summary>
+internal static class PexOpCodeInfo
+{
+    public static int FixedArgumentCount(PexOpCode op)
+    {
+        switch (op)
+        {
+            case PexOpCode.Nop:
+            case PexOpCode.LockGuards:
+            case PexOpCode.UnlockGuards:
+                return 0;
+            case PexOpCode.Jmp:
+            case PexOpCode.Return:
+            case PexOpCode.StructCreate:
+            case PexOpCode.ArrayRemoveLast:
+            case PexOpCode.ArrayClear:
+            case PexOpCode.TryLockGuards:
+                return 1;
+            case PexOpCode.Not:
+            case PexOpCode.INeg:
+            case PexOpCode.FNeg:
+            case PexOpCode.Assign:
+            case PexOpCode.Cast:
+            case PexOpCode.JmpT:
+            case PexOpCode.JmpF:
+            case PexOpCode.CallParent:
+            case PexOpCode.ArrayCreate:
+            case PexOpCode.ArrayLength:
+                return 2;
+            case PexOpCode.IAdd:
+            case PexOpCode.FAdd:
+            case PexOpCode.ISub:
+            case PexOpCode.FSub:
+            case PexOpCode.IMul:
+            case PexOpCode.FMul:
+            case PexOpCode.IDiv:
+            case PexOpCode.FDiv:
+            case PexOpCode.IMod:
+            case PexOpCode.CmpEq:
+            case PexOpCode.CmpLt:
+            case PexOpCode.CmpLte:
+            case PexOpCode.CmpGt:
+            case PexOpCode.CmpGte:
+            case PexOpCode.CallMethod:
+            case PexOpCode.CallStatic:
+            case PexOpCode.StrCat:
+            case PexOpCode.PropGet:
+            case PexOpCode.PropSet:
+            case PexOpCode.ArrayGetElement:
+            case PexOpCode.ArraySetElement:
+            case PexOpCode.Is:
+            case PexOpCode.StructGet:
+            case PexOpCode.StructSet:
+            case PexOpCode.ArrayAdd:
+            case PexOpCode.ArrayInsert:
+            case PexOpCode.ArrayRemove:
+                return 3;
+            case PexOpCode.ArrayFindElement:
+            case PexOpCode.ArrayRFindElement:
+                return 4;
+            case PexOpCode.ArrayFindStruct:
+            case PexOpCode.ArrayRFindStruct:
+                return 5;
+            case PexOpCode.ArrayGetAllMatchingStructs:
+                return 6;
+            default:
+                throw new PexFormatException($"Unknown opcode {op}.");
+        }
+    }
+
+    public static bool HasVariadicArguments(PexOpCode op)
+    {
+        return op is PexOpCode.CallMethod
+            or PexOpCode.CallParent
+            or PexOpCode.CallStatic
+            or PexOpCode.LockGuards
+            or PexOpCode.UnlockGuards
+            or PexOpCode.TryLockGuards;
+    }
+}
