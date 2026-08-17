@@ -14,6 +14,12 @@ public sealed class PexScriptMetadata
     public ImmutableArray<PexStructMetadata> Structs { get; init; } = ImmutableArray<PexStructMetadata>.Empty;
     public ImmutableArray<PexGuardMetadata> Guards { get; init; } = ImmutableArray<PexGuardMetadata>.Empty;
     public ImmutableArray<PexStateMetadata> States { get; init; } = ImmutableArray<PexStateMetadata>.Empty;
+    /// <summary>Object user-flag mask. Bits are named by <see cref="UserFlagNames"/>[<c>bit</c>].</summary>
+    public uint UserFlags { get; init; }
+    /// <summary>
+    /// 32 slots indexed by <c>PexUserFlag.BitIndex</c>, or empty when the file
+    /// defines no flags. File order is not significant.
+    /// </summary>
     public ImmutableArray<string> UserFlagNames { get; init; } = ImmutableArray<string>.Empty;
 }
 

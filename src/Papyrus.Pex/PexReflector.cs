@@ -58,18 +58,29 @@ public static class PexReflector
             Structs = MapStructs(obj.Structs),
             Guards = MapGuards(obj.Guards),
             States = states.ToImmutable(),
+            UserFlags = obj.UserFlags,
             UserFlagNames = userFlagNames,
         };
     }
+
+    private const int UserFlagSlotCount = 32;
 
     private static ImmutableArray<string> MapUserFlagNames(ImmutableArray<PexUserFlag> flags)
     {
         if (flags.IsDefaultOrEmpty)
             return ImmutableArray<string>.Empty;
 
-        var builder = ImmutableArray.CreateBuilder<string>(flags.Length);
+        // Slot i is the name for mask bit i. File order and gaps must not matter.
+        var builder = ImmutableArray.CreateBuilder<string>(UserFlagSlotCount);
+        for (int i = 0; i < UserFlagSlotCount; i++)
+            builder.Add("");
+
         foreach (PexUserFlag flag in flags)
-            builder.Add(flag.Name ?? "");
+        {
+            if (flag.BitIndex < UserFlagSlotCount)
+                builder[flag.BitIndex] = flag.Name ?? "";
+        }
+
         return builder.MoveToImmutable();
     }
 

@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using Xunit;
 
 namespace Papyrus.Pex.Tests;
@@ -25,6 +24,7 @@ public sealed class PexReflectorTests
         Assert.Empty(metadata.Structs);
         Assert.Empty(metadata.Guards);
         Assert.Empty(metadata.States);
+        Assert.Equal(0u, metadata.UserFlags);
         Assert.Empty(metadata.UserFlagNames);
     }
 
@@ -35,7 +35,10 @@ public sealed class PexReflectorTests
 
         Assert.Equal(new PexQualifiedName("Built"), metadata.Name);
         Assert.Null(metadata.BaseType);
-        Assert.Equal(new[] { "Hidden", "Conditional" }, metadata.UserFlagNames.ToArray());
+        Assert.Equal(1u, metadata.UserFlags);
+        Assert.Equal(32, metadata.UserFlagNames.Length);
+        Assert.Equal("Hidden", metadata.UserFlagNames[0]);
+        Assert.Equal("Conditional", metadata.UserFlagNames[1]);
 
         PexFunctionMetadata function = Assert.Single(metadata.Functions);
         Assert.Equal("Go", function.Name);
@@ -183,6 +186,38 @@ public sealed class PexReflectorTests
         Assert.Equal("Int", property.GetMethod?.ReturnTypeName);
         Assert.Equal("None", property.SetMethod?.ReturnTypeName);
         Assert.Equal("newValue", Assert.Single(property.SetMethod!.Parameters).Name);
+    }
+
+    [Fact]
+    public void Reflect_OutOfOrderUserFlags_IndexesNamesByBit()
+    {
+        var file = new PexFile
+        {
+            UserFlags =
+            [
+                new PexUserFlag { Name = "Custom", BitIndex = 5 },
+                new PexUserFlag { Name = "Conditional", BitIndex = 1 },
+                new PexUserFlag { Name = "Hidden", BitIndex = 0 },
+            ],
+            Objects =
+            [
+                new PexObject
+                {
+                    Name = "Script",
+                    UserFlags = 0b10_0011,
+                },
+            ],
+        };
+
+        PexScriptMetadata metadata = PexReflector.Reflect(file);
+
+        Assert.Equal(0b10_0011u, metadata.UserFlags);
+        Assert.Equal(32, metadata.UserFlagNames.Length);
+        Assert.Equal("Hidden", metadata.UserFlagNames[0]);
+        Assert.Equal("Conditional", metadata.UserFlagNames[1]);
+        Assert.Equal("Custom", metadata.UserFlagNames[5]);
+        Assert.Equal("", metadata.UserFlagNames[2]);
+        Assert.Equal("", metadata.UserFlagNames[31]);
     }
 
     [Fact]
