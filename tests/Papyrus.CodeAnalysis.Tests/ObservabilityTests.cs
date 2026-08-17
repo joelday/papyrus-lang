@@ -58,12 +58,11 @@ public sealed class ObservabilityTests
             }));
 
         _ = compilation.GetSyntaxTree(name);
-        var parseBefore = PapyrusEventSource.Log.ParseCount;
         var hitsBefore = PapyrusEventSource.Log.ParseCacheHits;
 
         _ = compilation.GetSyntaxTree(name);
 
-        Assert.Equal(parseBefore, PapyrusEventSource.Log.ParseCount);
+        // ParseCount is process-wide; other tests may parse concurrently.
         Assert.True(PapyrusEventSource.Log.ParseCacheHits > hitsBefore);
     }
 
