@@ -84,7 +84,7 @@ public sealed class SyntaxGenerator : IIncrementalGenerator
         }
 
         var category = IsKeywordName(name) ? KindCategory.Keyword : KindCategory.Token;
-        return new KindModel(name, category, text, ImmutableArray<string>.Empty);
+        return new KindModel(name, category, text, ImmutableArray<ChildSlot>.Empty, type.Name);
     }
 
     private static KindModel? TransformTrivia(
@@ -97,7 +97,7 @@ public sealed class SyntaxGenerator : IIncrementalGenerator
             return null;
         }
 
-        return new KindModel(type.Name, KindCategory.Trivia, text: null, ImmutableArray<string>.Empty);
+        return new KindModel(type.Name, KindCategory.Trivia, text: null, ImmutableArray<ChildSlot>.Empty, type.Name);
     }
 
     private static KindModel? TransformNode(
@@ -110,24 +110,35 @@ public sealed class SyntaxGenerator : IIncrementalGenerator
             return null;
         }
 
-        var children = new List<string>();
+        var children = new List<ChildSlot>();
         foreach (var member in type.GetMembers())
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (member is IPropertySymbol property
                 && !property.IsStatic
                 && property.GetMethod is not null
-                && property.Parameters.Length == 0)
+                && property.Parameters.Length == 0
+                && property.ContainingType.Equals(type, SymbolEqualityComparer.Default))
             {
-                children.Add(property.Name);
+                var typeName = property.Type.Name;
+                var isToken = typeName == "SyntaxToken"
+                    || typeName.EndsWith("Token", StringComparison.Ordinal)
+                    || typeName.EndsWith("Keyword", StringComparison.Ordinal);
+                children.Add(new ChildSlot(property.Name, typeName, isToken));
             }
         }
+
+        var baseTypeName = type.BaseType is { SpecialType: not SpecialType.System_Object } baseType
+            ? baseType.Name
+            : "SyntaxNode";
 
         return new KindModel(
             StripSuffix(type.Name, "Syntax"),
             KindCategory.Node,
             text: null,
-            children.ToImmutableArray());
+            children.ToImmutableArray(),
+            type.Name,
+            baseTypeName);
     }
 
     private static string? ReadTextArgument(ImmutableArray<AttributeData> attributes)

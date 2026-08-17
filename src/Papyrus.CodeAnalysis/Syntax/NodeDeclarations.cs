@@ -1,49 +1,53 @@
 namespace Papyrus.CodeAnalysis.Syntax;
 
-internal abstract partial class NameSyntax
+internal abstract partial class NameSyntax : SyntaxNode
 {
+    private protected NameSyntax(GreenNode green, SyntaxNode? parent, int position)
+        : base(green, parent, position)
+    {
+    }
 }
 
 [SyntaxNode]
 internal sealed partial class IdentifierNameSyntax : NameSyntax
 {
-    public IdentifierToken Identifier { get; }
+    public SyntaxToken Identifier { get; }
 }
 
 [SyntaxNode]
 internal sealed partial class QualifiedNameSyntax : NameSyntax
 {
     public NameSyntax Left { get; } = null!;
-    public ColonToken ColonToken { get; }
+    public SyntaxToken ColonToken { get; }
     public IdentifierNameSyntax Right { get; } = null!;
 }
 
 [SyntaxNode]
-internal sealed partial class TypeNameSyntax
+internal sealed partial class TypeNameSyntax : SyntaxNode
 {
     public NameSyntax Name { get; } = null!;
-    public HashToken HashToken { get; }
-    public IdentifierToken StructName { get; }
-    public OpenBracketToken OpenBracketToken { get; }
-    public CloseBracketToken CloseBracketToken { get; }
+    public SyntaxToken HashToken { get; }
+    public SyntaxToken StructName { get; }
+    public SyntaxToken OpenBracketToken { get; }
+    public SyntaxToken CloseBracketToken { get; }
 }
 
 [SyntaxNode]
-internal sealed partial class ExtendsClauseSyntax
+internal sealed partial class ExtendsClauseSyntax : SyntaxNode
 {
-    public ExtendsKeyword ExtendsKeyword { get; }
+    public SyntaxToken ExtendsKeyword { get; }
     public TypeNameSyntax TypeName { get; } = null!;
 }
 
 [SyntaxNode]
-internal sealed partial class ScriptDeclarationSyntax
+internal sealed partial class ScriptDeclarationSyntax : SyntaxNode
 {
-    public DocCommentToken DocComment { get; }
-    public ScriptNameKeyword ScriptNameKeyword { get; }
+    public SyntaxToken DocComment { get; }
+    public SyntaxToken ScriptNameKeyword { get; }
     public IdentifierNameSyntax Name { get; } = null!;
     public ExtendsClauseSyntax ExtendsClause { get; } = null!;
-    public NativeKeyword NativeKeyword { get; }
-    public HiddenKeyword HiddenKeyword { get; }
-    public ConditionalKeyword ConditionalKeyword { get; }
-    public EndOfLineToken EndOfLineToken { get; }
+    public SyntaxToken NativeKeyword { get; }
+    public SyntaxToken HiddenKeyword { get; }
+    public SyntaxToken ConditionalKeyword { get; }
+    public SyntaxToken EndOfLineToken { get; }
 }
