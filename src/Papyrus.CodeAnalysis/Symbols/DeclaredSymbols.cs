@@ -4,14 +4,25 @@ namespace Papyrus.CodeAnalysis.Symbols;
 
 internal sealed class ScriptSymbol : MemberOwnerSymbol, IScriptSymbol
 {
-    public ScriptSymbol(PapyrusName name, QualifiedName qualifiedName, TypeName typeName)
+    private readonly ImmutableArray<SyntaxReference> _declaringSyntaxReferences;
+
+    public ScriptSymbol(
+        PapyrusName name,
+        QualifiedName qualifiedName,
+        TypeName typeName,
+        ImmutableArray<SyntaxReference> declaringSyntaxReferences = default)
         : base(name, SymbolKind.Script, containingSymbol: null, containingScript: null, isNative: false)
     {
         QualifiedName = qualifiedName;
         TypeName = typeName;
+        _declaringSyntaxReferences = declaringSyntaxReferences.IsDefault
+            ? ImmutableArray<SyntaxReference>.Empty
+            : declaringSyntaxReferences;
     }
 
     public override IScriptSymbol? ContainingScript => this;
+
+    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => _declaringSyntaxReferences;
 
     public QualifiedName QualifiedName { get; }
 

@@ -30,7 +30,7 @@ internal abstract class Symbol : ISymbol
 
     public virtual IScriptSymbol? ContainingScript => _containingScript;
 
-    public ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => ImmutableArray<SyntaxReference>.Empty;
+    public virtual ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => ImmutableArray<SyntaxReference>.Empty;
 
     public bool IsNative { get; }
 

@@ -1,4 +1,6 @@
+using System.Collections.Immutable;
 using System.Threading;
+using Papyrus.CodeAnalysis.Syntax.InternalSyntax;
 using Papyrus.CodeAnalysis.Text;
 
 namespace Papyrus.CodeAnalysis.Syntax;
@@ -81,6 +83,79 @@ public sealed class SyntaxTree
     }
 
     public SourceText GetText() => _text;
+
+    public ImmutableArray<Diagnostic> GetDiagnostics(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!_root.ContainsDiagnostics)
+        {
+            return ImmutableArray<Diagnostic>.Empty;
+        }
+
+        var builder = ImmutableArray.CreateBuilder<Diagnostic>();
+        CollectDiagnostics(_root, position: 0, builder, cancellationToken);
+        return builder.ToImmutable();
+    }
+
+    internal SyntaxTree WithRootDiagnostics(params DiagnosticInfo[] diagnostics)
+    {
+        return Create(_root.SetDiagnostics(diagnostics), _text, Dialect, Options);
+    }
+
+    private void CollectDiagnostics(
+        GreenNode node,
+        int position,
+        ImmutableArray<Diagnostic>.Builder builder,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var diagnostics = node.GetDiagnostics();
+        if (diagnostics is { Length: > 0 })
+        {
+            var leading = node.GetLeadingTriviaWidth();
+            var trailing = node.GetTrailingTriviaWidth();
+            var length = node.FullWidth - leading - trailing;
+            var span = new TextSpan(position + leading, length < 0 ? 0 : length);
+            for (var i = 0; i < diagnostics.Length; i++)
+            {
+                builder.Add(new Diagnostic(diagnostics[i], span, this));
+            }
+        }
+
+        if (node is GreenToken token)
+        {
+            if (token.Leading is { } leadingTrivia)
+            {
+                CollectDiagnostics(leadingTrivia, position, builder, cancellationToken);
+            }
+
+            if (token.Trailing is { } trailingTrivia)
+            {
+                CollectDiagnostics(
+                    trailingTrivia,
+                    position + node.FullWidth - trailingTrivia.FullWidth,
+                    builder,
+                    cancellationToken);
+            }
+
+            return;
+        }
+
+        var offset = 0;
+        var slotCount = node.SlotCount;
+        for (var i = 0; i < slotCount; i++)
+        {
+            var child = node.GetSlot(i);
+            if (child is null)
+            {
+                continue;
+            }
+
+            CollectDiagnostics(child, position + offset, builder, cancellationToken);
+            offset += child.FullWidth;
+        }
+    }
 
     public SyntaxNode GetRoot()
     {
