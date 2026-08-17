@@ -7,7 +7,7 @@
 Standalone library for Papyrus PEX 3.1–3.15: read, write, normalize, and reflect compiled scripts. No compiler dependency.
 
 ```xml
-<PackageReference Include="Papyrus.Pex" Version="0.1.0-*" />
+<PackageReference Include="Papyrus.Pex" Version="0.1.0" />
 ```
 
 This is an unstable **0.x** package. There is no compatibility promise. Public surface may change without a major bump.
