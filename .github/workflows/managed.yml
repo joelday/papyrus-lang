@@ -36,3 +36,39 @@ jobs:
 
       - name: Architecture tests
         run: dotnet test tests/Papyrus.Architecture.Tests --no-restore --configuration Release --no-build
+
+      - name: CodeAnalysis tests
+        run: dotnet test tests/Papyrus.CodeAnalysis.Tests --no-restore --configuration Release --no-build
+
+      - name: Pex tests
+        run: dotnet test tests/Papyrus.Pex.Tests --no-restore --configuration Release --no-build
+
+  pack:
+    name: Pack Papyrus.Pex
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Pack
+        run: dotnet pack src/Papyrus.Pex/Papyrus.Pex.csproj --configuration Release --output artifacts/nuget
+
+      - name: Upload nupkg
+        uses: actions/upload-artifact@v4
+        with:
+          name: papyrus-pex-nupkg
+          path: artifacts/nuget/*.nupkg
+
+      # Publish is disabled. Uncomment only for a deliberate nuget.org release
+      # from a trusted branch — never on pull_request.
+      # - name: Push to nuget.org
+      #   if: github.event_name == 'workflow_dispatch'
+      #   env:
+      #     NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      #   run: dotnet nuget push artifacts/nuget/*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
