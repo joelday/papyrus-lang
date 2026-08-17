@@ -8,5 +8,6 @@
     <ProjectReference Include="..\Papyrus.Workspaces\Papyrus.Workspaces.csproj" />
     <ProjectReference Include="..\Papyrus.CodeAnalysis\Papyrus.CodeAnalysis.csproj" />
     <ProjectReference Include="..\Papyrus.Pex\Papyrus.Pex.csproj" />
+    <InternalsVisibleTo Include="Papyrus.Compiler.Tests" />
   </ItemGroup>
 </Project>
