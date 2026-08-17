@@ -13,6 +13,12 @@ public static class DiagnosticCatalog
     public const string UnresolvedTypeId = "PAP1003";
     public const string InvalidIsOperatorId = "PAP1004";
     public const string CannotConvertId = "PAP1005";
+    public const string UnsupportedStructId = "PAP1006";
+    public const string UnsupportedGroupId = "PAP1007";
+    public const string UnsupportedCustomEventId = "PAP1008";
+    public const string UnsupportedGuardId = "PAP1009";
+    public const string UnsupportedNamespaceId = "PAP1010";
+    public const string ReservedMemberNameId = "PAP1011";
     public const string InternalErrorId = "PAP9999";
 
     public const string BindingCategory = "Binding";
@@ -67,6 +73,54 @@ public static class DiagnosticCatalog
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    public static DiagnosticDescriptor UnsupportedStruct { get; } = new(
+        UnsupportedStructId,
+        "Structs are not supported",
+        "Structs are not supported in this dialect.",
+        BindingCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor UnsupportedGroup { get; } = new(
+        UnsupportedGroupId,
+        "Groups are not supported",
+        "Groups are not supported in this dialect.",
+        BindingCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor UnsupportedCustomEvent { get; } = new(
+        UnsupportedCustomEventId,
+        "Custom events are not supported",
+        "Custom events are not supported in this dialect.",
+        BindingCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor UnsupportedGuard { get; } = new(
+        UnsupportedGuardId,
+        "Guards are not supported",
+        "Guards are not supported in this dialect.",
+        BindingCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor UnsupportedNamespace { get; } = new(
+        UnsupportedNamespaceId,
+        "Namespaces are not supported",
+        "Namespaces are not supported in this dialect.",
+        BindingCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor ReservedMemberName { get; } = new(
+        ReservedMemberNameId,
+        "Reserved member name",
+        "Cannot declare a member named '{0}'.",
+        BindingCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static DiagnosticDescriptor InternalError { get; } = new(
         InternalErrorId,
         "Internal compiler error",
@@ -83,6 +137,12 @@ public static class DiagnosticCatalog
         UnresolvedType,
         InvalidIsOperator,
         CannotConvert,
+        UnsupportedStruct,
+        UnsupportedGroup,
+        UnsupportedCustomEvent,
+        UnsupportedGuard,
+        UnsupportedNamespace,
+        ReservedMemberName,
         InternalError,
     ];
 

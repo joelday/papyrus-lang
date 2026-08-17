@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
+using Papyrus.CodeAnalysis.Binding;
 using Papyrus.CodeAnalysis.Syntax;
 using Papyrus.CodeAnalysis.Text;
 
@@ -230,6 +231,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
 
     private ImmutableArray<ISymbol> BindMembers(CancellationToken cancellationToken)
     {
+        AddDiagnostics(DialectBinding.Collect(_tree, _compilation.Dialect));
         if (!_tree.TryGetRoot(out var root))
         {
             return ImmutableArray<ISymbol>.Empty;
@@ -294,6 +296,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
             return;
         }
 
+        CheckReservedMemberName(name, syntax.Name.Span);
         builder.Add(new FunctionSymbol(
             name,
             container,
@@ -314,6 +317,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
             return;
         }
 
+        CheckReservedMemberName(name, syntax.Name.Span);
         builder.Add(new EventSymbol(
             name,
             container,
@@ -333,6 +337,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
             return;
         }
 
+        CheckReservedMemberName(name, syntax.Name.Span);
         builder.Add(new PropertySymbol(
             name,
             container,
@@ -353,6 +358,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
             return;
         }
 
+        CheckReservedMemberName(name, syntax.Name.Span);
         builder.Add(new VariableSymbol(
             name,
             container,
@@ -372,6 +378,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
             return;
         }
 
+        CheckReservedMemberName(name, syntax.Name.Span);
         var state = new StateSymbol(name, this, isAuto: syntax.AutoKeyword.Kind == SyntaxKind.AutoKeyword);
         var members = syntax.Members;
         var stateMembers = ImmutableArray.CreateBuilder<ISymbol>(members.Count);
@@ -404,6 +411,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
             return;
         }
 
+        CheckReservedMemberName(name, syntax.Name.Span);
         var struc = new StructSymbol(name, this, new TypeName(QualifiedName, isArray: false, name));
         var members = syntax.Members;
         var structMembers = ImmutableArray.CreateBuilder<ISymbol>(members.Count);
@@ -439,6 +447,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
             return;
         }
 
+        CheckReservedMemberName(name, syntax.Name.Span);
         builder.Add(new CustomEventSymbol(name, this));
     }
 
@@ -449,6 +458,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
             return;
         }
 
+        CheckReservedMemberName(name, syntax.Name.Span);
         builder.Add(new GuardSymbol(name, this));
     }
 
@@ -885,8 +895,33 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
 
     private void AddDiagnostic(DiagnosticDescriptor descriptor, TextSpan span, params object?[] arguments)
     {
-        var diagnostic = new Diagnostic(new DiagnosticInfo(descriptor, arguments), span, _tree);
+        AddDiagnostic(new Diagnostic(new DiagnosticInfo(descriptor, arguments), span, _tree));
+    }
+
+    private void AddDiagnostics(ImmutableArray<Diagnostic> diagnostics)
+    {
+        if (diagnostics.IsDefaultOrEmpty)
+        {
+            return;
+        }
+
+        ImmutableInterlocked.Update(
+            ref _bindingDiagnostics,
+            static (existing, added) => existing.AddRange(added),
+            diagnostics);
+    }
+
+    private void AddDiagnostic(Diagnostic diagnostic)
+    {
         ImmutableInterlocked.Update(ref _bindingDiagnostics, static (existing, d) => existing.Add(d), diagnostic);
+    }
+
+    private void CheckReservedMemberName(PapyrusName name, TextSpan span)
+    {
+        if (name.Equals(_compilation.Names.Get("Self")) || name.Equals(_compilation.Names.Get("Parent")))
+        {
+            AddDiagnostic(DiagnosticCatalog.ReservedMemberName, span, name);
+        }
     }
 
     private bool TryGetName(IdentifierNameSyntax syntax, out PapyrusName name)

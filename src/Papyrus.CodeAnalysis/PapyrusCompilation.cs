@@ -20,6 +20,12 @@ public sealed class PapyrusCompilation
     public const string UnresolvedTypeDiagnosticId = DiagnosticCatalog.UnresolvedTypeId;
     public const string InvalidIsOperatorDiagnosticId = DiagnosticCatalog.InvalidIsOperatorId;
     public const string CannotConvertDiagnosticId = DiagnosticCatalog.CannotConvertId;
+    public const string UnsupportedStructDiagnosticId = DiagnosticCatalog.UnsupportedStructId;
+    public const string UnsupportedGroupDiagnosticId = DiagnosticCatalog.UnsupportedGroupId;
+    public const string UnsupportedCustomEventDiagnosticId = DiagnosticCatalog.UnsupportedCustomEventId;
+    public const string UnsupportedGuardDiagnosticId = DiagnosticCatalog.UnsupportedGuardId;
+    public const string UnsupportedNamespaceDiagnosticId = DiagnosticCatalog.UnsupportedNamespaceId;
+    public const string ReservedMemberNameDiagnosticId = DiagnosticCatalog.ReservedMemberNameId;
 
     [ThreadStatic]
     private static List<QualifiedName>? t_binding;

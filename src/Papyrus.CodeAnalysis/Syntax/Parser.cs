@@ -41,7 +41,8 @@ internal sealed class Parser
         }
 
         var scriptNameKeyword = Eat(SyntaxKind.ScriptNameKeyword);
-        var name = _dialect.SupportsNamespaces ? ParseName() : ParseIdentifierName();
+        // Always parse colons; Skyrim bind reports PAP1010 instead of treating them as a path.
+        var name = ParseName();
 
         ExtendsClauseSyntax? extendsClause = null;
         if (_current.Kind == SyntaxKind.ExtendsKeyword)
@@ -943,9 +944,14 @@ internal sealed class Parser
     private ExpressionSyntax ParseCastExpression()
     {
         var expression = ParsePostfixExpression();
-        if (_current.Kind is SyntaxKind.AsKeyword or SyntaxKind.IsKeyword)
+        if (_current.Kind == SyntaxKind.AsKeyword || LooksLikeIsOperator())
         {
             var operatorToken = Take();
+            if (operatorToken.Kind == SyntaxKind.IdentifierToken)
+            {
+                operatorToken = WithKind(operatorToken, SyntaxKind.IsKeyword);
+            }
+
             return SyntaxFactory.CastExpression(expression, operatorToken, ParseTypeName());
         }
 
@@ -1608,6 +1614,12 @@ internal sealed class Parser
             or SyntaxKind.StateKeyword
             or SyntaxKind.AutoKeyword
             or SyntaxKind.ImportKeyword;
+
+    // Skyrim lexes `is` as an identifier; recover it as a cast so bind can emit PAP1004.
+    private bool LooksLikeIsOperator()
+        => _current.Kind == SyntaxKind.IsKeyword
+            || (_current.Kind == SyntaxKind.IdentifierToken
+                && _current.Text.Equals("is", StringComparison.OrdinalIgnoreCase));
 
     private static bool IsTypeStart(SyntaxKind kind) => IsNameToken(kind);
 

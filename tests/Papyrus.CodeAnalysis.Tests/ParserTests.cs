@@ -779,15 +779,14 @@ public sealed class ParserTests
     }
 
     [Fact]
-    public void Skyrim_does_not_parse_colon_as_script_namespace()
+    public void Skyrim_parses_colon_in_script_name_as_a_qualified_name()
     {
         const string source = "ScriptName A:B:Foo\n";
         var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
 
         Assert.Equal(source, tree.GetRoot().ToFullString());
         Assert.True(tree.TryGetRoot(out var root));
-        var name = Assert.IsType<IdentifierNameSyntax>(root.Name);
-        Assert.Equal("A", name.Identifier.Text);
+        Assert.IsType<QualifiedNameSyntax>(root.Name);
     }
 
     [Fact]

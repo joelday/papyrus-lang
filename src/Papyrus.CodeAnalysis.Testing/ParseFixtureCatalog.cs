@@ -7,6 +7,8 @@ namespace Papyrus.CodeAnalysis.Testing;
 
 public static class ParseFixtureCatalog
 {
+    private static readonly string[] s_fixturesFolderNames = ["Fixtures", "fixtures"];
+
     public static IReadOnlyList<ParseFixture> Load(string fixturesDirectory)
     {
         if (string.IsNullOrEmpty(fixturesDirectory) || !Directory.Exists(fixturesDirectory))
@@ -33,28 +35,42 @@ public static class ParseFixtureCatalog
         return fixtures;
     }
 
-    public static string FindDirectory()
+    public static string FindDirectory() => Find("Parse");
+
+    public static string Find(params string[] relativeParts)
     {
+        var relative = relativeParts is { Length: > 0 }
+            ? Path.Combine(relativeParts)
+            : "Parse";
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null)
         {
-            var output = Path.Combine(dir.FullName, "Fixtures", "Parse");
-            if (Directory.Exists(output))
+            foreach (var fixturesName in s_fixturesFolderNames)
             {
-                return output;
-            }
+                var output = Path.Combine(dir.FullName, fixturesName, relative);
+                if (Directory.Exists(output))
+                {
+                    return output;
+                }
 
-            var source = Path.Combine(dir.FullName, "tests", "Papyrus.CodeAnalysis.Tests", "Fixtures", "Parse");
-            if (Directory.Exists(source))
-            {
-                return source;
+                var source = Path.Combine(
+                    dir.FullName,
+                    "tests",
+                    "Papyrus.CodeAnalysis.Tests",
+                    fixturesName,
+                    relative);
+                if (Directory.Exists(source))
+                {
+                    return source;
+                }
             }
 
             dir = dir.Parent;
         }
 
         throw new DirectoryNotFoundException(
-            "Could not locate Fixtures/Parse starting from " + AppContext.BaseDirectory + ".");
+            "Could not locate Fixtures/" + relative.Replace('\\', '/') +
+            " starting from " + AppContext.BaseDirectory + ".");
     }
 
     internal static PapyrusDialect DialectFromRelativePath(string relativePath)

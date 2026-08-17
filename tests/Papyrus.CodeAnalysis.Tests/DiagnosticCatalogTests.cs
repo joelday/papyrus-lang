@@ -20,6 +20,12 @@ public sealed class DiagnosticCatalogTests
         Assert.Contains(PapyrusCompilation.UnresolvedTypeDiagnosticId, ids);
         Assert.Contains(PapyrusCompilation.InvalidIsOperatorDiagnosticId, ids);
         Assert.Contains(PapyrusCompilation.CannotConvertDiagnosticId, ids);
+        Assert.Contains(PapyrusCompilation.UnsupportedStructDiagnosticId, ids);
+        Assert.Contains(PapyrusCompilation.UnsupportedGroupDiagnosticId, ids);
+        Assert.Contains(PapyrusCompilation.UnsupportedCustomEventDiagnosticId, ids);
+        Assert.Contains(PapyrusCompilation.UnsupportedGuardDiagnosticId, ids);
+        Assert.Contains(PapyrusCompilation.UnsupportedNamespaceDiagnosticId, ids);
+        Assert.Contains(PapyrusCompilation.ReservedMemberNameDiagnosticId, ids);
         Assert.Contains(DiagnosticCatalog.InternalErrorId, ids);
 
         Assert.Equal("PAP1000", DiagnosticCatalog.UnresolvedScript.Id);
@@ -28,6 +34,12 @@ public sealed class DiagnosticCatalogTests
         Assert.Equal("PAP1003", DiagnosticCatalog.UnresolvedType.Id);
         Assert.Equal("PAP1004", DiagnosticCatalog.InvalidIsOperator.Id);
         Assert.Equal("PAP1005", DiagnosticCatalog.CannotConvert.Id);
+        Assert.Equal("PAP1006", DiagnosticCatalog.UnsupportedStruct.Id);
+        Assert.Equal("PAP1007", DiagnosticCatalog.UnsupportedGroup.Id);
+        Assert.Equal("PAP1008", DiagnosticCatalog.UnsupportedCustomEvent.Id);
+        Assert.Equal("PAP1009", DiagnosticCatalog.UnsupportedGuard.Id);
+        Assert.Equal("PAP1010", DiagnosticCatalog.UnsupportedNamespace.Id);
+        Assert.Equal("PAP1011", DiagnosticCatalog.ReservedMemberName.Id);
         Assert.Equal("PAP9999", DiagnosticCatalog.InternalError.Id);
 
         Assert.Equal(PapyrusCompilation.UnresolvedScriptDiagnosticId, DiagnosticCatalog.UnresolvedScript.Id);
@@ -36,6 +48,12 @@ public sealed class DiagnosticCatalogTests
         Assert.Equal(PapyrusCompilation.UnresolvedTypeDiagnosticId, DiagnosticCatalog.UnresolvedType.Id);
         Assert.Equal(PapyrusCompilation.InvalidIsOperatorDiagnosticId, DiagnosticCatalog.InvalidIsOperator.Id);
         Assert.Equal(PapyrusCompilation.CannotConvertDiagnosticId, DiagnosticCatalog.CannotConvert.Id);
+        Assert.Equal(PapyrusCompilation.UnsupportedStructDiagnosticId, DiagnosticCatalog.UnsupportedStruct.Id);
+        Assert.Equal(PapyrusCompilation.UnsupportedGroupDiagnosticId, DiagnosticCatalog.UnsupportedGroup.Id);
+        Assert.Equal(PapyrusCompilation.UnsupportedCustomEventDiagnosticId, DiagnosticCatalog.UnsupportedCustomEvent.Id);
+        Assert.Equal(PapyrusCompilation.UnsupportedGuardDiagnosticId, DiagnosticCatalog.UnsupportedGuard.Id);
+        Assert.Equal(PapyrusCompilation.UnsupportedNamespaceDiagnosticId, DiagnosticCatalog.UnsupportedNamespace.Id);
+        Assert.Equal(PapyrusCompilation.ReservedMemberNameDiagnosticId, DiagnosticCatalog.ReservedMemberName.Id);
     }
 
     [Fact]
