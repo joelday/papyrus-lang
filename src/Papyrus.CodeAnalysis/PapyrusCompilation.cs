@@ -21,10 +21,15 @@ public sealed class PapyrusCompilation
     public const string InvalidIsOperatorDiagnosticId = DiagnosticCatalog.InvalidIsOperatorId;
     public const string CannotConvertDiagnosticId = DiagnosticCatalog.CannotConvertId;
 
+    [ThreadStatic]
+    private static List<QualifiedName>? t_binding;
+
     private readonly PapyrusParseOptions _options;
     private readonly ImmutableDictionary<QualifiedName, SyntaxTree> _overrides;
     private readonly ConcurrentDictionary<QualifiedName, CachedScript> _cache;
     private readonly ConcurrentDictionary<QualifiedName, IScriptSymbol> _scripts;
+    private readonly ConcurrentDictionary<QualifiedName, ImmutableHashSet<QualifiedName>> _dependents;
+    private readonly ConcurrentDictionary<QualifiedName, int> _versions;
     private readonly ILogger? _logger;
 
     private PapyrusCompilation(
@@ -35,6 +40,8 @@ public sealed class PapyrusCompilation
         ImmutableDictionary<QualifiedName, SyntaxTree> overrides,
         ConcurrentDictionary<QualifiedName, CachedScript> cache,
         ConcurrentDictionary<QualifiedName, IScriptSymbol> scripts,
+        ConcurrentDictionary<QualifiedName, ImmutableHashSet<QualifiedName>> dependents,
+        ConcurrentDictionary<QualifiedName, int> versions,
         ILogger? logger)
     {
         Dialect = dialect;
@@ -44,6 +51,8 @@ public sealed class PapyrusCompilation
         _overrides = overrides;
         _cache = cache;
         _scripts = scripts;
+        _dependents = dependents;
+        _versions = versions;
         _logger = logger;
     }
 
@@ -70,6 +79,8 @@ public sealed class PapyrusCompilation
             ImmutableDictionary<QualifiedName, SyntaxTree>.Empty,
             new ConcurrentDictionary<QualifiedName, CachedScript>(),
             new ConcurrentDictionary<QualifiedName, IScriptSymbol>(),
+            new ConcurrentDictionary<QualifiedName, ImmutableHashSet<QualifiedName>>(),
+            new ConcurrentDictionary<QualifiedName, int>(),
             logger);
     }
 
@@ -82,18 +93,15 @@ public sealed class PapyrusCompilation
         PapyrusEventSource.Log.Bind();
         _logger?.LogDebug("GetScript {Script} Activity={ActivityId}", name, Activity.Current?.Id);
 
+        RecordUse(name);
         var script = _scripts.GetOrAdd(name, n => CreateScript(n, GetOrAddCached(n)));
-        if (script is SourceScriptSymbol source)
-        {
-            source.ForceComplete(CompletionPart.All, CancellationToken.None);
-        }
-
-        return script;
+        return CompleteScript(name, script, CompletionPart.All);
     }
 
     internal IScriptSymbol GetScriptForType(QualifiedName name)
     {
         name = Intern(name);
+        RecordUse(name);
         if (!_scripts.TryGetValue(name, out var script))
         {
             if (!CanResolve(name))
@@ -104,12 +112,46 @@ public sealed class PapyrusCompilation
             script = _scripts.GetOrAdd(name, n => CreateScript(n, GetOrAddCached(n)));
         }
 
-        if (script is SourceScriptSymbol source)
+        return CompleteScript(name, script, CompletionPart.Members);
+    }
+
+    public IReadOnlyCollection<QualifiedName> GetDependents(QualifiedName name)
+    {
+        name = Intern(name);
+        if (!_dependents.TryGetValue(name, out var direct) || direct.Count == 0)
         {
-            source.ForceComplete(CompletionPart.Members, CancellationToken.None);
+            return Array.Empty<QualifiedName>();
         }
 
-        return script;
+        var result = new List<QualifiedName>();
+        var seen = new HashSet<QualifiedName>();
+        var pending = new Stack<QualifiedName>();
+        foreach (var dependent in direct)
+        {
+            pending.Push(dependent);
+        }
+
+        while (pending.Count > 0)
+        {
+            var current = pending.Pop();
+            if (!seen.Add(current))
+            {
+                continue;
+            }
+
+            result.Add(current);
+            if (!_dependents.TryGetValue(current, out var next))
+            {
+                continue;
+            }
+
+            foreach (var dependent in next)
+            {
+                pending.Push(dependent);
+            }
+        }
+
+        return result;
     }
 
     internal TypeName GetInternedTypeName(TypeNameSyntax syntax)
@@ -161,6 +203,12 @@ public sealed class PapyrusCompilation
         return ReplaceTree(name, SyntaxTree.Parse(text, Dialect, _options));
     }
 
+    public PapyrusCompilation WithoutScript(QualifiedName name)
+    {
+        name = Intern(name);
+        return ReplaceTree(name, tree: null);
+    }
+
     public ImmutableArray<Diagnostic> GetDiagnostics(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -186,32 +234,154 @@ public sealed class PapyrusCompilation
         return builder.ToImmutable();
     }
 
-    private PapyrusCompilation ReplaceTree(QualifiedName name, SyntaxTree tree)
+    private PapyrusCompilation ReplaceTree(QualifiedName name, SyntaxTree? tree)
     {
-        var overrides = _overrides.SetItem(name, tree);
+        var invalidated = CollectInvalidated(name);
+        var overrides = tree is null ? _overrides.Remove(name) : _overrides.SetItem(name, tree);
+
         var cache = new ConcurrentDictionary<QualifiedName, CachedScript>();
         foreach (var pair in _cache)
         {
-            if (!pair.Key.Equals(name))
+            if (pair.Key.Equals(name))
             {
-                cache.TryAdd(pair.Key, pair.Value);
+                continue;
             }
+
+            cache.TryAdd(pair.Key, pair.Value);
         }
 
-        cache[name] = CachedScript.Source(tree);
+        if (tree is not null)
+        {
+            cache[name] = CachedScript.Source(tree);
+        }
 
         var scripts = new ConcurrentDictionary<QualifiedName, IScriptSymbol>();
         foreach (var pair in _scripts)
         {
-            if (!pair.Key.Equals(name))
+            if (invalidated.Contains(pair.Key))
             {
-                scripts.TryAdd(pair.Key, pair.Value);
+                continue;
+            }
+
+            scripts.TryAdd(pair.Key, pair.Value);
+        }
+
+        if (tree is not null)
+        {
+            scripts[name] = CreateSourceScript(name, tree);
+        }
+
+        var versions = new ConcurrentDictionary<QualifiedName, int>(_versions);
+        versions.AddOrUpdate(name, 1, static (_, version) => version + 1);
+
+        return new PapyrusCompilation(
+            Dialect,
+            Resolver,
+            Names,
+            _options,
+            overrides,
+            cache,
+            scripts,
+            CopyDependents(invalidated),
+            versions,
+            _logger);
+    }
+
+    private IScriptSymbol CompleteScript(QualifiedName name, IScriptSymbol script, CompletionPart part)
+    {
+        if (script is not SourceScriptSymbol source)
+        {
+            return script;
+        }
+
+        PushBinding(name);
+        try
+        {
+            source.ForceComplete(part, CancellationToken.None);
+        }
+        finally
+        {
+            PopBinding();
+        }
+
+        return script;
+    }
+
+    private void RecordUse(QualifiedName used)
+    {
+        var stack = t_binding;
+        if (stack is null || stack.Count == 0)
+        {
+            return;
+        }
+
+        var user = stack[^1];
+        if (user.Equals(used))
+        {
+            return;
+        }
+
+        _dependents.AddOrUpdate(
+            used,
+            _ => ImmutableHashSet.Create(user),
+            (_, existing) => existing.Add(user));
+    }
+
+    private static void PushBinding(QualifiedName name)
+    {
+        (t_binding ??= new List<QualifiedName>()).Add(name);
+    }
+
+    private static void PopBinding()
+    {
+        var stack = t_binding;
+        if (stack is null || stack.Count == 0)
+        {
+            return;
+        }
+
+        stack.RemoveAt(stack.Count - 1);
+    }
+
+    private HashSet<QualifiedName> CollectInvalidated(QualifiedName name)
+    {
+        var drop = new HashSet<QualifiedName> { name };
+        foreach (var dependent in GetDependents(name))
+        {
+            drop.Add(dependent);
+        }
+
+        return drop;
+    }
+
+    private ConcurrentDictionary<QualifiedName, ImmutableHashSet<QualifiedName>> CopyDependents(
+        HashSet<QualifiedName> invalidated)
+    {
+        var dependents = new ConcurrentDictionary<QualifiedName, ImmutableHashSet<QualifiedName>>();
+        foreach (var pair in _dependents)
+        {
+            if (invalidated.Contains(pair.Key))
+            {
+                continue;
+            }
+
+            var users = pair.Value;
+            var filtered = users;
+            foreach (var user in users)
+            {
+                if (invalidated.Contains(user))
+                {
+                    filtered = filtered.Remove(user);
+                }
+            }
+
+            if (filtered.Count > 0)
+            {
+                dependents.TryAdd(pair.Key, filtered);
             }
         }
 
-        scripts[name] = CreateSourceScript(name, tree);
-
-        return new PapyrusCompilation(Dialect, Resolver, Names, _options, overrides, cache, scripts, _logger);
+        return dependents;
     }
 
     private CachedScript GetOrAddCached(QualifiedName name)

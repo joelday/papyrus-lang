@@ -204,4 +204,109 @@ public sealed class PapyrusCompilationTests
         Assert.Empty(script.GetMembers());
         Assert.NotEmpty(script.DeclaringSyntaxReferences);
     }
+
+    [Fact]
+    public void WithScriptText_invalidates_dependents_and_keeps_unrelated_script()
+    {
+        var actor = QualifiedName.Parse("Actor");
+        var quest = QualifiedName.Parse("Quest");
+        var widget = QualifiedName.Parse("Widget");
+        var compilation = PapyrusCompilation.Create(
+            PapyrusDialect.SkyrimSe,
+            new TestScriptResolver(new Dictionary<QualifiedName, SourceText>
+            {
+                [actor] = SourceText.From("ScriptName Actor\nFunction Old()\nEndFunction\n"),
+                [quest] = SourceText.From("ScriptName Quest Extends Actor\n"),
+                [widget] = SourceText.From("ScriptName Widget\nFunction Idle()\nEndFunction\n"),
+            }));
+
+        var actorSymbol = compilation.GetScript(actor);
+        var questSymbol = compilation.GetScript(quest);
+        var widgetSymbol = compilation.GetScript(widget);
+        Assert.Same(actorSymbol, questSymbol.BaseType);
+        Assert.Contains(quest, compilation.GetDependents(actor));
+        Assert.DoesNotContain(actor, compilation.GetDependents(actor));
+        Assert.DoesNotContain(widget, compilation.GetDependents(actor));
+        Assert.Empty(compilation.GetDependents(widget));
+
+        var updated = compilation.WithScriptText(
+            actor,
+            SourceText.From("ScriptName Actor\nFunction Old()\nEndFunction\nFunction NewMember()\nEndFunction\n"));
+
+        var newActor = updated.GetScript(actor);
+        var newQuest = updated.GetScript(quest);
+        var newWidget = updated.GetScript(widget);
+
+        Assert.Same(widgetSymbol, newWidget);
+        Assert.NotSame(questSymbol, newQuest);
+        Assert.NotSame(actorSymbol, newActor);
+        Assert.Same(newActor, newQuest.BaseType);
+        Assert.Contains(newActor.GetMembers(), static member => member.Name.Text.Equals("NewMember", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(newQuest.BaseType!.GetMembers(), static member => member.Name.Text.Equals("NewMember", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void WithScriptText_invalidates_transitive_dependents_only()
+    {
+        var a = QualifiedName.Parse("A");
+        var b = QualifiedName.Parse("B");
+        var c = QualifiedName.Parse("C");
+        var d = QualifiedName.Parse("D");
+        var compilation = PapyrusCompilation.Create(
+            PapyrusDialect.SkyrimSe,
+            new TestScriptResolver(new Dictionary<QualifiedName, SourceText>
+            {
+                [a] = SourceText.From("ScriptName A\n"),
+                [b] = SourceText.From("ScriptName B Extends A\n"),
+                [c] = SourceText.From("ScriptName C Extends B\n"),
+                [d] = SourceText.From("ScriptName D\n"),
+            }));
+
+        var aSymbol = compilation.GetScript(a);
+        var bSymbol = compilation.GetScript(b);
+        var cSymbol = compilation.GetScript(c);
+        var dSymbol = compilation.GetScript(d);
+        var dependents = compilation.GetDependents(a);
+        Assert.Contains(b, dependents);
+        Assert.Contains(c, dependents);
+        Assert.DoesNotContain(d, dependents);
+        Assert.DoesNotContain(a, dependents);
+
+        var updated = compilation.WithScriptText(a, SourceText.From("ScriptName A\nFunction NewMember()\nEndFunction\n"));
+
+        Assert.Same(dSymbol, updated.GetScript(d));
+        Assert.NotSame(aSymbol, updated.GetScript(a));
+        Assert.NotSame(bSymbol, updated.GetScript(b));
+        Assert.NotSame(cSymbol, updated.GetScript(c));
+        Assert.Same(updated.GetScript(a), updated.GetScript(b).BaseType);
+        Assert.Same(updated.GetScript(b), updated.GetScript(c).BaseType);
+        Assert.Contains(
+            updated.GetScript(c).BaseType!.BaseType!.GetMembers(),
+            static member => member.Name.Text.Equals("NewMember", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void GetScriptForType_records_type_reference_dependents()
+    {
+        var actor = QualifiedName.Parse("Actor");
+        var quest = QualifiedName.Parse("Quest");
+        var compilation = PapyrusCompilation.Create(
+            PapyrusDialect.SkyrimSe,
+            new TestScriptResolver(new Dictionary<QualifiedName, SourceText>
+            {
+                [actor] = SourceText.From("ScriptName Actor\n"),
+                [quest] = SourceText.From("ScriptName Quest\nActor Property Target Auto\n"),
+            }));
+
+        _ = compilation.GetScript(quest);
+
+        Assert.Contains(quest, compilation.GetDependents(actor));
+
+        var updated = compilation.WithScriptText(actor, SourceText.From("ScriptName Actor\nFunction Ping()\nEndFunction\n"));
+        var rebound = updated.GetScript(quest);
+        var target = Assert.IsAssignableFrom<IPropertySymbol>(
+            Assert.Single(rebound.GetMembers(updated.Names.Get("Target"))));
+        var actorType = Assert.IsAssignableFrom<IScriptSymbol>(target.Type);
+        Assert.Equal("Ping", Assert.Single(actorType.GetMembers()).Name.Text);
+    }
 }

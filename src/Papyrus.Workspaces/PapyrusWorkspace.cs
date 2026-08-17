@@ -288,7 +288,7 @@ public sealed class PapyrusWorkspace : IDisposable
         }
 
         var next = solution.WithOpenDocument(id, text);
-        return next.WithProject(CreateProjectState(next.GetProject(id.ProjectId), next.OpenDocuments, logger));
+        return ApplyScriptText(next, id.ProjectId, id.Path, text, logger);
     }
 
     private static PapyrusSolution CloseDocument(PapyrusSolution solution, DocumentId id, ILogger? logger)
@@ -305,7 +305,7 @@ public sealed class PapyrusWorkspace : IDisposable
             return next;
         }
 
-        return next.WithProject(CreateProjectState(next.GetProject(id.ProjectId), next.OpenDocuments, logger));
+        return InvalidateScriptPath(next, id.ProjectId, id.Path, logger);
     }
 
     private static PapyrusSolution ReloadProject(PapyrusSolution solution, ProjectId id, ILogger? logger)
@@ -328,6 +328,11 @@ public sealed class PapyrusWorkspace : IDisposable
             return ReloadProject(solution, projectId, logger);
         }
 
+        if (WorkspacePaths.HasExtension(path, ".psc"))
+        {
+            return ApplyScriptFileChange(solution, path, deleted: false, logger);
+        }
+
         return RebuildCompilations(solution, logger);
     }
 
@@ -339,7 +344,98 @@ public sealed class PapyrusWorkspace : IDisposable
             return solution.WithoutProject(projectId);
         }
 
+        if (WorkspacePaths.HasExtension(path, ".psc"))
+        {
+            return ApplyScriptFileChange(solution, path, deleted: true, logger);
+        }
+
         return RebuildCompilations(solution, logger);
+    }
+
+    private static PapyrusSolution ApplyScriptFileChange(
+        PapyrusSolution solution,
+        string path,
+        bool deleted,
+        ILogger? logger)
+    {
+        var next = solution;
+        var mapped = false;
+        var projectIds = solution.ProjectIds;
+        for (var i = 0; i < projectIds.Length; i++)
+        {
+            var projectId = projectIds[i];
+            var state = next.GetState(projectId);
+            if (!state.DiskResolver.TryGetNameFromPath(path, out var name))
+            {
+                continue;
+            }
+
+            mapped = true;
+            if (TryGetOpenDocumentText(next, projectId, path, out var openText))
+            {
+                if (deleted)
+                {
+                    continue;
+                }
+
+                next = next.WithProject(WithCompilation(state, state.Compilation.WithScriptText(name, openText)));
+                continue;
+            }
+
+            next = next.WithProject(WithCompilation(state, state.Compilation.WithoutScript(name)));
+        }
+
+        return mapped ? next : RebuildCompilations(solution, logger);
+    }
+
+    private static PapyrusSolution ApplyScriptText(
+        PapyrusSolution solution,
+        ProjectId projectId,
+        string path,
+        SourceText text,
+        ILogger? logger)
+    {
+        var state = solution.GetState(projectId);
+        if (!state.DiskResolver.TryGetNameFromPath(path, out var name))
+        {
+            return solution.WithProject(CreateProjectState(state.Project, solution.OpenDocuments, logger));
+        }
+
+        return solution.WithProject(WithCompilation(state, state.Compilation.WithScriptText(name, text)));
+    }
+
+    private static PapyrusSolution InvalidateScriptPath(
+        PapyrusSolution solution,
+        ProjectId projectId,
+        string path,
+        ILogger? logger)
+    {
+        var state = solution.GetState(projectId);
+        if (!state.DiskResolver.TryGetNameFromPath(path, out var name))
+        {
+            return solution.WithProject(CreateProjectState(state.Project, solution.OpenDocuments, logger));
+        }
+
+        return solution.WithProject(WithCompilation(state, state.Compilation.WithoutScript(name)));
+    }
+
+    private static bool TryGetOpenDocumentText(
+        PapyrusSolution solution,
+        ProjectId projectId,
+        string path,
+        out SourceText text)
+    {
+        return solution.TryGetOpenDocumentText(DocumentId.Create(projectId, path), out text);
+    }
+
+    private static ProjectState WithCompilation(ProjectState state, PapyrusCompilation compilation)
+    {
+        if (ReferenceEquals(state.Compilation, compilation))
+        {
+            return state;
+        }
+
+        return new ProjectState(state.Project, state.DiskResolver, compilation);
     }
 
     private static PapyrusSolution RebuildCompilations(PapyrusSolution solution, ILogger? logger)

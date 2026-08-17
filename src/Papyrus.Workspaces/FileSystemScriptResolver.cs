@@ -132,6 +132,91 @@ public sealed class FileSystemScriptResolver : ScriptResolver
         return builder.MoveToImmutable();
     }
 
+    internal bool TryGetNameFromPath(string path, out QualifiedName name)
+    {
+        name = default;
+        if (string.IsNullOrWhiteSpace(path) || !HasPscExtension(path))
+        {
+            return false;
+        }
+
+        var full = Path.GetFullPath(path);
+        string? bestInclude = null;
+        for (var i = 0; i < IncludeDirectories.Length; i++)
+        {
+            var include = IncludeDirectories[i];
+            if (!IsUnderDirectory(include, full))
+            {
+                continue;
+            }
+
+            if (bestInclude is null || include.Length > bestInclude.Length)
+            {
+                bestInclude = include;
+            }
+        }
+
+        if (bestInclude is null || !TryGetRelativeName(bestInclude, full, out name))
+        {
+            name = default;
+            return false;
+        }
+
+        if (!SupportsNamespaces && name.Parts.Length > 1)
+        {
+            name = default;
+            return false;
+        }
+
+        return name.Parts.Length > 0;
+    }
+
+    private static bool HasPscExtension(string path)
+    {
+        return Path.GetExtension(path).Equals(".psc", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsUnderDirectory(string directory, string fullPath)
+    {
+        var prefix = directory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (fullPath.Length <= prefix.Length)
+        {
+            return false;
+        }
+
+        if (!fullPath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var separator = fullPath[prefix.Length];
+        return separator == Path.DirectorySeparatorChar || separator == Path.AltDirectorySeparatorChar;
+    }
+
+    private static bool TryGetRelativeName(string include, string fullPath, out QualifiedName name)
+    {
+        name = default;
+        var prefix = include.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (fullPath.Length <= prefix.Length)
+        {
+            return false;
+        }
+
+        var relative = fullPath[(prefix.Length + 1)..].Replace('\\', '/');
+        if (relative.EndsWith(".psc", StringComparison.OrdinalIgnoreCase))
+        {
+            relative = relative[..^4];
+        }
+
+        if (relative.Length == 0 || relative.Contains("..", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        name = QualifiedName.Parse(relative.Replace('/', ':'));
+        return name.Parts.Length > 0;
+    }
+
     private bool TryGetRelativeSourcePath(QualifiedName name, out string relativePath)
     {
         var parts = name.Parts.IsDefault ? ImmutableArray<PapyrusName>.Empty : name.Parts;

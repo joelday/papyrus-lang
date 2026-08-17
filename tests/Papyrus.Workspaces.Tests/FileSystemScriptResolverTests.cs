@@ -30,6 +30,28 @@ public sealed class FileSystemScriptResolverTests : IDisposable
     }
 
     [Fact]
+    public void TryGetNameFromPath_uses_include_relative_path()
+    {
+        var scripts = Path.Combine(_root, "scripts");
+        var nested = Path.Combine(scripts, "A", "B");
+        Directory.CreateDirectory(nested);
+        var foo = Path.Combine(scripts, "Foo.psc");
+        var namespaced = Path.Combine(nested, "Script.psc");
+        File.WriteAllText(foo, "ScriptName Foo\n");
+        File.WriteAllText(namespaced, "ScriptName A:B:Script\n");
+
+        var skyrim = new FileSystemScriptResolver([scripts], game: GameId.SkyrimSpecialEdition);
+        var fallout = new FileSystemScriptResolver([scripts], game: GameId.Fallout4);
+
+        Assert.True(skyrim.TryGetNameFromPath(foo, out var fooName));
+        Assert.Equal("Foo", fooName.ToString());
+        Assert.False(skyrim.TryGetNameFromPath(namespaced, out _));
+        Assert.True(fallout.TryGetNameFromPath(namespaced, out var nestedName));
+        Assert.Equal("A:B:Script", nestedName.ToString());
+        Assert.False(fallout.TryGetNameFromPath(Path.Combine(_root, "Other.psc"), out _));
+    }
+
+    [Fact]
     public void TryResolve_first_include_wins()
     {
         var first = Path.Combine(_root, "first");

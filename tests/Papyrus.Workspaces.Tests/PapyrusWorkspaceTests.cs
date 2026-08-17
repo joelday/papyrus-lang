@@ -278,6 +278,43 @@ public sealed class PapyrusWorkspaceTests : IDisposable
     }
 
     [Fact]
+    public void ApplyChange_rebinds_dependents_and_keeps_unrelated_script()
+    {
+        var scripts = CreateScriptsDirectory("scripts");
+        var actorPath = Path.Combine(scripts, "Actor.psc");
+        File.WriteAllText(actorPath, "ScriptName Actor\nFunction Old()\nEndFunction\n");
+        File.WriteAllText(Path.Combine(scripts, "Quest.psc"), "ScriptName Quest Extends Actor\n");
+        File.WriteAllText(Path.Combine(scripts, "Widget.psc"), "ScriptName Widget\nFunction Idle()\nEndFunction\n");
+        var ppj = WriteProject("game.ppj", "scripts");
+
+        using var workspace = CreateWorkspace();
+        var project = workspace.LoadProject(ppj);
+        var compilation = workspace.CurrentSolution.GetCompilation(project.Id);
+        var actor = compilation.GetScript(QualifiedName.Parse("Actor"));
+        var quest = compilation.GetScript(QualifiedName.Parse("Quest"));
+        var widget = compilation.GetScript(QualifiedName.Parse("Widget"));
+        Assert.Same(actor, quest.BaseType);
+
+        workspace.ApplyChange(
+            new WorkspaceChange.OpenDocument(
+                DocumentId.Create(project.Id, actorPath),
+                SourceText.From("ScriptName Actor\nFunction Old()\nEndFunction\nFunction NewMember()\nEndFunction\n")));
+
+        var updated = workspace.CurrentSolution.GetCompilation(project.Id);
+        var newActor = updated.GetScript(QualifiedName.Parse("Actor"));
+        var newQuest = updated.GetScript(QualifiedName.Parse("Quest"));
+        var newWidget = updated.GetScript(QualifiedName.Parse("Widget"));
+
+        Assert.Same(widget, newWidget);
+        Assert.NotSame(quest, newQuest);
+        Assert.NotSame(actor, newActor);
+        Assert.Same(newActor, newQuest.BaseType);
+        Assert.Contains(
+            newQuest.BaseType!.GetMembers(),
+            static member => member.Name.Text.Equals("NewMember", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void ClassifyWatchEvent_maps_ppj_change_to_reload()
     {
         var scripts = CreateScriptsDirectory("scripts");
