@@ -16,6 +16,18 @@ internal sealed class ExpressionTypeBinder
         _containingScript = containingScript;
     }
 
+    internal ITypeSymbol BindTypeName(TypeNameSyntax syntax) => ResolveType(syntax);
+
+    internal static ITypeSymbol NumericResultType(ITypeSymbol left, ITypeSymbol right, NameTable names)
+    {
+        if (IsNamed(left, "Float") || IsNamed(right, "Float"))
+        {
+            return IntrinsicTypeSymbol.Create(names, "Float");
+        }
+
+        return IntrinsicTypeSymbol.Create(names, "Int");
+    }
+
     public Conversion Bind(ExpressionSyntax expression, ITypeSymbol? expectedType = null)
     {
         ArgumentNullException.ThrowIfNull(expression);
