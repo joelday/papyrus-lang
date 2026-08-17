@@ -605,10 +605,18 @@ namespace DarkId::Papyrus::DebugServer
 
 		for (const auto required : requiredIds)
 		{
-			if (ids.find(std::string(required)) == ids.end())
+			const auto it = ids.find(std::string(required));
+			if (it == ids.end())
 			{
 				error.message = "Papyrus Debug Server: Address Library data " + found.string() +
 					" is missing required ID '" + std::string(required) + "'.";
+				return false;
+			}
+			if (it->second == 0)
+			{
+				error.message = "Papyrus Debug Server: Address Library data " + found.string() +
+					" has required ID '" + std::string(required) +
+					"' = 0 (unpublished sentinel). Do not hook; add a real ID instead of guessing.";
 				return false;
 			}
 		}

@@ -23,25 +23,8 @@ namespace DarkId::Papyrus::DebugServer
 #define STACK_FRAME_IP ip
 namespace XSE = SFSE;
 
-namespace stl
-{
-	using namespace XSE::stl;
-
-	template <std::size_t N, class T>
-	void write_thunk_call(std::uintptr_t a_src)
-	{
-		auto& trampoline = XSE::GetTrampoline();
-		XSE::AllocTrampoline(14);
-		T::func = trampoline.write_call<N>(a_src, T::thunk);
-	}
-
-	template <std::size_t N, class T>
-	void write_thunk_branch(std::uintptr_t a_src)
-	{
-		auto& trampoline = XSE::GetTrampoline();
-		XSE::AllocTrampoline(14);
-		T::func = trampoline.write_branch<N>(a_src, T::thunk);
-	}
-}
+// No SFSE::stl / AllocTrampoline copies here — CommonLibSF has neither.
+// Instruction trampolines (when unpublished IDs exist) use REL::GetTrampoline
+// after SFSE::Init({ .trampoline = true, .trampolineSize = ... }).
 
 #define DLLEXPORT __declspec(dllexport)

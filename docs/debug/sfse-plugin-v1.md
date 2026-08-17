@@ -40,8 +40,8 @@ Copied from `docs/debug/sfse-spike.md`. **Do not invent these IDs.** Locate them
 1. SFSE loads `DarkId.Papyrus.DebugServer.Starfield.dll`.
 2. `AddressLibraryIds` looks for `starfield-<runtime>.json` next to the DLL (`data/` then the plugin directory). `1.16.244.0` and `1-16-244-0` both match `starfield-1.16.244.json`.
 3. Missing file → load returns false and SFSE unloads the plugin. Message lists the paths tried and any JSON that *is* present.
-4. JSON missing `GetVariable` or `GetPageForFrame` → same hard fail.
-5. Published IDs are resolved. Trampoline IDs are **not** synthesized. The log prints the v1 matrix (`StarfieldV1::FormatStatus`) and leaves instruction/stack hooks uninstalled.
+4. JSON missing `GetVariable` or `GetPageForFrame`, or either value is `0` → same hard fail. CommonLibSF uses `REL::ID{ 0 }` as the unpublished sentinel; a later dump that copies those zeros into the JSON must not be treated as hookable.
+5. Published IDs are resolved. Missing or `0` trampoline IDs stay unpublished (not synthesized). The log prints the v1 matrix (`StarfieldV1::FormatStatus`) and leaves instruction/stack hooks uninstalled.
 
 ## Building (Windows / MSVC)
 

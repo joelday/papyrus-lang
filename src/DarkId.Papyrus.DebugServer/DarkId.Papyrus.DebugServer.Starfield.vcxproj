@@ -86,7 +86,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>
-        $(ProjectDir);$(ProjectDir)Starfield;$(ProjectDir)..\native\DebugServer;$(ProjectDir)..\..\dependencies;$(ProjectDir)..\..\dependencies\MetaStuff\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+        $(ProjectDir)Starfield;$(ProjectDir);$(ProjectDir)..\native\DebugServer;$(ProjectDir)..\..\dependencies;$(ProjectDir)..\..\dependencies\MetaStuff\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>
         WIN32;STARFIELD;SFSE_SUPPORT_XBYAK;COMMONLIB_OPTION_XBYAK=1;_DEBUG;_WINDOWS;_USRDLL;DARKID_PAPYRUS_DEBUGSERVER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -127,7 +127,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>
-        $(ProjectDir);$(ProjectDir)Starfield;$(ProjectDir)..\native\DebugServer;$(ProjectDir)..\..\dependencies;$(ProjectDir)..\..\dependencies\MetaStuff\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+        $(ProjectDir)Starfield;$(ProjectDir);$(ProjectDir)..\native\DebugServer;$(ProjectDir)..\..\dependencies;$(ProjectDir)..\..\dependencies\MetaStuff\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>
         WIN32;STARFIELD;SFSE_SUPPORT_XBYAK;COMMONLIB_OPTION_XBYAK=1;NDEBUG;_WINDOWS;_USRDLL;DARKID_PAPYRUS_DEBUGSERVER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>

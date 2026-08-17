@@ -9,8 +9,9 @@ namespace DarkId::Papyrus::DebugServer
 	{
 		bool HasId(std::string_view name)
 		{
-			std::uint64_t unused = 0;
-			return AddressLibraryIds::TryGet(name, unused);
+			// CommonLibSF uses REL::ID{ 0 } as the unpublished sentinel.
+			std::uint64_t value = 0;
+			return AddressLibraryIds::TryGet(name, value) && value != 0;
 		}
 
 		void RequirePublished(StarfieldV1::Status& status, std::string_view name, bool& flag)
@@ -22,6 +23,12 @@ namespace DarkId::Papyrus::DebugServer
 				return;
 			}
 			flag = false;
+			std::uint64_t value = 0;
+			if (AddressLibraryIds::TryGet(name, value) && value == 0)
+			{
+				status.blocked.emplace_back(std::string(name) + " is 0 (unpublished sentinel)");
+				return;
+			}
 			status.blocked.emplace_back(std::string(name) + " is not in the loaded Address Library JSON");
 		}
 
