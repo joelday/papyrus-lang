@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using Papyrus.CodeAnalysis.Syntax.InternalSyntax;
@@ -47,6 +48,11 @@ public sealed class SyntaxTree
         options ??= PapyrusParseOptions.Default;
         dialect ??= PapyrusDialect.FromOptions(options);
 
+        using var activity = PapyrusActivitySource.Start(
+            "parse",
+            [new KeyValuePair<string, object?>("dialect", dialect.Game.ToString())]);
+        PapyrusEventSource.Log.Parse();
+
         var root = new Parser(text, dialect, options, cancellationToken).ParseScript();
         return Create(root.Green, text, dialect, options);
     }
@@ -94,7 +100,9 @@ public sealed class SyntaxTree
 
         var builder = ImmutableArray.CreateBuilder<Diagnostic>();
         CollectDiagnostics(_root, position: 0, builder, cancellationToken);
-        return builder.ToImmutable();
+        var diagnostics = builder.ToImmutable();
+        PapyrusEventSource.Log.AddDiagnostics(diagnostics);
+        return diagnostics;
     }
 
     internal SyntaxTree WithRootDiagnostics(params DiagnosticInfo[] diagnostics)

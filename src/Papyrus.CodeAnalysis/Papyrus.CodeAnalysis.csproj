@@ -1,5 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Papyrus.Pex\Papyrus.Pex.csproj" />
     <ProjectReference Include="..\Papyrus.CodeAnalysis.Generators\Papyrus.CodeAnalysis.Generators.csproj"
                       OutputItemType="Analyzer"

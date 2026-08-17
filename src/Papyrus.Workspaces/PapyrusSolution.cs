@@ -108,6 +108,37 @@ public sealed class PapyrusSolution
         return _openDocuments.TryGetValue(documentId, out text!);
     }
 
+    public WorkspaceSnapshot Describe() => Describe(lastChangeKind: null);
+
+    internal WorkspaceSnapshot Describe(string? lastChangeKind)
+    {
+        var dialects = ImmutableArray.CreateBuilder<string>(_projects.Count);
+        var projectPaths = ImmutableArray.CreateBuilder<string>(_projects.Count);
+        foreach (var pair in _projects)
+        {
+            var dialect = pair.Value.Project.Dialect;
+            dialects.Add(dialect is null ? "Unknown" : dialect.Game.ToString());
+            if (pair.Value.Project.Path is { } path)
+            {
+                projectPaths.Add(path);
+            }
+        }
+
+        var documentPaths = ImmutableArray.CreateBuilder<string>(_openDocuments.Count);
+        foreach (var pair in _openDocuments)
+        {
+            documentPaths.Add(pair.Key.Path);
+        }
+
+        return new WorkspaceSnapshot(
+            _projects.Count,
+            dialects.ToImmutable(),
+            _openDocuments.Count,
+            lastChangeKind,
+            projectPaths.ToImmutable(),
+            documentPaths.ToImmutable());
+    }
+
     internal ImmutableDictionary<DocumentId, SourceText> OpenDocuments => _openDocuments;
 
     internal ProjectState GetState(ProjectId projectId)

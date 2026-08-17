@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Papyrus.CodeAnalysis;
 using Papyrus.CodeAnalysis.Text;
 
@@ -16,12 +18,14 @@ public sealed class PapyrusWorkspace : IDisposable
     private readonly TimeProvider _timeProvider;
     private readonly TimeSpan _watchDebounce;
     private readonly bool _enableFileWatching;
+    private readonly ILogger? _logger;
     private readonly List<WorkspaceChange> _pendingWatch = new();
     private readonly List<FileSystemWatcher> _watchers = new();
 
     private PapyrusSolution _solution;
     private ITimer? _watchTimer;
     private DateTimeOffset _lastWatchUtc;
+    private string? _lastChangeKind;
     private bool _disposed;
 
     public PapyrusWorkspace()
@@ -32,7 +36,8 @@ public sealed class PapyrusWorkspace : IDisposable
     public PapyrusWorkspace(
         TimeProvider timeProvider,
         TimeSpan? watchDebounce = null,
-        bool enableFileWatching = true)
+        bool enableFileWatching = true,
+        ILogger? logger = null)
     {
         ArgumentNullException.ThrowIfNull(timeProvider);
 
@@ -45,6 +50,7 @@ public sealed class PapyrusWorkspace : IDisposable
         _timeProvider = timeProvider;
         _watchDebounce = debounce;
         _enableFileWatching = enableFileWatching;
+        _logger = logger;
         _solution = PapyrusSolution.Empty;
     }
 
@@ -60,6 +66,14 @@ public sealed class PapyrusWorkspace : IDisposable
     }
 
     public event EventHandler<WorkspaceChangeEventArgs>? WorkspaceChanged;
+
+    public WorkspaceSnapshot Describe()
+    {
+        lock (_gate)
+        {
+            return _solution.Describe(_lastChangeKind);
+        }
+    }
 
     public PapyrusProject LoadProject(string ppjPath)
     {
@@ -165,8 +179,9 @@ public sealed class PapyrusWorkspace : IDisposable
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             oldSolution = _solution;
-            newSolution = oldSolution.WithProject(CreateProjectState(project, oldSolution.OpenDocuments));
+            newSolution = oldSolution.WithProject(CreateProjectState(project, oldSolution.OpenDocuments, _logger));
             _solution = newSolution;
+            _lastChangeKind = nameof(WorkspaceChange.ReloadProject);
             if (_enableFileWatching)
             {
                 watchDirectories = CollectWatchDirectories(newSolution);
@@ -196,6 +211,16 @@ public sealed class PapyrusWorkspace : IDisposable
             return;
         }
 
+        var lastChange = changes[^1];
+        using var activity = PapyrusActivitySource.Start(
+            "workspace.applyChange",
+            ApplyChangeTags(lastChange, changes.Length));
+        PapyrusEventSource.Log.ApplyChange();
+        _logger?.LogDebug(
+            "ApplyChange {ChangeKind} Activity={ActivityId}",
+            lastChange.GetType().Name,
+            Activity.Current?.Id);
+
         PapyrusSolution oldSolution;
         PapyrusSolution newSolution;
         ImmutableArray<string>? watchDirectories = null;
@@ -215,6 +240,7 @@ public sealed class PapyrusWorkspace : IDisposable
             }
 
             _solution = newSolution;
+            _lastChangeKind = lastChange.GetType().Name;
             if (_enableFileWatching)
             {
                 watchDirectories = CollectWatchDirectories(newSolution);
@@ -233,17 +259,21 @@ public sealed class PapyrusWorkspace : IDisposable
     {
         return change switch
         {
-            WorkspaceChange.OpenDocument open => OpenOrChangeDocument(solution, open.Id, open.Text),
-            WorkspaceChange.ChangeDocument edit => OpenOrChangeDocument(solution, edit.Id, edit.Text),
-            WorkspaceChange.CloseDocument close => CloseDocument(solution, close.Id),
-            WorkspaceChange.ReloadProject reload => ReloadProject(solution, reload.Id),
-            WorkspaceChange.FileCreated created => ApplyFileCreated(solution, created.Path),
-            WorkspaceChange.FileDeleted deleted => ApplyFileDeleted(solution, deleted.Path),
+            WorkspaceChange.OpenDocument open => OpenOrChangeDocument(solution, open.Id, open.Text, _logger),
+            WorkspaceChange.ChangeDocument edit => OpenOrChangeDocument(solution, edit.Id, edit.Text, _logger),
+            WorkspaceChange.CloseDocument close => CloseDocument(solution, close.Id, _logger),
+            WorkspaceChange.ReloadProject reload => ReloadProject(solution, reload.Id, _logger),
+            WorkspaceChange.FileCreated created => ApplyFileCreated(solution, created.Path, _logger),
+            WorkspaceChange.FileDeleted deleted => ApplyFileDeleted(solution, deleted.Path, _logger),
             _ => throw new ArgumentOutOfRangeException(nameof(change)),
         };
     }
 
-    private static PapyrusSolution OpenOrChangeDocument(PapyrusSolution solution, DocumentId id, SourceText text)
+    private static PapyrusSolution OpenOrChangeDocument(
+        PapyrusSolution solution,
+        DocumentId id,
+        SourceText text,
+        ILogger? logger)
     {
         ArgumentNullException.ThrowIfNull(id);
         ArgumentNullException.ThrowIfNull(text);
@@ -258,10 +288,10 @@ public sealed class PapyrusWorkspace : IDisposable
         }
 
         var next = solution.WithOpenDocument(id, text);
-        return next.WithProject(CreateProjectState(next.GetProject(id.ProjectId), next.OpenDocuments));
+        return next.WithProject(CreateProjectState(next.GetProject(id.ProjectId), next.OpenDocuments, logger));
     }
 
-    private static PapyrusSolution CloseDocument(PapyrusSolution solution, DocumentId id)
+    private static PapyrusSolution CloseDocument(PapyrusSolution solution, DocumentId id, ILogger? logger)
     {
         ArgumentNullException.ThrowIfNull(id);
         if (!solution.IsDocumentOpen(id))
@@ -275,10 +305,10 @@ public sealed class PapyrusWorkspace : IDisposable
             return next;
         }
 
-        return next.WithProject(CreateProjectState(next.GetProject(id.ProjectId), next.OpenDocuments));
+        return next.WithProject(CreateProjectState(next.GetProject(id.ProjectId), next.OpenDocuments, logger));
     }
 
-    private static PapyrusSolution ReloadProject(PapyrusSolution solution, ProjectId id)
+    private static PapyrusSolution ReloadProject(PapyrusSolution solution, ProjectId id, ILogger? logger)
     {
         ArgumentNullException.ThrowIfNull(id);
         if (!solution.TryGetProject(id, out var existing))
@@ -287,21 +317,21 @@ public sealed class PapyrusWorkspace : IDisposable
         }
 
         var path = existing.Path ?? id.Path;
-        return solution.WithProject(CreateProjectState(ReadProject(path), solution.OpenDocuments));
+        return solution.WithProject(CreateProjectState(ReadProject(path), solution.OpenDocuments, logger));
     }
 
-    private static PapyrusSolution ApplyFileCreated(PapyrusSolution solution, string path)
+    private static PapyrusSolution ApplyFileCreated(PapyrusSolution solution, string path, ILogger? logger)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         if (TryGetLoadedProjectId(solution, path, out var projectId))
         {
-            return ReloadProject(solution, projectId);
+            return ReloadProject(solution, projectId, logger);
         }
 
-        return RebuildCompilations(solution);
+        return RebuildCompilations(solution, logger);
     }
 
-    private static PapyrusSolution ApplyFileDeleted(PapyrusSolution solution, string path)
+    private static PapyrusSolution ApplyFileDeleted(PapyrusSolution solution, string path, ILogger? logger)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         if (TryGetLoadedProjectId(solution, path, out var projectId))
@@ -309,10 +339,10 @@ public sealed class PapyrusWorkspace : IDisposable
             return solution.WithoutProject(projectId);
         }
 
-        return RebuildCompilations(solution);
+        return RebuildCompilations(solution, logger);
     }
 
-    private static PapyrusSolution RebuildCompilations(PapyrusSolution solution)
+    private static PapyrusSolution RebuildCompilations(PapyrusSolution solution, ILogger? logger)
     {
         if (solution.ProjectIds.IsDefaultOrEmpty)
         {
@@ -324,7 +354,7 @@ public sealed class PapyrusWorkspace : IDisposable
         for (var i = 0; i < projectIds.Length; i++)
         {
             var project = next.GetProject(projectIds[i]);
-            next = next.WithProject(CreateProjectState(project, next.OpenDocuments));
+            next = next.WithProject(CreateProjectState(project, next.OpenDocuments, logger));
         }
 
         return next;
@@ -332,7 +362,8 @@ public sealed class PapyrusWorkspace : IDisposable
 
     internal static ProjectState CreateProjectState(
         PapyrusProject project,
-        ImmutableDictionary<DocumentId, SourceText> openDocuments)
+        ImmutableDictionary<DocumentId, SourceText> openDocuments,
+        ILogger? logger = null)
     {
         if (project.Path is null)
         {
@@ -348,7 +379,7 @@ public sealed class PapyrusWorkspace : IDisposable
         var disk = new FileSystemScriptResolver(project, projectDirectory);
         var resolver = OverlayOpenDocuments(disk, project.Id, openDocuments);
         var dialect = project.Dialect ?? PapyrusDialect.SkyrimSe;
-        var compilation = PapyrusCompilation.Create(dialect, resolver);
+        var compilation = PapyrusCompilation.Create(dialect, resolver, logger: logger);
         return new ProjectState(project, disk, compilation);
     }
 
@@ -421,6 +452,25 @@ public sealed class PapyrusWorkspace : IDisposable
         }
 
         return builder.MoveToImmutable();
+    }
+
+    private static KeyValuePair<string, object?>[] ApplyChangeTags(WorkspaceChange change, int count)
+    {
+        var kind = change.GetType().Name;
+        var path = change switch
+        {
+            WorkspaceChange.OpenDocument open => open.Id.Path,
+            WorkspaceChange.ChangeDocument edit => edit.Id.Path,
+            WorkspaceChange.CloseDocument close => close.Id.Path,
+            WorkspaceChange.FileCreated created => created.Path,
+            WorkspaceChange.FileDeleted deleted => deleted.Path,
+            WorkspaceChange.ReloadProject reload => reload.Id.Path,
+            _ => null,
+        };
+
+        return path is null
+            ? [new("change.kind", kind), new("change.count", count)]
+            : [new("change.kind", kind), new("change.count", count), new("document", path)];
     }
 
     private static string ChangeKey(WorkspaceChange change)
