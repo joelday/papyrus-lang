@@ -46,6 +46,9 @@ jobs:
       - name: Compiler tests
         run: dotnet test tests/Papyrus.Compiler.Tests --no-restore --configuration Release --no-build
 
+      - name: Workspaces tests
+        run: dotnet test tests/Papyrus.Workspaces.Tests --no-restore --configuration Release --no-build
+
   pack:
     name: Pack Papyrus.Pex
     runs-on: ubuntu-latest
