@@ -439,6 +439,40 @@ public sealed class ParserTests
     }
 
     [Fact]
+    public void Local_declare_initializer_keeps_additive_binary()
+    {
+        const string source = "ScriptName Foo\nFunction Bar()\n  Int x = 1 + 2\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var declare = Assert.IsType<DeclareStatementSyntax>(function.Statements.Get(0));
+        Assert.NotNull(declare.EqualsValue);
+        var binary = Assert.IsType<BinaryExpressionSyntax>(declare.EqualsValue.Value);
+        Assert.Equal(SyntaxKind.PlusToken, binary.OperatorToken.Kind);
+        Assert.Equal("1", ((LiteralExpressionSyntax)binary.Left).Token.Text);
+        Assert.Equal("2", ((LiteralExpressionSyntax)binary.Right).Token.Text);
+    }
+
+    [Fact]
+    public void Local_declare_initializer_keeps_comparison_binary()
+    {
+        const string source = "ScriptName Foo\nFunction Bar()\n  Bool b = x == 0\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var declare = Assert.IsType<DeclareStatementSyntax>(function.Statements.Get(0));
+        Assert.NotNull(declare.EqualsValue);
+        var binary = Assert.IsType<BinaryExpressionSyntax>(declare.EqualsValue.Value);
+        Assert.Equal(SyntaxKind.EqualsEqualsToken, binary.OperatorToken.Kind);
+        Assert.Equal("x", ((IdentifierNameSyntax)((NameExpressionSyntax)binary.Left).Name).Identifier.Text);
+        Assert.Equal("0", ((LiteralExpressionSyntax)binary.Right).Token.Text);
+    }
+
+    [Fact]
     public void Parse_event_round_trips()
     {
         const string source = "ScriptName Foo\nEvent OnInit()\nEndEvent\n";

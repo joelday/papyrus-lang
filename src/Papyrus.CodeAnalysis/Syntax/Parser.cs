@@ -542,8 +542,13 @@ internal sealed class Parser
     {
         var typeName = ParseTypeName();
         var name = ParseIdentifierName();
-        var equalsValue = TryParseEqualsValue();
-        SkipExpressionRemainder(stopAtAssignment: false);
+        EqualsValueClauseSyntax? equalsValue = null;
+        if (_current.Kind == SyntaxKind.EqualsToken)
+        {
+            var equals = Take();
+            equalsValue = SyntaxFactory.EqualsValueClause(equals, ParseLineExpression());
+        }
+
         return SyntaxFactory.DeclareStatement(typeName, name, equalsValue, EatEndOfLine());
     }
 
