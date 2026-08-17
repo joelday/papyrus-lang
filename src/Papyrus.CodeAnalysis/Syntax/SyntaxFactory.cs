@@ -45,7 +45,7 @@ internal static partial class SyntaxFactory
         SyntaxTriviaList leading,
         SyntaxTriviaList trailing)
     {
-        var green = new InternalSyntax.GreenToken(kind, text, leading.Node, trailing.Node, isMissing);
+        var green = SyntaxTokenCache.Get(kind, text, leading.Node, trailing.Node, isMissing);
         return new SyntaxToken(green, parent: null, position: 0);
     }
 }

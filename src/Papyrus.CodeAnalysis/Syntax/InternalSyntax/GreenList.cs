@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Papyrus.CodeAnalysis.Syntax.InternalSyntax;
 
@@ -42,6 +43,21 @@ internal sealed class GreenList : GreenNode
         }
 
         return new GreenList(new[] { first, second });
+    }
+
+    internal static GreenNode? From(List<GreenNode> items)
+    {
+        if (items.Count == 0)
+        {
+            return null;
+        }
+
+        if (items.Count == 1)
+        {
+            return items[0];
+        }
+
+        return new GreenList(items.ToArray());
     }
 
     private static int ComputeWidth(GreenNode[] items)
