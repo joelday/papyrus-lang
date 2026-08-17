@@ -47,6 +47,8 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
         _unboundType = IntrinsicTypeSymbol.Create(compilation.Names, "None");
     }
 
+    internal PapyrusCompilation Compilation => _compilation;
+
     public override IScriptSymbol? ContainingScript => this;
 
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => _declaringSyntaxReferences;
