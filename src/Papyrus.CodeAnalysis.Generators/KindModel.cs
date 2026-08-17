@@ -13,12 +13,20 @@ internal enum KindCategory
 
 internal readonly struct ChildSlot : IEquatable<ChildSlot>
 {
-    public ChildSlot(string name, string typeName, bool isToken, bool isOptional)
+    public ChildSlot(
+        string name,
+        string typeName,
+        bool isToken,
+        bool isOptional,
+        bool isList = false,
+        string elementTypeName = "")
     {
         Name = name;
         TypeName = typeName;
         IsToken = isToken;
         IsOptional = isOptional;
+        IsList = isList;
+        ElementTypeName = elementTypeName;
     }
 
     public string Name { get; }
@@ -29,12 +37,18 @@ internal readonly struct ChildSlot : IEquatable<ChildSlot>
 
     public bool IsOptional { get; }
 
+    public bool IsList { get; }
+
+    public string ElementTypeName { get; }
+
     public bool Equals(ChildSlot other)
     {
         return string.Equals(Name, other.Name, StringComparison.Ordinal)
             && string.Equals(TypeName, other.TypeName, StringComparison.Ordinal)
             && IsToken == other.IsToken
-            && IsOptional == other.IsOptional;
+            && IsOptional == other.IsOptional
+            && IsList == other.IsList
+            && string.Equals(ElementTypeName, other.ElementTypeName, StringComparison.Ordinal);
     }
 
     public override bool Equals(object? obj) => obj is ChildSlot other && Equals(other);
@@ -48,6 +62,8 @@ internal readonly struct ChildSlot : IEquatable<ChildSlot>
             hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(TypeName);
             hash = (hash * 31) + (IsToken ? 1 : 0);
             hash = (hash * 31) + (IsOptional ? 1 : 0);
+            hash = (hash * 31) + (IsList ? 1 : 0);
+            hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(ElementTypeName);
             return hash;
         }
     }

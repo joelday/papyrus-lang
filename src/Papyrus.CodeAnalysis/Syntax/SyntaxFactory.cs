@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using Papyrus.CodeAnalysis.Syntax.InternalSyntax;
+
 namespace Papyrus.CodeAnalysis.Syntax;
 
 internal static partial class SyntaxFactory
@@ -47,5 +50,49 @@ internal static partial class SyntaxFactory
     {
         var green = SyntaxTokenCache.Get(kind, text, leading.Node, trailing.Node, isMissing);
         return new SyntaxToken(green, parent: null, position: 0);
+    }
+
+    public static ScriptDeclarationSyntax ScriptDeclaration(
+        SyntaxToken docComment,
+        SyntaxToken scriptNameKeyword,
+        IdentifierNameSyntax name,
+        ExtendsClauseSyntax? extendsClause,
+        SyntaxToken nativeKeyword,
+        SyntaxToken hiddenKeyword,
+        SyntaxToken conditionalKeyword,
+        SyntaxToken endOfLineToken)
+    {
+        return ScriptDeclaration(
+            docComment,
+            scriptNameKeyword,
+            name,
+            extendsClause,
+            nativeKeyword,
+            hiddenKeyword,
+            conditionalKeyword,
+            endOfLineToken,
+            imports: default,
+            endOfFileToken: default);
+    }
+
+    public static SyntaxList<T> List<T>(IReadOnlyList<T> items) where T : SyntaxNode
+    {
+        if (items.Count == 0)
+        {
+            return default;
+        }
+
+        if (items.Count == 1)
+        {
+            return new SyntaxList<T>(items[0].Green);
+        }
+
+        var greens = new GreenNode[items.Count];
+        for (var i = 0; i < items.Count; i++)
+        {
+            greens[i] = items[i].Green;
+        }
+
+        return new SyntaxList<T>(new GreenList(greens));
     }
 }

@@ -37,6 +37,8 @@ public sealed class SyntaxKindTests
     [InlineData("TypeName")]
     [InlineData("ExtendsClause")]
     [InlineData("ScriptDeclaration")]
+    [InlineData("ImportKeyword")]
+    [InlineData("ImportDeclaration")]
     public void Contains_core_script_header_member(string name)
     {
         Assert.True(Enum.TryParse<SyntaxKind>(name, out var kind), "Missing SyntaxKind." + name);

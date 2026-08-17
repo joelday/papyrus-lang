@@ -468,6 +468,23 @@ internal static class SyntaxEmitter
                 }
 
                 builder.AppendLine();
+                if (child.IsList)
+                {
+                    builder.Append("    public partial ");
+                    builder.Append(child.TypeName);
+                    builder.Append(" ");
+                    builder.Append(child.Name);
+                    builder.AppendLine();
+                    builder.AppendLine("    {");
+                    builder.Append("        get => GetRedList<");
+                    builder.Append(child.ElementTypeName);
+                    builder.Append(">(");
+                    builder.Append(i);
+                    builder.AppendLine(");");
+                    builder.AppendLine("    }");
+                    continue;
+                }
+
                 builder.Append("    private ");
                 builder.Append(child.TypeName);
                 builder.Append("? _");
@@ -512,7 +529,7 @@ internal static class SyntaxEmitter
 
                 var child = node.Children[i];
                 var camel = ToCamelCase(child.Name);
-                if (child.IsToken)
+                if (child.IsToken || child.IsList)
                 {
                     builder.Append(camel);
                     builder.Append(".Node");
@@ -568,7 +585,7 @@ internal static class SyntaxEmitter
             var hasNodeChildren = false;
             foreach (var child in node.Children)
             {
-                if (!child.IsToken)
+                if (!child.IsToken && !child.IsList)
                 {
                     hasNodeChildren = true;
                     break;
@@ -585,7 +602,7 @@ internal static class SyntaxEmitter
                 builder.AppendLine("        {");
                 for (var i = 0; i < node.Children.Length; i++)
                 {
-                    if (node.Children[i].IsToken)
+                    if (node.Children[i].IsToken || node.Children[i].IsList)
                     {
                         continue;
                     }
@@ -615,7 +632,7 @@ internal static class SyntaxEmitter
                 builder.AppendLine("        {");
                 for (var i = 0; i < node.Children.Length; i++)
                 {
-                    if (node.Children[i].IsToken)
+                    if (node.Children[i].IsToken || node.Children[i].IsList)
                     {
                         continue;
                     }
@@ -680,7 +697,7 @@ internal static class SyntaxEmitter
 
                 var child = node.Children[i];
                 var camel = ToCamelCase(child.Name);
-                if (child.IsToken)
+                if (child.IsToken || child.IsList)
                 {
                     builder.Append(camel);
                     builder.Append(".Node");

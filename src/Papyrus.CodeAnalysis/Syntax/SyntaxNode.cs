@@ -86,7 +86,12 @@ public abstract class SyntaxNode
         return red;
     }
 
-    private int GetChildStartOffset(int slot)
+    internal SyntaxList<T> GetRedList<T>(int slot) where T : SyntaxNode
+    {
+        return new SyntaxList<T>(Green.GetSlot(slot), this, _position + GetChildStartOffset(slot));
+    }
+
+    internal int GetChildStartOffset(int slot)
     {
         var offset = 0;
         for (var i = 0; i < slot; i++)

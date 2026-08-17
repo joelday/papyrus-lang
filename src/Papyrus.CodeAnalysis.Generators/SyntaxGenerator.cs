@@ -121,11 +121,21 @@ public sealed class SyntaxGenerator : IIncrementalGenerator
                 && property.ContainingType.Equals(type, SymbolEqualityComparer.Default))
             {
                 var typeName = property.Type.Name;
-                var isToken = typeName == "SyntaxToken"
-                    || typeName.EndsWith("Token", StringComparison.Ordinal)
-                    || typeName.EndsWith("Keyword", StringComparison.Ordinal);
-                var isOptional = !isToken && property.NullableAnnotation == NullableAnnotation.Annotated;
-                children.Add(new ChildSlot(property.Name, typeName, isToken, isOptional));
+                var isList = false;
+                var elementTypeName = "";
+                if (property.Type is INamedTypeSymbol { Name: "SyntaxList", TypeArguments.Length: 1 } listType)
+                {
+                    isList = true;
+                    elementTypeName = listType.TypeArguments[0].Name;
+                    typeName = "SyntaxList<" + elementTypeName + ">";
+                }
+
+                var isToken = !isList
+                    && (typeName == "SyntaxToken"
+                        || typeName.EndsWith("Token", StringComparison.Ordinal)
+                        || typeName.EndsWith("Keyword", StringComparison.Ordinal));
+                var isOptional = !isToken && !isList && property.NullableAnnotation == NullableAnnotation.Annotated;
+                children.Add(new ChildSlot(property.Name, typeName, isToken, isOptional, isList, elementTypeName));
             }
         }
 

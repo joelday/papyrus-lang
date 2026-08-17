@@ -40,6 +40,14 @@ internal sealed partial class ExtendsClauseSyntax : SyntaxNode
 }
 
 [SyntaxNode]
+internal sealed partial class ImportDeclarationSyntax : SyntaxNode
+{
+    public SyntaxToken ImportKeyword { get; }
+    public partial TypeNameSyntax Name { get; }
+    public SyntaxToken EndOfLineToken { get; }
+}
+
+[SyntaxNode]
 internal sealed partial class ScriptDeclarationSyntax : SyntaxNode
 {
     public SyntaxToken DocComment { get; }
@@ -50,4 +58,6 @@ internal sealed partial class ScriptDeclarationSyntax : SyntaxNode
     public SyntaxToken HiddenKeyword { get; }
     public SyntaxToken ConditionalKeyword { get; }
     public SyntaxToken EndOfLineToken { get; }
+    public partial SyntaxList<ImportDeclarationSyntax> Imports { get; }
+    public SyntaxToken EndOfFileToken { get; }
 }
