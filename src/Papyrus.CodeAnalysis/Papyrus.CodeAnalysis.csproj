@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\Papyrus.Pex\Papyrus.Pex.csproj" />
+    <ProjectReference Include="..\Papyrus.CodeAnalysis.Generators\Papyrus.CodeAnalysis.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
     <InternalsVisibleTo Include="Papyrus.CodeAnalysis.Tests" />
   </ItemGroup>
 </Project>
+
