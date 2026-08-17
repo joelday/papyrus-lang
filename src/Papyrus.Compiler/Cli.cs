@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Papyrus.CodeAnalysis.Testing;
 
 namespace Papyrus.Compiler;
 
@@ -7,15 +8,29 @@ internal static class Cli
 {
     internal const string HelpText =
         """
-        Usage: papyrusc corpus acquire --game <game> --source <path> [--dest <path>] [--force]
+        Usage: papyrusc <command>
 
+          papyrusc corpus acquire --game <game> --source <path> [--dest <path>] [--force]
+          papyrusc hash <path> [--game <game>]
+          papyrusc verify --source <path> [--game <game>] [--baseline <file>]
+          papyrusc verify --write-baselines --source <path> --out <file> --attestation <file> [--game <game>]
+
+        corpus acquire
           --game     skyrimse | fallout4 | starfield
           --source   Local game install or scripts directory (never downloaded)
           --dest     Destination directory (default: ./corpus/<game>)
           --force    Allow destination inside a git worktree
+          Copies .psc and .pex files only. Does not contact the network.
+          The corpus is user-owned and gitignored. See docs/corpus.md.
 
-        Copies .psc and .pex files only. Does not contact the network.
-        The corpus is user-owned and gitignored. See docs/corpus.md.
+        hash
+          Normalized SHA-256 of existing .pex via PexReader + PexNormalizer.
+          Does not compile. Does not download Bethesda files.
+
+        verify
+          Compare hashes of existing .pex to a committed baseline. Does not compile.
+          --write-baselines is maintainer-only and requires --attestation.
+          See docs/compliance/baselines/README.md.
         """;
 
     internal static int Run(string[] args, TextWriter stdout, TextWriter stderr)
@@ -41,6 +56,28 @@ internal static class Cli
             }
 
             return CorpusAcquire.Execute(options, stdout, stderr);
+        }
+
+        if (args[0] == "hash")
+        {
+            if (!TryParseHash(args.AsSpan(1), out var options, out var error))
+            {
+                stderr.WriteLine(error);
+                return 1;
+            }
+
+            return HashCommand.Execute(options, stdout, stderr);
+        }
+
+        if (args[0] is "verify" or "baseline")
+        {
+            if (!TryParseVerify(args.AsSpan(1), out var options, out var error))
+            {
+                stderr.WriteLine(error);
+                return 1;
+            }
+
+            return VerifyCommand.Execute(options, stdout, stderr);
         }
 
         stderr.WriteLine("error: unknown command");
@@ -148,6 +185,220 @@ internal static class Cli
         }
 
         options = new CorpusAcquireOptions(canonical, source, dest, force);
+        return true;
+    }
+
+    internal static bool TryParseHash(
+        ReadOnlySpan<string> args,
+        out HashCommandOptions options,
+        out string error)
+    {
+        options = null!;
+        error = null!;
+        string? path = null;
+        string? game = null;
+
+        for (var i = 0; i < args.Length; i++)
+        {
+            var arg = args[i];
+            if (!arg.StartsWith("--", StringComparison.Ordinal))
+            {
+                if (path is not null)
+                {
+                    error = $"error: unexpected argument '{arg}'";
+                    return false;
+                }
+
+                path = arg;
+                continue;
+            }
+
+            if (!TryReadOption(args, ref i, out var name, out var value, out error))
+                return false;
+
+            switch (name)
+            {
+                case "game":
+                    game = value;
+                    break;
+                default:
+                    error = $"error: unknown option --{name}";
+                    return false;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            error = "error: path to a .pex file or directory is required";
+            return false;
+        }
+
+        if (game is not null && !GameNames.TryParse(game, out _, out _))
+        {
+            error = "error: --game must be one of: skyrimse, fallout4, starfield, skyrimle";
+            return false;
+        }
+
+        options = new HashCommandOptions(path, game);
+        return true;
+    }
+
+    internal static bool TryParseVerify(
+        ReadOnlySpan<string> args,
+        out VerifyCommandOptions options,
+        out string error)
+    {
+        options = null!;
+        error = null!;
+        string? source = null;
+        string? game = null;
+        string? baseline = null;
+        string? dest = null;
+        string? attestation = null;
+        var writeBaselines = false;
+
+        for (var i = 0; i < args.Length; i++)
+        {
+            var arg = args[i];
+            if (!arg.StartsWith("--", StringComparison.Ordinal) || arg.Length < 3)
+            {
+                error = $"error: unexpected argument '{arg}'";
+                return false;
+            }
+
+            var eq = arg.IndexOf('=');
+            string name;
+            string? value;
+            if (eq >= 0)
+            {
+                name = arg[2..eq];
+                value = arg[(eq + 1)..];
+            }
+            else
+            {
+                name = arg[2..];
+                value = null;
+            }
+
+            if (name == "write-baselines")
+            {
+                writeBaselines = true;
+                continue;
+            }
+
+            if (value is null)
+            {
+                if (i + 1 >= args.Length)
+                {
+                    error = $"error: --{name} requires a value";
+                    return false;
+                }
+
+                value = args[++i];
+            }
+
+            switch (name)
+            {
+                case "source":
+                    source = value;
+                    break;
+                case "game":
+                    game = value;
+                    break;
+                case "baseline":
+                    baseline = value;
+                    break;
+                case "out":
+                    dest = value;
+                    break;
+                case "attestation":
+                    attestation = value;
+                    break;
+                default:
+                    error = $"error: unknown option --{name}";
+                    return false;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(source))
+        {
+            error = "error: --source is required";
+            return false;
+        }
+
+        if (game is not null && !GameNames.TryParse(game, out _, out _))
+        {
+            error = "error: --game must be one of: skyrimse, fallout4, starfield, skyrimle";
+            return false;
+        }
+
+        if (writeBaselines)
+        {
+            if (string.IsNullOrWhiteSpace(dest))
+            {
+                error = "error: --out is required with --write-baselines";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(attestation))
+            {
+                error = "error: --write-baselines requires --attestation <file> (see docs/compliance/baselines/README.md)";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(game))
+            {
+                error = "error: --game is required with --write-baselines";
+                return false;
+            }
+        }
+
+        options = new VerifyCommandOptions(source, game, baseline, dest, attestation, writeBaselines);
+        return true;
+    }
+
+    private static bool TryReadOption(
+        ReadOnlySpan<string> args,
+        ref int i,
+        out string name,
+        out string value,
+        out string error)
+    {
+        name = null!;
+        value = null!;
+        error = null!;
+        var arg = args[i];
+        if (arg.Length < 3)
+        {
+            error = $"error: unexpected argument '{arg}'";
+            return false;
+        }
+
+        var eq = arg.IndexOf('=');
+        string? parsedValue;
+        if (eq >= 0)
+        {
+            name = arg[2..eq];
+            parsedValue = arg[(eq + 1)..];
+        }
+        else
+        {
+            name = arg[2..];
+            parsedValue = null;
+        }
+
+        if (parsedValue is null)
+        {
+            if (i + 1 >= args.Length)
+            {
+                error = $"error: --{name} requires a value";
+                return false;
+            }
+
+            parsedValue = args[++i];
+        }
+
+        value = parsedValue;
         return true;
     }
 }

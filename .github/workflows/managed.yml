@@ -33,3 +33,9 @@ jobs:
 
       - name: Build
         run: dotnet build Papyrus.sln --no-restore --configuration Release
+
+      - name: Test
+        run: |
+          dotnet test tests/Papyrus.Pex.Tests/Papyrus.Pex.Tests.csproj --no-build --configuration Release --verbosity minimal
+          dotnet test tests/Papyrus.Compiler.Tests/Papyrus.Compiler.Tests.csproj --no-build --configuration Release --verbosity minimal
+          dotnet test tests/Papyrus.CodeAnalysis.Tests/Papyrus.CodeAnalysis.Tests.csproj --no-build --configuration Release --verbosity minimal
