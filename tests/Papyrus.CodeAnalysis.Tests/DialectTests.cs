@@ -32,11 +32,24 @@ public sealed class DialectTests
     }
 
     [Fact]
-    public void Starfield_keywords_contain_guard()
+    public void Starfield_keywords_contain_guard_but_not_lock()
     {
         Assert.Equal(SyntaxKind.GuardKeyword, PapyrusDialect.Starfield.Keywords["guard"]);
         Assert.Equal(SyntaxKind.EndGuardKeyword, PapyrusDialect.Starfield.Keywords["endguard"]);
-        Assert.Equal(SyntaxKind.LockKeyword, PapyrusDialect.Starfield.Keywords["lock"]);
+        Assert.Equal(SyntaxKind.TryGuardKeyword, PapyrusDialect.Starfield.Keywords["tryguard"]);
+        Assert.False(PapyrusDialect.Starfield.Keywords.ContainsKey("lock"));
+        Assert.False(PapyrusDialect.Starfield.Keywords.ContainsKey("endlock"));
+        Assert.False(PapyrusDialect.Starfield.Keywords.ContainsKey("trylock"));
+        Assert.False(PapyrusDialect.Starfield.Keywords.ContainsKey("unlock"));
+    }
+
+    [Fact]
+    public void User_flags_are_not_lexer_keywords()
+    {
+        Assert.False(PapyrusDialect.SkyrimSe.Keywords.ContainsKey("hidden"));
+        Assert.False(PapyrusDialect.SkyrimSe.Keywords.ContainsKey("conditional"));
+        Assert.False(PapyrusDialect.Fallout4.Keywords.ContainsKey("hidden"));
+        Assert.False(PapyrusDialect.Starfield.Keywords.ContainsKey("mandatory"));
     }
 
     [Fact]

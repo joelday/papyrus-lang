@@ -162,13 +162,13 @@ public sealed record PapyrusDialect
 
     // Self and Parent are identifiers; the binder assigns their meaning.
     // Is is omitted on Skyrim: SupportsIsOperator is unsettled and ships false.
+    // Hidden and Conditional are .flg user flags, not lexer keywords.
     private static readonly SyntaxKind[] SkyrimKeywordKinds =
     {
         SyntaxKind.AsKeyword,
         SyntaxKind.AutoKeyword,
         SyntaxKind.AutoReadOnlyKeyword,
         SyntaxKind.BoolKeyword,
-        SyntaxKind.ConditionalKeyword,
         SyntaxKind.ElseKeyword,
         SyntaxKind.ElseIfKeyword,
         SyntaxKind.EndEventKeyword,
@@ -183,7 +183,6 @@ public sealed record PapyrusDialect
         SyntaxKind.FloatKeyword,
         SyntaxKind.FunctionKeyword,
         SyntaxKind.GlobalKeyword,
-        SyntaxKind.HiddenKeyword,
         SyntaxKind.IfKeyword,
         SyntaxKind.ImportKeyword,
         SyntaxKind.IntKeyword,
@@ -216,15 +215,12 @@ public sealed record PapyrusDialect
         SyntaxKind.VarKeyword,
     };
 
+    // Caprica lexes Guard/EndGuard/TryGuard only. Lock is a common identifier.
     private static readonly SyntaxKind[] StarfieldKeywordKinds =
     {
         SyntaxKind.EndGuardKeyword,
-        SyntaxKind.EndLockKeyword,
         SyntaxKind.GuardKeyword,
-        SyntaxKind.LockKeyword,
         SyntaxKind.TryGuardKeyword,
-        SyntaxKind.TryLockKeyword,
-        SyntaxKind.UnlockKeyword,
     };
 
     private static FrozenDictionary<string, SyntaxKind> CreateKeywords(params SyntaxKind[][] groups)
