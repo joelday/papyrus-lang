@@ -625,7 +625,7 @@ internal sealed class Parser
             SkipEndOfLines();
             if (_cancellationToken.IsCancellationRequested
                 || IsStatementListStop(scope, _current.Kind)
-                || LooksLikeDeclarationStart())
+                || (LooksLikeDeclarationStart() && !IsGuardStatementStart(_current.Kind)))
             {
                 break;
             }
@@ -1589,6 +1589,11 @@ internal sealed class Parser
     private bool IsStarfieldMemberKeyword(SyntaxKind kind)
         => _dialect.SupportsGuards && kind == SyntaxKind.GuardKeyword;
 
+    // Guard is a script-level member *and* a statement. Statement lists must
+    // keep parsing it so Function/If/While do not end at the first Guard.
+    private bool IsGuardStatementStart(SyntaxKind kind)
+        => _dialect.SupportsGuards && kind is SyntaxKind.GuardKeyword or SyntaxKind.TryGuardKeyword;
+
     private static bool IsNonVariableMemberStart(SyntaxKind kind)
         => kind is SyntaxKind.FunctionKeyword
             or SyntaxKind.EventKeyword
@@ -1716,7 +1721,9 @@ internal sealed class Parser
             or SyntaxKind.WhileKeyword
             or SyntaxKind.ReturnKeyword
             or SyntaxKind.ElseKeyword
-            or SyntaxKind.ElseIfKeyword;
+            or SyntaxKind.ElseIfKeyword
+            or SyntaxKind.GuardKeyword
+            or SyntaxKind.TryGuardKeyword;
 
     private static bool IsArgumentListStop(SyntaxKind kind)
         => kind is SyntaxKind.CloseParenToken
