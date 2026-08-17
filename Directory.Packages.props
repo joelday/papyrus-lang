@@ -6,6 +6,5 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Package versions land here as the new tree takes dependencies. -->
   </ItemGroup>
 </Project>

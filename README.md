@@ -7,6 +7,10 @@
 
 You can now write mods for Fallout 4 and Skyrim with the aid of modern code editing features such as code completion, jump to definition, hover, symbol search, PPJ-based build tasks, and live updated diagnostics.
 
+## Building
+
+This repo requires .NET SDK 10 / Visual Studio 2026 (`global.json` pins 10.0.201). Build the new compiler with `dotnet build Papyrus.sln`. Build the shipping DarkId tree with `dotnet msbuild DarkId.Papyrus.sln` (SDK-bundled MSBuild 18), not VS 2022 MSBuild.
+
 ## ✒ Visual Studio Code Extension
 
 Updated frequently with new features and improvements.
