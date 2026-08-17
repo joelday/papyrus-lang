@@ -27,6 +27,15 @@
       "dependencies": [
         "commonlibf4"
       ]
+    },
+    "starfield": {
+      "description": "Add deps for Starfield",
+      "dependencies": [
+        {
+          "name": "commonlibsf",
+          "features": ["xbyak"]
+        }
+      ]
     }
   },
   "overrides": [
