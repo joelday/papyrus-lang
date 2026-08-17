@@ -16,6 +16,7 @@ import md5File from 'md5-file';
 
 const exists = promisify(fs.exists);
 const copyFile = promisify(fs.copyFile);
+const readdir = promisify(fs.readdir);
 
 export enum DebugSupportInstallState {
     notInstalled,
@@ -101,6 +102,17 @@ export class DebugSupportInstallService implements IDebugSupportInstallService {
 
         await mkdirIfNeeded(path.dirname(pluginInstallPath));
         await copyFile(bundledPluginPath, pluginInstallPath);
+
+        const bundledDataDir = path.join(path.dirname(bundledPluginPath), 'data');
+        if (await exists(bundledDataDir)) {
+            const installDataDir = path.join(path.dirname(pluginInstallPath), 'data');
+            await mkdirIfNeeded(installDataDir);
+            for (const file of await readdir(bundledDataDir)) {
+                if (file.endsWith('.json')) {
+                    await copyFile(path.join(bundledDataDir, file), path.join(installDataDir, file));
+                }
+            }
+        }
 
         return true;
     }

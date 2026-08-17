@@ -48,6 +48,7 @@
     <ClCompile Include="Protocol\websocket_server.cpp">
       <Filter>Protocol</Filter>
     </ClCompile>
+    <ClCompile Include="..\native\DebugServer\AddressLibraryIds.cpp" />
     <ClCompile Include="BreakpointManager.cpp" />
     <ClCompile Include="DebugExecutionManager.cpp" />
     <ClCompile Include="DebugServer.cpp" />
@@ -113,6 +114,7 @@
     <ClInclude Include="Protocol\websocket_server.h">
       <Filter>Protocol</Filter>
     </ClInclude>
+    <ClInclude Include="..\native\DebugServer\AddressLibraryIds.h" />
     <ClInclude Include="BreakpointManager.h" />
     <ClInclude Include="DebugExecutionManager.h" />
     <ClInclude Include="DebugServer.h" />
@@ -133,5 +135,8 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="version.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\native\DebugServer\data\*.json" />
   </ItemGroup>
 </Project>

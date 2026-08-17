@@ -87,7 +87,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>
-        $(ProjectDir);$(ProjectDir)..\..\dependencies;$(ProjectDir)..\..\dependencies\MetaStuff\include;$(VcpkgInstalledDir)\$(VcpkgTriplet)\include\Champollion;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+        $(ProjectDir);$(ProjectDir)..\native\DebugServer;$(ProjectDir)..\..\dependencies;$(ProjectDir)..\..\dependencies\MetaStuff\include;$(VcpkgInstalledDir)\$(VcpkgTriplet)\include\Champollion;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>
         WIN32;SKYRIM;ENABLE_SKYRIM_VR;ENABLE_SKYRIM_AE;ENABLE_SKYRIM_SE;SKSE_SUPPORT_XBYAK;_DEBUG;_WINDOWS;_USRDLL;DARKID_PAPYRUS_DEBUGSERVER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -146,7 +146,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>
-        $(ProjectDir);$(ProjectDir)..\..\dependencies;$(ProjectDir)..\..\dependencies\MetaStuff\include;$(VcpkgInstalledDir)\$(VcpkgTriplet)\include\Champollion;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+        $(ProjectDir);$(ProjectDir)..\native\DebugServer;$(ProjectDir)..\..\dependencies;$(ProjectDir)..\..\dependencies\MetaStuff\include;$(VcpkgInstalledDir)\$(VcpkgTriplet)\include\Champollion;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>
         WIN32;SKYRIM;ENABLE_SKYRIM_VR;ENABLE_SKYRIM_AE;ENABLE_SKYRIM_SE;SKSE_SUPPORT_XBYAK;NDEBUG;_WINDOWS;_USRDLL;DARKID_PAPYRUS_DEBUGSERVER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -195,6 +195,12 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\native\DebugServer\AddressLibraryIds.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'"></ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'"></ForcedIncludeFiles>
+    </ClCompile>
     <ClCompile Include="ArrayStateNode.cpp">
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pdsPCH.h</ForcedIncludeFiles>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pdsPCH.h</ForcedIncludeFiles>
@@ -258,6 +264,7 @@
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\native\DebugServer\AddressLibraryIds.h" />
     <ClInclude Include="ArrayStateNode.h" />
     <ClInclude Include="BreakpointManager.h" />
     <ClInclude Include="ConfigHooks.h" />
@@ -295,8 +302,19 @@
   <ItemGroup>
     <ResourceCompile Include="version.rc" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\native\DebugServer\data\*.json" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
+  <Target Name="CopyAddressLibraryData" AfterTargets="Build">
+    <ItemGroup>
+      <_AddressLibraryJson Include="$(ProjectDir)..\native\DebugServer\data\*.json" />
+    </ItemGroup>
+    <MakeDir Directories="$(OutDir)data" />
+    <Copy SourceFiles="@(_AddressLibraryJson)" DestinationFolder="$(OutDir)data" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_AddressLibraryJson)" DestinationFolder="$(SKSEPluginPath)\data" SkipUnchangedFiles="true" Condition="'$(SKSEPluginPath)' != ''" />
+  </Target>
   <Target Name="AfterBuild" Condition="'$(Configuration)' == 'Debug' AND $(SKSEPluginPath) != ''">
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(SKSEPluginPath)" />
     <Copy SourceFiles="$(TargetDir)\$(TargetName).pdb" DestinationFolder="$(SKSEPluginPath)" />

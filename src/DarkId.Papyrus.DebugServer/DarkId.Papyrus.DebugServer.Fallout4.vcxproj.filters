@@ -9,6 +9,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\native\DebugServer\AddressLibraryIds.cpp" />
     <ClCompile Include="DebugServer.cpp" />
     <ClCompile Include="Pex.cpp" />
     <ClCompile Include="PexCache.cpp" />
@@ -67,6 +68,7 @@
     <ResourceCompile Include="version.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\native\DebugServer\AddressLibraryIds.h" />
     <ClInclude Include="DebugServer.h" />
     <ClInclude Include="PapyrusDebugger.h" />
     <ClInclude Include="Pex.h" />
@@ -131,5 +133,8 @@
     </ClInclude>
     <ClInclude Include="ConfigHooks.h" />
     <ClInclude Include="Window.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\native\DebugServer\data\*.json" />
   </ItemGroup>
 </Project>
