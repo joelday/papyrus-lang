@@ -1,9 +1,11 @@
+using System;
+
 namespace Papyrus.Compiler;
 
 internal static class Program
 {
-    private static int Main()
+    private static int Main(string[] args)
     {
-        return 0;
+        return Cli.Run(args, Console.Out, Console.Error);
     }
 }
