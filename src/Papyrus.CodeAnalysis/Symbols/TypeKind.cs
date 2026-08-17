@@ -7,4 +7,5 @@ public enum TypeKind
     Struct,
     Intrinsic,
     Var,
+    Error,
 }
