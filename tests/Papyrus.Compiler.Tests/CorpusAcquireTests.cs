@@ -83,6 +83,68 @@ public sealed class CorpusAcquireTests
     }
 
     [Fact]
+    public void DestSymlinkIntoWorktreeSubdir_WithoutForce_ExitsNonZero()
+    {
+        using var outside = new TempDir();
+        using var worktree = new TempDir();
+        Directory.CreateDirectory(Path.Combine(worktree.Path, ".git"));
+        var target = Path.Combine(worktree.Path, "corpus", "skyrimse");
+        Directory.CreateDirectory(target);
+
+        var source = Path.Combine(outside.Path, "scripts");
+        Directory.CreateDirectory(source);
+        File.WriteAllText(Path.Combine(source, "Actor.psc"), "scriptname Actor");
+
+        var destLink = Path.Combine(outside.Path, "link-dest");
+        if (!TryCreateDirectorySymlink(destLink, target))
+        {
+            return;
+        }
+
+        var code = Run(
+            out _,
+            out var stderr,
+            "corpus", "acquire",
+            "--game", "skyrimse",
+            "--source", source,
+            "--dest", destLink);
+
+        Assert.Equal(1, code);
+        Assert.Contains("git worktree", stderr, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(target, "Actor.psc")));
+    }
+
+    [Fact]
+    public void DestDanglingSymlinkIntoWorktreeSubdir_WithoutForce_ExitsNonZero()
+    {
+        using var outside = new TempDir();
+        using var worktree = new TempDir();
+        Directory.CreateDirectory(Path.Combine(worktree.Path, ".git"));
+        var target = Path.Combine(worktree.Path, "corpus", "skyrimse");
+
+        var source = Path.Combine(outside.Path, "scripts");
+        Directory.CreateDirectory(source);
+        File.WriteAllText(Path.Combine(source, "Actor.psc"), "scriptname Actor");
+
+        var destLink = Path.Combine(outside.Path, "link-dest");
+        if (!TryCreateDirectorySymlink(destLink, target))
+        {
+            return;
+        }
+
+        var code = Run(
+            out _,
+            out var stderr,
+            "corpus", "acquire",
+            "--game", "skyrimse",
+            "--source", source,
+            "--dest", destLink);
+
+        Assert.Equal(1, code);
+        Assert.Contains("git worktree", stderr, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DestInsideWorktree_WithForce_CopiesScripts()
     {
         using var root = new TempDir();
@@ -149,6 +211,19 @@ public sealed class CorpusAcquireTests
 
         Assert.Equal(1, code);
         Assert.Contains("unknown command", stderr, StringComparison.Ordinal);
+    }
+
+    private static bool TryCreateDirectorySymlink(string path, string target)
+    {
+        try
+        {
+            Directory.CreateSymbolicLink(path, target);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+        {
+            return false;
+        }
     }
 
     private static int Run(out string stdout, out string stderr, params string[] args)

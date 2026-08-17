@@ -73,6 +73,19 @@ internal static class CorpusAcquire
 
     internal static bool IsInsideGitWorktree(string path)
     {
+        var full = Path.GetFullPath(path);
+        // Lexical walk so a dest that does not exist yet still refuses under a worktree.
+        if (HasGitAncestor(full))
+        {
+            return true;
+        }
+
+        var resolved = TryResolveLinkPath(full);
+        return resolved is not null && HasGitAncestor(resolved);
+    }
+
+    private static bool HasGitAncestor(string path)
+    {
         var current = Path.GetFullPath(path);
         while (true)
         {
@@ -89,6 +102,42 @@ internal static class CorpusAcquire
             }
 
             current = parent;
+        }
+    }
+
+    private static string? TryResolveLinkPath(string path)
+    {
+        try
+        {
+            FileSystemInfo info = Directory.Exists(path)
+                ? new DirectoryInfo(path)
+                : new FileInfo(path);
+
+            var target = info.ResolveLinkTarget(returnFinalTarget: true);
+            if (target is not null)
+            {
+                return Path.GetFullPath(target.FullName);
+            }
+
+            // Dangling symlink: Exists is false but LinkTarget is still set.
+            if (string.IsNullOrEmpty(info.LinkTarget))
+            {
+                return null;
+            }
+
+            var parent = Path.GetDirectoryName(path);
+            var combined = Path.IsPathRooted(info.LinkTarget)
+                ? info.LinkTarget
+                : Path.Combine(parent ?? path, info.LinkTarget);
+            return Path.GetFullPath(combined);
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return null;
         }
     }
 
