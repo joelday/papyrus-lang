@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Papyrus.CodeAnalysis\Papyrus.CodeAnalysis.csproj" />
+    <ProjectReference Include="..\..\src\Papyrus.Pex\Papyrus.Pex.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,17 @@
+<Project>
+  <!-- Apply only to Papyrus.* so the shipping DarkId tree keeps its own TFM and settings. -->
+  <PropertyGroup>
+    <PapyrusIsNewTree Condition="$(MSBuildProjectName.StartsWith('Papyrus.'))">true</PapyrusIsNewTree>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(PapyrusIsNewTree)' == 'true'">
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <IsPackable>false</IsPackable>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

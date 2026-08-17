@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Papyrus.LanguageServer\Papyrus.LanguageServer.csproj" />
+  </ItemGroup>
+</Project>

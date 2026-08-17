@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>papyrusc</AssemblyName>
+    <RootNamespace>Papyrus.Compiler</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Papyrus.Workspaces\Papyrus.Workspaces.csproj" />
+    <ProjectReference Include="..\Papyrus.CodeAnalysis\Papyrus.CodeAnalysis.csproj" />
+    <ProjectReference Include="..\Papyrus.Pex\Papyrus.Pex.csproj" />
+  </ItemGroup>
+</Project>

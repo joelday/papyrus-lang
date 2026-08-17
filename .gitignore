@@ -336,3 +336,7 @@ tools
 send.ps1
 
 vcpkg_installed
+
+# New compiler corpus and local artifacts (do not ignore docs/)
+/corpus/
+/artifacts/

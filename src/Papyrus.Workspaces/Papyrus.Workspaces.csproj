@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Papyrus.CodeAnalysis\Papyrus.CodeAnalysis.csproj" />
+    <InternalsVisibleTo Include="Papyrus.Workspaces.Tests" />
+  </ItemGroup>
+</Project>
