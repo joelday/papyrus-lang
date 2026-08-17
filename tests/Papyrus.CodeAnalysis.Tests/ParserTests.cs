@@ -669,16 +669,185 @@ public sealed class ParserTests
     }
 
     [Fact]
-    public void Starfield_parses_fo4_constructs_but_not_guard()
+    public void Parse_guard_declaration_round_trips()
     {
-        const string source = "ScriptName A:Foo\nStruct Point\nInt X\nEndStruct\nGuard\n";
+        const string source = "ScriptName Foo\nGuard Mutex\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Starfield);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var guard = Assert.IsType<GuardDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("Mutex", guard.Name.Identifier.Text);
+        Assert.False(guard.GuardKeyword.IsMissing);
+        Assert.False(guard.Name.IsMissing);
+    }
+
+    [Fact]
+    public void Parse_guard_declaration_doc_comment_round_trips()
+    {
+        const string source = "ScriptName Foo\n{A lock}\nGuard Mutex\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Starfield);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var guard = Assert.IsType<GuardDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("{A lock}", guard.DocComment.Text);
+        Assert.Equal("Mutex", guard.Name.Identifier.Text);
+    }
+
+    [Fact]
+    public void Missing_guard_name_produces_missing_token_and_does_not_throw()
+    {
+        const string source = "ScriptName Foo\nGuard\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Starfield);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var guard = Assert.IsType<GuardDeclarationSyntax>(root.Members.Get(0));
+        Assert.True(guard.Name.IsMissing);
+        Assert.Equal(0, guard.Name.Identifier.FullWidth);
+    }
+
+    [Fact]
+    public void Skyrim_guard_is_an_identifier_not_a_declaration()
+    {
+        const string source = "ScriptName Foo\nGuard Mutex\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var variable = Assert.IsType<VariableDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("Guard", ((IdentifierNameSyntax)variable.TypeName.Name).Identifier.Text);
+        Assert.Equal("Mutex", variable.Name.Identifier.Text);
+    }
+
+    [Fact]
+    public void Fallout4_guard_is_an_identifier_not_a_declaration()
+    {
+        const string source = "ScriptName Foo\nGuard Mutex\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Fallout4);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var variable = Assert.IsType<VariableDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("Guard", ((IdentifierNameSyntax)variable.TypeName.Name).Identifier.Text);
+        Assert.Equal("Mutex", variable.Name.Identifier.Text);
+    }
+
+    [Fact]
+    public void Starfield_lock_is_an_identifier_not_a_keyword()
+    {
+        const string source = "ScriptName Foo\nLock Value\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Starfield);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var variable = Assert.IsType<VariableDeclarationSyntax>(root.Members.Get(0));
+        Assert.Equal("Lock", ((IdentifierNameSyntax)variable.TypeName.Name).Identifier.Text);
+        Assert.Equal("Value", variable.Name.Identifier.Text);
+    }
+
+    [Fact]
+    public void Parse_guard_statement_round_trips()
+    {
+        const string source = "ScriptName Foo\nGuard Mutex\nFunction F()\nGuard Mutex\n  Return\nEndGuard\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Starfield);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        Assert.Equal(2, root.Members.Count);
+        Assert.IsType<GuardDeclarationSyntax>(root.Members.Get(0));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(1));
+        Assert.Equal(1, function.Statements.Count);
+        var statement = Assert.IsType<GuardStatementSyntax>(function.Statements.Get(0));
+        Assert.Equal(1, statement.LockParameters.Count);
+        Assert.Equal("Mutex", statement.LockParameters.Get(0).Name.Identifier.Text);
+        Assert.Equal(1, statement.Statements.Count);
+        Assert.IsType<SkippedStatementSyntax>(statement.Statements.Get(0));
+        Assert.False(statement.EndGuardKeyword.IsMissing);
+        Assert.False(function.EndFunctionKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Parse_try_guard_statement_round_trips()
+    {
+        const string source = "ScriptName Foo\nGuard A\nGuard B\nFunction F()\nTryGuard A, B\n  Return\nEndGuard\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Starfield);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(2));
+        var statement = Assert.IsType<TryGuardStatementSyntax>(function.Statements.Get(0));
+        Assert.Equal(2, statement.LockParameters.Count);
+        Assert.Equal("A", statement.LockParameters.Get(0).Name.Identifier.Text);
+        Assert.Equal("B", statement.LockParameters.Get(1).Name.Identifier.Text);
+        Assert.Equal(SyntaxKind.CommaToken, statement.LockParameters.Get(1).CommaToken.Kind);
+        Assert.False(statement.EndGuardKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Parse_nested_guard_and_try_guard_round_trips()
+    {
+        const string source =
+            "ScriptName Foo\nGuard A\nGuard B\nFunction F()\nGuard A\nTryGuard B\n  Return\nEndGuard\nEndGuard\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Starfield);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(2));
+        var outer = Assert.IsType<GuardStatementSyntax>(function.Statements.Get(0));
+        var inner = Assert.IsType<TryGuardStatementSyntax>(outer.Statements.Get(0));
+        Assert.Equal("B", inner.LockParameters.Get(0).Name.Identifier.Text);
+        Assert.False(inner.EndGuardKeyword.IsMissing);
+        Assert.False(outer.EndGuardKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Missing_end_guard_does_not_swallow_the_next_function()
+    {
+        const string source = "ScriptName Foo\nFunction F()\nGuard Mutex\n  Return\nFunction G()\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Starfield);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        Assert.Equal(2, root.Members.Count);
+        var first = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var statement = Assert.IsType<GuardStatementSyntax>(first.Statements.Get(0));
+        Assert.True(statement.EndGuardKeyword.IsMissing);
+        Assert.True(first.EndFunctionKeyword.IsMissing);
+        var second = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(1));
+        Assert.Equal("G", second.Name.Identifier.Text);
+        Assert.False(second.EndFunctionKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Parse_event_try_guard_round_trips()
+    {
+        const string source = "ScriptName Foo\nGuard Mutex\nEvent OnInit()\nTryGuard Mutex\nEndGuard\nEndEvent\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Starfield);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        var ev = Assert.IsType<EventDeclarationSyntax>(root.Members.Get(1));
+        var statement = Assert.IsType<TryGuardStatementSyntax>(ev.Statements.Get(0));
+        Assert.Equal("Mutex", statement.LockParameters.Get(0).Name.Identifier.Text);
+        Assert.False(statement.EndGuardKeyword.IsMissing);
+        Assert.False(ev.EndEventKeyword.IsMissing);
+    }
+
+    [Fact]
+    public void Starfield_parses_fo4_constructs_and_guard()
+    {
+        const string source = "ScriptName A:Foo\nStruct Point\nInt X\nEndStruct\nGuard Mutex\n";
         var tree = SyntaxTree.Parse(source, PapyrusDialect.Starfield);
 
         Assert.Equal(source, tree.GetRoot().ToFullString());
         Assert.True(tree.TryGetRoot(out var root));
         Assert.IsType<QualifiedNameSyntax>(root.Name);
-        Assert.Equal(1, root.Members.Count);
+        Assert.Equal(2, root.Members.Count);
         Assert.IsType<StructDeclarationSyntax>(root.Members.Get(0));
+        var guard = Assert.IsType<GuardDeclarationSyntax>(root.Members.Get(1));
+        Assert.Equal("Mutex", guard.Name.Identifier.Text);
     }
 
     [Theory]
@@ -690,6 +859,20 @@ public sealed class ParserTests
     public void Well_formed_fo4_snippets_round_trip(string source)
     {
         var tree = SyntaxTree.Parse(source, PapyrusDialect.Fallout4);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        Assert.False(root.IsMissing);
+    }
+
+    [Theory]
+    [InlineData("ScriptName Foo\nGuard Mutex\n")]
+    [InlineData("ScriptName Foo\nGuard A\nGuard B\nFunction F()\nGuard A, B\nEndGuard\nEndFunction\n")]
+    [InlineData("ScriptName Foo\nGuard Mutex\nFunction F()\nTryGuard Mutex\n  Return\nEndGuard\nEndFunction\n")]
+    [InlineData("ScriptName A:Foo\nLock Value\nGuard Mutex\nFunction F()\nGuard Mutex\nEndGuard\nEndFunction\n")]
+    public void Well_formed_starfield_snippets_round_trip(string source)
+    {
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Starfield);
 
         Assert.Equal(source, tree.GetRoot().ToFullString());
         Assert.True(tree.TryGetRoot(out var root));

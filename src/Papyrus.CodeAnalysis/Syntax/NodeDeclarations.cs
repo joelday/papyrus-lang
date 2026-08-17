@@ -279,3 +279,39 @@ internal sealed partial class CustomEventDeclarationSyntax : MemberDeclarationSy
     public partial IdentifierNameSyntax Name { get; }
     public SyntaxToken EndOfLineToken { get; }
 }
+
+[SyntaxNode]
+internal sealed partial class GuardDeclarationSyntax : MemberDeclarationSyntax
+{
+    public SyntaxToken DocComment { get; }
+    public SyntaxToken GuardKeyword { get; }
+    public partial IdentifierNameSyntax Name { get; }
+    public SyntaxToken EndOfLineToken { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class LockParameterSyntax : SyntaxNode
+{
+    public SyntaxToken CommaToken { get; }
+    public partial IdentifierNameSyntax Name { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class GuardStatementSyntax : StatementSyntax
+{
+    public SyntaxToken GuardKeyword { get; }
+    public partial SyntaxList<LockParameterSyntax> LockParameters { get; }
+    public SyntaxToken EndOfLineToken { get; }
+    public partial SyntaxList<StatementSyntax> Statements { get; }
+    public SyntaxToken EndGuardKeyword { get; }
+}
+
+[SyntaxNode]
+internal sealed partial class TryGuardStatementSyntax : StatementSyntax
+{
+    public SyntaxToken TryGuardKeyword { get; }
+    public partial SyntaxList<LockParameterSyntax> LockParameters { get; }
+    public SyntaxToken EndOfLineToken { get; }
+    public partial SyntaxList<StatementSyntax> Statements { get; }
+    public SyntaxToken EndGuardKeyword { get; }
+}

@@ -80,7 +80,19 @@ public sealed class LexerTests
     public void Guard_is_identifier_unless_starfield_keywords_are_on()
     {
         Assert.Equal(SyntaxKind.IdentifierToken, LexAll("Guard\n", PapyrusDialect.Fallout4)[0].Kind);
+        Assert.Equal(SyntaxKind.IdentifierToken, LexAll("Guard\n", PapyrusDialect.SkyrimSe)[0].Kind);
         Assert.Equal(SyntaxKind.GuardKeyword, LexAll("Guard\n", PapyrusDialect.Starfield)[0].Kind);
+    }
+
+    [Fact]
+    public void Lock_is_always_an_identifier()
+    {
+        Assert.Equal(SyntaxKind.IdentifierToken, LexAll("Lock\n", PapyrusDialect.SkyrimSe)[0].Kind);
+        Assert.Equal(SyntaxKind.IdentifierToken, LexAll("Lock\n", PapyrusDialect.Fallout4)[0].Kind);
+        Assert.Equal(SyntaxKind.IdentifierToken, LexAll("Lock\n", PapyrusDialect.Starfield)[0].Kind);
+        Assert.Equal(SyntaxKind.IdentifierToken, LexAll("Unlock\n", PapyrusDialect.Starfield)[0].Kind);
+        Assert.Equal(SyntaxKind.IdentifierToken, LexAll("TryLock\n", PapyrusDialect.Starfield)[0].Kind);
+        Assert.Equal(SyntaxKind.IdentifierToken, LexAll("EndLock\n", PapyrusDialect.Starfield)[0].Kind);
     }
 
     [Fact]
