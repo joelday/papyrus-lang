@@ -14,10 +14,10 @@ namespace Papyrus.CodeAnalysis;
 
 public sealed class PapyrusCompilation
 {
-    public const string UnresolvedScriptDiagnosticId = "PAP1000";
-    public const string UnresolvedBaseTypeDiagnosticId = "PAP1001";
-    public const string CyclicBaseTypeDiagnosticId = "PAP1002";
-    public const string UnresolvedTypeDiagnosticId = "PAP1003";
+    public const string UnresolvedScriptDiagnosticId = DiagnosticCatalog.UnresolvedScriptId;
+    public const string UnresolvedBaseTypeDiagnosticId = DiagnosticCatalog.UnresolvedBaseTypeId;
+    public const string CyclicBaseTypeDiagnosticId = DiagnosticCatalog.CyclicBaseTypeId;
+    public const string UnresolvedTypeDiagnosticId = DiagnosticCatalog.UnresolvedTypeId;
 
     private readonly PapyrusParseOptions _options;
     private readonly ImmutableDictionary<QualifiedName, SyntaxTree> _overrides;
@@ -254,9 +254,7 @@ public sealed class PapyrusCompilation
     {
         var tree = SyntaxTree.Parse(SourceText.From(string.Empty), Dialect, _options);
         return tree.WithRootDiagnostics(
-            new DiagnosticInfo(
-                UnresolvedScriptDiagnosticId,
-                "Script '" + name + "' could not be resolved."));
+            new DiagnosticInfo(DiagnosticCatalog.UnresolvedScript, name));
     }
 
     private IScriptSymbol CreateSourceScript(QualifiedName name, SyntaxTree tree)

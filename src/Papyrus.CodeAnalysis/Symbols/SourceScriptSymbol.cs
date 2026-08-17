@@ -698,10 +698,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
     {
         if (syntax.Name.IsMissing)
         {
-            AddDiagnostic(
-                PapyrusCompilation.UnresolvedTypeDiagnosticId,
-                "Type could not be resolved.",
-                span);
+            AddDiagnostic(DiagnosticCatalog.UnresolvedType, span, string.Empty);
             return CreateError(default);
         }
 
@@ -737,10 +734,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
 
         if (typeName.Name.Parts.IsDefaultOrEmpty)
         {
-            AddDiagnostic(
-                PapyrusCompilation.UnresolvedTypeDiagnosticId,
-                "Type could not be resolved.",
-                span);
+            AddDiagnostic(DiagnosticCatalog.UnresolvedType, span, string.Empty);
             return CreateError(typeName.Name);
         }
 
@@ -749,10 +743,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
             : _compilation.GetScriptForType(typeName.Name);
         if (script.TypeKind == TypeKind.Error)
         {
-            AddDiagnostic(
-                PapyrusCompilation.UnresolvedTypeDiagnosticId,
-                "Type '" + typeName + "' could not be resolved.",
-                span);
+            AddDiagnostic(DiagnosticCatalog.UnresolvedType, span, typeName);
             return script;
         }
 
@@ -781,9 +772,9 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
         }
 
         AddDiagnostic(
-            PapyrusCompilation.UnresolvedTypeDiagnosticId,
-            "Type '" + new TypeName(scriptName, isArray: false, structName) + "' could not be resolved.",
-            span);
+            DiagnosticCatalog.UnresolvedType,
+            span,
+            new TypeName(scriptName, isArray: false, structName));
         return CreateError(scriptName, structName);
     }
 
@@ -874,19 +865,13 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
     private void SetMissingBase(QualifiedName baseName, TextSpan span, IScriptSymbol? resolved = null)
     {
         _baseType = resolved ?? CreateError(baseName);
-        AddDiagnostic(
-            PapyrusCompilation.UnresolvedBaseTypeDiagnosticId,
-            "Base type '" + baseName + "' could not be resolved.",
-            span);
+        AddDiagnostic(DiagnosticCatalog.UnresolvedBaseType, span, baseName);
     }
 
     private void SetCyclicBase(QualifiedName baseName, TextSpan span)
     {
         _baseType = CreateError(baseName);
-        AddDiagnostic(
-            PapyrusCompilation.CyclicBaseTypeDiagnosticId,
-            "Script '" + QualifiedName + "' has a cyclic inheritance chain.",
-            span);
+        AddDiagnostic(DiagnosticCatalog.CyclicBaseType, span, QualifiedName);
     }
 
     private static ScriptSymbol CreateError(QualifiedName name, PapyrusName? structName = null)
@@ -896,9 +881,9 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
         return new ScriptSymbol(simple, name, new TypeName(name, isArray: false, structName), isError: true);
     }
 
-    private void AddDiagnostic(string id, string message, TextSpan span)
+    private void AddDiagnostic(DiagnosticDescriptor descriptor, TextSpan span, params object?[] arguments)
     {
-        var diagnostic = new Diagnostic(new DiagnosticInfo(id, message), span, _tree);
+        var diagnostic = new Diagnostic(new DiagnosticInfo(descriptor, arguments), span, _tree);
         ImmutableInterlocked.Update(ref _bindingDiagnostics, static (existing, d) => existing.Add(d), diagnostic);
     }
 
