@@ -177,7 +177,9 @@ public static class PasDisassembler
         private void WriteProperty(PexObject obj, PexProperty property)
         {
             Write($".property {property.Name ?? ""} {property.TypeName ?? ""}");
-            if (property.IsAuto)
+            if (property.IsAuto && property.IsReadable && !property.IsWritable)
+                Write(" autoreadonly");
+            else if (property.IsAuto)
                 Write(" auto");
             WriteLine();
             _indent++;

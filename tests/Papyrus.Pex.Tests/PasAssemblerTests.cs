@@ -190,6 +190,55 @@ public sealed class PasAssemblerTests
         AssertPasIdempotent(original);
     }
 
+    [Theory]
+    [InlineData(PexOpCode.ArrayRFindElement)]
+    [InlineData(PexOpCode.ArrayClear)]
+    [InlineData(PexOpCode.ArrayGetAllMatchingStructs)]
+    [InlineData(PexOpCode.TryLockGuards)]
+    public void Assemble_Disassemble_DialectMaxOpcodes_RoundTrips(PexOpCode op)
+    {
+        PexFile original = BuildAliasedOpcodeFile(op);
+        string pas = PasDisassembler.Disassemble(original);
+        Assert.Contains(PasDisassembler.OpCodeName(op), pas);
+
+        PexFile assembled = PasAssembler.Assemble(pas);
+        Assert.Equal(op, assembled.Objects[0].States[0].Functions[0].Instructions[0].OpCode);
+        AssertPasVisibleEqual(original, assembled);
+        Assert.Equal(PexWriter.Write(original), PexWriter.Write(assembled));
+        AssertPasIdempotent(original);
+    }
+
+    [Fact]
+    public void Assemble_Disassemble_ArrayGetAllMatchingStructs_InfersFallout76()
+    {
+        PexFile assembled = PasAssembler.Assemble(
+            PasDisassembler.Disassemble(BuildAliasedOpcodeFile(PexOpCode.ArrayGetAllMatchingStructs)));
+
+        Assert.Equal(GameId.Fallout76, assembled.Game);
+        Assert.Equal(PexVersion.V315, assembled.Version);
+        Assert.Equal(GameIdMapping.Fallout76Raw, assembled.RawGameId);
+    }
+
+    [Fact]
+    public void Assemble_Disassemble_AutoReadOnly_PreservesWritableBit()
+    {
+        PexFile original = BuildAutoReadOnlyFile();
+        string pas = PasDisassembler.Disassemble(original);
+        Assert.Contains(".property Prop Int autoreadonly", pas);
+        Assert.DoesNotContain(".property Prop Int auto\n", pas);
+
+        PexFile assembled = PasAssembler.Assemble(pas);
+        PexProperty property = assembled.Objects[0].Properties[0];
+        Assert.True(property.IsAuto);
+        Assert.True(property.IsReadable);
+        Assert.False(property.IsWritable);
+        Assert.Equal("::auto", property.AutoVar);
+
+        AssertPasVisibleEqual(original, assembled);
+        Assert.Equal(PexWriter.Write(original), PexWriter.Write(assembled));
+        AssertPasIdempotent(original);
+    }
+
     [Fact]
     public void Assemble_UnknownOpcode_Throws()
     {
@@ -883,6 +932,141 @@ public sealed class PasAssemblerTests
             ],
         };
     }
+
+    private static PexFile BuildAutoReadOnlyFile()
+    {
+        return new PexFile
+        {
+            Version = PexVersion.V32,
+            RawGameId = GameIdMapping.SkyrimRaw,
+            Game = GameId.SkyrimSpecialEdition,
+            Objects =
+            [
+                new PexObject
+                {
+                    Name = "Script",
+                    ParentClassName = "",
+                    AutoStateName = "",
+                    Variables =
+                    [
+                        new PexVariable
+                        {
+                            Name = "::auto",
+                            TypeName = "Int",
+                            DefaultValue = new PexValue { Type = PexValueType.Integer, Integer = 0 },
+                        },
+                    ],
+                    Properties =
+                    [
+                        new PexProperty
+                        {
+                            Name = "Prop",
+                            TypeName = "Int",
+                            DocumentationString = "Docs",
+                            IsAuto = true,
+                            IsReadable = true,
+                            IsWritable = false,
+                            AutoVar = "::auto",
+                        },
+                    ],
+                },
+            ],
+        };
+    }
+
+    private static PexFile BuildAliasedOpcodeFile(PexOpCode op)
+    {
+        (PexVersion version, ushort raw, GameId game, PexInstruction instruction) = op switch
+        {
+            PexOpCode.ArrayRFindElement => (
+                PexVersion.V32,
+                GameIdMapping.SkyrimRaw,
+                GameId.SkyrimSpecialEdition,
+                new PexInstruction
+                {
+                    OpCode = op,
+                    Arguments =
+                    [
+                        Ident("::dest"),
+                        Ident("arr"),
+                        Ident("value"),
+                        new PexValue { Type = PexValueType.Integer, Integer = 0 },
+                    ],
+                }),
+            PexOpCode.ArrayClear => (
+                PexVersion.V39,
+                GameIdMapping.Fallout4Raw,
+                GameId.Fallout4,
+                new PexInstruction
+                {
+                    OpCode = op,
+                    Arguments = [Ident("arr")],
+                }),
+            PexOpCode.ArrayGetAllMatchingStructs => (
+                PexVersion.V315,
+                GameIdMapping.Fallout76Raw,
+                GameId.Fallout76,
+                new PexInstruction
+                {
+                    OpCode = op,
+                    Arguments =
+                    [
+                        Ident("::dest"),
+                        Ident("arr"),
+                        new PexValue { Type = PexValueType.String, Text = "Member" },
+                        Ident("value"),
+                        new PexValue { Type = PexValueType.Integer, Integer = 0 },
+                        new PexValue { Type = PexValueType.Integer, Integer = 1 },
+                    ],
+                }),
+            PexOpCode.TryLockGuards => (
+                PexVersion.V312,
+                GameIdMapping.StarfieldRaw,
+                GameId.Starfield,
+                new PexInstruction
+                {
+                    OpCode = op,
+                    Arguments = [Ident("::ok")],
+                    VariadicArguments = [Ident("Mutex")],
+                }),
+            _ => throw new ArgumentOutOfRangeException(nameof(op)),
+        };
+
+        return new PexFile
+        {
+            Version = version,
+            RawGameId = raw,
+            Game = game,
+            Objects =
+            [
+                new PexObject
+                {
+                    Name = "Script",
+                    ParentClassName = "",
+                    AutoStateName = "",
+                    States =
+                    [
+                        new PexState
+                        {
+                            Name = "",
+                            Functions =
+                            [
+                                new PexFunction
+                                {
+                                    Name = "Fn",
+                                    ReturnTypeName = "None",
+                                    Instructions = [instruction],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        };
+    }
+
+    private static PexValue Ident(string name) =>
+        new() { Type = PexValueType.Identifier, Text = name };
 
     private static PexFile BuildNativeStaticFile()
     {

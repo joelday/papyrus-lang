@@ -376,16 +376,15 @@ public static class PasAssembler
         private PexProperty ParseProperty(string objectName, ref int functionsInObject)
         {
             Line header = ReadLine();
-            bool isAuto = HasModifier(header, "auto");
+            bool isAutoReadOnly = HasModifier(header, "autoreadonly");
+            bool isAuto = isAutoReadOnly || HasModifier(header, "auto");
             var property = new PexProperty
             {
                 Name = TokenText(header, 0),
                 TypeName = TokenText(header, 1),
                 IsAuto = isAuto,
-                // PAS only has "auto", not the individual read/write bits. Auto
-                // properties are readable and writable in every game we emit for.
                 IsReadable = isAuto,
-                IsWritable = isAuto,
+                IsWritable = isAuto && !isAutoReadOnly,
             };
 
             while (true)
@@ -1216,14 +1215,21 @@ public static class PasAssembler
         private static Dictionary<string, PexOpCode> CreateOpCodeMap()
         {
             var map = new Dictionary<string, PexOpCode>(StringComparer.Ordinal);
-            foreach (PexOpCode op in Enum.GetValues<PexOpCode>())
+            // Skip dialect-max aliases by *name*. `op is SkyrimMax` is a value
+            // compare and would also drop ArrayRFindElement / ArrayClear /
+            // ArrayGetAllMatchingStructs / TryLockGuards.
+            foreach (string name in Enum.GetNames<PexOpCode>())
             {
-                if (op is PexOpCode.SkyrimMax or PexOpCode.Fallout4Max or PexOpCode.Fallout76Max
-                    or PexOpCode.StarfieldMax or PexOpCode.Max)
+                if (name is nameof(PexOpCode.SkyrimMax)
+                    or nameof(PexOpCode.Fallout4Max)
+                    or nameof(PexOpCode.Fallout76Max)
+                    or nameof(PexOpCode.StarfieldMax)
+                    or nameof(PexOpCode.Max))
                 {
                     continue;
                 }
 
+                var op = Enum.Parse<PexOpCode>(name);
                 map[PasDisassembler.OpCodeName(op)] = op;
             }
 

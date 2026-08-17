@@ -365,6 +365,43 @@ public sealed class PasDisassemblerTests
     }
 
     [Fact]
+    public void Disassemble_AutoReadOnly_EmitsAutoreadonlyKeyword()
+    {
+        var file = new PexFile
+        {
+            Version = PexVersion.V32,
+            RawGameId = GameIdMapping.SkyrimRaw,
+            Game = GameId.SkyrimSpecialEdition,
+            Objects =
+            [
+                new PexObject
+                {
+                    Name = "Script",
+                    ParentClassName = "",
+                    AutoStateName = "",
+                    Properties =
+                    [
+                        new PexProperty
+                        {
+                            Name = "Prop",
+                            TypeName = "Int",
+                            IsAuto = true,
+                            IsReadable = true,
+                            IsWritable = false,
+                            AutoVar = "::auto",
+                        },
+                    ],
+                },
+            ],
+        };
+
+        string pas = PasDisassembler.Disassemble(file);
+        Assert.Contains(".property Prop Int autoreadonly", pas);
+        Assert.Contains(".autoVar ::auto", pas);
+        Assert.DoesNotContain(".property Prop Int auto\n", pas);
+    }
+
+    [Fact]
     public void Disassemble_NullFile_Throws()
     {
         Assert.Throws<ArgumentNullException>(() => PasDisassembler.Disassemble(null!));
