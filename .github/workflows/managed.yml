@@ -33,3 +33,6 @@ jobs:
 
       - name: Build
         run: dotnet build Papyrus.sln --no-restore --configuration Release
+
+      - name: Architecture tests
+        run: dotnet test tests/Papyrus.Architecture.Tests --no-restore --configuration Release --no-build

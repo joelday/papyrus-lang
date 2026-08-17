@@ -19,7 +19,11 @@ public sealed class CodeAnalysisBanTests
                 "System.IO.File",
                 "System.IO.Directory",
                 "System.IO.FileStream",
-                "System.IO.FileSystemWatcher")
+                "System.IO.FileSystemWatcher",
+                "System.IO.FileInfo",
+                "System.IO.DirectoryInfo",
+                "System.IO.StreamReader",
+                "System.IO.StreamWriter")
             .GetResult();
         AssertSuccessful(result, "Papyrus.CodeAnalysis references a banned System.IO file API.");
 

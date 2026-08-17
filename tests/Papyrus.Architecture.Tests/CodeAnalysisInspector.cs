@@ -20,6 +20,10 @@ internal static class CodeAnalysisInspector
         "System.IO.Directory",
         "System.IO.FileStream",
         "System.IO.FileSystemWatcher",
+        "System.IO.FileInfo",
+        "System.IO.DirectoryInfo",
+        "System.IO.StreamReader",
+        "System.IO.StreamWriter",
     };
 
     private static readonly HashSet<string> AllowedReflectionTypes = new(StringComparer.Ordinal)
@@ -100,14 +104,9 @@ internal static class CodeAnalysisInspector
                 continue;
             }
 
-            if (!IsJsonSerializeOrDeserialize(called.Name))
-            {
-                continue;
-            }
-
             if (!HasSourceGeneratedContextParameter(called))
             {
-                hits.Add(method.FullName + " calls JsonSerializer." + called.Name
+                hits.Add(method.FullName + " uses JsonSerializer." + called.Name
                          + " without a source-generated JsonSerializerContext/JsonTypeInfo");
             }
         }
@@ -271,7 +270,11 @@ internal static class CodeAnalysisInspector
 
                     foreach (var instruction in method.Body.Instructions)
                     {
-                        if (instruction.OpCode.FlowControl == FlowControl.Call)
+                        // call/callvirt plus method-group conversions (ldftn / ldvirtftn).
+                        if (instruction.Operand is MethodReference
+                            && (instruction.OpCode.FlowControl == FlowControl.Call
+                                || instruction.OpCode == OpCodes.Ldftn
+                                || instruction.OpCode == OpCodes.Ldvirtftn))
                         {
                             yield return (method, instruction);
                         }
@@ -358,9 +361,6 @@ internal static class CodeAnalysisInspector
 
         return false;
     }
-
-    private static bool IsJsonSerializeOrDeserialize(string name)
-        => name is "Serialize" or "SerializeAsync" or "Deserialize" or "DeserializeAsync";
 
     private static bool IsInNamespace(string fullName, string ns)
     {

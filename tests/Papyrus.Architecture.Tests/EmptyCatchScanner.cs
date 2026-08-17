@@ -28,6 +28,13 @@ internal static class EmptyCatchScanner
         return violations;
     }
 
+    internal static IReadOnlyList<string> ScanText(string source, string relativeFileName = "snippet.cs")
+    {
+        var violations = new List<string>();
+        ScanContent(source, relativeFileName, violations);
+        return violations;
+    }
+
     private static bool IsGeneratedOrBuildOutput(string file)
     {
         var separators = new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar };
@@ -47,8 +54,13 @@ internal static class EmptyCatchScanner
     private static void ScanFile(string file, string projectDirectory, List<string> violations)
     {
         var source = File.ReadAllText(file);
-        var masked = MaskNonCode(source);
         var relative = Path.GetRelativePath(projectDirectory, file);
+        ScanContent(source, relative, violations);
+    }
+
+    private static void ScanContent(string source, string relative, List<string> violations)
+    {
+        var masked = MaskNonCode(source);
 
         for (var i = 0; i < masked.Length; i++)
         {
@@ -60,6 +72,7 @@ internal static class EmptyCatchScanner
             var afterCatch = i + 5;
             SkipWhitespace(masked, ref afterCatch);
 
+            // catch (Type) [when (filter)]  or  catch when (filter)
             if (afterCatch < masked.Length && masked[afterCatch] == '(')
             {
                 afterCatch = SkipBalanced(masked, afterCatch, '(', ')');
@@ -69,17 +82,18 @@ internal static class EmptyCatchScanner
                 }
 
                 SkipWhitespace(masked, ref afterCatch);
-                if (IsKeywordAt(masked, afterCatch, "when"))
+            }
+
+            if (IsKeywordAt(masked, afterCatch, "when"))
+            {
+                afterCatch += 4;
+                SkipWhitespace(masked, ref afterCatch);
+                if (afterCatch < masked.Length && masked[afterCatch] == '(')
                 {
-                    afterCatch += 4;
-                    SkipWhitespace(masked, ref afterCatch);
-                    if (afterCatch < masked.Length && masked[afterCatch] == '(')
+                    afterCatch = SkipBalanced(masked, afterCatch, '(', ')');
+                    if (afterCatch < 0)
                     {
-                        afterCatch = SkipBalanced(masked, afterCatch, '(', ')');
-                        if (afterCatch < 0)
-                        {
-                            continue;
-                        }
+                        continue;
                     }
                 }
             }
@@ -108,26 +122,81 @@ internal static class EmptyCatchScanner
         }
     }
 
-    private static bool IsSwallowingBody(string body)
+    internal static bool IsSwallowingBody(string body)
     {
-        var trimmed = CompactWhitespace(body);
-        if (trimmed.Length == 0)
+        var text = CompactWhitespace(body);
+        var i = 0;
+        SkipWhitespace(text, ref i);
+        if (i >= text.Length)
         {
             return true;
         }
 
-        if (trimmed == "return;")
+        if (!MatchKeyword(text, ref i, "return"))
+        {
+            return false;
+        }
+
+        SkipWhitespace(text, ref i);
+        if (IsEndOfReturn(text, i))
         {
             return true;
         }
 
-        if (trimmed == "return null;")
+        if (MatchKeyword(text, ref i, "null"))
         {
-            return true;
+            SkipWhitespace(text, ref i);
+            if (i < text.Length && text[i] == '!')
+            {
+                i++;
+                SkipWhitespace(text, ref i);
+            }
+
+            return IsEndOfReturn(text, i);
         }
 
-        return trimmed.StartsWith("return default", StringComparison.Ordinal)
-               && trimmed.EndsWith(";", StringComparison.Ordinal);
+        // default keyword only — not identifiers like defaultValue / defaultBinding.
+        if (!MatchKeyword(text, ref i, "default"))
+        {
+            return false;
+        }
+
+        SkipWhitespace(text, ref i);
+        if (i < text.Length && text[i] == '(')
+        {
+            var close = SkipBalanced(text, i, '(', ')');
+            if (close < 0)
+            {
+                return false;
+            }
+
+            i = close;
+            SkipWhitespace(text, ref i);
+        }
+
+        if (i < text.Length && text[i] == '!')
+        {
+            i++;
+            SkipWhitespace(text, ref i);
+        }
+
+        return IsEndOfReturn(text, i);
+    }
+
+    private static bool IsEndOfReturn(string text, int semicolonIndex)
+        => semicolonIndex < text.Length
+           && text[semicolonIndex] == ';'
+           && semicolonIndex == text.Length - 1;
+
+    private static bool MatchKeyword(string text, ref int index, string keyword)
+    {
+        if (!IsKeywordAt(text, index, keyword))
+        {
+            return false;
+        }
+
+        index += keyword.Length;
+        return true;
     }
 
     private static string CompactWhitespace(string text)
