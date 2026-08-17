@@ -1,0 +1,93 @@
+using System;
+using System.Collections.Immutable;
+
+namespace Papyrus.CodeAnalysis;
+
+public static class DiagnosticCatalog
+{
+    // Reserved: PAP0001–PAP0999 syntax, PAP1000–PAP1999 binding/types,
+    // PAP2000–PAP2999 emit/engine limits, PAP8000–PAP8999 workspace, PAP9999 internal.
+    public const string UnresolvedScriptId = "PAP1000";
+    public const string UnresolvedBaseTypeId = "PAP1001";
+    public const string CyclicBaseTypeId = "PAP1002";
+    public const string UnresolvedTypeId = "PAP1003";
+    public const string InternalErrorId = "PAP9999";
+
+    public const string BindingCategory = "Binding";
+    public const string TypeCategory = "Type";
+    public const string InternalCategory = "Internal";
+
+    public static DiagnosticDescriptor UnresolvedScript { get; } = new(
+        UnresolvedScriptId,
+        "Unresolved script",
+        "Script '{0}' could not be resolved.",
+        BindingCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor UnresolvedBaseType { get; } = new(
+        UnresolvedBaseTypeId,
+        "Unresolved base type",
+        "Base type '{0}' could not be resolved.",
+        BindingCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor CyclicBaseType { get; } = new(
+        CyclicBaseTypeId,
+        "Cyclic inheritance",
+        "Script '{0}' has a cyclic inheritance chain.",
+        BindingCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor UnresolvedType { get; } = new(
+        UnresolvedTypeId,
+        "Unresolved type",
+        "Type '{0}' could not be resolved.",
+        TypeCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor InternalError { get; } = new(
+        InternalErrorId,
+        "Internal compiler error",
+        "Internal compiler error: {0}",
+        InternalCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static ImmutableArray<DiagnosticDescriptor> All { get; } =
+    [
+        UnresolvedScript,
+        UnresolvedBaseType,
+        CyclicBaseType,
+        UnresolvedType,
+        InternalError,
+    ];
+
+    private static readonly ImmutableDictionary<string, DiagnosticDescriptor> s_byId = Index(All);
+
+    public static bool TryGet(string id, out DiagnosticDescriptor descriptor)
+    {
+        if (id is not null && s_byId.TryGetValue(id, out descriptor!))
+        {
+            return true;
+        }
+
+        descriptor = null!;
+        return false;
+    }
+
+    private static ImmutableDictionary<string, DiagnosticDescriptor> Index(
+        ImmutableArray<DiagnosticDescriptor> descriptors)
+    {
+        var builder = ImmutableDictionary.CreateBuilder<string, DiagnosticDescriptor>(StringComparer.Ordinal);
+        for (var i = 0; i < descriptors.Length; i++)
+        {
+            builder.Add(descriptors[i].Id, descriptors[i]);
+        }
+
+        return builder.ToImmutable();
+    }
+}

@@ -16,11 +16,17 @@ public sealed class Diagnostic
 
     public DiagnosticInfo Info { get; }
 
+    public DiagnosticDescriptor Descriptor => Info.Descriptor;
+
+    public DiagnosticSeverity Severity => Descriptor.DefaultSeverity;
+
     public string Id => Info.Id;
 
-    public string Message => Info.Message;
+    public string Message => GetMessage();
 
     public TextSpan Span { get; }
 
     public SyntaxTree? Tree { get; }
+
+    public string GetMessage() => Info.GetMessage();
 }
