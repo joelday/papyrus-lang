@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Papyrus.CodeAnalysis.Symbols;
 using Papyrus.CodeAnalysis.Syntax;
 using Papyrus.CodeAnalysis.Text;
@@ -19,6 +22,7 @@ public sealed class PapyrusCompilation
     private readonly ImmutableDictionary<QualifiedName, SyntaxTree> _overrides;
     private readonly ConcurrentDictionary<QualifiedName, CachedScript> _cache;
     private readonly ConcurrentDictionary<QualifiedName, IScriptSymbol> _scripts;
+    private readonly ILogger? _logger;
 
     private PapyrusCompilation(
         PapyrusDialect dialect,
@@ -27,7 +31,8 @@ public sealed class PapyrusCompilation
         PapyrusParseOptions options,
         ImmutableDictionary<QualifiedName, SyntaxTree> overrides,
         ConcurrentDictionary<QualifiedName, CachedScript> cache,
-        ConcurrentDictionary<QualifiedName, IScriptSymbol> scripts)
+        ConcurrentDictionary<QualifiedName, IScriptSymbol> scripts,
+        ILogger? logger)
     {
         Dialect = dialect;
         Resolver = resolver;
@@ -36,6 +41,7 @@ public sealed class PapyrusCompilation
         _overrides = overrides;
         _cache = cache;
         _scripts = scripts;
+        _logger = logger;
     }
 
     public PapyrusDialect Dialect { get; }
@@ -47,7 +53,8 @@ public sealed class PapyrusCompilation
     public static PapyrusCompilation Create(
         PapyrusDialect dialect,
         ScriptResolver resolver,
-        PapyrusParseOptions? options = null)
+        PapyrusParseOptions? options = null,
+        ILogger? logger = null)
     {
         ArgumentNullException.ThrowIfNull(dialect);
         ArgumentNullException.ThrowIfNull(resolver);
@@ -59,12 +66,19 @@ public sealed class PapyrusCompilation
             options ?? PapyrusParseOptions.Default,
             ImmutableDictionary<QualifiedName, SyntaxTree>.Empty,
             new ConcurrentDictionary<QualifiedName, CachedScript>(),
-            new ConcurrentDictionary<QualifiedName, IScriptSymbol>());
+            new ConcurrentDictionary<QualifiedName, IScriptSymbol>(),
+            logger);
     }
 
     public IScriptSymbol GetScript(QualifiedName name)
     {
         name = Intern(name);
+        using var activity = PapyrusActivitySource.Start(
+            "bind",
+            [new KeyValuePair<string, object?>("script", name.ToString())]);
+        PapyrusEventSource.Log.Bind();
+        _logger?.LogDebug("GetScript {Script} Activity={ActivityId}", name, Activity.Current?.Id);
+
         var script = _scripts.GetOrAdd(name, n => CreateScript(n, GetOrAddCached(n)));
         if (script is SourceScriptSymbol source)
         {
@@ -77,6 +91,10 @@ public sealed class PapyrusCompilation
     public SyntaxTree GetSyntaxTree(QualifiedName name)
     {
         name = Intern(name);
+        using var activity = PapyrusActivitySource.Start(
+            "parse",
+            [new KeyValuePair<string, object?>("script", name.ToString())]);
+        _logger?.LogTrace("GetSyntaxTree {Script} Activity={ActivityId}", name, Activity.Current?.Id);
         return GetOrAddCached(name).Tree;
     }
 
@@ -114,7 +132,9 @@ public sealed class PapyrusCompilation
             cancellationToken.ThrowIfCancellationRequested();
             if (script is SourceScriptSymbol source)
             {
-                builder.AddRange(source.GetBindingDiagnostics());
+                var binding = source.GetBindingDiagnostics();
+                builder.AddRange(binding);
+                PapyrusEventSource.Log.AddDiagnostics(binding);
             }
         }
 
@@ -146,10 +166,19 @@ public sealed class PapyrusCompilation
 
         scripts[name] = CreateSourceScript(name, tree);
 
-        return new PapyrusCompilation(Dialect, Resolver, Names, _options, overrides, cache, scripts);
+        return new PapyrusCompilation(Dialect, Resolver, Names, _options, overrides, cache, scripts, _logger);
     }
 
-    private CachedScript GetOrAddCached(QualifiedName name) => _cache.GetOrAdd(name, LoadCached);
+    private CachedScript GetOrAddCached(QualifiedName name)
+    {
+        if (_cache.TryGetValue(name, out var cached))
+        {
+            PapyrusEventSource.Log.ParseCacheHit();
+            return cached;
+        }
+
+        return _cache.GetOrAdd(name, LoadCached);
+    }
 
     private CachedScript LoadCached(QualifiedName name)
     {
