@@ -45,7 +45,7 @@ internal abstract class BoundNode
 
     public ITypeSymbol? Type { get; }
 
-    public SyntaxNode? Syntax { get; set; }
+    public SyntaxNode? Syntax { get; internal set; }
 
     public abstract BoundKind Kind { get; }
 }

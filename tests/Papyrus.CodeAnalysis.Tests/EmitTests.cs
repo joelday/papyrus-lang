@@ -210,11 +210,15 @@ public sealed class EmitTests
         Assert.Equal("", function.StateName);
         Assert.Equal("Bar", function.FunctionName);
         Assert.Equal(PexDebugFunctionType.Normal, function.FunctionType);
-        Assert.False(function.InstructionLineMap.IsDefaultOrEmpty);
 
         var instructions = Function(file).Instructions;
         Assert.Equal(instructions.Length, function.InstructionLineMap.Length);
         Assert.True(instructions.Length >= 1);
+        Assert.Equal((ushort)3, function.InstructionLineMap[0]);
+
+        var returnIndex = IndexOf(instructions, static i => i.OpCode == PexOpCode.Return);
+        Assert.Equal((ushort)5, function.InstructionLineMap[returnIndex]);
+        Assert.True(function.InstructionLineMap[returnIndex] > function.InstructionLineMap[0]);
     }
 
     [Fact]
@@ -224,7 +228,7 @@ public sealed class EmitTests
             "ScriptName Foo\nInt Function Bar()\n  Return 1\nEndFunction\n",
             options: new PexEmitOptions { Release = true });
 
-        Assert.True(file.DebugInfo is null || file.DebugInfo.Functions.IsDefaultOrEmpty);
+        Assert.Null(file.DebugInfo);
     }
 
     [Fact]
@@ -234,7 +238,7 @@ public sealed class EmitTests
             "ScriptName Foo\nInt Function Bar()\n  Return 1\nEndFunction\n",
             options: new PexEmitOptions { EmitDebugInfo = false });
 
-        Assert.True(file.DebugInfo is null || file.DebugInfo.Functions.IsDefaultOrEmpty);
+        Assert.Null(file.DebugInfo);
     }
 
     [Fact]
@@ -244,11 +248,11 @@ public sealed class EmitTests
             "ScriptName Foo\nInt Function Bar()\n  Return 1\nEndFunction\n",
             options: new PexEmitOptions { Release = true, EmitDebugInfo = true });
 
-        Assert.True(file.DebugInfo is null || file.DebugInfo.Functions.IsDefaultOrEmpty);
+        Assert.Null(file.DebugInfo);
     }
 
     [Fact]
-    public void Emit_debug_line_numbers_are_one_based_and_non_decreasing()
+    public void Emit_debug_line_numbers_are_one_based_and_follow_source()
     {
         var file = EmitFile(
             "ScriptName Foo\nFunction Bar()\n" +
@@ -263,16 +267,80 @@ public sealed class EmitTests
             "  EndWhile\n" +
             "EndFunction\n");
 
+        var emitted = Function(file);
         var map = Assert.Single(Assert.IsType<PexDebugInfo>(file.DebugInfo).Functions).InstructionLineMap;
-        Assert.False(map.IsDefaultOrEmpty);
+        Assert.Equal(emitted.Instructions.Length, map.Length);
+        Assert.Equal((ushort)3, map[0]);
 
-        ushort previous = 0;
         foreach (var line in map)
         {
             Assert.True(line >= 1);
-            Assert.True(line >= previous);
-            previous = line;
         }
+
+        var ifJump = IndexOf(emitted.Instructions, static i => i.OpCode is PexOpCode.JmpT or PexOpCode.JmpF);
+        Assert.Equal((ushort)4, map[ifJump]);
+
+        var thenAssign = IndexOf(emitted.Instructions, static i =>
+            i.OpCode == PexOpCode.Assign && i.Arguments.Length >= 2 && i.Arguments[1].Integer == 2);
+        Assert.Equal((ushort)5, map[thenAssign]);
+
+        var elseAssign = IndexOf(emitted.Instructions, static i =>
+            i.OpCode == PexOpCode.Assign && i.Arguments.Length >= 2 && i.Arguments[1].Integer == 3);
+        Assert.Equal((ushort)7, map[elseAssign]);
+
+        var whileJump = LastIndexOf(emitted.Instructions, static i => i.OpCode is PexOpCode.JmpT or PexOpCode.JmpF);
+        Assert.Equal((ushort)9, map[whileJump]);
+
+        var whileBody = IndexOf(emitted.Instructions, static i =>
+            i.OpCode == PexOpCode.Assign && i.Arguments.Length >= 2 && i.Arguments[1].Integer == 0);
+        Assert.Equal((ushort)10, map[whileBody]);
+        Assert.True(map[whileBody] > map[0]);
+    }
+
+    [Fact]
+    public void Emit_call_line_map_uses_call_span_not_last_argument()
+    {
+        var file = EmitFile(
+            "ScriptName Foo\n" +
+            "Int Function Helper(Int a, Int b)\n  Return a\nEndFunction\n" +
+            "Int Function Bar()\n  Int x = Helper(\n    1,\n    2)\n  Return x\nEndFunction\n");
+
+        var emitted = Function(file);
+        var map = DebugFunction(file, "Bar").InstructionLineMap;
+        var call = IndexOf(emitted.Instructions, static i => i.OpCode == PexOpCode.CallMethod);
+        Assert.Equal((ushort)6, map[call]);
+        Assert.DoesNotContain((ushort)8, map);
+    }
+
+    [Fact]
+    public void Emit_full_property_accessors_use_getter_and_setter_debug_records()
+    {
+        var file = EmitFile(
+            "ScriptName Foo\n" +
+            "Int Property Health\n" +
+            "  Int Function Get()\n    Return 1\n  EndFunction\n" +
+            "  Function Set(Int value)\n  EndFunction\n" +
+            "EndProperty\n");
+
+        var property = Assert.Single(Assert.Single(file.Objects).Properties);
+        Assert.Equal("Health", property.Name);
+        Assert.NotNull(property.ReadFunction);
+        Assert.NotNull(property.WriteFunction);
+
+        var debug = Assert.IsType<PexDebugInfo>(file.DebugInfo);
+        Assert.Equal(2, debug.Functions.Length);
+
+        var getter = Assert.Single(debug.Functions, static f => f.FunctionType == PexDebugFunctionType.Getter);
+        Assert.Equal("Health", getter.FunctionName);
+        Assert.Equal("", getter.StateName);
+        Assert.Equal(property.ReadFunction.Instructions.Length, getter.InstructionLineMap.Length);
+        Assert.DoesNotContain(debug.Functions, static f => f.FunctionName == "Get");
+
+        var setter = Assert.Single(debug.Functions, static f => f.FunctionType == PexDebugFunctionType.Setter);
+        Assert.Equal("Health", setter.FunctionName);
+        Assert.Equal("", setter.StateName);
+        Assert.Equal(property.WriteFunction.Instructions.Length, setter.InstructionLineMap.Length);
+        Assert.DoesNotContain(debug.Functions, static f => f.FunctionName == "Set");
     }
 
     [Fact]
@@ -346,6 +414,47 @@ public sealed class EmitTests
         }
 
         throw new System.InvalidOperationException("Function '" + name + "' was not emitted.");
+    }
+
+    private static PexDebugFunction DebugFunction(PexFile file, string name = "Bar")
+    {
+        var debug = Assert.IsType<PexDebugInfo>(file.DebugInfo);
+        foreach (var function in debug.Functions)
+        {
+            if (string.Equals(function.FunctionName, name, StringComparison.OrdinalIgnoreCase)
+                && function.FunctionType == PexDebugFunctionType.Normal)
+            {
+                return function;
+            }
+        }
+
+        throw new InvalidOperationException("Debug function '" + name + "' was not emitted.");
+    }
+
+    private static int IndexOf(System.Collections.Immutable.ImmutableArray<PexInstruction> instructions, Predicate<PexInstruction> match)
+    {
+        for (var i = 0; i < instructions.Length; i++)
+        {
+            if (match(instructions[i]))
+            {
+                return i;
+            }
+        }
+
+        throw new InvalidOperationException("No matching instruction.");
+    }
+
+    private static int LastIndexOf(System.Collections.Immutable.ImmutableArray<PexInstruction> instructions, Predicate<PexInstruction> match)
+    {
+        for (var i = instructions.Length - 1; i >= 0; i--)
+        {
+            if (match(instructions[i]))
+            {
+                return i;
+            }
+        }
+
+        throw new InvalidOperationException("No matching instruction.");
     }
 
     private static bool TryJumpTarget(PexInstruction instruction, int index, out int target)

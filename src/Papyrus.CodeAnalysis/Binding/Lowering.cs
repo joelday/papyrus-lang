@@ -182,9 +182,11 @@ internal static class Lowering
             if (TryGetBinaryOperator(assignment.OperatorKind, out var binaryOperator))
             {
                 // Compound assignment is not a VM op: x += y → x = x + y.
-                right = MakeBinary(left, binaryOperator, right);
+                right = MakeBinary(left, binaryOperator, right, assignment.Syntax);
                 right = Convert(right, left.Type);
-                return new BoundAssignment(left, SyntaxKind.EqualsToken, right);
+                var rewritten = new BoundAssignment(left, SyntaxKind.EqualsToken, right);
+                rewritten.Syntax = assignment.Syntax;
+                return rewritten;
             }
 
             if (left == assignment.Left && right == assignment.Right)
@@ -192,7 +194,9 @@ internal static class Lowering
                 return assignment;
             }
 
-            return new BoundAssignment(left, assignment.OperatorKind, right);
+            var result = new BoundAssignment(left, assignment.OperatorKind, right);
+            result.Syntax = assignment.Syntax;
+            return result;
         }
 
         private BoundExpression VisitProperty(BoundProperty property)
@@ -302,7 +306,11 @@ internal static class Lowering
             return array == length.Array ? length : new BoundArrayLength(array, length.Type);
         }
 
-        private BoundExpression MakeBinary(BoundExpression left, SyntaxKind operatorKind, BoundExpression right)
+        private BoundExpression MakeBinary(
+            BoundExpression left,
+            SyntaxKind operatorKind,
+            BoundExpression right,
+            SyntaxNode? syntax)
         {
             ITypeSymbol type;
             switch (operatorKind)
@@ -338,7 +346,9 @@ internal static class Lowering
                     break;
             }
 
-            return new BoundBinary(left, operatorKind, right, type);
+            var binary = new BoundBinary(left, operatorKind, right, type);
+            binary.Syntax = syntax ?? left.Syntax;
+            return binary;
         }
 
         private static BoundExpression Convert(BoundExpression expression, ITypeSymbol destination)
