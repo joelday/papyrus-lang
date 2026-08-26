@@ -143,7 +143,7 @@ internal sealed class PexEmitter
             ? baseType.QualifiedName.ToString()
             : "";
 
-        return new PexObject
+        var obj = new PexObject
         {
             Name = script.QualifiedName.ToString(),
             ParentClassName = parent,
@@ -157,6 +157,8 @@ internal sealed class PexEmitter
             Properties = properties.ToImmutable(),
             States = states.ToImmutable(),
         };
+        CheckEngineLimits(obj, script);
+        return obj;
     }
 
     private PexState EmitState(IStateSymbol state, CancellationToken cancellationToken)
@@ -477,6 +479,44 @@ internal sealed class PexEmitter
             or SyntaxKind.DebugOnlyKeyword
             or SyntaxKind.BetaOnlyKeyword
             or SyntaxKind.MandatoryKeyword;
+
+    private void CheckEngineLimits(PexObject obj, IScriptSymbol script)
+    {
+        EngineLimitChecker.Check(
+            obj,
+            Limits,
+            _flagsFile,
+            EngineLimitSeverity,
+            _tree,
+            script,
+            _diagnostics);
+    }
+
+    private void CheckArraySize(BoundExpression size, IFunctionSymbol function)
+    {
+        var span = function.DeclaringSyntaxReferences is { IsDefaultOrEmpty: false } refs
+            ? refs[0].Span
+            : function switch
+            {
+                FunctionSymbol { Declaration: { } syntax } => syntax.Name.Span,
+                EventSymbol { Declaration: { } syntax } => syntax.Name.Span,
+                _ => default,
+            };
+        EngineLimitChecker.CheckArraySize(
+            size,
+            Limits,
+            EngineLimitSeverity,
+            _tree,
+            span,
+            _diagnostics);
+    }
+
+    private EngineLimits Limits => (_compilation?.Dialect ?? PapyrusDialect.SkyrimSe).Limits;
+
+    private DiagnosticSeverity EngineLimitSeverity
+        => (_compilation?.Options.IgnoreEngineLimits ?? false)
+            ? DiagnosticSeverity.Warning
+            : DiagnosticSeverity.Error;
 
     private void ReportInternal(string message)
     {
@@ -1045,6 +1085,7 @@ internal sealed class PexEmitter
 
         private Rvalue EmitNewArray(BoundNewArray array, string? destName)
         {
+            _parent.CheckArraySize(array.Size, _function);
             var size = EmitExpression(array.Size);
             var dest = AcquireDest(array.Type, destName, out var allocated);
             TryEmit(PexOpCode.ArrayCreate, dest, size.Value);

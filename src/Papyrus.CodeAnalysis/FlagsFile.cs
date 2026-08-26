@@ -5,8 +5,8 @@ namespace Papyrus.CodeAnalysis;
 
 public sealed class FlagsFile
 {
-    public const string BitIndexOutOfRangeDiagnosticId = "PAP2000";
-    public const string TooManyFlagsDiagnosticId = "PAP2001";
+    public const string BitIndexOutOfRangeDiagnosticId = DiagnosticCatalog.UserFlagBitIndexOutOfRangeId;
+    public const string TooManyFlagsDiagnosticId = DiagnosticCatalog.TooManyNamedUserFlagsId;
 
     // Bits 0-31 are the 32-bit mask; the 33rd named flag cannot fit.
     private const int MaxBitIndex = 31;
@@ -82,15 +82,16 @@ public sealed class FlagsFile
             if (bitIndex > MaxBitIndex)
             {
                 _diagnostics.Add(new DiagnosticInfo(
-                    BitIndexOutOfRangeDiagnosticId,
-                    "User flag '" + name + "' bit index " + bitIndex + " is outside the 32-bit mask (0-31)."));
+                    DiagnosticCatalog.UserFlagBitIndexOutOfRange,
+                    name,
+                    bitIndex));
             }
 
             if (_flags.Count >= MaxNamedFlags)
             {
                 _diagnostics.Add(new DiagnosticInfo(
-                    TooManyFlagsDiagnosticId,
-                    "User flag '" + name + "' exceeds the 32 named-flag limit."));
+                    DiagnosticCatalog.TooManyNamedUserFlags,
+                    name));
             }
 
             _flags.Add(new UserFlag(name, bitIndex));

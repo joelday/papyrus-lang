@@ -68,6 +68,8 @@ public sealed class PapyrusCompilation
 
     public NameTable Names { get; }
 
+    public PapyrusParseOptions Options => _options;
+
     public static PapyrusCompilation Create(
         PapyrusDialect dialect,
         ScriptResolver resolver,

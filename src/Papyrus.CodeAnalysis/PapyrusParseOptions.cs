@@ -13,4 +13,6 @@ public sealed class PapyrusParseOptions
     public bool Fo4Plus { get; init; }
 
     public bool Starfield { get; init; }
+
+    public bool IgnoreEngineLimits { get; init; }
 }
