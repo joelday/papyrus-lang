@@ -23,6 +23,7 @@ internal static class Lowering
     private sealed class Rewriter
     {
         private readonly Dictionary<IPropertySymbol, IVariableSymbol> _backingFields = new();
+        private IScriptSymbol? _script;
         private NameTable? _names;
 
         public BoundNode Visit(BoundNode node)
@@ -87,14 +88,32 @@ internal static class Lowering
 
         private BoundScript VisitScript(BoundScript script)
         {
-            var functions = VisitArray(script.Functions, VisitFunction);
-            return functions == script.Functions ? script : new BoundScript(script.Script, functions);
+            var previous = _script;
+            _script = script.Script;
+            try
+            {
+                var functions = VisitArray(script.Functions, VisitFunction);
+                return functions == script.Functions ? script : new BoundScript(script.Script, functions);
+            }
+            finally
+            {
+                _script = previous;
+            }
         }
 
         private BoundFunction VisitFunction(BoundFunction function)
         {
-            var body = VisitBlock(function.Body);
-            return body == function.Body ? function : new BoundFunction(function.Function, body);
+            var previous = _script;
+            _script = function.Function.ContainingScript ?? _script;
+            try
+            {
+                var body = VisitBlock(function.Body);
+                return body == function.Body ? function : new BoundFunction(function.Function, body);
+            }
+            finally
+            {
+                _script = previous;
+            }
         }
 
         private BoundBlock VisitBlock(BoundBlock block)
@@ -188,10 +207,12 @@ internal static class Lowering
         private BoundExpression VisitProperty(BoundProperty property)
         {
             var receiver = property.Receiver is null ? null : VisitExpression(property.Receiver);
-            if (property.Property.IsAuto)
+            if (property.Property.IsAuto
+                && receiver is null or BoundSelf
+                && property.Property.ContainingScript is { } owner
+                && owner == _script)
             {
-                // Auto has no user body; emit writes AutoVar ::Name_var (P3.03).
-                return new BoundField(BackingField(property.Property), receiver);
+                return new BoundField(BackingField(property.Property), receiver: null);
             }
 
             return receiver == property.Receiver
