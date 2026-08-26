@@ -13,10 +13,12 @@ public sealed class CompileCommandTests
         var code = Run(out var stdout, out var stderr, "--help");
 
         Assert.Equal(0, code);
-        Assert.Contains("compile <script.psc>", stdout, StringComparison.Ordinal);
+        Assert.Contains("compile <script.psc", stdout, StringComparison.Ordinal);
+        Assert.Contains("project.ppj", stdout, StringComparison.Ordinal);
         Assert.Contains("[--time <unix>]", stdout, StringComparison.Ordinal);
         Assert.Contains("--game", stdout, StringComparison.Ordinal);
         Assert.Contains("skyrimle", stdout, StringComparison.Ordinal);
+        Assert.Contains("--ignore-engine-limits", stdout, StringComparison.Ordinal);
         Assert.Empty(stderr);
     }
 
@@ -126,18 +128,75 @@ public sealed class CompileCommandTests
     }
 
     [Fact]
-    public void Compile_Ppj_ExitsNonZero()
+    public void Compile_Ppj_TinyProject_WritesPex()
+    {
+        using var root = new TempDir();
+        File.WriteAllText(Path.Combine(root.Path, "Foo.psc"), TinyScript());
+        var project = Path.Combine(root.Path, "Mod.ppj");
+        File.WriteAllText(
+            project,
+            """
+            <PapyrusProject Game="sse" Output="out">
+              <Imports>
+                <Import>.</Import>
+              </Imports>
+              <Scripts>
+                <Script>Foo.psc</Script>
+              </Scripts>
+            </PapyrusProject>
+            """);
+        var pexPath = Path.Combine(root.Path, "out", "Foo.pex");
+
+        var code = Run(out var stdout, out var stderr, "compile", project);
+
+        Assert.Equal(0, code);
+        Assert.Empty(stderr);
+        Assert.True(File.Exists(pexPath));
+        Assert.Contains(pexPath, stdout, StringComparison.Ordinal);
+
+        var bytes = File.ReadAllBytes(pexPath);
+        var file = PexReader.Read(bytes);
+        Assert.Equal(bytes, PexWriter.Write(file));
+        Assert.Equal(PexVersion.V32, file.Version);
+        Assert.Equal(GameId.SkyrimSpecialEdition, file.Game);
+        Assert.Equal(DateTimeOffset.UnixEpoch, file.CompileTime);
+        Assert.Equal("Foo", Assert.Single(file.Objects).Name);
+    }
+
+    [Fact]
+    public void Compile_Ppj_Malformed_ExitsNonZero()
     {
         using var root = new TempDir();
         var project = Path.Combine(root.Path, "Mod.ppj");
-        File.WriteAllText(project, "<PapyrusProject />");
+        File.WriteAllText(project, "<NotAProject />");
         var pexPath = Path.Combine(root.Path, "Mod.pex");
 
         var code = Run(out _, out var stderr, "compile", project, "--game", "skyrimse");
 
         Assert.Equal(1, code);
-        Assert.Contains(".ppj", stderr, StringComparison.Ordinal);
+        Assert.Contains("error:", stderr, StringComparison.Ordinal);
         Assert.False(File.Exists(pexPath));
+    }
+
+    [Fact]
+    public void Compile_IgnoreEngineLimits_WritesPex()
+    {
+        using var root = new TempDir();
+        var script = Path.Combine(root.Path, "Foo.psc");
+        File.WriteAllText(script, "ScriptName Foo\nFunction Bar()\n  Int[] a = new Int[129]\nEndFunction\n");
+        var pexPath = Path.Combine(root.Path, "Foo.pex");
+
+        var blocked = Run(out _, out var blockedErr, "compile", script, "--game", "skyrimse");
+        Assert.Equal(1, blocked);
+        Assert.Contains("PAP2002", blockedErr, StringComparison.Ordinal);
+        Assert.False(File.Exists(pexPath));
+
+        var code = Run(out var stdout, out var stderr, "compile", script, "--game", "skyrimse", "--ignore-engine-limits");
+
+        Assert.Equal(0, code);
+        Assert.Contains("warning PAP2002", stderr, StringComparison.Ordinal);
+        Assert.True(File.Exists(pexPath));
+        Assert.Contains(pexPath, stdout, StringComparison.Ordinal);
     }
 
     [Fact]

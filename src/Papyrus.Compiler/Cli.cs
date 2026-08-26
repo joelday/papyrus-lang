@@ -13,7 +13,7 @@ internal static class Cli
         """
         Usage: papyrusc <command>
 
-          papyrusc compile <script.psc> --game <skyrimse|skyrimle|fallout4|starfield> [--output <file.pex>] [--flags <file.flg>] [--import <dir>]... [--time <unix>]
+          papyrusc compile <script.psc|project.ppj> --game <skyrimse|skyrimle|fallout4|starfield> [--output <file.pex>] [--flags <file.flg>] [--import <dir>]... [--time <unix>] [--ignore-engine-limits]
           papyrusc corpus acquire --game <game> --source <path> [--dest <path>] [--force]
           papyrusc hash <path> [--game <game>]
           papyrusc verify --source <path> --baseline <file> [--game <game>]
@@ -21,12 +21,14 @@ internal static class Cli
           papyrusc --version
 
         compile
-          Compile one .psc to .pex. Does not build .ppj projects.
+          Compile one .psc to .pex, or every script in a .ppj project.
           --game     skyrimse | skyrimle | fallout4 | starfield
-          --output   Output .pex path (default: same directory, .pex extension)
+                     May be omitted when the .ppj specifies Game.
+          --output   Output .pex path, or output directory for .ppj
           --flags    User flags file (.flg)
           --import   Additional script import directory (repeatable)
           --time     Unix compile timestamp (default: 0)
+          --ignore-engine-limits  Downgrade engine-limit diagnostics to warnings
 
         corpus acquire
           --game     skyrimse | fallout4 | starfield
@@ -425,6 +427,7 @@ internal static class Cli
         string? flags = null;
         var imports = new List<string>();
         long time = 0;
+        var ignoreEngineLimits = false;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -441,8 +444,42 @@ internal static class Cli
                 continue;
             }
 
-            if (!TryReadOption(args, ref i, out var name, out var value, out error))
+            if (arg.Length < 3)
+            {
+                error = $"error: unexpected argument '{arg}'";
                 return false;
+            }
+
+            var eq = arg.IndexOf('=');
+            string name;
+            string? value;
+            if (eq >= 0)
+            {
+                name = arg[2..eq];
+                value = arg[(eq + 1)..];
+            }
+            else
+            {
+                name = arg[2..];
+                value = null;
+            }
+
+            if (name == "ignore-engine-limits")
+            {
+                ignoreEngineLimits = true;
+                continue;
+            }
+
+            if (value is null)
+            {
+                if (i + 1 >= args.Length)
+                {
+                    error = $"error: --{name} requires a value";
+                    return false;
+                }
+
+                value = args[++i];
+            }
 
             switch (name)
             {
@@ -474,17 +511,24 @@ internal static class Cli
 
         if (string.IsNullOrWhiteSpace(path))
         {
-            error = "error: path to a .psc file is required";
+            error = "error: path to a .psc or .ppj file is required";
             return false;
         }
 
-        if (game is null || !CompileCommand.TryGetDialect(game, out _))
+        var isPpj = Path.GetExtension(path).Equals(".ppj", StringComparison.OrdinalIgnoreCase);
+        if (game is not null && !CompileCommand.TryGetDialect(game, out _))
         {
             error = "error: --game must be one of: " + CompileCommand.GameValues;
             return false;
         }
 
-        options = new CompileCommandOptions(path, game, output, flags, imports.ToArray(), time);
+        if (!isPpj && (game is null || !CompileCommand.TryGetDialect(game, out _)))
+        {
+            error = "error: --game must be one of: " + CompileCommand.GameValues;
+            return false;
+        }
+
+        options = new CompileCommandOptions(path, game, output, flags, imports.ToArray(), time, ignoreEngineLimits);
         return true;
     }
 
