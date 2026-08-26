@@ -303,12 +303,16 @@ public sealed class EmitTests
         var file = EmitFile(
             "ScriptName Foo\n" +
             "Int Function Helper(Int a, Int b)\n  Return a\nEndFunction\n" +
-            "Int Function Bar()\n  Int x = Helper(\n    1,\n    2)\n  Return x\nEndFunction\n");
+            "Int Function Bar()\n  Int x = Helper( \\\n    1, \\\n    2)\n  Return x\nEndFunction\n");
 
         var emitted = Function(file);
         var map = DebugFunction(file, "Bar").InstructionLineMap;
-        var call = IndexOf(emitted.Instructions, static i => i.OpCode == PexOpCode.CallMethod);
-        Assert.Equal((ushort)6, map[call]);
+        var callIndex = IndexOf(emitted.Instructions, static i => i.OpCode == PexOpCode.CallMethod);
+        var call = emitted.Instructions[callIndex];
+        Assert.Equal(2, call.VariadicArguments.Length);
+        Assert.Equal(1, call.VariadicArguments[0].Integer);
+        Assert.Equal(2, call.VariadicArguments[1].Integer);
+        Assert.Equal((ushort)6, map[callIndex]);
         Assert.DoesNotContain((ushort)8, map);
     }
 
