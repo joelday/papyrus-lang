@@ -183,38 +183,39 @@ public static class PexOpCodeInfo
             return false;
         }
 
-        var argIndex = BranchTargetArgumentIndex(instruction.OpCode);
-        if ((uint)argIndex >= (uint)instruction.Arguments.Length)
-        {
-            return false;
-        }
-
-        var value = instruction.Arguments[argIndex];
-        if (value.Type != PexValueType.Integer)
-        {
-            return false;
-        }
-
-        offset = value.Integer;
+        offset = GetBranchOffset(instruction);
         return true;
     }
 
     public static void SetBranchOffset(PexInstruction instruction, int offset)
     {
         ArgumentNullException.ThrowIfNull(instruction);
-        if (!IsBranch(instruction.OpCode))
-        {
-            return;
-        }
-
-        var argIndex = BranchTargetArgumentIndex(instruction.OpCode);
-        if ((uint)argIndex >= (uint)instruction.Arguments.Length)
-        {
-            return;
-        }
-
+        var argIndex = RequireBranchOffsetIndex(instruction);
         instruction.Arguments = instruction.Arguments.SetItem(
             argIndex,
             new PexValue { Type = PexValueType.Integer, Integer = offset });
+    }
+
+    private static int GetBranchOffset(PexInstruction instruction)
+    {
+        var argIndex = RequireBranchOffsetIndex(instruction);
+        var value = instruction.Arguments[argIndex];
+        if (value.Type != PexValueType.Integer)
+        {
+            throw new PexFormatException($"Branch opcode {instruction.OpCode} has a non-integer offset.");
+        }
+
+        return value.Integer;
+    }
+
+    private static int RequireBranchOffsetIndex(PexInstruction instruction)
+    {
+        var argIndex = BranchTargetArgumentIndex(instruction.OpCode);
+        if ((uint)argIndex >= (uint)instruction.Arguments.Length)
+        {
+            throw new PexFormatException($"Branch opcode {instruction.OpCode} is missing its offset argument.");
+        }
+
+        return argIndex;
     }
 }

@@ -33,7 +33,7 @@ internal sealed class PexEmitter
 
     public PexFile EmitFile(IScriptSymbol script, CancellationToken cancellationToken = default)
     {
-        var obj = Emit(script, cancellationToken);
+        var obj = EmitObject(script, cancellationToken);
         var dialect = _compilation?.Dialect ?? PapyrusDialect.SkyrimSe;
         var userFlags = ImmutableArray<PexUserFlag>.Empty;
         if (_flagsFile is { Flags: { IsDefaultOrEmpty: false } flags })
@@ -78,6 +78,17 @@ internal sealed class PexEmitter
     }
 
     public PexObject Emit(IScriptSymbol script, CancellationToken cancellationToken = default)
+    {
+        var obj = EmitObject(script, cancellationToken);
+        if (_optimize)
+        {
+            PexOptimizer.Optimize(obj);
+        }
+
+        return obj;
+    }
+
+    private PexObject EmitObject(IScriptSymbol script, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(script);
         _diagnostics.Clear();
@@ -166,11 +177,6 @@ internal sealed class PexEmitter
             Properties = properties.ToImmutable(),
             States = states.ToImmutable(),
         };
-        if (_optimize)
-        {
-            PexOptimizer.Optimize(emitted);
-        }
-
         return emitted;
     }
 

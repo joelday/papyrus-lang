@@ -464,18 +464,10 @@ public static class PasDisassembler
         private static bool TryBranchTarget(PexInstruction instruction, int index, out int target)
         {
             target = 0;
-            ImmutableArray<PexValue> args = OrEmpty(instruction.Arguments);
-            PexValue offset = instruction.OpCode switch
-            {
-                PexOpCode.Jmp when args.Length >= 1 => args[0],
-                PexOpCode.JmpT or PexOpCode.JmpF when args.Length >= 2 => args[1],
-                _ => default,
-            };
-
-            if (offset.Type != PexValueType.Integer)
+            if (!PexOpCodeInfo.TryGetBranchOffset(instruction, out int offset))
                 return false;
 
-            long value = (long)index + offset.Integer;
+            long value = (long)index + offset;
             if (value < int.MinValue || value > int.MaxValue)
                 return false;
 

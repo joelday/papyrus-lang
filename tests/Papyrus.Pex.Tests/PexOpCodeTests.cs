@@ -107,6 +107,18 @@ public sealed class PexOpCodeTests
     }
 
     [Fact]
+    public void SetBranchOffset_throws_when_not_a_branch_or_offset_missing()
+    {
+        var nop = new PexInstruction { OpCode = PexOpCode.Nop };
+        Assert.Throws<PexFormatException>(() => PexOpCodeInfo.SetBranchOffset(nop, 1));
+        Assert.False(PexOpCodeInfo.TryGetBranchOffset(nop, out _));
+
+        var jmp = new PexInstruction { OpCode = PexOpCode.Jmp };
+        Assert.Throws<PexFormatException>(() => PexOpCodeInfo.SetBranchOffset(jmp, 1));
+        Assert.Throws<PexFormatException>(() => PexOpCodeInfo.TryGetBranchOffset(jmp, out _));
+    }
+
+    [Fact]
     public void DialectMaxAliases_MatchLastOpcode()
     {
         Assert.Equal(PexOpCode.ArrayRFindElement, PexOpCode.SkyrimMax);

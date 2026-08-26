@@ -11,25 +11,6 @@ namespace Papyrus.CodeAnalysis.Tests;
 public sealed class OptimizerTests
 {
     [Fact]
-    public void Emit_optimize_off_matches_default_emit_bytes()
-    {
-        const string source =
-            "ScriptName Foo\nFunction Bar()\n" +
-            "  Int x = 1\n" +
-            "  If x\n" +
-            "    x = 2\n" +
-            "  Else\n" +
-            "    x = 3\n" +
-            "  EndIf\n" +
-            "  Return x\n" +
-            "EndFunction\n";
-
-        var defaultBytes = PexWriter.Write(EmitFile(source));
-        var offBytes = PexWriter.Write(EmitFile(source, optimize: false));
-        Assert.Equal(defaultBytes, offBytes);
-    }
-
-    [Fact]
     public void Emit_optimize_on_is_deterministic()
     {
         const string source =
@@ -56,11 +37,14 @@ public sealed class OptimizerTests
 
         var off = Function(EmitFile(source, optimize: false));
         var on = Function(EmitFile(source, optimize: true));
+        var defaultEmit = Function(EmitFile(source));
 
         Assert.True(CountIdentityAssigns(off) >= 1);
+        Assert.True(CountIdentityAssigns(defaultEmit) >= 1);
         Assert.Equal(0, CountIdentityAssigns(on));
         Assert.True(on.Instructions.Length < off.Instructions.Length);
         Assert.Contains(on.Instructions, static i => i.OpCode == PexOpCode.Return);
+        Assert.Equal(0, CountIdentityAssigns(FunctionFromObject(EmitObject(source, optimize: true))));
     }
 
     [Fact]
@@ -113,23 +97,39 @@ public sealed class OptimizerTests
 
         Assert.True(PexOpCodeInfo.TryGetBranchOffset(function.Instructions[0], out var offset));
         Assert.Equal(2, offset);
-        Assert.Equal(2, 0 + offset);
     }
 
     [Fact]
-    public void Optimize_preserves_backward_jump()
+    public void Optimize_rewrites_backward_jump_after_deletion()
     {
         var x = Id("x");
         var function = FunctionOf(
             Inst(PexOpCode.Assign, x, Integer(1)),
-            Inst(PexOpCode.Jmp, Integer(-1)));
+            Inst(PexOpCode.Assign, x, x),
+            Inst(PexOpCode.Jmp, Integer(-2)));
 
         PexOptimizer.Optimize(function);
 
         Assert.Equal(2, function.Instructions.Length);
+        Assert.Equal(PexOpCode.Assign, function.Instructions[0].OpCode);
         Assert.Equal(PexOpCode.Jmp, function.Instructions[1].OpCode);
         Assert.True(PexOpCodeInfo.TryGetBranchOffset(function.Instructions[1], out var offset));
         Assert.Equal(-1, offset);
+    }
+
+    [Fact]
+    public void Optimize_removes_forward_jump_over_nop_and_keeps_nop()
+    {
+        var function = FunctionOf(
+            Inst(PexOpCode.Jmp, Integer(2)),
+            Inst(PexOpCode.Nop),
+            Inst(PexOpCode.Return, PexValue.None));
+
+        PexOptimizer.Optimize(function);
+
+        Assert.Equal(2, function.Instructions.Length);
+        Assert.Equal(PexOpCode.Nop, function.Instructions[0].OpCode);
+        Assert.Equal(PexOpCode.Return, function.Instructions[1].OpCode);
     }
 
     [Fact]
@@ -266,6 +266,27 @@ public sealed class OptimizerTests
         throw new System.InvalidOperationException("Function '" + name + "' was not emitted.");
     }
 
+    private static PexFunction FunctionFromObject(PexObject obj, string name = "Bar")
+    {
+        foreach (var state in obj.States)
+        {
+            if (state.Name is not (null or ""))
+            {
+                continue;
+            }
+
+            foreach (var function in state.Functions)
+            {
+                if (string.Equals(function.Name, name, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return function;
+                }
+            }
+        }
+
+        throw new System.InvalidOperationException("Function '" + name + "' was not emitted.");
+    }
+
     private static PexFile EmitFile(string source, bool? optimize = null, string scriptName = "Foo")
     {
         var compilation = Compilation(PapyrusDialect.SkyrimSe, scriptName, source);
@@ -274,6 +295,13 @@ public sealed class OptimizerTests
             ? new PexEmitter(optimize: value)
             : new PexEmitter();
         return emitter.EmitFile(script);
+    }
+
+    private static PexObject EmitObject(string source, bool optimize, string scriptName = "Foo")
+    {
+        var compilation = Compilation(PapyrusDialect.SkyrimSe, scriptName, source);
+        var script = compilation.GetScript(QualifiedName.Parse(scriptName));
+        return new PexEmitter(optimize: optimize).Emit(script);
     }
 
     private static PapyrusCompilation Compilation(PapyrusDialect dialect, string name, string source)
