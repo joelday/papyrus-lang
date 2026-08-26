@@ -163,7 +163,7 @@ public sealed class PexEmitter
             ? baseType.QualifiedName.ToString()
             : "";
 
-        var emitted = new PexObject
+        var obj = new PexObject
         {
             Name = script.QualifiedName.ToString(),
             ParentClassName = parent,
@@ -177,7 +177,8 @@ public sealed class PexEmitter
             Properties = properties.ToImmutable(),
             States = states.ToImmutable(),
         };
-        return emitted;
+        CheckEngineLimits(obj, script);
+        return obj;
     }
 
     private PexState EmitState(IStateSymbol state, CancellationToken cancellationToken)
@@ -498,6 +499,36 @@ public sealed class PexEmitter
             or SyntaxKind.DebugOnlyKeyword
             or SyntaxKind.BetaOnlyKeyword
             or SyntaxKind.MandatoryKeyword;
+
+    private void CheckEngineLimits(PexObject obj, IScriptSymbol script)
+    {
+        EngineLimitChecker.Check(
+            obj,
+            Limits,
+            _flagsFile,
+            EngineLimitSeverity,
+            _tree,
+            script,
+            _diagnostics);
+    }
+
+    private void CheckArraySize(BoundNewArray array)
+    {
+        EngineLimitChecker.CheckArraySize(
+            array.Size,
+            Limits,
+            EngineLimitSeverity,
+            _tree,
+            array.Span,
+            _diagnostics);
+    }
+
+    private EngineLimits Limits => (_compilation?.Dialect ?? PapyrusDialect.SkyrimSe).Limits;
+
+    private DiagnosticSeverity EngineLimitSeverity
+        => (_compilation?.Options.IgnoreEngineLimits ?? false)
+            ? DiagnosticSeverity.Warning
+            : DiagnosticSeverity.Error;
 
     private void ReportInternal(string message)
     {
@@ -1066,6 +1097,7 @@ public sealed class PexEmitter
 
         private Rvalue EmitNewArray(BoundNewArray array, string? destName)
         {
+            _parent.CheckArraySize(array);
             var size = EmitExpression(array.Size);
             var dest = AcquireDest(array.Type, destName, out var allocated);
             TryEmit(PexOpCode.ArrayCreate, dest, size.Value);

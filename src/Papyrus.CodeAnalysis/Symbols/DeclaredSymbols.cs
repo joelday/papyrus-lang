@@ -58,21 +58,34 @@ internal sealed class StructSymbol : MemberOwnerSymbol, IStructSymbol
 
 internal sealed class StateSymbol : MemberOwnerSymbol, IStateSymbol
 {
-    public StateSymbol(PapyrusName name, IScriptSymbol containingScript, bool isAuto)
+    public StateSymbol(
+        PapyrusName name,
+        IScriptSymbol containingScript,
+        bool isAuto,
+        StateDeclarationSyntax? declaration = null)
         : base(name, SymbolKind.State, containingScript, containingScript, isNative: false)
     {
         IsAuto = isAuto;
+        Declaration = declaration;
     }
 
     public bool IsAuto { get; }
+
+    internal StateDeclarationSyntax? Declaration { get; }
 }
 
 internal sealed class GuardSymbol : Symbol, IGuardSymbol
 {
-    public GuardSymbol(PapyrusName name, IScriptSymbol containingScript)
+    public GuardSymbol(
+        PapyrusName name,
+        IScriptSymbol containingScript,
+        GuardDeclarationSyntax? declaration = null)
         : base(name, SymbolKind.Guard, containingScript, containingScript, isNative: false)
     {
+        Declaration = declaration;
     }
+
+    internal GuardDeclarationSyntax? Declaration { get; }
 }
 
 internal sealed class FunctionSymbol : Symbol, IFunctionSymbol

@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Papyrus.CodeAnalysis.Symbols;
 using Papyrus.CodeAnalysis.Syntax;
+using Papyrus.CodeAnalysis.Text;
 
 namespace Papyrus.CodeAnalysis.Binding;
 
@@ -232,16 +233,19 @@ internal sealed class BoundIs : BoundExpression
 
 internal sealed class BoundNewArray : BoundExpression
 {
-    public BoundNewArray(ITypeSymbol elementType, BoundExpression size, ITypeSymbol type)
+    public BoundNewArray(ITypeSymbol elementType, BoundExpression size, ITypeSymbol type, TextSpan span = default)
         : base(type)
     {
         ElementType = elementType;
         Size = size;
+        Span = span;
     }
 
     public ITypeSymbol ElementType { get; }
 
     public BoundExpression Size { get; }
+
+    public TextSpan Span { get; }
 
     public override BoundKind Kind => BoundKind.NewArray;
 }

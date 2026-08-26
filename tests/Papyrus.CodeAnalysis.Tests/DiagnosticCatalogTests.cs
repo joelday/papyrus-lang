@@ -27,6 +27,18 @@ public sealed class DiagnosticCatalogTests
         Assert.Contains(PapyrusCompilation.UnsupportedNamespaceDiagnosticId, ids);
         Assert.Contains(PapyrusCompilation.ReservedMemberNameDiagnosticId, ids);
         Assert.Contains(DiagnosticCatalog.InternalErrorId, ids);
+        Assert.Contains(DiagnosticCatalog.UserFlagBitIndexOutOfRangeId, ids);
+        Assert.Contains(DiagnosticCatalog.TooManyNamedUserFlagsId, ids);
+        Assert.Contains(DiagnosticCatalog.ArraySizeExceedsLimitId, ids);
+        Assert.Contains(DiagnosticCatalog.TooManyFunctionsInEmptyStateId, ids);
+        Assert.Contains(DiagnosticCatalog.TooManyFunctionsInNamedStateId, ids);
+        Assert.Contains(DiagnosticCatalog.TooManyPropertiesId, ids);
+        Assert.Contains(DiagnosticCatalog.TooManyVariablesId, ids);
+        Assert.Contains(DiagnosticCatalog.TooManyInitialValuesId, ids);
+        Assert.Contains(DiagnosticCatalog.TooManyNamedStatesId, ids);
+        Assert.Contains(DiagnosticCatalog.TooManyParametersId, ids);
+        Assert.Contains(DiagnosticCatalog.TooManyUserFlagsId, ids);
+        Assert.Contains(DiagnosticCatalog.TooManyGuardsId, ids);
 
         Assert.Equal("PAP1000", DiagnosticCatalog.UnresolvedScript.Id);
         Assert.Equal("PAP1001", DiagnosticCatalog.UnresolvedBaseType.Id);
@@ -40,6 +52,18 @@ public sealed class DiagnosticCatalogTests
         Assert.Equal("PAP1009", DiagnosticCatalog.UnsupportedGuard.Id);
         Assert.Equal("PAP1010", DiagnosticCatalog.UnsupportedNamespace.Id);
         Assert.Equal("PAP1011", DiagnosticCatalog.ReservedMemberName.Id);
+        Assert.Equal("PAP2000", DiagnosticCatalog.UserFlagBitIndexOutOfRange.Id);
+        Assert.Equal("PAP2001", DiagnosticCatalog.TooManyNamedUserFlags.Id);
+        Assert.Equal("PAP2002", DiagnosticCatalog.ArraySizeExceedsLimit.Id);
+        Assert.Equal("PAP2003", DiagnosticCatalog.TooManyFunctionsInEmptyState.Id);
+        Assert.Equal("PAP2004", DiagnosticCatalog.TooManyFunctionsInNamedState.Id);
+        Assert.Equal("PAP2005", DiagnosticCatalog.TooManyProperties.Id);
+        Assert.Equal("PAP2006", DiagnosticCatalog.TooManyVariables.Id);
+        Assert.Equal("PAP2007", DiagnosticCatalog.TooManyInitialValues.Id);
+        Assert.Equal("PAP2008", DiagnosticCatalog.TooManyNamedStates.Id);
+        Assert.Equal("PAP2009", DiagnosticCatalog.TooManyParameters.Id);
+        Assert.Equal("PAP2010", DiagnosticCatalog.TooManyUserFlags.Id);
+        Assert.Equal("PAP2011", DiagnosticCatalog.TooManyGuards.Id);
         Assert.Equal("PAP9999", DiagnosticCatalog.InternalError.Id);
 
         Assert.Equal(PapyrusCompilation.UnresolvedScriptDiagnosticId, DiagnosticCatalog.UnresolvedScript.Id);
@@ -68,8 +92,25 @@ public sealed class DiagnosticCatalogTests
     {
         Assert.True(DiagnosticCatalog.TryGet("PAP1000", out var unresolved));
         Assert.Same(DiagnosticCatalog.UnresolvedScript, unresolved);
+        Assert.True(DiagnosticCatalog.TryGet("PAP2002", out var arraySize));
+        Assert.Same(DiagnosticCatalog.ArraySizeExceedsLimit, arraySize);
         Assert.False(DiagnosticCatalog.TryGet("PAP0001", out _));
         Assert.False(DiagnosticCatalog.TryGet(null!, out _));
+    }
+
+    [Fact]
+    public void Engine_limit_descriptors_use_engine_limit_category()
+    {
+        foreach (var descriptor in DiagnosticCatalog.All)
+        {
+            if (!descriptor.Id.StartsWith("PAP20", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            Assert.Equal(DiagnosticCatalog.EngineLimitCategory, descriptor.Category);
+            Assert.Equal(DiagnosticSeverity.Error, descriptor.DefaultSeverity);
+        }
     }
 
     [Fact]

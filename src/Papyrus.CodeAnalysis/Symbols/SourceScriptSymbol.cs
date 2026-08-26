@@ -379,7 +379,11 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
         }
 
         CheckReservedMemberName(name, syntax.Name.Span);
-        var state = new StateSymbol(name, this, isAuto: syntax.AutoKeyword.Kind == SyntaxKind.AutoKeyword);
+        var state = new StateSymbol(
+            name,
+            this,
+            isAuto: syntax.AutoKeyword.Kind == SyntaxKind.AutoKeyword,
+            syntax);
         var members = syntax.Members;
         var stateMembers = ImmutableArray.CreateBuilder<ISymbol>(members.Count);
         var count = members.Count;
@@ -459,7 +463,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
         }
 
         CheckReservedMemberName(name, syntax.Name.Span);
-        builder.Add(new GuardSymbol(name, this));
+        builder.Add(new GuardSymbol(name, this, syntax));
     }
 
     private void BindMemberSignatures(CancellationToken cancellationToken)

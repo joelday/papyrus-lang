@@ -19,10 +19,23 @@ public static class DiagnosticCatalog
     public const string UnsupportedGuardId = "PAP1009";
     public const string UnsupportedNamespaceId = "PAP1010";
     public const string ReservedMemberNameId = "PAP1011";
+    public const string UserFlagBitIndexOutOfRangeId = "PAP2000";
+    public const string TooManyNamedUserFlagsId = "PAP2001";
+    public const string ArraySizeExceedsLimitId = "PAP2002";
+    public const string TooManyFunctionsInEmptyStateId = "PAP2003";
+    public const string TooManyFunctionsInNamedStateId = "PAP2004";
+    public const string TooManyPropertiesId = "PAP2005";
+    public const string TooManyVariablesId = "PAP2006";
+    public const string TooManyInitialValuesId = "PAP2007";
+    public const string TooManyNamedStatesId = "PAP2008";
+    public const string TooManyParametersId = "PAP2009";
+    public const string TooManyUserFlagsId = "PAP2010";
+    public const string TooManyGuardsId = "PAP2011";
     public const string InternalErrorId = "PAP9999";
 
     public const string BindingCategory = "Binding";
     public const string TypeCategory = "Type";
+    public const string EngineLimitCategory = "EngineLimit";
     public const string InternalCategory = "Internal";
 
     public static DiagnosticDescriptor UnresolvedScript { get; } = new(
@@ -121,6 +134,102 @@ public static class DiagnosticCatalog
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    public static DiagnosticDescriptor UserFlagBitIndexOutOfRange { get; } = new(
+        UserFlagBitIndexOutOfRangeId,
+        "User flag bit index out of range",
+        "User flag '{0}' bit index {1} is outside the 32-bit mask (0-31).",
+        EngineLimitCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor TooManyNamedUserFlags { get; } = new(
+        TooManyNamedUserFlagsId,
+        "Too many named user flags",
+        "User flag '{0}' exceeds the 32 named-flag limit.",
+        EngineLimitCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor ArraySizeExceedsLimit { get; } = new(
+        ArraySizeExceedsLimitId,
+        "Array size exceeds engine limit",
+        "Array size {0} exceeds the engine limit of {1}.",
+        EngineLimitCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor TooManyFunctionsInEmptyState { get; } = new(
+        TooManyFunctionsInEmptyStateId,
+        "Too many functions in empty state",
+        "Empty state has {0} functions, which exceeds the engine limit of {1}.",
+        EngineLimitCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor TooManyFunctionsInNamedState { get; } = new(
+        TooManyFunctionsInNamedStateId,
+        "Too many functions in named state",
+        "State '{0}' has {1} functions, which exceeds the engine limit of {2}.",
+        EngineLimitCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor TooManyProperties { get; } = new(
+        TooManyPropertiesId,
+        "Too many properties",
+        "Script has {0} properties, which exceeds the engine limit of {1}.",
+        EngineLimitCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor TooManyVariables { get; } = new(
+        TooManyVariablesId,
+        "Too many variables",
+        "Script has {0} variables, which exceeds the engine limit of {1}.",
+        EngineLimitCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor TooManyInitialValues { get; } = new(
+        TooManyInitialValuesId,
+        "Too many initial values",
+        "Script has {0} initial values, which exceeds the engine limit of {1}.",
+        EngineLimitCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor TooManyNamedStates { get; } = new(
+        TooManyNamedStatesId,
+        "Too many named states",
+        "Script has {0} named states, which exceeds the engine limit of {1}.",
+        EngineLimitCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor TooManyParameters { get; } = new(
+        TooManyParametersId,
+        "Too many parameters",
+        "Function '{0}' has {1} parameters, which exceeds the engine limit of {2}.",
+        EngineLimitCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor TooManyUserFlags { get; } = new(
+        TooManyUserFlagsId,
+        "Too many user flags",
+        "User flag count {0} exceeds the engine limit of {1}.",
+        EngineLimitCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor TooManyGuards { get; } = new(
+        TooManyGuardsId,
+        "Too many guards",
+        "Script has {0} guards, which exceeds the engine limit of {1}.",
+        EngineLimitCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static DiagnosticDescriptor InternalError { get; } = new(
         InternalErrorId,
         "Internal compiler error",
@@ -143,6 +252,18 @@ public static class DiagnosticCatalog
         UnsupportedGuard,
         UnsupportedNamespace,
         ReservedMemberName,
+        UserFlagBitIndexOutOfRange,
+        TooManyNamedUserFlags,
+        ArraySizeExceedsLimit,
+        TooManyFunctionsInEmptyState,
+        TooManyFunctionsInNamedState,
+        TooManyProperties,
+        TooManyVariables,
+        TooManyInitialValues,
+        TooManyNamedStates,
+        TooManyParameters,
+        TooManyUserFlags,
+        TooManyGuards,
         InternalError,
     ];
 

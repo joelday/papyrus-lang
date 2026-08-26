@@ -6,19 +6,24 @@ namespace Papyrus.CodeAnalysis;
 
 public sealed class Diagnostic
 {
-    public Diagnostic(DiagnosticInfo info, TextSpan span, SyntaxTree? tree = null)
+    public Diagnostic(
+        DiagnosticInfo info,
+        TextSpan span,
+        SyntaxTree? tree = null,
+        DiagnosticSeverity? severity = null)
     {
         ArgumentNullException.ThrowIfNull(info);
         Info = info;
         Span = span;
         Tree = tree;
+        Severity = severity ?? info.Descriptor.DefaultSeverity;
     }
 
     public DiagnosticInfo Info { get; }
 
     public DiagnosticDescriptor Descriptor => Info.Descriptor;
 
-    public DiagnosticSeverity Severity => Descriptor.DefaultSeverity;
+    public DiagnosticSeverity Severity { get; }
 
     public string Id => Info.Id;
 
