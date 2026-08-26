@@ -15,15 +15,23 @@ internal sealed class PexEmitter
 {
     private readonly FlagsFile? _flagsFile;
     private readonly TimeProvider? _timeProvider;
+    private readonly PexEmitOptions _options;
     private readonly List<Diagnostic> _diagnostics = new();
+    private readonly List<PexDebugFunction> _debugFunctions = new();
     private PapyrusCompilation? _compilation;
     private SyntaxTree? _tree;
+    private string _objectName = "";
+    private int[]? _lineStarts;
     private PexOpCode _maxOpCode;
 
-    public PexEmitter(FlagsFile? flagsFile = null, TimeProvider? timeProvider = null)
+    public PexEmitter(
+        FlagsFile? flagsFile = null,
+        TimeProvider? timeProvider = null,
+        PexEmitOptions? options = null)
     {
         _flagsFile = flagsFile;
         _timeProvider = timeProvider;
+        _options = options ?? PexEmitOptions.Default;
     }
 
     public ImmutableArray<Diagnostic> Diagnostics => _diagnostics.ToImmutableArray();
@@ -54,16 +62,18 @@ internal sealed class PexEmitter
             userFlags = builder.ToImmutable();
         }
 
+        var compileTime = _timeProvider?.GetUtcNow() ?? DateTimeOffset.UnixEpoch;
         return new PexFile
         {
             Version = dialect.PexVersion,
             Game = dialect.Game,
             RawGameId = GameIdMapping.ToRaw(dialect.Game),
-            CompileTime = _timeProvider?.GetUtcNow() ?? DateTimeOffset.UnixEpoch,
+            CompileTime = compileTime,
             SourcePath = script.QualifiedName.ToRelativePath(),
             UserName = "",
             MachineName = "",
             UserFlags = userFlags,
+            DebugInfo = CreateDebugInfo(compileTime),
             Objects = ImmutableArray.Create(obj),
         };
     }
@@ -72,10 +82,13 @@ internal sealed class PexEmitter
     {
         ArgumentNullException.ThrowIfNull(script);
         _diagnostics.Clear();
+        _debugFunctions.Clear();
+        _lineStarts = null;
         _compilation = script is SourceScriptSymbol source ? source.Compilation : null;
         _tree = script.DeclaringSyntaxReferences is { IsDefaultOrEmpty: false } refs
             ? refs[0].SyntaxTree
             : null;
+        _objectName = script.QualifiedName.ToString();
         var dialect = _compilation?.Dialect ?? PapyrusDialect.SkyrimSe;
         _maxOpCode = dialect.MaxOpCode;
 
@@ -168,7 +181,7 @@ internal sealed class PexEmitter
             cancellationToken.ThrowIfCancellationRequested();
             if (members[i] is IFunctionSymbol function)
             {
-                functions.Add(EmitFunction(function, cancellationToken));
+                functions.Add(EmitFunction(function, cancellationToken, state.Name.Text));
             }
         }
 
@@ -239,12 +252,22 @@ internal sealed class PexEmitter
         {
             if (property.GetMethod is { } getter)
             {
-                emitted.ReadFunction = EmitFunction(getter, cancellationToken);
+                emitted.ReadFunction = EmitFunction(
+                    getter,
+                    cancellationToken,
+                    stateName: "",
+                    PexDebugFunctionType.Getter,
+                    property.Name.Text);
             }
 
             if (property.SetMethod is { } setter)
             {
-                emitted.WriteFunction = EmitFunction(setter, cancellationToken);
+                emitted.WriteFunction = EmitFunction(
+                    setter,
+                    cancellationToken,
+                    stateName: "",
+                    PexDebugFunctionType.Setter,
+                    property.Name.Text);
             }
         }
 
@@ -263,7 +286,12 @@ internal sealed class PexEmitter
         };
     }
 
-    private PexFunction EmitFunction(IFunctionSymbol function, CancellationToken cancellationToken)
+    private PexFunction EmitFunction(
+        IFunctionSymbol function,
+        CancellationToken cancellationToken,
+        string stateName = "",
+        PexDebugFunctionType functionType = PexDebugFunctionType.Normal,
+        string? debugName = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var functionSyntax = (function as FunctionSymbol)?.Declaration;
@@ -292,6 +320,7 @@ internal sealed class PexEmitter
 
         if (function.IsNative)
         {
+            AddDebugFunction(function, stateName, functionType, debugName, ImmutableArray<ushort>.Empty);
             return emitted;
         }
 
@@ -302,6 +331,12 @@ internal sealed class PexEmitter
                 OpCode = PexOpCode.Return,
                 Arguments = ImmutableArray.Create(PexValue.None),
             });
+            AddDebugFunction(
+                function,
+                stateName,
+                functionType,
+                debugName,
+                ImmutableArray.Create(LineOf(function)));
             return emitted;
         }
 
@@ -310,6 +345,7 @@ internal sealed class PexEmitter
         var body = new FunctionBodyEmitter(this, function).Emit(graph, cancellationToken);
         emitted.Locals = body.Locals;
         emitted.Instructions = body.Instructions;
+        AddDebugFunction(function, stateName, functionType, debugName, body.LineMap);
         return emitted;
     }
 
@@ -491,6 +527,165 @@ internal sealed class PexEmitter
 
     private bool CanEmit(PexOpCode op) => (byte)op <= (byte)_maxOpCode;
 
+    private bool IncludeDebugInfo => _options.IncludeDebugInfo;
+
+    private PexDebugInfo? CreateDebugInfo(DateTimeOffset modificationTime)
+    {
+        if (!IncludeDebugInfo)
+        {
+            return null;
+        }
+
+        return new PexDebugInfo
+        {
+            ModificationTime = modificationTime,
+            Functions = _debugFunctions.ToImmutableArray(),
+        };
+    }
+
+    private void AddDebugFunction(
+        IFunctionSymbol function,
+        string stateName,
+        PexDebugFunctionType functionType,
+        string? debugName,
+        ImmutableArray<ushort> lineMap)
+    {
+        if (!IncludeDebugInfo)
+        {
+            return;
+        }
+
+        _debugFunctions.Add(new PexDebugFunction
+        {
+            ObjectName = _objectName,
+            StateName = stateName,
+            FunctionName = debugName ?? function.Name.Text,
+            FunctionType = functionType,
+            InstructionLineMap = NormalizeLineMap(lineMap),
+        });
+    }
+
+    private static ImmutableArray<ushort> NormalizeLineMap(ImmutableArray<ushort> lines)
+    {
+        if (lines.IsDefaultOrEmpty)
+        {
+            return lines.IsDefault ? ImmutableArray<ushort>.Empty : lines;
+        }
+
+        var builder = ImmutableArray.CreateBuilder<(int Offset, ushort Line)>(lines.Length);
+        for (var i = 0; i < lines.Length; i++)
+        {
+            builder.Add((i, lines[i]));
+        }
+
+        var pairs = builder.ToImmutable();
+        var sorted = pairs.Sort(static (left, right) => left.Offset.CompareTo(right.Offset));
+        var normalized = ImmutableArray.CreateBuilder<ushort>(sorted.Length);
+        ushort last = 0;
+        for (var i = 0; i < sorted.Length; i++)
+        {
+            var line = sorted[i].Line;
+            if (line < 1)
+            {
+                line = last < 1 ? (ushort)1 : last;
+            }
+
+            if (last >= 1 && line < last)
+            {
+                line = last;
+            }
+
+            normalized.Add(line);
+            last = line;
+        }
+
+        return normalized.MoveToImmutable();
+    }
+
+    private ushort LineOf(IFunctionSymbol function)
+    {
+        SyntaxNode? syntax = function switch
+        {
+            FunctionSymbol { Declaration: { } declaration } => declaration,
+            EventSymbol { Declaration: { } declaration } => declaration,
+            _ => null,
+        };
+
+        var line = LineOf(syntax);
+        if (line != 0)
+        {
+            return line;
+        }
+
+        if (function.DeclaringSyntaxReferences is { IsDefaultOrEmpty: false } refs)
+        {
+            return LineOf(refs[0].Span);
+        }
+
+        return 1;
+    }
+
+    private ushort LineOf(BoundNode? node) => LineOf(node?.Syntax);
+
+    private ushort LineOf(SyntaxNode? syntax) => syntax is null ? (ushort)0 : LineOf(syntax.FullSpan);
+
+    private ushort LineOf(TextSpan span)
+    {
+        var starts = LineStarts();
+        var position = span.Start;
+        var lo = 0;
+        var hi = starts.Length - 1;
+        var index = 0;
+        while (lo <= hi)
+        {
+            var mid = lo + ((hi - lo) / 2);
+            if (starts[mid] <= position)
+            {
+                index = mid;
+                lo = mid + 1;
+            }
+            else
+            {
+                hi = mid - 1;
+            }
+        }
+
+        var line = index + 1;
+        if (line < 1)
+        {
+            return 1;
+        }
+
+        return line > ushort.MaxValue ? ushort.MaxValue : (ushort)line;
+    }
+
+    private int[] LineStarts()
+    {
+        if (_lineStarts is not null)
+        {
+            return _lineStarts;
+        }
+
+        var text = _tree?.GetText();
+        if (text is null || text.Length == 0)
+        {
+            _lineStarts = [0];
+            return _lineStarts;
+        }
+
+        var starts = new List<int> { 0 };
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (text.GetChar(i) == '\n' && i + 1 < text.Length)
+            {
+                starts.Add(i + 1);
+            }
+        }
+
+        _lineStarts = starts.ToArray();
+        return _lineStarts;
+    }
+
     private readonly struct Rvalue
     {
         public Rvalue(PexValue value, PexLocal? temp)
@@ -512,6 +707,8 @@ internal sealed class PexEmitter
         private readonly IFunctionSymbol _function;
         private readonly PexFunctionBuilder _builder = new();
         private readonly List<(int Instruction, int TargetBlock)> _jumps = new();
+        private readonly List<ushort> _lines = new();
+        private ushort _currentLine = 1;
 
         public FunctionBodyEmitter(PexEmitter parent, IFunctionSymbol function)
         {
@@ -519,10 +716,11 @@ internal sealed class PexEmitter
             _function = function;
         }
 
-        public (ImmutableArray<PexLocalVariable> Locals, ImmutableArray<PexInstruction> Instructions) Emit(
+        public (ImmutableArray<PexLocalVariable> Locals, ImmutableArray<PexInstruction> Instructions, ImmutableArray<ushort> LineMap) Emit(
             ControlFlowGraph graph,
             CancellationToken cancellationToken)
         {
+            _currentLine = _parent.LineOf(_function);
             var locals = _function.Locals;
             for (var i = 0; i < locals.Length; i++)
             {
@@ -554,11 +752,26 @@ internal sealed class PexEmitter
                 }
             }
 
-            return (_builder.GetLocals(), _builder.GetInstructions());
+            while (_lines.Count < _builder.InstructionCount)
+            {
+                _lines.Add(_currentLine);
+            }
+
+            return (_builder.GetLocals(), _builder.GetInstructions(), _lines.ToImmutableArray());
+        }
+
+        private void Use(BoundNode? node)
+        {
+            var line = _parent.LineOf(node);
+            if (line != 0)
+            {
+                _currentLine = line;
+            }
         }
 
         private void EmitStatement(BoundStatement statement)
         {
+            Use(statement);
             switch (statement)
             {
                 case BoundLocalDeclaration declaration:
@@ -634,6 +847,8 @@ internal sealed class PexEmitter
 
         private void EmitTerminator(BasicBlock block, BasicBlock? next)
         {
+            Use(block.Terminator.Condition);
+            Use(block.Terminator.Expression);
             switch (block.Terminator.Kind)
             {
                 case ControlFlowTerminatorKind.Jump:
@@ -688,6 +903,7 @@ internal sealed class PexEmitter
 
         private Rvalue EmitExpression(BoundExpression expression, string? destName = null)
         {
+            Use(expression);
             switch (expression)
             {
                 case BoundLiteral literal:
@@ -1230,7 +1446,25 @@ internal sealed class PexEmitter
                 return -1;
             }
 
-            return _builder.Emit(op, operands);
+            var index = _builder.Emit(op, operands);
+            if (index >= 0)
+            {
+                while (_lines.Count < index)
+                {
+                    _lines.Add(_currentLine);
+                }
+
+                if (_lines.Count == index)
+                {
+                    _lines.Add(_currentLine);
+                }
+                else
+                {
+                    _lines[index] = _currentLine;
+                }
+            }
+
+            return index;
         }
 
         private void EmitVariadic(PexOpCode op, PexValue[] fixedArgs, PexValue[] variadic)

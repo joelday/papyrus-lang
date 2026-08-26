@@ -28,62 +28,53 @@ internal static class Lowering
 
         public BoundNode Visit(BoundNode node)
         {
-            switch (node)
+            BoundNode rewritten = node switch
             {
-                case BoundScript script:
-                    return VisitScript(script);
-                case BoundFunction function:
-                    return VisitFunction(function);
-                case BoundBlock block:
-                    return VisitBlock(block);
-                case BoundIf @if:
-                    return VisitIf(@if);
-                case BoundWhile @while:
-                    return VisitWhile(@while);
-                case BoundReturn ret:
-                    return VisitReturn(ret);
-                case BoundExpressionStatement statement:
-                    return VisitExpressionStatement(statement);
-                case BoundLocalDeclaration declaration:
-                    return VisitLocalDeclaration(declaration);
-                case BoundAssignment assignment:
-                    return VisitAssignment(assignment);
-                case BoundExpression expression:
-                    return VisitExpression(expression);
-                default:
-                    return node;
+                BoundScript script => VisitScript(script),
+                BoundFunction function => VisitFunction(function),
+                BoundBlock block => VisitBlock(block),
+                BoundIf @if => VisitIf(@if),
+                BoundWhile @while => VisitWhile(@while),
+                BoundReturn ret => VisitReturn(ret),
+                BoundExpressionStatement statement => VisitExpressionStatement(statement),
+                BoundLocalDeclaration declaration => VisitLocalDeclaration(declaration),
+                BoundAssignment assignment => VisitAssignment(assignment),
+                BoundExpression expression => VisitExpression(expression),
+                _ => node,
+            };
+
+            if (!ReferenceEquals(rewritten, node))
+            {
+                rewritten.Syntax ??= node.Syntax;
             }
+
+            return rewritten;
         }
 
         private BoundExpression VisitExpression(BoundExpression expression)
         {
-            switch (expression)
+            BoundExpression rewritten = expression switch
             {
-                case BoundProperty property:
-                    return VisitProperty(property);
-                case BoundField field:
-                    return VisitField(field);
-                case BoundBinary binary:
-                    return VisitBinary(binary);
-                case BoundUnary unary:
-                    return VisitUnary(unary);
-                case BoundConversion conversion:
-                    return VisitConversion(conversion);
-                case BoundCall call:
-                    return VisitCall(call);
-                case BoundMemberAccess member:
-                    return VisitMemberAccess(member);
-                case BoundIndex index:
-                    return VisitIndex(index);
-                case BoundIs @is:
-                    return VisitIs(@is);
-                case BoundNewArray array:
-                    return VisitNewArray(array);
-                case BoundArrayLength length:
-                    return VisitArrayLength(length);
-                default:
-                    return expression;
+                BoundProperty property => VisitProperty(property),
+                BoundField field => VisitField(field),
+                BoundBinary binary => VisitBinary(binary),
+                BoundUnary unary => VisitUnary(unary),
+                BoundConversion conversion => VisitConversion(conversion),
+                BoundCall call => VisitCall(call),
+                BoundMemberAccess member => VisitMemberAccess(member),
+                BoundIndex index => VisitIndex(index),
+                BoundIs @is => VisitIs(@is),
+                BoundNewArray array => VisitNewArray(array),
+                BoundArrayLength length => VisitArrayLength(length),
+                _ => expression,
+            };
+
+            if (!ReferenceEquals(rewritten, expression))
+            {
+                rewritten.Syntax ??= expression.Syntax;
             }
+
+            return rewritten;
         }
 
         private BoundScript VisitScript(BoundScript script)
@@ -369,7 +360,9 @@ internal static class Lowering
                 return expression;
             }
 
-            return new BoundConversion(expression, ConversionKind.Implicit, conversion.ResultType);
+            var converted = new BoundConversion(expression, ConversionKind.Implicit, conversion.ResultType);
+            converted.Syntax = expression.Syntax;
+            return converted;
         }
 
         private IVariableSymbol BackingField(IPropertySymbol property)

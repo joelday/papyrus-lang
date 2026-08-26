@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Papyrus.CodeAnalysis;
 using Papyrus.CodeAnalysis.Emit;
 using Papyrus.CodeAnalysis.Text;
@@ -196,6 +199,115 @@ public sealed class EmitTests
     }
 
     [Fact]
+    public void Emit_default_includes_debug_info_with_function_line_map()
+    {
+        var file = EmitFile(
+            "ScriptName Foo\nInt Function Bar()\n  Int x = 1\n  x = x + 2\n  Return x\nEndFunction\n");
+
+        var debug = Assert.IsType<PexDebugInfo>(file.DebugInfo);
+        var function = Assert.Single(debug.Functions);
+        Assert.Equal("Foo", function.ObjectName);
+        Assert.Equal("", function.StateName);
+        Assert.Equal("Bar", function.FunctionName);
+        Assert.Equal(PexDebugFunctionType.Normal, function.FunctionType);
+        Assert.False(function.InstructionLineMap.IsDefaultOrEmpty);
+
+        var instructions = Function(file).Instructions;
+        Assert.Equal(instructions.Length, function.InstructionLineMap.Length);
+        Assert.True(instructions.Length >= 1);
+    }
+
+    [Fact]
+    public void Emit_release_omits_debug_info()
+    {
+        var file = EmitFile(
+            "ScriptName Foo\nInt Function Bar()\n  Return 1\nEndFunction\n",
+            options: new PexEmitOptions { Release = true });
+
+        Assert.True(file.DebugInfo is null || file.DebugInfo.Functions.IsDefaultOrEmpty);
+    }
+
+    [Fact]
+    public void Emit_no_debug_info_omits_debug_info()
+    {
+        var file = EmitFile(
+            "ScriptName Foo\nInt Function Bar()\n  Return 1\nEndFunction\n",
+            options: new PexEmitOptions { EmitDebugInfo = false });
+
+        Assert.True(file.DebugInfo is null || file.DebugInfo.Functions.IsDefaultOrEmpty);
+    }
+
+    [Fact]
+    public void Emit_release_strips_debug_info_even_when_emit_debug_info_is_true()
+    {
+        var file = EmitFile(
+            "ScriptName Foo\nInt Function Bar()\n  Return 1\nEndFunction\n",
+            options: new PexEmitOptions { Release = true, EmitDebugInfo = true });
+
+        Assert.True(file.DebugInfo is null || file.DebugInfo.Functions.IsDefaultOrEmpty);
+    }
+
+    [Fact]
+    public void Emit_debug_line_numbers_are_one_based_and_non_decreasing()
+    {
+        var file = EmitFile(
+            "ScriptName Foo\nFunction Bar()\n" +
+            "  Int x = 1\n" +
+            "  If x\n" +
+            "    x = 2\n" +
+            "  Else\n" +
+            "    x = 3\n" +
+            "  EndIf\n" +
+            "  While x\n" +
+            "    x = 0\n" +
+            "  EndWhile\n" +
+            "EndFunction\n");
+
+        var map = Assert.Single(Assert.IsType<PexDebugInfo>(file.DebugInfo).Functions).InstructionLineMap;
+        Assert.False(map.IsDefaultOrEmpty);
+
+        ushort previous = 0;
+        foreach (var line in map)
+        {
+            Assert.True(line >= 1);
+            Assert.True(line >= previous);
+            previous = line;
+        }
+    }
+
+    [Fact]
+    public void Emit_debug_info_round_trips_through_writer_and_reader()
+    {
+        var file = EmitFile(
+            "ScriptName Foo\nInt Function Bar()\n  Int x = 1\n  Return x\nEndFunction\n");
+
+        var bytes = PexWriter.Write(file);
+        var roundTripped = PexReader.Read(bytes);
+        Assert.Equal(bytes, PexWriter.Write(roundTripped));
+
+        var original = Assert.Single(Assert.IsType<PexDebugInfo>(file.DebugInfo).Functions);
+        var restored = Assert.Single(Assert.IsType<PexDebugInfo>(roundTripped.DebugInfo).Functions);
+        Assert.Equal(original.ObjectName, restored.ObjectName);
+        Assert.Equal(original.StateName, restored.StateName);
+        Assert.Equal(original.FunctionName, restored.FunctionName);
+        Assert.Equal(original.FunctionType, restored.FunctionType);
+        Assert.Equal(original.InstructionLineMap, restored.InstructionLineMap);
+    }
+
+    [Fact]
+    public void Emit_time_provider_pin_keeps_debug_info_bytes_stable()
+    {
+        var clock = new FixedTimeProvider(DateTimeOffset.UnixEpoch);
+        const string source = "ScriptName Foo\nInt Function Bar()\n  Return 1\nEndFunction\n";
+        var first = EmitFile(source, timeProvider: clock);
+        var second = EmitFile(source, timeProvider: clock);
+
+        Assert.Equal(PexWriter.Write(first), PexWriter.Write(second));
+        Assert.Equal(DateTimeOffset.UnixEpoch, first.CompileTime);
+        Assert.Equal(first.CompileTime, Assert.IsType<PexDebugInfo>(first.DebugInfo).ModificationTime);
+    }
+
+    [Fact]
     public void Emit_auto_property_unary_minus_initializer_is_negative_one()
     {
         var file = EmitFile(
@@ -258,11 +370,13 @@ public sealed class EmitTests
     private static PexFile EmitFile(
         string source,
         string scriptName = "Foo",
-        PapyrusDialect? dialect = null)
+        PapyrusDialect? dialect = null,
+        PexEmitOptions? options = null,
+        TimeProvider? timeProvider = null)
     {
         var compilation = Compilation(dialect ?? PapyrusDialect.SkyrimSe, scriptName, source);
         var script = compilation.GetScript(QualifiedName.Parse(scriptName));
-        return new PexEmitter().EmitFile(script);
+        return new PexEmitter(timeProvider: timeProvider, options: options).EmitFile(script);
     }
 
     private static PapyrusCompilation Compilation(
@@ -275,5 +389,37 @@ public sealed class EmitTests
             [QualifiedName.Parse(name)] = SourceText.From(source),
         };
         return PapyrusCompilation.Create(dialect, new TestScriptResolver(sources));
+    }
+
+    private sealed class FixedTimeProvider : TimeProvider
+    {
+        private readonly DateTimeOffset _utcNow;
+
+        public FixedTimeProvider(DateTimeOffset utcNow)
+        {
+            _utcNow = utcNow;
+        }
+
+        public override DateTimeOffset GetUtcNow() => _utcNow;
+
+        public override ITimer CreateTimer(
+            TimerCallback callback,
+            object? state,
+            TimeSpan dueTime,
+            TimeSpan period)
+        {
+            return new NoopTimer();
+        }
+
+        private sealed class NoopTimer : ITimer
+        {
+            public bool Change(TimeSpan dueTime, TimeSpan period) => true;
+
+            public void Dispose()
+            {
+            }
+
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        }
     }
 }

@@ -42,14 +42,21 @@ internal sealed class BoundTreeBuilder
         _function = function;
         try
         {
-            var statements = function switch
+            SyntaxList<StatementSyntax> statements = default;
+            SyntaxNode? declaration = null;
+            switch (function)
             {
-                FunctionSymbol { Declaration: { } syntax } => syntax.Statements,
-                EventSymbol { Declaration: { } syntax } => syntax.Statements,
-                _ => default,
-            };
+                case FunctionSymbol { Declaration: { } syntax }:
+                    statements = syntax.Statements;
+                    declaration = syntax;
+                    break;
+                case EventSymbol { Declaration: { } syntax }:
+                    statements = syntax.Statements;
+                    declaration = syntax;
+                    break;
+            }
 
-            return new BoundFunction(function, BindBlock(statements));
+            return Attach(new BoundFunction(function, BindBlock(statements)), declaration);
         }
         finally
         {
@@ -62,6 +69,7 @@ internal sealed class BoundTreeBuilder
         ArgumentNullException.ThrowIfNull(expression);
 
         var bound = BindExpressionCore(expression);
+        bound.Syntax ??= expression;
         return expectedType is null ? bound : Convert(bound, expectedType);
     }
 
@@ -129,7 +137,9 @@ internal sealed class BoundTreeBuilder
             case WhileStatementSyntax whileStatement:
                 return BindWhile(whileStatement);
             case ExpressionStatementSyntax expression:
-                return new BoundExpressionStatement(BindExpression(expression.Expression));
+                return Attach(
+                    new BoundExpressionStatement(BindExpression(expression.Expression)),
+                    expression);
             case GuardStatementSyntax guard:
                 return BindBlock(guard.Statements);
             case TryGuardStatementSyntax tryGuard:
@@ -148,7 +158,7 @@ internal sealed class BoundTreeBuilder
             initializer = BindExpression(equals.Value, local.Type);
         }
 
-        return new BoundLocalDeclaration(local, initializer);
+        return Attach(new BoundLocalDeclaration(local, initializer), declare);
     }
 
     private BoundAssignment BindAssignment(AssignmentStatementSyntax assignment)
@@ -156,14 +166,14 @@ internal sealed class BoundTreeBuilder
         var left = BindExpression(assignment.Left);
         var expected = assignment.OperatorToken.Kind == SyntaxKind.EqualsToken ? left.Type : null;
         var right = BindExpression(assignment.Right, expected);
-        return new BoundAssignment(left, assignment.OperatorToken.Kind, right);
+        return Attach(new BoundAssignment(left, assignment.OperatorToken.Kind, right), assignment);
     }
 
     private BoundReturn BindReturn(ReturnStatementSyntax statement)
     {
         if (statement.Expression is null)
         {
-            return new BoundReturn(expression: null);
+            return Attach(new BoundReturn(expression: null), statement);
         }
 
         var expected = _function?.ReturnType;
@@ -172,7 +182,7 @@ internal sealed class BoundTreeBuilder
             expected = null;
         }
 
-        return new BoundReturn(BindExpression(statement.Expression, expected));
+        return Attach(new BoundReturn(BindExpression(statement.Expression, expected)), statement);
     }
 
     private BoundIf BindIf(IfStatementSyntax statement)
@@ -190,20 +200,24 @@ internal sealed class BoundTreeBuilder
         for (var i = elseIfs.Count - 1; i >= 0; i--)
         {
             var clause = elseIfs.Get(i);
-            @else = new BoundIf(
-                BindExpression(clause.Condition, BoolType()),
-                BindBlock(clause.Statements),
-                @else);
+            @else = Attach(
+                new BoundIf(
+                    BindExpression(clause.Condition, BoolType()),
+                    BindBlock(clause.Statements),
+                    @else),
+                clause);
         }
 
-        return new BoundIf(condition, then, @else);
+        return Attach(new BoundIf(condition, then, @else), statement);
     }
 
     private BoundWhile BindWhile(WhileStatementSyntax statement)
     {
-        return new BoundWhile(
-            BindExpression(statement.Condition, BoolType()),
-            BindBlock(statement.Statements));
+        return Attach(
+            new BoundWhile(
+                BindExpression(statement.Condition, BoolType()),
+                BindBlock(statement.Statements)),
+            statement);
     }
 
     private BoundExpression BindExpressionCore(ExpressionSyntax expression)
@@ -535,7 +549,9 @@ internal sealed class BoundTreeBuilder
             return expression;
         }
 
-        return new BoundConversion(expression, ConversionKind.Implicit, conversion.ResultType);
+        return Attach(
+            new BoundConversion(expression, ConversionKind.Implicit, conversion.ResultType),
+            expression.Syntax);
     }
 
     private ISymbol? Lookup(NameExpressionSyntax syntax)
@@ -736,4 +752,14 @@ internal sealed class BoundTreeBuilder
 
     private static ITypeSymbol ErrorType()
         => new ScriptSymbol(PapyrusName.Empty, default, new TypeName(default), isError: true);
+
+    private static T Attach<T>(T node, SyntaxNode? syntax) where T : BoundNode
+    {
+        if (syntax is not null)
+        {
+            node.Syntax = syntax;
+        }
+
+        return node;
+    }
 }
