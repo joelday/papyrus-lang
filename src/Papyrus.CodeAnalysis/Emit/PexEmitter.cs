@@ -15,22 +15,25 @@ internal sealed class PexEmitter
 {
     private readonly FlagsFile? _flagsFile;
     private readonly TimeProvider? _timeProvider;
+    private readonly bool _optimize;
     private readonly List<Diagnostic> _diagnostics = new();
     private PapyrusCompilation? _compilation;
     private SyntaxTree? _tree;
     private PexOpCode _maxOpCode;
 
-    public PexEmitter(FlagsFile? flagsFile = null, TimeProvider? timeProvider = null)
+    /// <param name="optimize">When true, run <see cref="PexOptimizer"/> after emit. Default false.</param>
+    public PexEmitter(FlagsFile? flagsFile = null, TimeProvider? timeProvider = null, bool optimize = false)
     {
         _flagsFile = flagsFile;
         _timeProvider = timeProvider;
+        _optimize = optimize;
     }
 
     public ImmutableArray<Diagnostic> Diagnostics => _diagnostics.ToImmutableArray();
 
     public PexFile EmitFile(IScriptSymbol script, CancellationToken cancellationToken = default)
     {
-        var obj = Emit(script, cancellationToken);
+        var obj = EmitObject(script, cancellationToken);
         var dialect = _compilation?.Dialect ?? PapyrusDialect.SkyrimSe;
         var userFlags = ImmutableArray<PexUserFlag>.Empty;
         if (_flagsFile is { Flags: { IsDefaultOrEmpty: false } flags })
@@ -54,7 +57,7 @@ internal sealed class PexEmitter
             userFlags = builder.ToImmutable();
         }
 
-        return new PexFile
+        var file = new PexFile
         {
             Version = dialect.PexVersion,
             Game = dialect.Game,
@@ -66,9 +69,26 @@ internal sealed class PexEmitter
             UserFlags = userFlags,
             Objects = ImmutableArray.Create(obj),
         };
+        if (_optimize)
+        {
+            PexOptimizer.Optimize(file);
+        }
+
+        return file;
     }
 
     public PexObject Emit(IScriptSymbol script, CancellationToken cancellationToken = default)
+    {
+        var obj = EmitObject(script, cancellationToken);
+        if (_optimize)
+        {
+            PexOptimizer.Optimize(obj);
+        }
+
+        return obj;
+    }
+
+    private PexObject EmitObject(IScriptSymbol script, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(script);
         _diagnostics.Clear();
@@ -143,7 +163,7 @@ internal sealed class PexEmitter
             ? baseType.QualifiedName.ToString()
             : "";
 
-        return new PexObject
+        var emitted = new PexObject
         {
             Name = script.QualifiedName.ToString(),
             ParentClassName = parent,
@@ -157,6 +177,7 @@ internal sealed class PexEmitter
             Properties = properties.ToImmutable(),
             States = states.ToImmutable(),
         };
+        return emitted;
     }
 
     private PexState EmitState(IStateSymbol state, CancellationToken cancellationToken)
