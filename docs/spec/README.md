@@ -155,3 +155,14 @@ Instruction encoding: `op:u8` + operands as typed in Caprica `PexInstruction.h` 
 
 - Accept `::`-prefixed compiler identifiers as names.
 - Accept `ObjectName#StructName` as a type name (maps to `TypeName.StructName`).
+
+`papyrusc verify --champollion` decompiles a directory of `.pex`, recompiles with ChampollionCompat, and compares normalized hashes (debug info stripped). It does not need the CK compiler.
+
+The Champollion sources stay in the vcpkg overlay (`dependencies/ports/Champollion/`); they are not vendored into `src/`. Supply a binary via:
+
+- `--champollion-path <bin>`
+- `PAPYRUSC_CHAMPOLLION`
+- `PATH` (`champollion` / `Champollion` / `Champollion.exe`)
+- `tools/Champollion` (cwd or next to `papyrusc`)
+
+Public CI skips (exit 0) when the binary or corpus is missing.

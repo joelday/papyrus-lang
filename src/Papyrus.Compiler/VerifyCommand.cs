@@ -14,7 +14,9 @@ internal sealed class VerifyCommandOptions
         string? baseline,
         string? dest,
         string? attestation,
-        bool writeBaselines)
+        bool writeBaselines,
+        bool champollion,
+        string? champollionPath)
     {
         Source = source;
         Game = game;
@@ -22,6 +24,8 @@ internal sealed class VerifyCommandOptions
         Dest = dest;
         Attestation = attestation;
         WriteBaselines = writeBaselines;
+        Champollion = champollion;
+        ChampollionPath = champollionPath;
     }
 
     internal string Source { get; }
@@ -30,12 +34,17 @@ internal sealed class VerifyCommandOptions
     internal string? Dest { get; }
     internal string? Attestation { get; }
     internal bool WriteBaselines { get; }
+    internal bool Champollion { get; }
+    internal string? ChampollionPath { get; }
 }
 
 internal static class VerifyCommand
 {
     internal static int Execute(VerifyCommandOptions options, TextWriter stdout, TextWriter stderr)
     {
+        if (options.Champollion)
+            return ChampollionCommand.Execute(options, stdout, stderr);
+
         GameId? preferred = null;
         string gameName = options.Game ?? "unknown";
         if (options.Game is not null)

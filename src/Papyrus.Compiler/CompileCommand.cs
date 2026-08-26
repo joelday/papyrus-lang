@@ -20,7 +20,8 @@ internal sealed class CompileCommandOptions
         string? output,
         string? flags,
         string[] imports,
-        long time)
+        long time,
+        bool champollionCompat)
     {
         Path = path;
         Game = game;
@@ -28,6 +29,7 @@ internal sealed class CompileCommandOptions
         Flags = flags;
         Imports = imports;
         Time = time;
+        ChampollionCompat = champollionCompat;
     }
 
     internal string Path { get; }
@@ -36,6 +38,7 @@ internal sealed class CompileCommandOptions
     internal string? Flags { get; }
     internal string[] Imports { get; }
     internal long Time { get; }
+    internal bool ChampollionCompat { get; }
 }
 
 internal static class CompileCommand
@@ -149,7 +152,8 @@ internal static class CompileCommand
             }
 
             var text = SourceText.From(File.ReadAllBytes(scriptPath));
-            var compilation = PapyrusCompilation.Create(dialect, resolver)
+            var parseOptions = new PapyrusParseOptions { ChampollionCompat = options.ChampollionCompat };
+            var compilation = PapyrusCompilation.Create(dialect, resolver, parseOptions)
                 .WithScriptText(name, text);
             var script = compilation.GetScript(name);
             var emitter = new PexEmitter(flagsFile);
@@ -232,7 +236,29 @@ internal static class CompileCommand
         return false;
     }
 
-    private static QualifiedName GetScriptName(string fullPath, List<string> imports, GameId game)
+    internal static bool TryGetDialect(GameId game, out PapyrusDialect dialect)
+    {
+        dialect = null!;
+        switch (game)
+        {
+            case GameId.Skyrim:
+                dialect = PapyrusDialect.SkyrimLe;
+                return true;
+            case GameId.SkyrimSpecialEdition:
+                dialect = PapyrusDialect.SkyrimSe;
+                return true;
+            case GameId.Fallout4:
+                dialect = PapyrusDialect.Fallout4;
+                return true;
+            case GameId.Starfield:
+                dialect = PapyrusDialect.Starfield;
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    internal static QualifiedName GetScriptName(string fullPath, List<string> imports, GameId game)
     {
         var supportsNamespaces = game is not (GameId.Skyrim or GameId.SkyrimSpecialEdition);
         string? bestImport = null;

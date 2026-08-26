@@ -13,20 +13,22 @@ internal static class Cli
         """
         Usage: papyrusc <command>
 
-          papyrusc compile <script.psc> --game <skyrimse|skyrimle|fallout4|starfield> [--output <file.pex>] [--flags <file.flg>] [--import <dir>]... [--time <unix>]
+          papyrusc compile <script.psc> --game <skyrimse|skyrimle|fallout4|starfield> [--output <file.pex>] [--flags <file.flg>] [--import <dir>]... [--time <unix>] [--champollion-compat]
           papyrusc corpus acquire --game <game> --source <path> [--dest <path>] [--force]
           papyrusc hash <path> [--game <game>]
           papyrusc verify --source <path> --baseline <file> [--game <game>]
           papyrusc verify --write-baselines --source <path> --out <file> --attestation <file> --game <game>
+          papyrusc verify --champollion [--source <path>] [--game <game>] [--champollion-path <bin>]
           papyrusc --version
 
         compile
           Compile one .psc to .pex. Does not build .ppj projects.
-          --game     skyrimse | skyrimle | fallout4 | starfield
-          --output   Output .pex path (default: same directory, .pex extension)
-          --flags    User flags file (.flg)
-          --import   Additional script import directory (repeatable)
-          --time     Unix compile timestamp (default: 0)
+          --game                 skyrimse | skyrimle | fallout4 | starfield
+          --output               Output .pex path (default: same directory, .pex extension)
+          --flags                User flags file (.flg)
+          --import               Additional script import directory (repeatable)
+          --time                 Unix compile timestamp (default: 0)
+          --champollion-compat   Accept ::-prefixed identifiers and Script#Struct types
 
         corpus acquire
           --game     skyrimse | fallout4 | starfield
@@ -42,9 +44,16 @@ internal static class Cli
 
         verify
           Compare hashes of existing .pex to a committed baseline. Does not compile.
-          --baseline is required unless --write-baselines.
+          --baseline is required unless --write-baselines or --champollion.
           --write-baselines is maintainer-only and requires --attestation and --game.
           See docs/compliance/baselines/README.md.
+
+        verify --champollion
+          Decompile vanilla .pex with Champollion, recompile with --champollion-compat,
+          and compare normalized hashes. Does not need the CK compiler.
+          Skips (exit 0) when the Champollion binary or corpus is missing (public CI).
+          --source             Directory of .pex (default: ./corpus/<game> or ./corpus)
+          --champollion-path   Champollion executable (else PAPYRUSC_CHAMPOLLION, PATH, tools/Champollion)
         """;
 
     internal static string Version =>
@@ -306,6 +315,8 @@ internal static class Cli
         string? dest = null;
         string? attestation = null;
         var writeBaselines = false;
+        var champollion = false;
+        string? champollionPath = null;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -333,6 +344,14 @@ internal static class Cli
             if (name == "write-baselines")
             {
                 writeBaselines = true;
+                continue;
+            }
+
+            if (name == "champollion")
+            {
+                champollion = true;
+                if (!string.IsNullOrWhiteSpace(value))
+                    champollionPath = value;
                 continue;
             }
 
@@ -364,21 +383,30 @@ internal static class Cli
                 case "attestation":
                     attestation = value;
                     break;
+                case "champollion-path":
+                    champollionPath = value;
+                    break;
                 default:
                     error = $"error: unknown option --{name}";
                     return false;
             }
         }
 
-        if (string.IsNullOrWhiteSpace(source))
-        {
-            error = "error: --source is required";
-            return false;
-        }
-
         if (game is not null && !GameNames.TryParse(game, out _, out _))
         {
             error = "error: --game must be one of: skyrimse, fallout4, starfield, skyrimle";
+            return false;
+        }
+
+        if (champollion && writeBaselines)
+        {
+            error = "error: --champollion cannot be used with --write-baselines";
+            return false;
+        }
+
+        if (!champollion && string.IsNullOrWhiteSpace(source))
+        {
+            error = "error: --source is required";
             return false;
         }
 
@@ -402,13 +430,21 @@ internal static class Cli
                 return false;
             }
         }
-        else if (string.IsNullOrWhiteSpace(baseline))
+        else if (!champollion && string.IsNullOrWhiteSpace(baseline))
         {
             error = "error: --baseline is required (use papyrusc hash to print hashes)";
             return false;
         }
 
-        options = new VerifyCommandOptions(source, game, baseline, dest, attestation, writeBaselines);
+        options = new VerifyCommandOptions(
+            source ?? "",
+            game,
+            baseline,
+            dest,
+            attestation,
+            writeBaselines,
+            champollion,
+            champollionPath);
         return true;
     }
 
@@ -425,6 +461,7 @@ internal static class Cli
         string? flags = null;
         var imports = new List<string>();
         long time = 0;
+        var champollionCompat = false;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -438,6 +475,14 @@ internal static class Cli
                 }
 
                 path = arg;
+                continue;
+            }
+
+            var flagEq = arg.IndexOf('=');
+            var flagName = flagEq >= 0 ? arg[2..flagEq] : arg[2..];
+            if (flagName == "champollion-compat")
+            {
+                champollionCompat = true;
                 continue;
             }
 
@@ -484,7 +529,7 @@ internal static class Cli
             return false;
         }
 
-        options = new CompileCommandOptions(path, game, output, flags, imports.ToArray(), time);
+        options = new CompileCommandOptions(path, game, output, flags, imports.ToArray(), time, champollionCompat);
         return true;
     }
 
