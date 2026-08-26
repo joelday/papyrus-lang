@@ -163,25 +163,24 @@ internal sealed class PexFunctionBuilder
         out ImmutableArray<PexValue> arguments,
         out ImmutableArray<PexValue> variadic)
     {
-        var fixedCount = FixedArgumentCount(op);
-        var hasVariadic = op is PexOpCode.CallMethod or PexOpCode.CallParent or PexOpCode.CallStatic;
-        if (!hasVariadic)
+        var fixedCount = PexOpCodeInfo.FixedArgumentCount(op);
+        var hasVariadic = PexOpCodeInfo.HasVariadicArguments(op);
+        if (fixedCount == 0)
         {
-            arguments = operands.Length == 0
-                ? ImmutableArray<PexValue>.Empty
-                : ImmutableArray.Create(operands);
-            variadic = ImmutableArray<PexValue>.Empty;
-            return;
+            arguments = ImmutableArray<PexValue>.Empty;
+        }
+        else
+        {
+            var args = ImmutableArray.CreateBuilder<PexValue>(fixedCount);
+            for (var i = 0; i < fixedCount; i++)
+            {
+                args.Add(i < operands.Length ? operands[i] : PexValue.None);
+            }
+
+            arguments = args.MoveToImmutable();
         }
 
-        var args = ImmutableArray.CreateBuilder<PexValue>(fixedCount);
-        for (var i = 0; i < fixedCount; i++)
-        {
-            args.Add(i < operands.Length ? operands[i] : PexValue.None);
-        }
-
-        arguments = args.MoveToImmutable();
-        if (operands.Length <= fixedCount)
+        if (!hasVariadic || operands.Length <= fixedCount)
         {
             variadic = ImmutableArray<PexValue>.Empty;
             return;
@@ -194,16 +193,6 @@ internal sealed class PexFunctionBuilder
         }
 
         variadic = extra.MoveToImmutable();
-    }
-
-    private static int FixedArgumentCount(PexOpCode op)
-    {
-        return op switch
-        {
-            PexOpCode.CallParent => 2,
-            PexOpCode.CallMethod or PexOpCode.CallStatic => 3,
-            _ => 0,
-        };
     }
 }
 

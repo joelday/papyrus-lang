@@ -144,6 +144,76 @@ public sealed class EmitTests
         Assert.Equal(2, compares);
     }
 
+    [Fact]
+    public void Emit_struct_field_get_and_set_use_struct_opcodes()
+    {
+        var function = Function(EmitFile(
+            "ScriptName Foo\n" +
+            "Struct Point\n  Int X\nEndStruct\n" +
+            "Function Bar()\n" +
+            "  Point p = new Point\n" +
+            "  p.X = 1\n" +
+            "  Int y = p.X\n" +
+            "EndFunction\n",
+            dialect: PapyrusDialect.Fallout4));
+
+        Assert.Contains(function.Instructions, static i => i.OpCode == PexOpCode.StructCreate);
+        var set = Assert.Single(function.Instructions, static i => i.OpCode == PexOpCode.StructSet);
+        Assert.Equal(PexValueType.Identifier, set.Arguments[0].Type);
+        Assert.Equal("p", set.Arguments[0].Text);
+        Assert.Equal(PexValueType.String, set.Arguments[1].Type);
+        Assert.Equal("X", set.Arguments[1].Text);
+        Assert.Equal(1, set.Arguments[2].Integer);
+
+        var get = Assert.Single(function.Instructions, static i => i.OpCode == PexOpCode.StructGet);
+        Assert.Equal(PexValueType.Identifier, get.Arguments[0].Type);
+        Assert.Equal("y", get.Arguments[0].Text);
+        Assert.Equal(PexValueType.Identifier, get.Arguments[1].Type);
+        Assert.Equal("p", get.Arguments[1].Text);
+        Assert.Equal(PexValueType.String, get.Arguments[2].Type);
+        Assert.Equal("X", get.Arguments[2].Text);
+        Assert.DoesNotContain(function.Instructions, static i => i.OpCode == PexOpCode.CallMethod);
+    }
+
+    [Fact]
+    public void Emit_array_find_uses_array_find_opcode()
+    {
+        var function = Function(EmitFile(
+            "ScriptName Foo\nFunction Bar()\n" +
+            "  Int[] a = new Int[2]\n" +
+            "  Int i = a.Find(1)\n" +
+            "EndFunction\n"));
+
+        var find = Assert.Single(function.Instructions, static i => i.OpCode == PexOpCode.ArrayFindElement);
+        Assert.Equal(4, find.Arguments.Length);
+        Assert.Equal(PexValueType.Identifier, find.Arguments[0].Type);
+        Assert.Equal("a", find.Arguments[0].Text);
+        Assert.Equal(PexValueType.Identifier, find.Arguments[1].Type);
+        Assert.Equal("i", find.Arguments[1].Text);
+        Assert.Equal(1, find.Arguments[2].Integer);
+        Assert.Equal(0, find.Arguments[3].Integer);
+        Assert.DoesNotContain(function.Instructions, static i => i.OpCode == PexOpCode.CallMethod);
+    }
+
+    [Fact]
+    public void Emit_auto_property_unary_minus_initializer_is_negative_one()
+    {
+        var file = EmitFile(
+            "ScriptName Foo\n" +
+            "Int Property Health = -1 Auto\n" +
+            "Int Count = -1\n" +
+            "Function Bar()\nEndFunction\n");
+
+        var obj = Assert.Single(file.Objects);
+        var health = Assert.Single(obj.Variables, static variable => variable.Name == "::Health_var");
+        Assert.Equal(PexValueType.Integer, health.DefaultValue.Type);
+        Assert.Equal(-1, health.DefaultValue.Integer);
+
+        var count = Assert.Single(obj.Variables, static variable => variable.Name == "Count");
+        Assert.Equal(PexValueType.Integer, count.DefaultValue.Type);
+        Assert.Equal(-1, count.DefaultValue.Integer);
+    }
+
     private static PexFunction Function(PexFile file, string name = "Bar")
     {
         var obj = Assert.Single(file.Objects);

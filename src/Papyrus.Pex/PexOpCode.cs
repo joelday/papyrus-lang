@@ -76,7 +76,7 @@ public enum PexOpCode : byte
 /// Operand widths from Caprica <c>PexInstruction.h</c> / <c>PexFunctionBuilder.h</c> OPCODES.
 /// Shared by the reader and writer so the two cannot drift.
 /// </summary>
-internal static class PexOpCodeInfo
+public static class PexOpCodeInfo
 {
     public static int FixedArgumentCount(PexOpCode op)
     {

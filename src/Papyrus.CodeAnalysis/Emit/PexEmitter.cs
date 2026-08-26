@@ -366,13 +366,42 @@ internal sealed class PexEmitter
         => DefaultValue((variable as VariableSymbol)?.Declaration?.EqualsValue);
 
     private static PexValue DefaultValue(EqualsValueClauseSyntax? clause)
-    {
-        if (clause?.Value is not LiteralExpressionSyntax literal)
-        {
-            return PexValue.None;
-        }
+        => clause is null ? PexValue.None : ConstantValue(clause.Value);
 
-        return LiteralValue(literal.Token);
+    private static PexValue ConstantValue(ExpressionSyntax expression)
+    {
+        switch (expression)
+        {
+            case LiteralExpressionSyntax literal:
+                return LiteralValue(literal.Token);
+            case PrefixUnaryExpressionSyntax unary:
+                var inner = ConstantValue(unary.Operand);
+                if (unary.OperatorToken.Kind == SyntaxKind.PlusToken)
+                {
+                    return inner;
+                }
+
+                if (unary.OperatorToken.Kind == SyntaxKind.MinusToken)
+                {
+                    return Negate(inner);
+                }
+
+                return PexValue.None;
+            case ParenthesizedExpressionSyntax parenthesized:
+                return ConstantValue(parenthesized.Expression);
+            default:
+                return PexValue.None;
+        }
+    }
+
+    private static PexValue Negate(PexValue value)
+    {
+        return value.Type switch
+        {
+            PexValueType.Integer => PexFunctionBuilder.Integer(unchecked(-value.Integer)),
+            PexValueType.Float => PexFunctionBuilder.Float(-value.Float),
+            _ => PexValue.None,
+        };
     }
 
     private static PexValue LiteralValue(SyntaxToken token)
@@ -562,8 +591,19 @@ internal sealed class PexEmitter
                 case BoundParameter parameter:
                     Release(EmitExpression(assignment.Right, parameter.Parameter.Name.Text));
                     break;
-                case BoundField field:
+                case BoundField field when !IsStructField(field):
                     Release(EmitExpression(assignment.Right, field.Field.Name.Text));
+                    break;
+                case BoundField field:
+                    var structReceiver = EmitExpression(field.Receiver!);
+                    var structValue = EmitExpression(assignment.Right);
+                    TryEmit(
+                        PexOpCode.StructSet,
+                        structReceiver.Value,
+                        PexFunctionBuilder.String(field.Field.Name.Text),
+                        structValue.Value);
+                    Release(structReceiver);
+                    Release(structValue);
                     break;
                 case BoundIndex index:
                     var array = EmitExpression(index.Expression);
@@ -657,7 +697,7 @@ internal sealed class PexEmitter
                 case BoundParameter parameter:
                     return EmitLeaf(PexFunctionBuilder.Identifier(parameter.Parameter.Name.Text), destName);
                 case BoundField field:
-                    return EmitLeaf(PexFunctionBuilder.Identifier(field.Field.Name.Text), destName);
+                    return EmitField(field, destName);
                 case BoundSelf:
                     return EmitLeaf(PexFunctionBuilder.Identifier("self"), destName);
                 case BoundParent:
@@ -813,6 +853,18 @@ internal sealed class PexEmitter
                 values[i] = arguments[i].Value;
             }
 
+            if (call.Method?.ContainingSymbol is ITypeSymbol { TypeKind: TypeKind.Array })
+            {
+                var result = EmitArrayIntrinsic(call, receiver, values, destName);
+                Release(receiver);
+                for (var i = 0; i < arguments.Length; i++)
+                {
+                    Release(arguments[i]);
+                }
+
+                return result;
+            }
+
             var dest = AcquireDest(call.Type, destName, out var allocated);
             var name = PexFunctionBuilder.String(call.Method?.Name.Text ?? "");
             if (call.Receiver is BoundParent)
@@ -847,6 +899,112 @@ internal sealed class PexEmitter
 
             return new Rvalue(dest, allocated);
         }
+
+        private Rvalue EmitArrayIntrinsic(BoundCall call, Rvalue array, PexValue[] arguments, string? destName)
+        {
+            var name = call.Method?.Name.Text ?? "";
+            if (name.Equals("Find", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("RFind", StringComparison.OrdinalIgnoreCase))
+            {
+                var dest = AcquireDest(call.Type, destName, out var allocated);
+                var op = name.Equals("RFind", StringComparison.OrdinalIgnoreCase)
+                    ? PexOpCode.ArrayRFindElement
+                    : PexOpCode.ArrayFindElement;
+                TryEmit(
+                    op,
+                    array.Value,
+                    dest,
+                    ArgumentOr(arguments, 0, PexValue.None),
+                    ArgumentOr(arguments, 1, PexFunctionBuilder.Integer(0)));
+                return new Rvalue(dest, allocated);
+            }
+
+            if (name.Equals("FindStruct", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("RFindStruct", StringComparison.OrdinalIgnoreCase))
+            {
+                var dest = AcquireDest(call.Type, destName, out var allocated);
+                var op = name.Equals("RFindStruct", StringComparison.OrdinalIgnoreCase)
+                    ? PexOpCode.ArrayRFindStruct
+                    : PexOpCode.ArrayFindStruct;
+                TryEmit(
+                    op,
+                    array.Value,
+                    dest,
+                    ArgumentOr(arguments, 0, PexValue.None),
+                    ArgumentOr(arguments, 1, PexValue.None),
+                    ArgumentOr(arguments, 2, PexFunctionBuilder.Integer(0)));
+                return new Rvalue(dest, allocated);
+            }
+
+            if (name.Equals("Add", StringComparison.OrdinalIgnoreCase))
+            {
+                TryEmit(
+                    PexOpCode.ArrayAdd,
+                    array.Value,
+                    ArgumentOr(arguments, 0, PexValue.None),
+                    ArgumentOr(arguments, 1, PexFunctionBuilder.Integer(1)));
+                return Rvalue.Immediate(PexValue.None);
+            }
+
+            if (name.Equals("Insert", StringComparison.OrdinalIgnoreCase))
+            {
+                TryEmit(
+                    PexOpCode.ArrayInsert,
+                    array.Value,
+                    ArgumentOr(arguments, 0, PexValue.None),
+                    ArgumentOr(arguments, 1, PexFunctionBuilder.Integer(0)));
+                return Rvalue.Immediate(PexValue.None);
+            }
+
+            if (name.Equals("Remove", StringComparison.OrdinalIgnoreCase))
+            {
+                TryEmit(
+                    PexOpCode.ArrayRemove,
+                    array.Value,
+                    ArgumentOr(arguments, 0, PexValue.None),
+                    ArgumentOr(arguments, 1, PexFunctionBuilder.Integer(1)));
+                return Rvalue.Immediate(PexValue.None);
+            }
+
+            if (name.Equals("RemoveLast", StringComparison.OrdinalIgnoreCase))
+            {
+                TryEmit(PexOpCode.ArrayRemoveLast, array.Value);
+                return Rvalue.Immediate(PexValue.None);
+            }
+
+            if (name.Equals("Clear", StringComparison.OrdinalIgnoreCase))
+            {
+                TryEmit(PexOpCode.ArrayClear, array.Value);
+                return Rvalue.Immediate(PexValue.None);
+            }
+
+            _parent.ReportUnsupported(call.Kind);
+            return EmitLeaf(PexValue.None, destName);
+        }
+
+        private static PexValue ArgumentOr(PexValue[] arguments, int index, PexValue fallback)
+            => (uint)index < (uint)arguments.Length ? arguments[index] : fallback;
+
+        private Rvalue EmitField(BoundField field, string? destName)
+        {
+            if (!IsStructField(field))
+            {
+                return EmitLeaf(PexFunctionBuilder.Identifier(field.Field.Name.Text), destName);
+            }
+
+            var receiver = EmitExpression(field.Receiver!);
+            var dest = AcquireDest(field.Type, destName, out var allocated);
+            TryEmit(
+                PexOpCode.StructGet,
+                dest,
+                receiver.Value,
+                PexFunctionBuilder.String(field.Field.Name.Text));
+            Release(receiver);
+            return new Rvalue(dest, allocated);
+        }
+
+        private static bool IsStructField(BoundField field)
+            => field.Receiver is not null && field.Receiver is not BoundSelf;
 
         private Rvalue EmitPropertyGet(BoundProperty property, string? destName)
         {
