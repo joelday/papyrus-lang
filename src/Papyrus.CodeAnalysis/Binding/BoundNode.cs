@@ -1,5 +1,6 @@
 using System;
 using Papyrus.CodeAnalysis.Symbols;
+using Papyrus.CodeAnalysis.Syntax;
 
 namespace Papyrus.CodeAnalysis.Binding;
 
@@ -43,6 +44,8 @@ internal abstract class BoundNode
     }
 
     public ITypeSymbol? Type { get; }
+
+    public SyntaxNode? Syntax { get; internal set; }
 
     public abstract BoundKind Kind { get; }
 }

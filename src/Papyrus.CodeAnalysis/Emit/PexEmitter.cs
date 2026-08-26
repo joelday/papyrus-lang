@@ -16,17 +16,26 @@ public sealed class PexEmitter
     private readonly FlagsFile? _flagsFile;
     private readonly TimeProvider? _timeProvider;
     private readonly bool _optimize;
+    private readonly PexEmitOptions _options;
     private readonly List<Diagnostic> _diagnostics = new();
+    private readonly List<PexDebugFunction> _debugFunctions = new();
     private PapyrusCompilation? _compilation;
     private SyntaxTree? _tree;
+    private string _objectName = "";
+    private int[]? _lineStarts;
     private PexOpCode _maxOpCode;
 
     /// <param name="optimize">When true, run <see cref="PexOptimizer"/> after emit. Default false.</param>
-    public PexEmitter(FlagsFile? flagsFile = null, TimeProvider? timeProvider = null, bool optimize = false)
+    public PexEmitter(
+        FlagsFile? flagsFile = null,
+        TimeProvider? timeProvider = null,
+        bool optimize = false,
+        PexEmitOptions? options = null)
     {
         _flagsFile = flagsFile;
         _timeProvider = timeProvider;
         _optimize = optimize;
+        _options = options ?? PexEmitOptions.Default;
     }
 
     public ImmutableArray<Diagnostic> Diagnostics => _diagnostics.ToImmutableArray();
@@ -57,16 +66,18 @@ public sealed class PexEmitter
             userFlags = builder.ToImmutable();
         }
 
+        var compileTime = _timeProvider?.GetUtcNow() ?? DateTimeOffset.UnixEpoch;
         var file = new PexFile
         {
             Version = dialect.PexVersion,
             Game = dialect.Game,
             RawGameId = GameIdMapping.ToRaw(dialect.Game),
-            CompileTime = _timeProvider?.GetUtcNow() ?? DateTimeOffset.UnixEpoch,
+            CompileTime = compileTime,
             SourcePath = script.QualifiedName.ToRelativePath(),
             UserName = "",
             MachineName = "",
             UserFlags = userFlags,
+            DebugInfo = CreateDebugInfo(compileTime),
             Objects = ImmutableArray.Create(obj),
         };
         if (_optimize)
@@ -92,10 +103,13 @@ public sealed class PexEmitter
     {
         ArgumentNullException.ThrowIfNull(script);
         _diagnostics.Clear();
+        _debugFunctions.Clear();
+        _lineStarts = null;
         _compilation = script is SourceScriptSymbol source ? source.Compilation : null;
         _tree = script.DeclaringSyntaxReferences is { IsDefaultOrEmpty: false } refs
             ? refs[0].SyntaxTree
             : null;
+        _objectName = script.QualifiedName.ToString();
         var dialect = _compilation?.Dialect ?? PapyrusDialect.SkyrimSe;
         _maxOpCode = dialect.MaxOpCode;
 
@@ -190,7 +204,7 @@ public sealed class PexEmitter
             cancellationToken.ThrowIfCancellationRequested();
             if (members[i] is IFunctionSymbol function)
             {
-                functions.Add(EmitFunction(function, cancellationToken));
+                functions.Add(EmitFunction(function, cancellationToken, state.Name.Text));
             }
         }
 
@@ -261,12 +275,22 @@ public sealed class PexEmitter
         {
             if (property.GetMethod is { } getter)
             {
-                emitted.ReadFunction = EmitFunction(getter, cancellationToken);
+                emitted.ReadFunction = EmitFunction(
+                    getter,
+                    cancellationToken,
+                    stateName: "",
+                    PexDebugFunctionType.Getter,
+                    property.Name.Text);
             }
 
             if (property.SetMethod is { } setter)
             {
-                emitted.WriteFunction = EmitFunction(setter, cancellationToken);
+                emitted.WriteFunction = EmitFunction(
+                    setter,
+                    cancellationToken,
+                    stateName: "",
+                    PexDebugFunctionType.Setter,
+                    property.Name.Text);
             }
         }
 
@@ -285,7 +309,12 @@ public sealed class PexEmitter
         };
     }
 
-    private PexFunction EmitFunction(IFunctionSymbol function, CancellationToken cancellationToken)
+    private PexFunction EmitFunction(
+        IFunctionSymbol function,
+        CancellationToken cancellationToken,
+        string stateName = "",
+        PexDebugFunctionType functionType = PexDebugFunctionType.Normal,
+        string? debugName = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var functionSyntax = (function as FunctionSymbol)?.Declaration;
@@ -314,6 +343,7 @@ public sealed class PexEmitter
 
         if (function.IsNative)
         {
+            AddDebugFunction(function, stateName, functionType, debugName, ImmutableArray<ushort>.Empty);
             return emitted;
         }
 
@@ -324,6 +354,12 @@ public sealed class PexEmitter
                 OpCode = PexOpCode.Return,
                 Arguments = ImmutableArray.Create(PexValue.None),
             });
+            AddDebugFunction(
+                function,
+                stateName,
+                functionType,
+                debugName,
+                ImmutableArray.Create(LineOf(function)));
             return emitted;
         }
 
@@ -332,6 +368,7 @@ public sealed class PexEmitter
         var body = new FunctionBodyEmitter(this, function).Emit(graph, cancellationToken);
         emitted.Locals = body.Locals;
         emitted.Instructions = body.Instructions;
+        AddDebugFunction(function, stateName, functionType, debugName, body.LineMap);
         return emitted;
     }
 
@@ -543,6 +580,145 @@ public sealed class PexEmitter
 
     private bool CanEmit(PexOpCode op) => (byte)op <= (byte)_maxOpCode;
 
+    private bool IncludeDebugInfo => _options.IncludeDebugInfo;
+
+    private PexDebugInfo? CreateDebugInfo(DateTimeOffset modificationTime)
+    {
+        if (!IncludeDebugInfo)
+        {
+            return null;
+        }
+
+        return new PexDebugInfo
+        {
+            ModificationTime = modificationTime,
+            Functions = _debugFunctions.ToImmutableArray(),
+        };
+    }
+
+    private void AddDebugFunction(
+        IFunctionSymbol function,
+        string stateName,
+        PexDebugFunctionType functionType,
+        string? debugName,
+        ImmutableArray<ushort> lineMap)
+    {
+        if (!IncludeDebugInfo)
+        {
+            return;
+        }
+
+        _debugFunctions.Add(new PexDebugFunction
+        {
+            ObjectName = _objectName,
+            StateName = stateName,
+            FunctionName = debugName ?? function.Name.Text,
+            FunctionType = functionType,
+            InstructionLineMap = NormalizeLineMap(lineMap),
+        });
+    }
+
+    private static ImmutableArray<ushort> NormalizeLineMap(ImmutableArray<ushort> lines)
+    {
+        if (lines.IsDefaultOrEmpty)
+        {
+            return lines.IsDefault ? ImmutableArray<ushort>.Empty : lines;
+        }
+
+        var builder = ImmutableArray.CreateBuilder<ushort>(lines.Length);
+        for (var i = 0; i < lines.Length; i++)
+        {
+            var line = lines[i];
+            builder.Add(line < 1 ? (ushort)1 : line);
+        }
+
+        return builder.MoveToImmutable();
+    }
+
+    private ushort LineOf(IFunctionSymbol function)
+    {
+        SyntaxNode? syntax = function switch
+        {
+            FunctionSymbol { Declaration: { } declaration } => declaration,
+            EventSymbol { Declaration: { } declaration } => declaration,
+            _ => null,
+        };
+
+        var line = LineOf(syntax);
+        if (line != 0)
+        {
+            return line;
+        }
+
+        if (function.DeclaringSyntaxReferences is { IsDefaultOrEmpty: false } refs)
+        {
+            return LineOf(refs[0].Span);
+        }
+
+        return 1;
+    }
+
+    private ushort LineOf(BoundNode? node) => LineOf(node?.Syntax);
+
+    private ushort LineOf(SyntaxNode? syntax) => syntax is null ? (ushort)0 : LineOf(syntax.FullSpan);
+
+    private ushort LineOf(TextSpan span)
+    {
+        var starts = LineStarts();
+        var position = span.Start;
+        var lo = 0;
+        var hi = starts.Length - 1;
+        var index = 0;
+        while (lo <= hi)
+        {
+            var mid = lo + ((hi - lo) / 2);
+            if (starts[mid] <= position)
+            {
+                index = mid;
+                lo = mid + 1;
+            }
+            else
+            {
+                hi = mid - 1;
+            }
+        }
+
+        var line = index + 1;
+        if (line < 1)
+        {
+            return 1;
+        }
+
+        return line > ushort.MaxValue ? ushort.MaxValue : (ushort)line;
+    }
+
+    private int[] LineStarts()
+    {
+        if (_lineStarts is not null)
+        {
+            return _lineStarts;
+        }
+
+        var text = _tree?.GetText();
+        if (text is null || text.Length == 0)
+        {
+            _lineStarts = [0];
+            return _lineStarts;
+        }
+
+        var starts = new List<int> { 0 };
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (text.GetChar(i) == '\n' && i + 1 < text.Length)
+            {
+                starts.Add(i + 1);
+            }
+        }
+
+        _lineStarts = starts.ToArray();
+        return _lineStarts;
+    }
+
     private readonly struct Rvalue
     {
         public Rvalue(PexValue value, PexLocal? temp)
@@ -564,6 +740,8 @@ public sealed class PexEmitter
         private readonly IFunctionSymbol _function;
         private readonly PexFunctionBuilder _builder = new();
         private readonly List<(int Instruction, int TargetBlock)> _jumps = new();
+        private readonly List<ushort> _lines = new();
+        private ushort _currentLine = 1;
 
         public FunctionBodyEmitter(PexEmitter parent, IFunctionSymbol function)
         {
@@ -571,10 +749,11 @@ public sealed class PexEmitter
             _function = function;
         }
 
-        public (ImmutableArray<PexLocalVariable> Locals, ImmutableArray<PexInstruction> Instructions) Emit(
+        public (ImmutableArray<PexLocalVariable> Locals, ImmutableArray<PexInstruction> Instructions, ImmutableArray<ushort> LineMap) Emit(
             ControlFlowGraph graph,
             CancellationToken cancellationToken)
         {
+            _currentLine = _parent.LineOf(_function);
             var locals = _function.Locals;
             for (var i = 0; i < locals.Length; i++)
             {
@@ -606,18 +785,41 @@ public sealed class PexEmitter
                 }
             }
 
-            return (_builder.GetLocals(), _builder.GetInstructions());
+            while (_lines.Count < _builder.InstructionCount)
+            {
+                _lines.Add(_currentLine);
+            }
+
+            return (_builder.GetLocals(), _builder.GetInstructions(), _lines.ToImmutableArray());
+        }
+
+        private void Use(BoundNode? node)
+        {
+            var line = _parent.LineOf(node);
+            if (line != 0)
+            {
+                _currentLine = line;
+            }
+        }
+
+        private Rvalue EmitChild(BoundExpression expression, string? destName = null)
+        {
+            var saved = _currentLine;
+            var result = EmitExpression(expression, destName);
+            _currentLine = saved;
+            return result;
         }
 
         private void EmitStatement(BoundStatement statement)
         {
+            Use(statement);
             switch (statement)
             {
                 case BoundLocalDeclaration declaration:
                     _builder.AddUserLocal(declaration.Local.Name.Text, PexEmitType.NameOf(declaration.Local.Type));
                     if (declaration.Initializer is { } initializer)
                     {
-                        Release(EmitExpression(initializer, declaration.Local.Name.Text));
+                        Release(EmitChild(initializer, declaration.Local.Name.Text));
                     }
 
                     break;
@@ -625,7 +827,7 @@ public sealed class PexEmitter
                     EmitAssignment(assignment);
                     break;
                 case BoundExpressionStatement expression:
-                    Release(EmitExpression(expression.Expression));
+                    Release(EmitChild(expression.Expression));
                     break;
                 default:
                     _parent.ReportUnsupported(statement.Kind);
@@ -638,17 +840,17 @@ public sealed class PexEmitter
             switch (assignment.Left)
             {
                 case BoundLocal local:
-                    Release(EmitExpression(assignment.Right, local.Local.Name.Text));
+                    Release(EmitChild(assignment.Right, local.Local.Name.Text));
                     break;
                 case BoundParameter parameter:
-                    Release(EmitExpression(assignment.Right, parameter.Parameter.Name.Text));
+                    Release(EmitChild(assignment.Right, parameter.Parameter.Name.Text));
                     break;
                 case BoundField field when !IsStructField(field):
-                    Release(EmitExpression(assignment.Right, field.Field.Name.Text));
+                    Release(EmitChild(assignment.Right, field.Field.Name.Text));
                     break;
                 case BoundField field:
-                    var structReceiver = EmitExpression(field.Receiver!);
-                    var structValue = EmitExpression(assignment.Right);
+                    var structReceiver = EmitChild(field.Receiver!);
+                    var structValue = EmitChild(assignment.Right);
                     TryEmit(
                         PexOpCode.StructSet,
                         structReceiver.Value,
@@ -658,9 +860,9 @@ public sealed class PexEmitter
                     Release(structValue);
                     break;
                 case BoundIndex index:
-                    var array = EmitExpression(index.Expression);
-                    var elementIndex = EmitExpression(index.Index);
-                    var value = EmitExpression(assignment.Right);
+                    var array = EmitChild(index.Expression);
+                    var elementIndex = EmitChild(index.Index);
+                    var value = EmitChild(assignment.Right);
                     TryEmit(PexOpCode.ArraySetElement, array.Value, elementIndex.Value, value.Value);
                     Release(array);
                     Release(elementIndex);
@@ -668,7 +870,7 @@ public sealed class PexEmitter
                     break;
                 case BoundProperty property:
                     var receiver = EmitReceiver(property.Receiver);
-                    var right = EmitExpression(assignment.Right);
+                    var right = EmitChild(assignment.Right);
                     TryEmit(
                         PexOpCode.PropSet,
                         PexFunctionBuilder.String(property.Property.Name.Text),
@@ -679,7 +881,7 @@ public sealed class PexEmitter
                     break;
                 default:
                     _parent.ReportUnsupported(assignment.Left.Kind);
-                    Release(EmitExpression(assignment.Right));
+                    Release(EmitChild(assignment.Right));
                     break;
             }
         }
@@ -692,7 +894,8 @@ public sealed class PexEmitter
                     EmitJump(PexOpCode.Jmp, block.Terminator.Destination!);
                     break;
                 case ControlFlowTerminatorKind.Conditional:
-                    var condition = EmitExpression(block.Terminator.Condition!);
+                    Use(block.Terminator.Condition);
+                    var condition = EmitChild(block.Terminator.Condition!);
                     EmitJump(PexOpCode.JmpF, block.Terminator.FalseSuccessor!, condition.Value);
                     Release(condition);
                     if (!ReferenceEquals(block.Terminator.TrueSuccessor, next))
@@ -704,7 +907,8 @@ public sealed class PexEmitter
                 case ControlFlowTerminatorKind.Return:
                     if (block.Terminator.Expression is { } expression)
                     {
-                        var value = EmitExpression(expression);
+                        Use(expression);
+                        var value = EmitChild(expression);
                         TryEmit(PexOpCode.Return, value.Value);
                         Release(value);
                     }
@@ -740,6 +944,7 @@ public sealed class PexEmitter
 
         private Rvalue EmitExpression(BoundExpression expression, string? destName = null)
         {
+            Use(expression);
             switch (expression)
             {
                 case BoundLiteral literal:
@@ -796,8 +1001,8 @@ public sealed class PexEmitter
                     return EmitShortCircuit(binary, destName, jumpIfTrue: true);
             }
 
-            var left = EmitExpression(binary.Left);
-            var right = EmitExpression(binary.Right);
+            var left = EmitChild(binary.Left);
+            var right = EmitChild(binary.Right);
             if (binary.OperatorKind == SyntaxKind.PlusToken && PexEmitType.IsNamed(binary.Type, "String"))
             {
                 left = EnsureString(left);
@@ -828,7 +1033,7 @@ public sealed class PexEmitter
         private Rvalue EmitShortCircuit(BoundBinary binary, string? destName, bool jumpIfTrue)
         {
             var dest = AcquireDest(binary.Type, destName, out var allocated);
-            var left = EmitExpression(binary.Left, dest.Text);
+            var left = EmitChild(binary.Left, dest.Text);
             var op = jumpIfTrue ? PexOpCode.JmpT : PexOpCode.JmpF;
             var jump = TryEmit(op, dest, PexFunctionBuilder.Integer(0));
             if (left.Temp is not null && left.Temp.Name != dest.Text)
@@ -836,7 +1041,7 @@ public sealed class PexEmitter
                 Release(left);
             }
 
-            var right = EmitExpression(binary.Right, dest.Text);
+            var right = EmitChild(binary.Right, dest.Text);
             if (right.Temp is not null && right.Temp.Name != dest.Text)
             {
                 Release(right);
@@ -854,10 +1059,10 @@ public sealed class PexEmitter
         {
             if (unary.OperatorKind == SyntaxKind.PlusToken)
             {
-                return EmitExpression(unary.Operand, destName);
+                return EmitChild(unary.Operand, destName);
             }
 
-            var operand = EmitExpression(unary.Operand);
+            var operand = EmitChild(unary.Operand);
             var dest = AcquireDest(unary.Type, destName, out var allocated);
             PexOpCode op;
             switch (unary.OperatorKind)
@@ -884,10 +1089,10 @@ public sealed class PexEmitter
             if (conversion.ConversionKind == ConversionKind.Identity
                 || PexEmitType.NameOf(conversion.Operand.Type) == PexEmitType.NameOf(conversion.Type))
             {
-                return EmitExpression(conversion.Operand, destName);
+                return EmitChild(conversion.Operand, destName);
             }
 
-            var operand = EmitExpression(conversion.Operand);
+            var operand = EmitChild(conversion.Operand);
             var dest = AcquireDest(conversion.Type, destName, out var allocated);
             TryEmit(PexOpCode.Cast, dest, operand.Value);
             Release(operand);
@@ -896,12 +1101,12 @@ public sealed class PexEmitter
 
         private Rvalue EmitCall(BoundCall call, string? destName)
         {
-            var receiver = call.Receiver is null ? Rvalue.Immediate(PexValue.None) : EmitExpression(call.Receiver);
+            var receiver = call.Receiver is null ? Rvalue.Immediate(PexValue.None) : EmitChild(call.Receiver);
             var arguments = new Rvalue[call.Arguments.Length];
             var values = new PexValue[call.Arguments.Length];
             for (var i = 0; i < call.Arguments.Length; i++)
             {
-                arguments[i] = EmitExpression(call.Arguments[i]);
+                arguments[i] = EmitChild(call.Arguments[i]);
                 values[i] = arguments[i].Value;
             }
 
@@ -1044,7 +1249,7 @@ public sealed class PexEmitter
                 return EmitLeaf(PexFunctionBuilder.Identifier(field.Field.Name.Text), destName);
             }
 
-            var receiver = EmitExpression(field.Receiver!);
+            var receiver = EmitChild(field.Receiver!);
             var dest = AcquireDest(field.Type, destName, out var allocated);
             TryEmit(
                 PexOpCode.StructGet,
@@ -1073,8 +1278,8 @@ public sealed class PexEmitter
 
         private Rvalue EmitIndex(BoundIndex index, string? destName)
         {
-            var array = EmitExpression(index.Expression);
-            var elementIndex = EmitExpression(index.Index);
+            var array = EmitChild(index.Expression);
+            var elementIndex = EmitChild(index.Index);
             var dest = AcquireDest(index.Type, destName, out var allocated);
             TryEmit(PexOpCode.ArrayGetElement, dest, array.Value, elementIndex.Value);
             Release(array);
@@ -1084,7 +1289,7 @@ public sealed class PexEmitter
 
         private Rvalue EmitIs(BoundIs isExpr, string? destName)
         {
-            var operand = EmitExpression(isExpr.Operand);
+            var operand = EmitChild(isExpr.Operand);
             var dest = AcquireDest(isExpr.Type, destName, out var allocated);
             TryEmit(
                 PexOpCode.Is,
@@ -1098,7 +1303,7 @@ public sealed class PexEmitter
         private Rvalue EmitNewArray(BoundNewArray array, string? destName)
         {
             _parent.CheckArraySize(array);
-            var size = EmitExpression(array.Size);
+            var size = EmitChild(array.Size);
             var dest = AcquireDest(array.Type, destName, out var allocated);
             TryEmit(PexOpCode.ArrayCreate, dest, size.Value);
             Release(size);
@@ -1114,7 +1319,7 @@ public sealed class PexEmitter
 
         private Rvalue EmitArrayLength(BoundArrayLength length, string? destName)
         {
-            var array = EmitExpression(length.Array);
+            var array = EmitChild(length.Array);
             var dest = AcquireDest(length.Type, destName, out var allocated);
             TryEmit(PexOpCode.ArrayLength, dest, array.Value);
             Release(array);
@@ -1123,7 +1328,7 @@ public sealed class PexEmitter
 
         private Rvalue EmitMemberAccess(BoundMemberAccess member, string? destName)
         {
-            var receiver = EmitExpression(member.Receiver);
+            var receiver = EmitChild(member.Receiver);
             var dest = AcquireDest(member.Type, destName, out var allocated);
             if (member.Member is IVariableSymbol field)
             {
@@ -1158,7 +1363,7 @@ public sealed class PexEmitter
                 return Rvalue.Immediate(PexFunctionBuilder.Identifier("self"));
             }
 
-            return EmitExpression(receiver);
+            return EmitChild(receiver);
         }
 
         private Rvalue EmitLeaf(PexValue value, string? destName)
@@ -1283,7 +1488,25 @@ public sealed class PexEmitter
                 return -1;
             }
 
-            return _builder.Emit(op, operands);
+            var index = _builder.Emit(op, operands);
+            if (index >= 0)
+            {
+                while (_lines.Count < index)
+                {
+                    _lines.Add(_currentLine);
+                }
+
+                if (_lines.Count == index)
+                {
+                    _lines.Add(_currentLine);
+                }
+                else
+                {
+                    _lines[index] = _currentLine;
+                }
+            }
+
+            return index;
         }
 
         private void EmitVariadic(PexOpCode op, PexValue[] fixedArgs, PexValue[] variadic)
