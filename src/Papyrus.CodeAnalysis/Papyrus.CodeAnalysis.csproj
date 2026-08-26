@@ -6,7 +6,8 @@
     <ProjectReference Include="..\Papyrus.Pex\Papyrus.Pex.csproj" />
     <ProjectReference Include="..\Papyrus.CodeAnalysis.Generators\Papyrus.CodeAnalysis.Generators.csproj"
                       OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false" />
+                      ReferenceOutputAssembly="false"
+                      GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsAotCompatible;RuntimeIdentifier;SelfContained" />
     <InternalsVisibleTo Include="Papyrus.CodeAnalysis.Tests" />
   </ItemGroup>
 </Project>

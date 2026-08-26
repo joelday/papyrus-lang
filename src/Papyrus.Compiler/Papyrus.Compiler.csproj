@@ -3,6 +3,9 @@
     <OutputType>Exe</OutputType>
     <AssemblyName>papyrusc</AssemblyName>
     <RootNamespace>Papyrus.Compiler</RootNamespace>
+    <!-- RID is passed at publish (CI smokes win-x64). Do not bake RuntimeIdentifier. -->
+    <PublishAot>true</PublishAot>
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Papyrus.Workspaces\Papyrus.Workspaces.csproj" />

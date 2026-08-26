@@ -49,6 +49,24 @@ jobs:
       - name: Workspaces tests
         run: dotnet test tests/Papyrus.Workspaces.Tests --no-restore --configuration Release --no-build
 
+  aot-smoke:
+    name: papyrusc NativeAOT (win-x64)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Publish NativeAOT
+        run: dotnet publish src/Papyrus.Compiler -c Release -r win-x64 /p:PublishAot=true -o artifacts/papyrusc-win-x64
+
+      - name: Smoke --version
+        run: artifacts/papyrusc-win-x64/papyrusc.exe --version
+
   pack:
     name: Pack Papyrus.Pex
     runs-on: ubuntu-latest
