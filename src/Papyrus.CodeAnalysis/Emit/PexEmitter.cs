@@ -11,7 +11,7 @@ using Papyrus.Pex;
 
 namespace Papyrus.CodeAnalysis.Emit;
 
-internal sealed class PexEmitter
+public sealed class PexEmitter
 {
     private readonly FlagsFile? _flagsFile;
     private readonly TimeProvider? _timeProvider;
