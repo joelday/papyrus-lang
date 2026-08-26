@@ -4,6 +4,8 @@ using System.Collections.Immutable;
 using System.IO;
 using Papyrus.CodeAnalysis;
 using Papyrus.CodeAnalysis.Emit;
+using Papyrus.CodeAnalysis.Symbols;
+using Papyrus.CodeAnalysis.Syntax;
 using Papyrus.CodeAnalysis.Text;
 using Papyrus.Pex;
 using Papyrus.Workspaces;
@@ -48,14 +50,8 @@ internal static class CompileCommand
             return 1;
         }
 
-        string scriptPath;
-        try
+        if (!TryGetFullPath(options.Path, stderr, out var scriptPath))
         {
-            scriptPath = Path.GetFullPath(options.Path);
-        }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
-        {
-            stderr.WriteLine($"error: {ex.Message}");
             return 1;
         }
 
@@ -78,14 +74,8 @@ internal static class CompileCommand
             return 1;
         }
 
-        string outputPath;
-        try
+        if (!TryGetFullPath(options.Output ?? Path.ChangeExtension(scriptPath, ".pex"), stderr, out var outputPath))
         {
-            outputPath = Path.GetFullPath(options.Output ?? Path.ChangeExtension(scriptPath, ".pex"));
-        }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
-        {
-            stderr.WriteLine($"error: {ex.Message}");
             return 1;
         }
 
@@ -93,13 +83,8 @@ internal static class CompileCommand
         string? flagsPath = null;
         if (options.Flags is not null)
         {
-            try
+            if (!TryGetFullPath(options.Flags, stderr, out flagsPath))
             {
-                flagsPath = Path.GetFullPath(options.Flags);
-            }
-            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
-            {
-                stderr.WriteLine($"error: {ex.Message}");
                 return 1;
             }
 
@@ -110,23 +95,46 @@ internal static class CompileCommand
             }
         }
 
-        var includeDirectories = new List<string>(1 + options.Imports.Length);
+        var imports = new List<string>(options.Imports.Length);
+        foreach (var import in options.Imports)
+        {
+            if (string.IsNullOrWhiteSpace(import))
+            {
+                continue;
+            }
+
+            if (!TryGetFullPath(import, stderr, out var importPath))
+            {
+                return 1;
+            }
+
+            imports.Add(importPath);
+        }
+
+        var includeDirectories = new List<string>(1 + imports.Count);
         var scriptDirectory = Path.GetDirectoryName(scriptPath);
         if (!string.IsNullOrEmpty(scriptDirectory))
         {
             includeDirectories.Add(scriptDirectory);
         }
 
-        foreach (var import in options.Imports)
+        includeDirectories.AddRange(imports);
+
+        FileSystemScriptResolver resolver;
+        try
         {
-            includeDirectories.Add(import);
+            resolver = new FileSystemScriptResolver(
+                includeDirectories,
+                Path.GetDirectoryName(outputPath),
+                dialect.Game);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            stderr.WriteLine($"error: {ex.Message}");
+            return 1;
         }
 
-        var resolver = new FileSystemScriptResolver(
-            includeDirectories,
-            Path.GetDirectoryName(outputPath),
-            dialect.Game);
-        var name = GetScriptName(scriptPath, options.Imports, dialect.Game);
+        var name = GetScriptName(scriptPath, imports, dialect.Game);
         if (name.Parts.Length == 0)
         {
             stderr.WriteLine("error: could not determine script name");
@@ -172,10 +180,25 @@ internal static class CompileCommand
             return 0;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException
-            or NotSupportedException or InvalidOperationException)
+            or NotSupportedException or InvalidOperationException or PexFormatException)
         {
             stderr.WriteLine($"error: {ex.Message}");
             return 1;
+        }
+    }
+
+    private static bool TryGetFullPath(string path, TextWriter stderr, out string fullPath)
+    {
+        try
+        {
+            fullPath = Path.GetFullPath(path);
+            return true;
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            stderr.WriteLine($"error: {ex.Message}");
+            fullPath = null!;
+            return false;
         }
     }
 
@@ -209,22 +232,13 @@ internal static class CompileCommand
         return false;
     }
 
-    private static QualifiedName GetScriptName(string fullPath, string[] imports, GameId game)
+    private static QualifiedName GetScriptName(string fullPath, List<string> imports, GameId game)
     {
         var supportsNamespaces = game is not (GameId.Skyrim or GameId.SkyrimSpecialEdition);
         string? bestImport = null;
-        for (var i = 0; i < imports.Length; i++)
+        for (var i = 0; i < imports.Count; i++)
         {
-            string import;
-            try
-            {
-                import = Path.GetFullPath(imports[i]);
-            }
-            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
-            {
-                continue;
-            }
-
+            var import = imports[i];
             if (!IsUnderDirectory(import, fullPath))
             {
                 continue;
@@ -324,6 +338,7 @@ internal static class CompileCommand
 
         var hasError = false;
         var mainTree = compilation.GetSyntaxTree(name);
+        var paths = new Dictionary<SyntaxTree, string?>();
         foreach (var diagnostic in diagnostics)
         {
             if (diagnostic.Severity == DiagnosticSeverity.Hidden)
@@ -336,22 +351,59 @@ internal static class CompileCommand
                 hasError = true;
             }
 
-            var path = diagnostic.Tree is null || ReferenceEquals(diagnostic.Tree, mainTree)
-                ? scriptPath
-                : null;
-            if (path is not null && diagnostic.Tree is not null)
+            var path = GetDisplayPath(diagnostic.Tree, mainTree, scriptPath, compilation, paths);
+            var prefix = SeverityText(diagnostic.Severity) + " " + diagnostic.Id + ": " + diagnostic.GetMessage();
+            if (path is null)
             {
-                GetLineAndColumn(diagnostic.Tree.GetText(), diagnostic.Span.Start, out var line, out var column);
-                stderr.WriteLine(
-                    $"{path}({line},{column}): {SeverityText(diagnostic.Severity)} {diagnostic.Id}: {diagnostic.GetMessage()}");
+                stderr.WriteLine(prefix);
+            }
+            else if (diagnostic.Tree is null)
+            {
+                stderr.WriteLine($"{path}: {prefix}");
             }
             else
             {
-                stderr.WriteLine($"{SeverityText(diagnostic.Severity)} {diagnostic.Id}: {diagnostic.GetMessage()}");
+                GetLineAndColumn(diagnostic.Tree.GetText(), diagnostic.Span.Start, out var line, out var column);
+                stderr.WriteLine($"{path}({line},{column}): {prefix}");
             }
         }
 
         return hasError;
+    }
+
+    private static string? GetDisplayPath(
+        SyntaxTree? tree,
+        SyntaxTree mainTree,
+        string scriptPath,
+        PapyrusCompilation compilation,
+        Dictionary<SyntaxTree, string?> cache)
+    {
+        if (tree is null || ReferenceEquals(tree, mainTree))
+        {
+            return scriptPath;
+        }
+
+        if (cache.TryGetValue(tree, out var cached))
+        {
+            return cached;
+        }
+
+        string? path = null;
+        if (compilation.GetSemanticModel(tree).GetDeclaredSymbol(tree.GetRoot()) is IScriptSymbol script)
+        {
+            if (compilation.Resolver.TryResolve(script.QualifiedName, out _, out var displayPath)
+                && !string.IsNullOrEmpty(displayPath))
+            {
+                path = displayPath;
+            }
+            else
+            {
+                path = script.QualifiedName.ToRelativePath();
+            }
+        }
+
+        cache[tree] = path;
+        return path;
     }
 
     private static void GetLineAndColumn(SourceText text, int position, out int line, out int column)

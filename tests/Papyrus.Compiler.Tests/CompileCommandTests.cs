@@ -14,6 +14,7 @@ public sealed class CompileCommandTests
 
         Assert.Equal(0, code);
         Assert.Contains("compile <script.psc>", stdout, StringComparison.Ordinal);
+        Assert.Contains("[--time <unix>]", stdout, StringComparison.Ordinal);
         Assert.Contains("--game", stdout, StringComparison.Ordinal);
         Assert.Contains("skyrimle", stdout, StringComparison.Ordinal);
         Assert.Empty(stderr);
@@ -114,12 +115,93 @@ public sealed class CompileCommandTests
         var script = Path.Combine(root.Path, "Foo.psc");
         File.WriteAllText(script, "ScriptName Foo extends MissingBase\nFunction Bar()\nEndFunction\n");
         var pexPath = Path.Combine(root.Path, "Foo.pex");
+        var sentinel = new byte[] { 1, 2, 3, 4 };
+        File.WriteAllBytes(pexPath, sentinel);
 
         var code = Run(out _, out var stderr, "compile", script, "--game", "skyrimse");
 
         Assert.Equal(1, code);
         Assert.Contains("PAP1001", stderr, StringComparison.Ordinal);
+        Assert.Equal(sentinel, File.ReadAllBytes(pexPath));
+    }
+
+    [Fact]
+    public void Compile_Ppj_ExitsNonZero()
+    {
+        using var root = new TempDir();
+        var project = Path.Combine(root.Path, "Mod.ppj");
+        File.WriteAllText(project, "<PapyrusProject />");
+        var pexPath = Path.Combine(root.Path, "Mod.pex");
+
+        var code = Run(out _, out var stderr, "compile", project, "--game", "skyrimse");
+
+        Assert.Equal(1, code);
+        Assert.Contains(".ppj", stderr, StringComparison.Ordinal);
         Assert.False(File.Exists(pexPath));
+    }
+
+    [Fact]
+    public void Compile_SameNameImport_EmitsSpecifiedFile()
+    {
+        using var root = new TempDir();
+        var import = Path.Combine(root.Path, "import");
+        var src = Path.Combine(root.Path, "src");
+        Directory.CreateDirectory(Path.Combine(import, "NS"));
+        Directory.CreateDirectory(Path.Combine(src, "NS"));
+        File.WriteAllText(
+            Path.Combine(import, "NS", "Foo.psc"),
+            "ScriptName NS:Foo\nInt Function Marker()\n  Return 7\nEndFunction\n");
+        var script = Path.Combine(src, "NS", "Foo.psc");
+        File.WriteAllText(
+            script,
+            "ScriptName NS:Foo\nInt Function Marker()\n  Return 42\nEndFunction\n");
+        var pexPath = Path.Combine(src, "NS", "Foo.pex");
+
+        var code = Run(
+            out _,
+            out var stderr,
+            "compile",
+            script,
+            "--game", "fallout4",
+            "--import", import,
+            "--import", src);
+
+        Assert.Equal(0, code);
+        Assert.Empty(stderr);
+        Assert.True(File.Exists(pexPath));
+
+        var file = PexReader.Read(File.ReadAllBytes(pexPath));
+        Assert.Equal("NS:Foo", Assert.Single(file.Objects).Name);
+        var marker = Function(file, "Marker");
+        Assert.Contains(
+            marker.Instructions,
+            static i => i.OpCode == PexOpCode.Return
+                && i.Arguments.Length > 0
+                && i.Arguments[0].Type == PexValueType.Integer
+                && i.Arguments[0].Integer == 42);
+        Assert.DoesNotContain(
+            marker.Instructions,
+            static i => i.OpCode == PexOpCode.Return
+                && i.Arguments.Length > 0
+                && i.Arguments[0].Type == PexValueType.Integer
+                && i.Arguments[0].Integer == 7);
+    }
+
+    private static PexFunction Function(PexFile file, string name)
+    {
+        var obj = Assert.Single(file.Objects);
+        foreach (var state in obj.States)
+        {
+            foreach (var function in state.Functions)
+            {
+                if (string.Equals(function.Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return function;
+                }
+            }
+        }
+
+        throw new InvalidOperationException("Function '" + name + "' was not emitted.");
     }
 
     private static string TinyScript()
