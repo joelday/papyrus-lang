@@ -89,15 +89,12 @@ internal sealed class PexFunctionBuilder
         }
 
         var instruction = _instructions[instructionIndex];
-        var argIndex = instruction.OpCode == PexOpCode.Jmp ? 0 : 1;
-        if ((uint)argIndex >= (uint)instruction.Arguments.Length)
+        if (!PexOpCodeInfo.IsBranch(instruction.OpCode))
         {
             return;
         }
 
-        instruction.Arguments = instruction.Arguments.SetItem(
-            argIndex,
-            Integer(targetIndex - instructionIndex));
+        PexOpCodeInfo.SetBranchOffset(instruction, targetIndex - instructionIndex);
     }
 
     public void AddUserLocal(string name, string typeName)

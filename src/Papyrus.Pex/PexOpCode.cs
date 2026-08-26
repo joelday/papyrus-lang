@@ -1,3 +1,5 @@
+using System;
+
 namespace Papyrus.Pex;
 
 /// <summary>
@@ -153,5 +155,66 @@ public static class PexOpCodeInfo
             or PexOpCode.LockGuards
             or PexOpCode.UnlockGuards
             or PexOpCode.TryLockGuards;
+    }
+
+    public static bool IsBranch(PexOpCode op)
+        => op is PexOpCode.Jmp or PexOpCode.JmpT or PexOpCode.JmpF;
+
+    public static int BranchTargetArgumentIndex(PexOpCode op)
+    {
+        switch (op)
+        {
+            case PexOpCode.Jmp:
+                return 0;
+            case PexOpCode.JmpT:
+            case PexOpCode.JmpF:
+                return 1;
+            default:
+                throw new PexFormatException($"Opcode {op} is not a branch.");
+        }
+    }
+
+    public static bool TryGetBranchOffset(PexInstruction instruction, out int offset)
+    {
+        ArgumentNullException.ThrowIfNull(instruction);
+        offset = 0;
+        if (!IsBranch(instruction.OpCode))
+        {
+            return false;
+        }
+
+        var argIndex = BranchTargetArgumentIndex(instruction.OpCode);
+        if ((uint)argIndex >= (uint)instruction.Arguments.Length)
+        {
+            return false;
+        }
+
+        var value = instruction.Arguments[argIndex];
+        if (value.Type != PexValueType.Integer)
+        {
+            return false;
+        }
+
+        offset = value.Integer;
+        return true;
+    }
+
+    public static void SetBranchOffset(PexInstruction instruction, int offset)
+    {
+        ArgumentNullException.ThrowIfNull(instruction);
+        if (!IsBranch(instruction.OpCode))
+        {
+            return;
+        }
+
+        var argIndex = BranchTargetArgumentIndex(instruction.OpCode);
+        if ((uint)argIndex >= (uint)instruction.Arguments.Length)
+        {
+            return;
+        }
+
+        instruction.Arguments = instruction.Arguments.SetItem(
+            argIndex,
+            new PexValue { Type = PexValueType.Integer, Integer = offset });
     }
 }

@@ -95,6 +95,18 @@ public sealed class PexOpCodeTests
     }
 
     [Fact]
+    public void Branch_metadata_matches_jmp_family()
+    {
+        Assert.True(PexOpCodeInfo.IsBranch(PexOpCode.Jmp));
+        Assert.True(PexOpCodeInfo.IsBranch(PexOpCode.JmpT));
+        Assert.True(PexOpCodeInfo.IsBranch(PexOpCode.JmpF));
+        Assert.False(PexOpCodeInfo.IsBranch(PexOpCode.Return));
+        Assert.Equal(0, PexOpCodeInfo.BranchTargetArgumentIndex(PexOpCode.Jmp));
+        Assert.Equal(1, PexOpCodeInfo.BranchTargetArgumentIndex(PexOpCode.JmpT));
+        Assert.Equal(1, PexOpCodeInfo.BranchTargetArgumentIndex(PexOpCode.JmpF));
+    }
+
+    [Fact]
     public void DialectMaxAliases_MatchLastOpcode()
     {
         Assert.Equal(PexOpCode.ArrayRFindElement, PexOpCode.SkyrimMax);
