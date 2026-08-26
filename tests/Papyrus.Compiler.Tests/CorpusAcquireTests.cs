@@ -207,7 +207,7 @@ public sealed class CorpusAcquireTests
     [Fact]
     public void UnknownCommand_ExitsNonZero()
     {
-        var code = Run(out _, out var stderr, "compile");
+        var code = Run(out _, out var stderr, "nope");
 
         Assert.Equal(1, code);
         Assert.Contains("unknown command", stderr, StringComparison.Ordinal);

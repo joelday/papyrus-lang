@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using Papyrus.CodeAnalysis.Testing;
@@ -11,11 +13,20 @@ internal static class Cli
         """
         Usage: papyrusc <command>
 
+          papyrusc compile <script.psc> --game <skyrimse|skyrimle|fallout4|starfield> [--output <file.pex>] [--flags <file.flg>] [--import <dir>]... [--time <unix>]
           papyrusc corpus acquire --game <game> --source <path> [--dest <path>] [--force]
           papyrusc hash <path> [--game <game>]
           papyrusc verify --source <path> --baseline <file> [--game <game>]
           papyrusc verify --write-baselines --source <path> --out <file> --attestation <file> --game <game>
           papyrusc --version
+
+        compile
+          Compile one .psc to .pex. Does not build .ppj projects.
+          --game     skyrimse | skyrimle | fallout4 | starfield
+          --output   Output .pex path (default: same directory, .pex extension)
+          --flags    User flags file (.flg)
+          --import   Additional script import directory (repeatable)
+          --time     Unix compile timestamp (default: 0)
 
         corpus acquire
           --game     skyrimse | fallout4 | starfield
@@ -92,6 +103,17 @@ internal static class Cli
             }
 
             return VerifyCommand.Execute(options, stdout, stderr);
+        }
+
+        if (args[0] == "compile")
+        {
+            if (!TryParseCompile(args.AsSpan(1), out var options, out var error))
+            {
+                stderr.WriteLine(error);
+                return 1;
+            }
+
+            return CompileCommand.Execute(options, stdout, stderr);
         }
 
         stderr.WriteLine("error: unknown command");
@@ -387,6 +409,82 @@ internal static class Cli
         }
 
         options = new VerifyCommandOptions(source, game, baseline, dest, attestation, writeBaselines);
+        return true;
+    }
+
+    internal static bool TryParseCompile(
+        ReadOnlySpan<string> args,
+        out CompileCommandOptions options,
+        out string error)
+    {
+        options = null!;
+        error = null!;
+        string? path = null;
+        string? game = null;
+        string? output = null;
+        string? flags = null;
+        var imports = new List<string>();
+        long time = 0;
+
+        for (var i = 0; i < args.Length; i++)
+        {
+            var arg = args[i];
+            if (!arg.StartsWith("--", StringComparison.Ordinal))
+            {
+                if (path is not null)
+                {
+                    error = $"error: unexpected argument '{arg}'";
+                    return false;
+                }
+
+                path = arg;
+                continue;
+            }
+
+            if (!TryReadOption(args, ref i, out var name, out var value, out error))
+                return false;
+
+            switch (name)
+            {
+                case "game":
+                    game = value;
+                    break;
+                case "output":
+                    output = value;
+                    break;
+                case "flags":
+                    flags = value;
+                    break;
+                case "import":
+                    imports.Add(value);
+                    break;
+                case "time":
+                    if (!long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out time) || time < 0)
+                    {
+                        error = "error: --time must be a non-negative unix timestamp";
+                        return false;
+                    }
+
+                    break;
+                default:
+                    error = $"error: unknown option --{name}";
+                    return false;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            error = "error: path to a .psc file is required";
+            return false;
+        }
+
+        if (game is null || !CompileCommand.TryGetDialect(game, out _))
+        {
+            error = "error: --game must be one of: " + CompileCommand.GameValues;
+            return false;
+        }
+
+        options = new CompileCommandOptions(path, game, output, flags, imports.ToArray(), time);
         return true;
     }
 
