@@ -302,7 +302,7 @@ internal static class Lowering
             var size = VisitExpression(array.Size);
             return size == array.Size
                 ? array
-                : new BoundNewArray(array.ElementType, size, array.Type);
+                : new BoundNewArray(array.ElementType, size, array.Type, array.Span);
         }
 
         private BoundExpression VisitArrayLength(BoundArrayLength length)

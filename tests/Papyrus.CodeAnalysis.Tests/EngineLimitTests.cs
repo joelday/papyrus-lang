@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Text;
 using Papyrus.CodeAnalysis;
 using Papyrus.CodeAnalysis.Emit;
 using Papyrus.CodeAnalysis.Text;
@@ -14,16 +15,27 @@ public sealed class EngineLimitTests
     [Fact]
     public void Array_of_129_elements_is_pap2002_error()
     {
-        var (obj, diagnostics) = Emit(
-            "ScriptName Foo\nFunction Bar()\n  Int[] a = new Int[129]\nEndFunction\n");
+        const string source = "ScriptName Foo\nFunction Bar()\n  Int[] a = new Int[129]\nEndFunction\n";
+        var (obj, diagnostics) = Emit(source);
 
         var diagnostic = Assert.Single(diagnostics, static d => d.Id.StartsWith("PAP20", StringComparison.Ordinal));
         Assert.Equal(DiagnosticCatalog.ArraySizeExceedsLimitId, diagnostic.Id);
         Assert.Same(DiagnosticCatalog.ArraySizeExceedsLimit, diagnostic.Descriptor);
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Equal(DiagnosticCatalog.EngineLimitCategory, diagnostic.Descriptor.Category);
+        AssertSpan(diagnostic, source, "new Int[129]");
         Assert.NotNull(obj);
         Assert.Equal("Foo", obj.Name);
+    }
+
+    [Fact]
+    public void Array_size_from_constant_binary_is_pap2002()
+    {
+        const string source = "ScriptName Foo\nFunction Bar()\n  Int[] a = new Int[128 + 1]\nEndFunction\n";
+        var (_, diagnostics) = Emit(source);
+
+        var diagnostic = Assert.Single(diagnostics, static d => d.Id == DiagnosticCatalog.ArraySizeExceedsLimitId);
+        AssertSpan(diagnostic, source, "new Int[128 + 1]");
     }
 
     [Fact]
@@ -73,10 +85,12 @@ public sealed class EngineLimitTests
     [Fact]
     public void Too_many_named_state_functions_is_pap2004()
     {
-        AssertLimit(
-            "ScriptName Foo\nState S\nFunction A()\nEndFunction\nFunction B()\nEndFunction\nEndState\n",
+        const string source = "ScriptName Foo\nState S\nFunction A()\nEndFunction\nFunction B()\nEndFunction\nEndState\n";
+        var diagnostic = AssertLimit(
+            source,
             limits => limits with { MaxFunctionsPerNamedState = 1 },
             DiagnosticCatalog.TooManyFunctionsInNamedStateId);
+        AssertSpanAfter(diagnostic, source, "State ", "S");
     }
 
     [Fact]
@@ -129,13 +143,53 @@ public sealed class EngineLimitTests
     }
 
     [Fact]
+    public void User_flag_bit_out_of_range_is_reported_on_emit_and_ignore_downgrades()
+    {
+        var flags = FlagsFile.Parse("Hidden {32}\n");
+        var (_, errors) = Emit(
+            "ScriptName Foo\nFunction Bar()\nEndFunction\n",
+            flags: flags);
+        var error = Assert.Single(errors, static d => d.Id == DiagnosticCatalog.UserFlagBitIndexOutOfRangeId);
+        Assert.Equal(DiagnosticSeverity.Error, error.Severity);
+        Assert.DoesNotContain(errors, static d => d.Id == DiagnosticCatalog.TooManyUserFlagsId);
+
+        var (_, warnings) = Emit(
+            "ScriptName Foo\nFunction Bar()\nEndFunction\n",
+            flags: flags,
+            ignoreEngineLimits: true);
+        var warning = Assert.Single(warnings, static d => d.Id == DiagnosticCatalog.UserFlagBitIndexOutOfRangeId);
+        Assert.Equal(DiagnosticSeverity.Warning, warning.Severity);
+    }
+
+    [Fact]
+    public void Out_of_range_flag_bit_does_not_count_toward_pap2010()
+    {
+        var text = new StringBuilder();
+        for (var i = 0; i < 31; i++)
+        {
+            text.Append('F').Append(i).Append(" {").Append(i).Append('}').AppendLine();
+        }
+
+        text.Append("Bad {32}\n");
+        var flags = FlagsFile.Parse(text.ToString());
+        var (_, diagnostics) = Emit(
+            "ScriptName Foo\nFunction Bar()\nEndFunction\n",
+            flags: flags);
+
+        Assert.Contains(diagnostics, static d => d.Id == DiagnosticCatalog.UserFlagBitIndexOutOfRangeId);
+        Assert.DoesNotContain(diagnostics, static d => d.Id == DiagnosticCatalog.TooManyUserFlagsId);
+    }
+
+    [Fact]
     public void Too_many_guards_is_pap2011()
     {
-        AssertLimit(
-            "ScriptName Foo\nGuard A\nGuard B\nFunction Bar()\nEndFunction\n",
+        const string source = "ScriptName Foo\nGuard A\nGuard B\nFunction Bar()\nEndFunction\n";
+        var diagnostic = AssertLimit(
+            source,
             limits => limits with { MaxGuards = 1 },
             DiagnosticCatalog.TooManyGuardsId,
             dialect: PapyrusDialect.Starfield);
+        AssertSpanAfter(diagnostic, source, "Guard ", "B");
     }
 
     [Fact]
@@ -191,6 +245,22 @@ public sealed class EngineLimitTests
         }
 
         throw new InvalidOperationException("Function '" + name + "' was not emitted.");
+    }
+
+    private static void AssertSpan(Diagnostic diagnostic, string source, string fragment)
+    {
+        var start = source.IndexOf(fragment, StringComparison.Ordinal);
+        Assert.True(start >= 0, "Fragment '" + fragment + "' was not found.");
+        Assert.Equal(start, diagnostic.Span.Start);
+        Assert.Equal(fragment.Length, diagnostic.Span.Length);
+    }
+
+    private static void AssertSpanAfter(Diagnostic diagnostic, string source, string prefix, string fragment)
+    {
+        var start = source.IndexOf(prefix + fragment, StringComparison.Ordinal);
+        Assert.True(start >= 0, "Fragment '" + prefix + fragment + "' was not found.");
+        Assert.Equal(start + prefix.Length, diagnostic.Span.Start);
+        Assert.Equal(fragment.Length, diagnostic.Span.Length);
     }
 
     private static (PexObject Obj, ImmutableArray<Diagnostic> Diagnostics) Emit(

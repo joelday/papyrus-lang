@@ -37,14 +37,18 @@ internal static class EngineLimitChecker
             tree,
             span,
             diagnostics);
-        CheckCount(
-            Length(obj.Guards),
-            limits.MaxGuards,
-            DiagnosticCatalog.TooManyGuards,
-            severity,
-            tree,
-            span,
-            diagnostics);
+        var guardCount = Length(obj.Guards);
+        if (guardCount > limits.MaxGuards)
+        {
+            Report(
+                DiagnosticCatalog.TooManyGuards,
+                severity,
+                tree,
+                ExcessSpan(obj.Guards, limits.MaxGuards, static guard => guard.Name, script, span),
+                diagnostics,
+                guardCount,
+                limits.MaxGuards);
+        }
 
         var initialValues = 0;
         var variables = obj.Variables;
@@ -107,14 +111,17 @@ internal static class EngineLimitChecker
             }
         }
 
-        CheckCount(
-            namedStates,
-            limits.MaxNamedStates,
-            DiagnosticCatalog.TooManyNamedStates,
-            severity,
-            tree,
-            span,
-            diagnostics);
+        if (namedStates > limits.MaxNamedStates)
+        {
+            Report(
+                DiagnosticCatalog.TooManyNamedStates,
+                severity,
+                tree,
+                ExcessNamedStateSpan(states, limits.MaxNamedStates, script, span),
+                diagnostics,
+                namedStates,
+                limits.MaxNamedStates);
+        }
 
         var properties = obj.Properties;
         if (!properties.IsDefaultOrEmpty)
@@ -137,13 +144,22 @@ internal static class EngineLimitChecker
         if (flagsFile is not null)
         {
             CheckCount(
-                Length(flagsFile.Flags),
+                CountEmitableFlags(flagsFile),
                 limits.MaxUserFlags,
                 DiagnosticCatalog.TooManyUserFlags,
                 severity,
                 tree,
                 span,
                 diagnostics);
+
+            var infos = flagsFile.Diagnostics;
+            if (!infos.IsDefaultOrEmpty)
+            {
+                for (var i = 0; i < infos.Length; i++)
+                {
+                    diagnostics.Add(new Diagnostic(infos[i], span, tree, severity));
+                }
+            }
         }
     }
 
@@ -226,6 +242,33 @@ internal static class EngineLimitChecker
             case BoundUnary { OperatorKind: SyntaxKind.MinusToken } unary when TryGetInt(unary.Operand, out var inner):
                 value = unchecked(-inner);
                 return true;
+            case BoundBinary binary when TryGetInt(binary.Left, out var left) && TryGetInt(binary.Right, out var right):
+                return TryEvaluateBinary(binary.OperatorKind, left, right, out value);
+            default:
+                value = 0;
+                return false;
+        }
+    }
+
+    private static bool TryEvaluateBinary(SyntaxKind operatorKind, int left, int right, out int value)
+    {
+        switch (operatorKind)
+        {
+            case SyntaxKind.PlusToken:
+                value = unchecked(left + right);
+                return true;
+            case SyntaxKind.MinusToken:
+                value = unchecked(left - right);
+                return true;
+            case SyntaxKind.AsteriskToken:
+                value = unchecked(left * right);
+                return true;
+            case SyntaxKind.SlashToken when right != 0:
+                value = left / right;
+                return true;
+            case SyntaxKind.PercentToken when right != 0:
+                value = left % right;
+                return true;
             default:
                 value = 0;
                 return false;
@@ -261,6 +304,71 @@ internal static class EngineLimitChecker
     }
 
     private static int Length<T>(ImmutableArray<T> items) => items.IsDefault ? 0 : items.Length;
+
+    private static int CountEmitableFlags(FlagsFile flagsFile)
+    {
+        var flags = flagsFile.Flags;
+        if (flags.IsDefaultOrEmpty)
+        {
+            return 0;
+        }
+
+        var count = 0;
+        for (var i = 0; i < flags.Length; i++)
+        {
+            if (flags[i].BitIndex is >= 0 and <= 31)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private static TextSpan ExcessSpan<T>(
+        ImmutableArray<T> items,
+        int max,
+        Func<T, string> name,
+        IScriptSymbol script,
+        TextSpan fallback)
+    {
+        if (items.IsDefaultOrEmpty || max < 0 || max >= items.Length)
+        {
+            return fallback;
+        }
+
+        return SpanOf(script, name(items[max]));
+    }
+
+    private static TextSpan ExcessNamedStateSpan(
+        ImmutableArray<PexState> states,
+        int max,
+        IScriptSymbol script,
+        TextSpan fallback)
+    {
+        if (states.IsDefaultOrEmpty || max < 0)
+        {
+            return fallback;
+        }
+
+        var named = 0;
+        for (var i = 0; i < states.Length; i++)
+        {
+            if (string.IsNullOrEmpty(states[i].Name))
+            {
+                continue;
+            }
+
+            if (named == max)
+            {
+                return SpanOf(script, states[i].Name);
+            }
+
+            named++;
+        }
+
+        return fallback;
+    }
 
     private static TextSpan SpanOf(IScriptSymbol script, string? memberName = null)
     {
@@ -316,6 +424,8 @@ internal static class EngineLimitChecker
             EventSymbol { Declaration: { } syntax } => syntax.Name.Span,
             PropertySymbol { Declaration: { } syntax } => syntax.Name.Span,
             VariableSymbol { Declaration: { } syntax } => syntax.Name.Span,
+            StateSymbol { Declaration: { } syntax } => syntax.Name.Span,
+            GuardSymbol { Declaration: { } syntax } => syntax.Name.Span,
             _ => null,
         };
     }

@@ -492,22 +492,14 @@ internal sealed class PexEmitter
             _diagnostics);
     }
 
-    private void CheckArraySize(BoundExpression size, IFunctionSymbol function)
+    private void CheckArraySize(BoundNewArray array)
     {
-        var span = function.DeclaringSyntaxReferences is { IsDefaultOrEmpty: false } refs
-            ? refs[0].Span
-            : function switch
-            {
-                FunctionSymbol { Declaration: { } syntax } => syntax.Name.Span,
-                EventSymbol { Declaration: { } syntax } => syntax.Name.Span,
-                _ => default,
-            };
         EngineLimitChecker.CheckArraySize(
-            size,
+            array.Size,
             Limits,
             EngineLimitSeverity,
             _tree,
-            span,
+            array.Span,
             _diagnostics);
     }
 
@@ -1085,7 +1077,7 @@ internal sealed class PexEmitter
 
         private Rvalue EmitNewArray(BoundNewArray array, string? destName)
         {
-            _parent.CheckArraySize(array.Size, _function);
+            _parent.CheckArraySize(array);
             var size = EmitExpression(array.Size);
             var dest = AcquireDest(array.Type, destName, out var allocated);
             TryEmit(PexOpCode.ArrayCreate, dest, size.Value);

@@ -416,7 +416,7 @@ internal sealed class BoundTreeBuilder
             var size = created.Size is null
                 ? new BoundLiteral(0, IntType())
                 : BindExpression(created.Size, IntType());
-            return new BoundNewArray(element, size, array);
+            return new BoundNewArray(element, size, array, created.Span);
         }
 
         return new BoundNew(element);
