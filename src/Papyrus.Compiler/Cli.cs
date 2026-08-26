@@ -17,6 +17,7 @@ internal static class Cli
           papyrusc corpus acquire --game <game> --source <path> [--dest <path>] [--force]
           papyrusc hash <path> [--game <game>]
           papyrusc verify --source <path> --baseline <file> [--game <game>]
+          papyrusc verify --compile [--game <game>] [--source <path>] [--baseline <file>] [--allowlist <file>]
           papyrusc verify --write-baselines --source <path> --out <file> --attestation <file> --game <game>
           papyrusc --version
 
@@ -41,8 +42,15 @@ internal static class Cli
           Does not compile. Does not download Bethesda files.
 
         verify
-          Compare hashes of existing .pex to a committed baseline. Does not compile.
-          --baseline is required unless --write-baselines.
+          Compare hashes of existing .pex to a committed baseline. Does not compile
+          unless --compile is set.
+          --baseline is required unless --write-baselines or --compile with no corpus.
+          --compile   Compile each .psc with PexEmitter and compare normalized hashes
+                      to the baseline. Skips (exit 0) when the local corpus is absent.
+                      --source defaults to ./corpus/<game>. Public CI must not require
+                      game files.
+          --allowlist Reviewed semantic-equivalence list (default docs/compliance/allowlist.md).
+          --ck-compiler <path>  Tier-2 CK differential; not implemented yet.
           --write-baselines is maintainer-only and requires --attestation and --game.
           See docs/compliance/baselines/README.md.
         """;
@@ -306,6 +314,9 @@ internal static class Cli
         string? dest = null;
         string? attestation = null;
         var writeBaselines = false;
+        var compile = false;
+        string? allowlist = null;
+        string? ckCompiler = null;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -333,6 +344,12 @@ internal static class Cli
             if (name == "write-baselines")
             {
                 writeBaselines = true;
+                continue;
+            }
+
+            if (name == "compile")
+            {
+                compile = true;
                 continue;
             }
 
@@ -364,13 +381,31 @@ internal static class Cli
                 case "attestation":
                     attestation = value;
                     break;
+                case "allowlist":
+                    allowlist = value;
+                    break;
+                case "ck-compiler":
+                    ckCompiler = value;
+                    break;
                 default:
                     error = $"error: unknown option --{name}";
                     return false;
             }
         }
 
-        if (string.IsNullOrWhiteSpace(source))
+        if (!string.IsNullOrWhiteSpace(ckCompiler))
+        {
+            error = "error: --ck-compiler (tier-2) is not implemented; use --compile for compile-vs-baseline. See docs/compliance/baselines/README.md";
+            return false;
+        }
+
+        if (compile && writeBaselines)
+        {
+            error = "error: --compile cannot be combined with --write-baselines";
+            return false;
+        }
+
+        if (!compile && string.IsNullOrWhiteSpace(source))
         {
             error = "error: --source is required";
             return false;
@@ -402,13 +437,22 @@ internal static class Cli
                 return false;
             }
         }
-        else if (string.IsNullOrWhiteSpace(baseline))
+        else if (!compile && string.IsNullOrWhiteSpace(baseline))
         {
             error = "error: --baseline is required (use papyrusc hash to print hashes)";
             return false;
         }
 
-        options = new VerifyCommandOptions(source, game, baseline, dest, attestation, writeBaselines);
+        options = new VerifyCommandOptions(
+            source ?? "",
+            game,
+            baseline,
+            dest,
+            attestation,
+            writeBaselines,
+            compile,
+            allowlist,
+            ckCompiler);
         return true;
     }
 

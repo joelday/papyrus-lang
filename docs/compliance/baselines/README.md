@@ -1,8 +1,11 @@
 # Compliance baselines
 
-Tier-1 public CI compares **normalized SHA-256 hashes** of PEX. The repo never contains vanilla `.pex`, Bethesda compiler binaries, or corpus source.
+Tier-1 public CI compares **normalized SHA-256 hashes** of PEX. The repo never contains vanilla `.pex`, compiler binaries from the games, or corpus source.
 
-There is no compiler yet. Today the harness hashes **existing** `.pex` via `PexReader` + `PexNormalizer.Hash`. It does not compile and it does not download Bethesda files.
+Two hash paths:
+
+1. **Existing `.pex`.** `papyrusc hash` / `papyrusc verify --source <pex-dir> --baseline <file>` via `PexReader` + `PexNormalizer.Hash`. Does not compile.
+2. **Compile vs baseline.** `papyrusc verify --compile` compiles each `.psc` with `PexEmitter` and compares the normalized hash to the committed baseline. **Skips (exit 0)** when the local corpus is absent — public CI must not require game files.
 
 Committed game baselines will live here later:
 
@@ -13,6 +16,27 @@ docs/compliance/baselines/starfield.json
 ```
 
 Public CI does **not** read those files. It hashes synthetic fixtures only and compares them to `tests/Papyrus.CodeAnalysis.Tests/fixtures/synthetic.hashes`.
+
+## Compile vs baseline (tier 1)
+
+```
+papyrusc verify --compile --game skyrimse|fallout4|starfield \
+  [--source ./corpus/<game>] \
+  [--baseline docs/compliance/baselines/<game>.json] \
+  [--allowlist docs/compliance/allowlist.md]
+```
+
+`--source` defaults to `./corpus/<game>`. If that tree has no `.psc` files, the command prints `allowlist size` and a skip message and exits 0.
+
+Everything not on `docs/compliance/allowlist.md` must be byte-identical. Allowlisted scripts may differ (semantic equivalence only). The command prints the compliance number (`identical: N/M (P%)`) and the allowlist size.
+
+## Tier 2 (CK compiler) — future
+
+```
+papyrusc verify --game <g> --ck-compiler <path> --source <dir>
+```
+
+Not implemented. That path would compile with both `papyrusc` and a **local** CK / PapyrusCompiler binary the user already has, then normalize and diff. Do not commit that binary. Until it ships, generate hashes from existing `.pex` (below) or from `--compile` against a corpus you acquired yourself.
 
 ## Generate hashes (maintainer, legitimate install)
 

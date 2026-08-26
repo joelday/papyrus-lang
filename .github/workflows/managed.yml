@@ -46,6 +46,9 @@ jobs:
       - name: Compiler tests
         run: dotnet test tests/Papyrus.Compiler.Tests --no-restore --configuration Release --no-build
 
+      - name: Differential compliance
+        run: dotnet run --no-build --no-restore --configuration Release --project src/Papyrus.Compiler/Papyrus.Compiler.csproj -- verify --compile --game skyrimse
+
       - name: Workspaces tests
         run: dotnet test tests/Papyrus.Workspaces.Tests --no-restore --configuration Release --no-build
 

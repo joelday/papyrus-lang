@@ -11,6 +11,26 @@ namespace Papyrus.CodeAnalysis.Tests;
 public sealed class PexHashHarnessTests
 {
     [Fact]
+    public void HashScript_TinyEmit_IsStableAndMatchesCommittedHash()
+    {
+        const string source = "ScriptName Foo\nFunction Bar()\nEndFunction\n";
+        string first = CompileHashHarness.HashScript(source);
+        string second = CompileHashHarness.HashScript(source);
+        Assert.Equal(first, second);
+
+        Dictionary<string, string> expected = BaselineFile.ParseHashList(File.ReadAllText(FixturePath("emit.hashes")));
+        Assert.Equal(expected["Foo"], first);
+    }
+
+    [Fact]
+    public void IsCorpusPresent_MissingPath_IsFalse()
+    {
+        Assert.False(CompileHashHarness.IsCorpusPresent(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))));
+        Assert.False(CompileHashHarness.IsCorpusPresent(null));
+        Assert.Contains("public CI does not require game files", CompileHashHarness.SkipReason("missing-corpus"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HashBytes_SyntheticFixtures_MatchCommittedHashFile()
     {
         Dictionary<string, string> expected = BaselineFile.ParseHashList(File.ReadAllText(FixturePath("synthetic.hashes")));
