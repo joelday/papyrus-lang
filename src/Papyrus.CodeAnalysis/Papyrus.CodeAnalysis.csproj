@@ -1,12 +1,29 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <PackageId>Papyrus.CodeAnalysis</PackageId>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <Authors>Joel Day</Authors>
+    <Description>Papyrus compiler library: syntax, symbols, and emit. Unstable 0.x — no compatibility promise.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/joelday/papyrus-lang</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/joelday/papyrus-lang</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>packages.md</PackageReadmeFile>
+    <PackageTags>papyrus;compiler;syntax;skyrim;fallout4;starfield</PackageTags>
+  </PropertyGroup>
   <ItemGroup>
+    <None Include="..\..\docs\packages.md" Pack="true" PackagePath="packages.md" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Papyrus.Pex\Papyrus.Pex.csproj" />
+    <!-- Generator is compile-time only; baked into this assembly. Separate pack later. -->
     <ProjectReference Include="..\Papyrus.CodeAnalysis.Generators\Papyrus.CodeAnalysis.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
                       GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsAotCompatible;RuntimeIdentifier;SelfContained" />
     <InternalsVisibleTo Include="Papyrus.CodeAnalysis.Tests" />
   </ItemGroup>

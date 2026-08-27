@@ -71,7 +71,7 @@ jobs:
         run: artifacts/papyrusc-win-x64/papyrusc.exe --version
 
   pack:
-    name: Pack Papyrus.Pex
+    name: Pack NuGet
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -84,12 +84,14 @@ jobs:
           global-json-file: global.json
 
       - name: Pack
-        run: dotnet pack src/Papyrus.Pex/Papyrus.Pex.csproj --configuration Release --output artifacts/nuget
+        run: |
+          dotnet pack src/Papyrus.Pex/Papyrus.Pex.csproj --configuration Release --output artifacts/nuget
+          dotnet pack src/Papyrus.CodeAnalysis/Papyrus.CodeAnalysis.csproj --configuration Release --output artifacts/nuget
 
       - name: Upload nupkg
         uses: actions/upload-artifact@v4
         with:
-          name: papyrus-pex-nupkg
+          name: papyrus-nupkg
           path: artifacts/nuget/*.nupkg
 
       # Publish is disabled. Uncomment only for a deliberate nuget.org release
