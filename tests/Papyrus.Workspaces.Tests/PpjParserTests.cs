@@ -113,6 +113,49 @@ public sealed class PpjParserTests
     }
 
     [Fact]
+    public void Parses_pre_and_post_build_commands()
+    {
+        const string xml =
+            """
+            <PapyrusProject Game="sse">
+              <PreBuild>
+                <Command>echo pre</Command>
+              </PreBuild>
+              <PostBuild>
+                <Command>echo post</Command>
+                <Command>echo post2</Command>
+              </PostBuild>
+            </PapyrusProject>
+            """;
+
+        var project = PpjParser.Parse(xml);
+
+        Assert.Equal(["echo pre"], project.PreBuild);
+        Assert.Equal(["echo post", "echo post2"], project.PostBuild);
+    }
+
+    [Fact]
+    public void Parses_pyro_pre_and_post_build_event_aliases()
+    {
+        const string xml =
+            """
+            <PapyrusProject Game="sse">
+              <PreBuildEvent>
+                <Command>echo pre</Command>
+              </PreBuildEvent>
+              <PostBuildEvent>
+                <Command>echo post</Command>
+              </PostBuildEvent>
+            </PapyrusProject>
+            """;
+
+        var project = PpjParser.Parse(xml);
+
+        Assert.Equal(["echo pre"], project.PreBuild);
+        Assert.Equal(["echo post"], project.PostBuild);
+    }
+
+    [Fact]
     public void Leaves_variable_values_unexpanded()
     {
         const string xml =

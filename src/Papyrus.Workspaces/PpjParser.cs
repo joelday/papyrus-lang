@@ -97,6 +97,8 @@ public static class PpjParser
         var folders = ImmutableArray.CreateBuilder<ProjectFolder>();
         var scripts = ImmutableArray.CreateBuilder<string>();
         var variables = ImmutableDictionary.CreateBuilder<string, string>(StringComparer.Ordinal);
+        var preBuild = ImmutableArray.CreateBuilder<string>();
+        var postBuild = ImmutableArray.CreateBuilder<string>();
 
         if (reader.IsEmptyElement)
         {
@@ -127,6 +129,14 @@ public static class PpjParser
                     case "Variables":
                         ReadVariables(reader, variables);
                         break;
+                    case "PreBuild":
+                    case "PreBuildEvent":
+                        ReadStringItems(reader, "Command", preBuild);
+                        break;
+                    case "PostBuild":
+                    case "PostBuildEvent":
+                        ReadStringItems(reader, "Command", postBuild);
+                        break;
                     default:
                         reader.Skip();
                         break;
@@ -150,7 +160,9 @@ public static class PpjParser
             optimize,
             release,
             final,
-            asm);
+            asm,
+            preBuild.ToImmutable(),
+            postBuild.ToImmutable());
     }
 
     private static void ReadStringItems(
