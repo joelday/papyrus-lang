@@ -164,6 +164,90 @@ public sealed class LspRequestSchedulerTests
     }
 
     [Fact]
+    public async Task Read_succeeds_after_mutating_wait_is_cancelled()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var scheduler = new LspRequestScheduler();
+        using var mutateCts = new CancellationTokenSource();
+        var promptCancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        scheduler.BeforeMutateWait = async _ =>
+        {
+            promptCancelled.TrySetResult();
+            await Task.Delay(Timeout.Infinite, mutateCts.Token).ConfigureAwait(false);
+        };
+
+        var mutate = new DelegateHandler<int, int>(
+            "test/mutate",
+            mutatesSolution: true,
+            (_, _, _) => Task.FromResult(2));
+        var read = new DelegateHandler<int, int>(
+            "test/read",
+            mutatesSolution: false,
+            (_, snapshot, _) => Task.FromResult(snapshot.Generation));
+
+        var mutateTask = scheduler.ExecuteAsync(mutate, 2, mutateCts.Token);
+        await promptCancelled.Task.WaitAsync(timeout.Token);
+        mutateCts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            async () => await mutateTask.WaitAsync(timeout.Token));
+        Assert.Equal(0, scheduler.Generation);
+        Assert.Equal(0, await scheduler.ExecuteAsync(read, 0, timeout.Token).WaitAsync(timeout.Token));
+    }
+
+    [Fact]
+    public async Task Queued_mutator_cancelled_during_wait_does_not_leave_reads_stuck()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var scheduler = new LspRequestScheduler();
+        using var mutateCts = new CancellationTokenSource();
+        var holding = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseHold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var queuedAtWait = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var hold = new DelegateHandler<int, int>(
+            "test/mutate-hold",
+            mutatesSolution: true,
+            async (_, _, cancellationToken) =>
+            {
+                holding.TrySetResult();
+                await releaseHold.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                return 1;
+            });
+        var queued = new DelegateHandler<int, int>(
+            "test/mutate-queued",
+            mutatesSolution: true,
+            (_, _, _) => Task.FromResult(2));
+        var read = new DelegateHandler<int, int>(
+            "test/read",
+            mutatesSolution: false,
+            (_, snapshot, _) => Task.FromResult(snapshot.Generation));
+
+        var holdTask = scheduler.ExecuteAsync(hold, 1, timeout.Token);
+        await holding.Task.WaitAsync(timeout.Token);
+
+        scheduler.BeforeMutateWait = _ =>
+        {
+            queuedAtWait.TrySetResult();
+            return Task.CompletedTask;
+        };
+
+        var queuedTask = scheduler.ExecuteAsync(queued, 2, mutateCts.Token);
+        await queuedAtWait.Task.WaitAsync(timeout.Token);
+        await Task.Delay(50, timeout.Token);
+        mutateCts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            async () => await queuedTask.WaitAsync(timeout.Token));
+
+        releaseHold.TrySetResult();
+        Assert.Equal(1, await holdTask.WaitAsync(timeout.Token));
+        Assert.Equal(1, scheduler.Generation);
+        Assert.Equal(1, await scheduler.ExecuteAsync(read, 0, timeout.Token).WaitAsync(timeout.Token));
+    }
+
+    [Fact]
     public async Task Non_mutating_requests_run_concurrently()
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));

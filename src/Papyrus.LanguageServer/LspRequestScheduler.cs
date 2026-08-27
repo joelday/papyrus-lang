@@ -81,12 +81,23 @@ internal sealed class LspRequestScheduler : IDisposable
         // Cancel the live read epoch without rotating so a reader that starts
         // before we own _mutate still observes a cancelled token.
         CancelNonMutatingEpoch();
-        if (BeforeMutateWait is { } beforeWait)
+        try
         {
-            await beforeWait(cancellationToken).ConfigureAwait(false);
+            if (BeforeMutateWait is { } beforeWait)
+            {
+                await beforeWait(cancellationToken).ConfigureAwait(false);
+            }
+
+            await _mutate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Prompt-cancel already ran; without a rotate, later reads would
+            // copy the cancelled epoch until some other mutator finished.
+            RestoreReadEpochIfLockFree();
+            throw;
         }
 
-        await _mutate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             // Rotate only while exclusive: new reads either wait for this
@@ -100,6 +111,9 @@ internal sealed class LspRequestScheduler : IDisposable
         }
         finally
         {
+            // A queued mutator may have prompt-cancelled our epoch and then
+            // backed out of WaitAsync. Revive before dropping the lock.
+            EnsureLiveReadEpoch();
             _mutate.Release();
         }
     }
@@ -154,15 +168,60 @@ internal sealed class LspRequestScheduler : IDisposable
         lock (_gate)
         {
             ThrowIfDisposed_NoLock();
-            if (!_nonMutatingCts.IsCancellationRequested)
+            ReplaceNonMutatingEpoch_NoLock();
+        }
+    }
+
+    private void EnsureLiveReadEpoch()
+    {
+        lock (_gate)
+        {
+            if (_disposed || !_nonMutatingCts.IsCancellationRequested)
             {
-                _nonMutatingCts.Cancel();
+                return;
             }
 
-            _retiredNonMutating?.Dispose();
-            _retiredNonMutating = _nonMutatingCts;
-            _nonMutatingCts = new CancellationTokenSource();
+            ReplaceNonMutatingEpoch_NoLock();
         }
+    }
+
+    private void RestoreReadEpochIfLockFree()
+    {
+        bool acquired;
+        try
+        {
+            acquired = _mutate.Wait(0);
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
+
+        if (!acquired)
+        {
+            return;
+        }
+
+        try
+        {
+            EnsureLiveReadEpoch();
+        }
+        finally
+        {
+            _mutate.Release();
+        }
+    }
+
+    private void ReplaceNonMutatingEpoch_NoLock()
+    {
+        if (!_nonMutatingCts.IsCancellationRequested)
+        {
+            _nonMutatingCts.Cancel();
+        }
+
+        _retiredNonMutating?.Dispose();
+        _retiredNonMutating = _nonMutatingCts;
+        _nonMutatingCts = new CancellationTokenSource();
     }
 
     private void ThrowIfDisposed()
