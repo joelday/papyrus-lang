@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Xml;
 using Papyrus.CodeAnalysis;
 using Papyrus.CodeAnalysis.Emit;
 using Papyrus.CodeAnalysis.Symbols;
@@ -16,11 +17,12 @@ internal sealed class CompileCommandOptions
 {
     internal CompileCommandOptions(
         string path,
-        string game,
+        string? game,
         string? output,
         string? flags,
         string[] imports,
-        long time)
+        long time,
+        bool ignoreEngineLimits)
     {
         Path = path;
         Game = game;
@@ -28,14 +30,16 @@ internal sealed class CompileCommandOptions
         Flags = flags;
         Imports = imports;
         Time = time;
+        IgnoreEngineLimits = ignoreEngineLimits;
     }
 
     internal string Path { get; }
-    internal string Game { get; }
+    internal string? Game { get; }
     internal string? Output { get; }
     internal string? Flags { get; }
     internal string[] Imports { get; }
     internal long Time { get; }
+    internal bool IgnoreEngineLimits { get; }
 }
 
 internal static class CompileCommand
@@ -44,71 +48,64 @@ internal static class CompileCommand
 
     internal static int Execute(CompileCommandOptions options, TextWriter stdout, TextWriter stderr)
     {
-        if (!TryGetDialect(options.Game, out var dialect))
+        if (options.Game is not null && !TryGetDialect(options.Game, out _))
         {
             stderr.WriteLine("error: --game must be one of: " + GameValues);
             return 1;
         }
 
-        if (!TryGetFullPath(options.Path, stderr, out var scriptPath))
+        if (!TryGetFullPath(options.Path, stderr, out var inputPath))
         {
             return 1;
         }
 
-        if (!File.Exists(scriptPath))
+        if (!File.Exists(inputPath))
         {
-            stderr.WriteLine($"error: path not found: {scriptPath}");
+            stderr.WriteLine($"error: path not found: {inputPath}");
             return 1;
         }
 
-        var extension = Path.GetExtension(scriptPath);
+        var extension = Path.GetExtension(inputPath);
         if (extension.Equals(".ppj", StringComparison.OrdinalIgnoreCase))
         {
-            stderr.WriteLine("error: .ppj project builds are not supported");
-            return 1;
+            return CompileProject(options, inputPath, stdout, stderr);
         }
 
         if (!extension.Equals(".psc", StringComparison.OrdinalIgnoreCase))
         {
-            stderr.WriteLine("error: expected a .psc file");
+            stderr.WriteLine("error: expected a .psc or .ppj file");
             return 1;
         }
 
+        if (options.Game is null || !TryGetDialect(options.Game, out var dialect))
+        {
+            stderr.WriteLine("error: --game must be one of: " + GameValues);
+            return 1;
+        }
+
+        return CompileSingleScript(options, inputPath, dialect, stdout, stderr);
+    }
+
+    private static int CompileSingleScript(
+        CompileCommandOptions options,
+        string scriptPath,
+        PapyrusDialect dialect,
+        TextWriter stdout,
+        TextWriter stderr)
+    {
         if (!TryGetFullPath(options.Output ?? Path.ChangeExtension(scriptPath, ".pex"), stderr, out var outputPath))
         {
             return 1;
         }
 
-        FlagsFile? flagsFile = null;
-        string? flagsPath = null;
-        if (options.Flags is not null)
+        if (!TryResolveCliImports(options.Imports, stderr, out var imports))
         {
-            if (!TryGetFullPath(options.Flags, stderr, out flagsPath))
-            {
-                return 1;
-            }
-
-            if (!File.Exists(flagsPath))
-            {
-                stderr.WriteLine($"error: flags file not found: {flagsPath}");
-                return 1;
-            }
+            return 1;
         }
 
-        var imports = new List<string>(options.Imports.Length);
-        foreach (var import in options.Imports)
+        if (!TryLoadFlags(options.Flags, projectDirectory: null, includeDirectories: null, stderr, out var flagsFile, out var flagsPath))
         {
-            if (string.IsNullOrWhiteSpace(import))
-            {
-                continue;
-            }
-
-            if (!TryGetFullPath(import, stderr, out var importPath))
-            {
-                return 1;
-            }
-
-            imports.Add(importPath);
+            return 1;
         }
 
         var includeDirectories = new List<string>(1 + imports.Count);
@@ -120,21 +117,192 @@ internal static class CompileCommand
 
         includeDirectories.AddRange(imports);
 
-        FileSystemScriptResolver resolver;
+        if (!TryCreateResolver(includeDirectories, Path.GetDirectoryName(outputPath), dialect.Game, stderr, out var resolver))
+        {
+            return 1;
+        }
+
+        return EmitScript(
+            scriptPath,
+            outputPath,
+            dialect,
+            resolver,
+            imports,
+            flagsFile,
+            flagsPath,
+            writeFlagsDiagnostics: true,
+            options.Time,
+            options.IgnoreEngineLimits,
+            stdout,
+            stderr);
+    }
+
+    private static int CompileProject(
+        CompileCommandOptions options,
+        string projectPath,
+        TextWriter stdout,
+        TextWriter stderr)
+    {
+        PapyrusProject project;
         try
         {
-            resolver = new FileSystemScriptResolver(
-                includeDirectories,
-                Path.GetDirectoryName(outputPath),
-                dialect.Game);
+            using var stream = File.OpenRead(projectPath);
+            project = PpjParser.Parse(stream).WithPath(projectPath);
         }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        catch (Exception ex) when (ex is XmlException or InvalidDataException or IOException
+            or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
             stderr.WriteLine($"error: {ex.Message}");
             return 1;
         }
 
-        var name = GetScriptName(scriptPath, imports, dialect.Game);
+        PapyrusDialect dialect;
+        if (options.Game is not null)
+        {
+            if (!TryGetDialect(options.Game, out dialect))
+            {
+                stderr.WriteLine("error: --game must be one of: " + GameValues);
+                return 1;
+            }
+        }
+        else if (project.Dialect is null)
+        {
+            stderr.WriteLine("error: --game must be one of: " + GameValues);
+            return 1;
+        }
+        else
+        {
+            dialect = project.Dialect;
+        }
+
+        var projectDirectory = Path.GetDirectoryName(projectPath);
+        if (string.IsNullOrEmpty(projectDirectory))
+        {
+            stderr.WriteLine("error: project path has no directory");
+            return 1;
+        }
+
+        if (!TryResolveCliImports(options.Imports, stderr, out var cliImports))
+        {
+            return 1;
+        }
+
+        var includeDirectories = new List<string>();
+        foreach (var import in project.Imports)
+        {
+            if (string.IsNullOrWhiteSpace(import))
+            {
+                continue;
+            }
+
+            if (!TryResolveProjectPath(projectDirectory, import, stderr, out var importPath))
+            {
+                return 1;
+            }
+
+            includeDirectories.Add(importPath);
+        }
+
+        foreach (var folder in project.Folders)
+        {
+            if (string.IsNullOrWhiteSpace(folder.Path))
+            {
+                continue;
+            }
+
+            if (!TryResolveProjectPath(projectDirectory, folder.Path, stderr, out var folderPath))
+            {
+                return 1;
+            }
+
+            includeDirectories.Add(folderPath);
+        }
+
+        includeDirectories.Add(projectDirectory);
+        includeDirectories.AddRange(cliImports);
+
+        string? outputDirectory = null;
+        var outputSpec = options.Output ?? project.Output;
+        if (outputSpec is not null)
+        {
+            if (!TryResolveProjectPath(projectDirectory, outputSpec, stderr, out outputDirectory))
+            {
+                return 1;
+            }
+        }
+
+        if (!TryLoadFlags(
+                options.Flags ?? project.Flags,
+                options.Flags is null ? projectDirectory : null,
+                options.Flags is null ? includeDirectories : null,
+                stderr,
+                out var flagsFile,
+                out var flagsPath))
+        {
+            return 1;
+        }
+
+        if (flagsFile is not null && flagsPath is not null && WriteFlagsDiagnostics(flagsFile, flagsPath, stderr))
+        {
+            return 1;
+        }
+
+        if (!TryCollectProjectScripts(project, projectDirectory, includeDirectories, stderr, out var scripts))
+        {
+            return 1;
+        }
+
+        if (!TryCreateResolver(includeDirectories, outputDirectory, dialect.Game, stderr, out var resolver))
+        {
+            return 1;
+        }
+
+        var failed = false;
+        foreach (var scriptPath in scripts)
+        {
+            if (!TryGetScriptOutputPath(scriptPath, outputDirectory, includeDirectories, dialect.Game, stderr, out var outputPath))
+            {
+                failed = true;
+                continue;
+            }
+
+            var code = EmitScript(
+                scriptPath,
+                outputPath,
+                dialect,
+                resolver,
+                includeDirectories,
+                flagsFile,
+                flagsPath,
+                writeFlagsDiagnostics: false,
+                options.Time,
+                options.IgnoreEngineLimits,
+                stdout,
+                stderr);
+            if (code != 0)
+            {
+                failed = true;
+            }
+        }
+
+        return failed ? 1 : 0;
+    }
+
+    private static int EmitScript(
+        string scriptPath,
+        string outputPath,
+        PapyrusDialect dialect,
+        FileSystemScriptResolver resolver,
+        List<string> nameDirectories,
+        FlagsFile? flagsFile,
+        string? flagsPath,
+        bool writeFlagsDiagnostics,
+        long time,
+        bool ignoreEngineLimits,
+        TextWriter stdout,
+        TextWriter stderr)
+    {
+        var name = GetScriptName(scriptPath, nameDirectories, dialect.Game);
         if (name.Parts.Length == 0)
         {
             stderr.WriteLine("error: could not determine script name");
@@ -143,21 +311,19 @@ internal static class CompileCommand
 
         try
         {
-            if (flagsPath is not null)
-            {
-                flagsFile = FlagsFile.Parse(File.ReadAllText(flagsPath));
-            }
-
             var text = SourceText.From(File.ReadAllBytes(scriptPath));
-            var compilation = PapyrusCompilation.Create(dialect, resolver)
+            var parseOptions = ignoreEngineLimits
+                ? new PapyrusParseOptions { IgnoreEngineLimits = true }
+                : PapyrusParseOptions.Default;
+            var compilation = PapyrusCompilation.Create(dialect, resolver, parseOptions)
                 .WithScriptText(name, text);
             var script = compilation.GetScript(name);
             var emitter = new PexEmitter(flagsFile);
             var pex = emitter.EmitFile(script);
-            pex.CompileTime = DateTimeOffset.FromUnixTimeSeconds(options.Time);
+            pex.CompileTime = DateTimeOffset.FromUnixTimeSeconds(time);
 
             var hasError = false;
-            if (flagsFile is not null && flagsPath is not null)
+            if (writeFlagsDiagnostics && flagsFile is not null && flagsPath is not null)
             {
                 hasError |= WriteFlagsDiagnostics(flagsFile, flagsPath, stderr);
             }
@@ -185,6 +351,295 @@ internal static class CompileCommand
             stderr.WriteLine($"error: {ex.Message}");
             return 1;
         }
+    }
+
+    private static bool TryResolveCliImports(string[] imports, TextWriter stderr, out List<string> resolved)
+    {
+        resolved = new List<string>(imports.Length);
+        foreach (var import in imports)
+        {
+            if (string.IsNullOrWhiteSpace(import))
+            {
+                continue;
+            }
+
+            if (!TryGetFullPath(import, stderr, out var importPath))
+            {
+                return false;
+            }
+
+            resolved.Add(importPath);
+        }
+
+        return true;
+    }
+
+    private static bool TryCreateResolver(
+        List<string> includeDirectories,
+        string? outputDirectory,
+        GameId game,
+        TextWriter stderr,
+        out FileSystemScriptResolver resolver)
+    {
+        try
+        {
+            resolver = new FileSystemScriptResolver(includeDirectories, outputDirectory, game);
+            return true;
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            stderr.WriteLine($"error: {ex.Message}");
+            resolver = null!;
+            return false;
+        }
+    }
+
+    private static bool TryLoadFlags(
+        string? flags,
+        string? projectDirectory,
+        List<string>? includeDirectories,
+        TextWriter stderr,
+        out FlagsFile? flagsFile,
+        out string? flagsPath)
+    {
+        flagsFile = null;
+        flagsPath = null;
+        if (flags is null)
+        {
+            return true;
+        }
+
+        if (projectDirectory is not null)
+        {
+            if (!TryResolveProjectPath(projectDirectory, flags, stderr, out var candidate))
+            {
+                return false;
+            }
+
+            if (File.Exists(candidate))
+            {
+                flagsPath = candidate;
+            }
+            else if (includeDirectories is not null)
+            {
+                var fileName = Path.GetFileName(flags);
+                if (!string.IsNullOrEmpty(fileName))
+                {
+                    for (var i = 0; i < includeDirectories.Count; i++)
+                    {
+                        var search = Path.Combine(includeDirectories[i], fileName);
+                        if (File.Exists(search))
+                        {
+                            flagsPath = search;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (flagsPath is null)
+            {
+                stderr.WriteLine($"error: flags file not found: {candidate}");
+                return false;
+            }
+        }
+        else if (!TryGetFullPath(flags, stderr, out flagsPath))
+        {
+            return false;
+        }
+        else if (!File.Exists(flagsPath))
+        {
+            stderr.WriteLine($"error: flags file not found: {flagsPath}");
+            return false;
+        }
+
+        try
+        {
+            flagsFile = FlagsFile.Parse(File.ReadAllText(flagsPath));
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException
+            or NotSupportedException)
+        {
+            stderr.WriteLine($"error: {ex.Message}");
+            flagsFile = null;
+            flagsPath = null;
+            return false;
+        }
+    }
+
+    private static bool TryCollectProjectScripts(
+        PapyrusProject project,
+        string projectDirectory,
+        List<string> includeDirectories,
+        TextWriter stderr,
+        out List<string> scripts)
+    {
+        scripts = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var script in project.Scripts)
+        {
+            if (string.IsNullOrWhiteSpace(script))
+            {
+                continue;
+            }
+
+            if (!TryFindProjectScript(projectDirectory, includeDirectories, script, stderr, out var scriptPath))
+            {
+                return false;
+            }
+
+            if (seen.Add(scriptPath))
+            {
+                scripts.Add(scriptPath);
+            }
+        }
+
+        foreach (var folder in project.Folders)
+        {
+            if (string.IsNullOrWhiteSpace(folder.Path))
+            {
+                continue;
+            }
+
+            if (!TryResolveProjectPath(projectDirectory, folder.Path, stderr, out var folderPath))
+            {
+                return false;
+            }
+
+            if (!Directory.Exists(folderPath))
+            {
+                stderr.WriteLine($"error: path not found: {folderPath}");
+                return false;
+            }
+
+            List<string> found;
+            try
+            {
+                found = new List<string>(Directory.EnumerateFiles(
+                    folderPath,
+                    "*.psc",
+                    folder.NoRecurse ? SearchOption.TopDirectoryOnly : SearchOption.AllDirectories));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException
+                or NotSupportedException)
+            {
+                stderr.WriteLine($"error: {ex.Message}");
+                return false;
+            }
+
+            found.Sort(StringComparer.OrdinalIgnoreCase);
+            foreach (var scriptPath in found)
+            {
+                if (seen.Add(scriptPath))
+                {
+                    scripts.Add(scriptPath);
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static bool TryFindProjectScript(
+        string projectDirectory,
+        List<string> includeDirectories,
+        string script,
+        TextWriter stderr,
+        out string scriptPath)
+    {
+        scriptPath = null!;
+        var relative = script.Replace(':', Path.DirectorySeparatorChar);
+        if (!Path.GetExtension(relative).Equals(".psc", StringComparison.OrdinalIgnoreCase))
+        {
+            relative += ".psc";
+        }
+
+        if (Path.IsPathRooted(relative))
+        {
+            if (!TryGetFullPath(relative, stderr, out scriptPath))
+            {
+                return false;
+            }
+
+            if (File.Exists(scriptPath))
+            {
+                return true;
+            }
+
+            stderr.WriteLine($"error: path not found: {scriptPath}");
+            return false;
+        }
+
+        if (!TryResolveProjectPath(projectDirectory, relative, stderr, out var candidate))
+        {
+            return false;
+        }
+
+        if (File.Exists(candidate))
+        {
+            scriptPath = candidate;
+            return true;
+        }
+
+        var missingPath = candidate;
+        for (var i = 0; i < includeDirectories.Count; i++)
+        {
+            if (!TryGetFullPath(Path.Combine(includeDirectories[i], relative), stderr, out candidate))
+            {
+                return false;
+            }
+
+            if (File.Exists(candidate))
+            {
+                scriptPath = candidate;
+                return true;
+            }
+        }
+
+        stderr.WriteLine($"error: path not found: {missingPath}");
+        return false;
+    }
+
+    private static bool TryGetScriptOutputPath(
+        string scriptPath,
+        string? outputDirectory,
+        List<string> includeDirectories,
+        GameId game,
+        TextWriter stderr,
+        out string outputPath)
+    {
+        if (outputDirectory is null)
+        {
+            return TryGetFullPath(Path.ChangeExtension(scriptPath, ".pex"), stderr, out outputPath);
+        }
+
+        var name = GetScriptName(scriptPath, includeDirectories, game);
+        if (name.Parts.Length == 0)
+        {
+            stderr.WriteLine("error: could not determine script name");
+            outputPath = null!;
+            return false;
+        }
+
+        var relative = Path.ChangeExtension(name.ToRelativePath(), ".pex")
+            .Replace('/', Path.DirectorySeparatorChar);
+        return TryGetFullPath(Path.Combine(outputDirectory, relative), stderr, out outputPath);
+    }
+
+    private static bool TryResolveProjectPath(
+        string projectDirectory,
+        string path,
+        TextWriter stderr,
+        out string fullPath)
+    {
+        if (Path.IsPathRooted(path))
+        {
+            return TryGetFullPath(path, stderr, out fullPath);
+        }
+
+        return TryGetFullPath(Path.Combine(projectDirectory, path), stderr, out fullPath);
     }
 
     private static bool TryGetFullPath(string path, TextWriter stderr, out string fullPath)
