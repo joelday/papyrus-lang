@@ -289,15 +289,19 @@ internal static class ChampollionCommand
         TextWriter stderr)
     {
         bytes = null!;
-        var imports = new List<string> { pscRoot };
         var name = NameFromObject(objectName);
         if (name.Parts.Length == 0)
-            name = CompileCommand.GetScriptName(scriptPath, imports, dialect.Game);
+            name = CompileCommand.GetScriptName(scriptPath, new List<string> { pscRoot }, dialect.Game);
         if (name.Parts.Length == 0)
         {
             stderr.WriteLine($"error: could not determine script name: {scriptPath}");
             return false;
         }
+
+        var imports = new List<string>();
+        if (TryGetObjectImportDirectory(scriptPath, name, out var objectImport))
+            imports.Add(objectImport);
+        AddImport(imports, pscRoot);
 
         FileSystemScriptResolver resolver;
         try
@@ -355,6 +359,70 @@ internal static class ChampollionCommand
 
         var text = PexQualifiedName.Parse(objectName).Text;
         return string.IsNullOrEmpty(text) ? default : QualifiedName.Parse(text);
+    }
+
+    /// <summary>
+    /// <c>Data/Scripts/Vendor/Foo.psc</c> + <c>Vendor:Foo</c> → <c>Data/Scripts</c>.
+    /// </summary>
+    internal static bool TryGetObjectImportDirectory(string scriptPath, QualifiedName name, out string directory)
+    {
+        directory = null!;
+        if (name.Parts.Length == 0)
+            return false;
+
+        string fullScript;
+        try
+        {
+            fullScript = Path.GetFullPath(scriptPath);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
+
+        var relative = name.ToRelativePath().Replace('/', Path.DirectorySeparatorChar);
+        var normalizedScript = fullScript.Replace('\\', '/');
+        var normalizedRelative = relative.Replace('\\', '/');
+        if (normalizedRelative.Length == 0 || normalizedScript.Length <= normalizedRelative.Length)
+            return false;
+
+        if (!normalizedScript.EndsWith(normalizedRelative, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var cut = fullScript.Length - normalizedRelative.Length;
+        if (cut <= 0)
+            return false;
+
+        var separator = fullScript[cut - 1];
+        if (separator != Path.DirectorySeparatorChar && separator != Path.AltDirectorySeparatorChar)
+            return false;
+
+        directory = fullScript[..(cut - 1)];
+        return directory.Length > 0;
+    }
+
+    private static void AddImport(List<string> imports, string directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory))
+            return;
+
+        string full;
+        try
+        {
+            full = Path.GetFullPath(directory);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return;
+        }
+
+        for (var i = 0; i < imports.Count; i++)
+        {
+            if (string.Equals(imports[i], full, StringComparison.OrdinalIgnoreCase))
+                return;
+        }
+
+        imports.Add(full);
     }
 
     internal static bool TryFindDecompiledScript(string pscDir, string relativePex, string? objectName, out string pscPath)

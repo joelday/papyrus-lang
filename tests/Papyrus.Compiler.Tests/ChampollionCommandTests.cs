@@ -223,6 +223,42 @@ public sealed class ChampollionCommandTests
     }
 
     [Fact]
+    public void TryCompile_ResolvesExtends_UnderDataScriptsPrefix()
+    {
+        using var root = new TempDir();
+        var dir = Path.Combine(root.Path, "Data", "Scripts", "Vendor");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(
+            Path.Combine(dir, "Bar.psc"),
+            "ScriptName Vendor:Bar\nFunction Base()\nEndFunction\n");
+        var script = Path.Combine(dir, "Foo.psc");
+        File.WriteAllText(
+            script,
+            "ScriptName Vendor:Foo Extends Vendor:Bar\nFunction Go()\nEndFunction\n");
+
+        Assert.True(ChampollionCommand.TryGetObjectImportDirectory(
+            script,
+            QualifiedName.Parse("Vendor:Foo"),
+            out var import));
+        Assert.Equal(
+            Path.GetFullPath(Path.Combine(root.Path, "Data", "Scripts")),
+            Path.GetFullPath(import));
+
+        using var stderr = new StringWriter();
+        Assert.True(ChampollionCommand.TryCompile(
+            script,
+            root.Path,
+            PapyrusDialect.Fallout4,
+            "Vendor:Foo",
+            out var bytes,
+            stderr));
+        Assert.Equal(0, stderr.GetStringBuilder().Length);
+        var file = PexReader.Read(bytes);
+        Assert.Equal("Vendor:Foo", Assert.Single(file.Objects).Name);
+        Assert.Equal("Vendor:Bar", file.Objects[0].ParentClassName);
+    }
+
+    [Fact]
     public void Compile_ChampollionCompat_AcceptsScriptStructType()
     {
         using var root = new TempDir();
