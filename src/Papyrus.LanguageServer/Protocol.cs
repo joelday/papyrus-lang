@@ -38,6 +38,41 @@ internal sealed class InitializeResult
 internal sealed class ServerCapabilities
 {
     public TextDocumentSyncOptions? TextDocumentSync { get; set; }
+
+    public SemanticTokensOptions? SemanticTokensProvider { get; set; }
+}
+
+internal sealed class SemanticTokensOptions
+{
+    public SemanticTokensLegend Legend { get; set; } = new();
+
+    public bool Full { get; set; }
+
+    public bool Range { get; set; }
+}
+
+internal sealed class SemanticTokensLegend
+{
+    public string[] TokenTypes { get; set; } = [];
+
+    public string[] TokenModifiers { get; set; } = [];
+}
+
+internal sealed class SemanticTokensParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+}
+
+internal sealed class SemanticTokensRangeParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+
+    public Range? Range { get; set; }
+}
+
+internal sealed class SemanticTokens
+{
+    public int[] Data { get; set; } = [];
 }
 
 internal sealed class TextDocumentSyncOptions
