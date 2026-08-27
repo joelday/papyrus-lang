@@ -40,6 +40,38 @@ internal sealed class ServerCapabilities
     public TextDocumentSyncOptions? TextDocumentSync { get; set; }
 
     public SemanticTokensOptions? SemanticTokensProvider { get; set; }
+
+    public bool? FoldingRangeProvider { get; set; }
+
+    public bool? SelectionRangeProvider { get; set; }
+}
+
+internal sealed class FoldingRangeParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+}
+
+internal sealed class FoldingRange
+{
+    public int StartLine { get; set; }
+
+    public int EndLine { get; set; }
+
+    public string? Kind { get; set; }
+}
+
+internal sealed class SelectionRangeParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+
+    public Position[]? Positions { get; set; }
+}
+
+internal sealed class SelectionRange
+{
+    public Range Range { get; set; } = new();
+
+    public SelectionRange? Parent { get; set; }
 }
 
 internal sealed class SemanticTokensOptions

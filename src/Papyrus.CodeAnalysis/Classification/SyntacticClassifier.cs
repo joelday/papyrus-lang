@@ -164,67 +164,13 @@ public static class SyntacticClassifier
         }
         else if (trivia.Kind == SyntaxKind.SkippedTokensTrivia)
         {
-            ClassifySkippedText(trivia.Text, position, filter, builder);
-        }
-    }
-
-    /// <summary>
-    /// Skipped tokens are flattened to raw text, so comments inside them (a
-    /// comment on its own line is trivia on a skipped end-of-line token) are
-    /// recovered by re-scanning for comment syntax.
-    /// </summary>
-    private static void ClassifySkippedText(
-        string text,
-        int position,
-        TextSpan filter,
-        ImmutableArray<ClassifiedSpan>.Builder builder)
-    {
-        for (var i = 0; i < text.Length; i++)
-        {
-            if (text[i] == '"')
+            foreach (var comment in SkippedTextComments.Collect(trivia.Text, position))
             {
-                // Skip string literals so a ';' or '{' inside one is not taken
-                // for a comment. Strings do not span lines; '\' escapes.
-                i++;
-                while (i < text.Length && text[i] != '"' && text[i] != '\n' && text[i] != '\r')
+                if (Intersects(filter, comment.Span.Start, comment.Span.Length))
                 {
-                    i += text[i] == '\\' ? 2 : 1;
-                }
-
-                continue;
-            }
-
-            if (text[i] != ';' && text[i] != '{')
-            {
-                continue;
-            }
-
-            int end;
-            if (text[i] == '{')
-            {
-                end = text.IndexOf('}', i + 1);
-                end = end < 0 ? text.Length : end + 1;
-            }
-            else if (i + 1 < text.Length && text[i + 1] == '/')
-            {
-                end = text.IndexOf("/;", i + 2, System.StringComparison.Ordinal);
-                end = end < 0 ? text.Length : end + 2;
-            }
-            else
-            {
-                end = i;
-                while (end < text.Length && text[end] != '\n' && text[end] != '\r')
-                {
-                    end++;
+                    builder.Add(new ClassifiedSpan(comment.Span, ClassificationKind.Comment));
                 }
             }
-
-            if (Intersects(filter, position + i, end - i))
-            {
-                builder.Add(new ClassifiedSpan(new TextSpan(position + i, end - i), ClassificationKind.Comment));
-            }
-
-            i = end - 1;
         }
     }
 

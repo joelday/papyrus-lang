@@ -29,6 +29,13 @@ namespace Papyrus.LanguageServer;
 [JsonSerializable(typeof(SemanticTokensParams))]
 [JsonSerializable(typeof(SemanticTokensRangeParams))]
 [JsonSerializable(typeof(SemanticTokens))]
+[JsonSerializable(typeof(FoldingRangeParams))]
+[JsonSerializable(typeof(FoldingRange))]
+[JsonSerializable(typeof(FoldingRange[]))]
+[JsonSerializable(typeof(SelectionRangeParams))]
+[JsonSerializable(typeof(SelectionRange))]
+[JsonSerializable(typeof(SelectionRange[]))]
+[JsonSerializable(typeof(Position[]))]
 [JsonSerializable(typeof(SnapshotParams))]
 [JsonSerializable(typeof(SnapshotResult))]
 internal sealed partial class LspJsonContext : JsonSerializerContext

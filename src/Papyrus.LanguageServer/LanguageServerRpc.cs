@@ -16,6 +16,8 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly SnapshotHandler _snapshot;
     private readonly SemanticTokensFullHandler _semanticTokensFull;
     private readonly SemanticTokensRangeHandler _semanticTokensRange;
+    private readonly FoldingRangeHandler _foldingRange;
+    private readonly SelectionRangeHandler _selectionRange;
 
     private int _shutdown;
     private int _disposed;
@@ -35,6 +37,8 @@ internal sealed class LanguageServerRpc : IDisposable
         _snapshot = new SnapshotHandler();
         _semanticTokensFull = new SemanticTokensFullHandler();
         _semanticTokensRange = new SemanticTokensRangeHandler();
+        _foldingRange = new FoldingRangeHandler();
+        _selectionRange = new SelectionRangeHandler();
     }
 
     internal Task<int> WaitForExitAsync() => _exit.Task;
@@ -72,6 +76,8 @@ internal sealed class LanguageServerRpc : IDisposable
                         Change = TextDocumentSyncKind.Full,
                     },
                     SemanticTokensProvider = LspSemanticTokens.CapabilityOptions(),
+                    FoldingRangeProvider = true,
+                    SelectionRangeProvider = true,
                 },
                 ServerInfo = new ServerInfo { Name = "Papyrus Language Server" },
             });
@@ -131,6 +137,22 @@ internal sealed class LanguageServerRpc : IDisposable
         CancellationToken cancellationToken)
     {
         return _scheduler.ExecuteAsync(_semanticTokensRange, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(FoldingRangeHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<FoldingRange[]> FoldingRangeAsync(
+        FoldingRangeParams? parameters,
+        CancellationToken cancellationToken)
+    {
+        return _scheduler.ExecuteAsync(_foldingRange, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(SelectionRangeHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<SelectionRange[]> SelectionRangeAsync(
+        SelectionRangeParams? parameters,
+        CancellationToken cancellationToken)
+    {
+        return _scheduler.ExecuteAsync(_selectionRange, parameters, cancellationToken);
     }
 
     [JsonRpcMethod("shutdown")]
