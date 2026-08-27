@@ -149,7 +149,9 @@ internal static class ChampollionCommand
         if (TryExistingFile(Environment.GetEnvironmentVariable(PathEnvironmentVariable), out path))
             return true;
 
-        if (TryExistingFile(Environment.GetEnvironmentVariable("CHAMPOLLION"), out path))
+        if (TryFindOnPath("champollion", out path)
+            || TryFindOnPath("Champollion", out path)
+            || TryFindOnPath("Champollion.exe", out path))
             return true;
 
         foreach (var candidate in DocumentedPaths())
@@ -158,14 +160,15 @@ internal static class ChampollionCommand
                 return true;
         }
 
-        return TryFindOnPath("champollion", out path)
-            || TryFindOnPath("Champollion", out path)
-            || TryFindOnPath("Champollion.exe", out path);
+        return false;
     }
 
     internal static string HashForRoundTrip(ReadOnlySpan<byte> pex, GameId? preferred = null)
+        => HashForRoundTrip(PexReader.Read(pex, preferred));
+
+    internal static string HashForRoundTrip(PexFile file)
     {
-        var file = PexReader.Read(pex, preferred);
+        ArgumentNullException.ThrowIfNull(file);
         file.DebugInfo = null;
         return PexNormalizer.Hash(file);
     }
@@ -198,7 +201,6 @@ internal static class ChampollionCommand
         if (Directory.Exists(source))
         {
             start.ArgumentList.Add("-r");
-            start.ArgumentList.Add("-s");
             start.ArgumentList.Add("-t");
         }
 
@@ -255,8 +257,7 @@ internal static class ChampollionCommand
         compiledHash = "";
         var originalBytes = File.ReadAllBytes(pexPath);
         var original = PexReader.Read(originalBytes, preferred);
-        original.DebugInfo = null;
-        originalHash = PexNormalizer.Hash(original);
+        originalHash = HashForRoundTrip(original);
 
         var dialect = forcedDialect;
         if (dialect is null && !CompileCommand.TryGetDialect(original.Game, out dialect))
@@ -265,7 +266,8 @@ internal static class ChampollionCommand
             return false;
         }
 
-        if (!TryFindDecompiledScript(pscDir, relative, out var pscPath))
+        var objectName = original.Objects.Length > 0 ? original.Objects[0].Name : null;
+        if (!TryFindDecompiledScript(pscDir, relative, objectName, out var pscPath))
         {
             stderr.WriteLine($"error: decompiled source not found for {relative}");
             return false;
@@ -343,15 +345,44 @@ internal static class ChampollionCommand
         return true;
     }
 
-    private static bool TryFindDecompiledScript(string pscDir, string relativePex, out string pscPath)
+    internal static bool TryFindDecompiledScript(string pscDir, string relativePex, string? objectName, out string pscPath)
     {
+        pscPath = null!;
         var relativePsc = Path.ChangeExtension(relativePex.Replace('/', Path.DirectorySeparatorChar), ".psc");
-        pscPath = Path.Combine(pscDir, relativePsc);
-        if (File.Exists(pscPath))
+        if (TryExistingFile(Path.Combine(pscDir, relativePsc), out pscPath))
             return true;
 
-        pscPath = Path.Combine(pscDir, Path.ChangeExtension(Path.GetFileName(relativePex), ".psc"));
-        return File.Exists(pscPath);
+        if (!string.IsNullOrEmpty(objectName))
+        {
+            var fromObject = objectName.Replace(':', Path.DirectorySeparatorChar) + ".psc";
+            if (TryExistingFile(Path.Combine(pscDir, fromObject), out pscPath))
+                return true;
+        }
+
+        var fileName = Path.ChangeExtension(Path.GetFileName(relativePex), ".psc");
+        if (TryExistingFile(Path.Combine(pscDir, fileName), out pscPath))
+            return true;
+
+        string? found = null;
+        foreach (var file in Directory.EnumerateFiles(pscDir, "*.psc", SearchOption.AllDirectories))
+        {
+            if (!string.Equals(Path.GetFileName(file), fileName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (found is not null)
+            {
+                pscPath = null!;
+                return false;
+            }
+
+            found = file;
+        }
+
+        if (found is null)
+            return false;
+
+        pscPath = found;
+        return true;
     }
 
     private static List<string> ListPex(string source)

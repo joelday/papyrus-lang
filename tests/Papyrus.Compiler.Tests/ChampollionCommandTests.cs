@@ -127,6 +127,72 @@ public sealed class ChampollionCommandTests
     }
 
     [Fact]
+    public void HashForRoundTrip_IgnoresDebugInfo()
+    {
+        var withoutBytes = PexWriter.Write(new PexFile
+        {
+            Version = PexVersion.V32,
+            RawGameId = GameIdMapping.SkyrimRaw,
+            Game = GameId.SkyrimSpecialEdition,
+            Objects = [new PexObject { Name = "Foo" }],
+        });
+        var withBytes = PexWriter.Write(new PexFile
+        {
+            Version = PexVersion.V32,
+            RawGameId = GameIdMapping.SkyrimRaw,
+            Game = GameId.SkyrimSpecialEdition,
+            DebugInfo = new PexDebugInfo
+            {
+                Functions =
+                [
+                    new PexDebugFunction
+                    {
+                        ObjectName = "Foo",
+                        FunctionName = "Bar",
+                        InstructionLineMap = [1, 2],
+                    },
+                ],
+            },
+            Objects = [new PexObject { Name = "Foo" }],
+        });
+
+        var roundWithout = ChampollionCommand.HashForRoundTrip(withoutBytes);
+        var roundWith = ChampollionCommand.HashForRoundTrip(withBytes);
+        Assert.Equal(roundWithout, roundWith);
+        Assert.NotEqual(PexNormalizer.Hash(PexReader.Read(withBytes)), roundWith);
+    }
+
+    [Fact]
+    public void TryFindDecompiledScript_PrefersRelativeThenObjectName()
+    {
+        using var root = new TempDir();
+        var relative = Path.Combine(root.Path, "Data", "Scripts", "Vendor");
+        Directory.CreateDirectory(relative);
+        var relativePsc = Path.Combine(relative, "Foo.psc");
+        File.WriteAllText(relativePsc, "ScriptName Vendor:Foo\n");
+
+        Assert.True(ChampollionCommand.TryFindDecompiledScript(
+            root.Path,
+            "Data/Scripts/Vendor/Foo.pex",
+            "Vendor:Foo",
+            out var found));
+        Assert.Equal(Path.GetFullPath(relativePsc), found);
+
+        Directory.Delete(relative, recursive: true);
+        var fromObject = Path.Combine(root.Path, "Vendor");
+        Directory.CreateDirectory(fromObject);
+        var objectPsc = Path.Combine(fromObject, "Foo.psc");
+        File.WriteAllText(objectPsc, "ScriptName Vendor:Foo\n");
+
+        Assert.True(ChampollionCommand.TryFindDecompiledScript(
+            root.Path,
+            "Data/Scripts/Vendor/Foo.pex",
+            "Vendor:Foo",
+            out found));
+        Assert.Equal(Path.GetFullPath(objectPsc), found);
+    }
+
+    [Fact]
     public void Compile_ChampollionCompat_AcceptsScriptStructType()
     {
         using var root = new TempDir();
