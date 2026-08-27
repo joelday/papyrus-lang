@@ -1,9 +1,11 @@
+using System.Threading.Tasks;
+
 namespace Papyrus.LanguageServer;
 
 internal static class Program
 {
-    private static int Main()
+    private static Task<int> Main()
     {
-        return 0;
+        return LanguageServerHost.RunStdioAsync();
     }
 }
