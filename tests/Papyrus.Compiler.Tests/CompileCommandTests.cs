@@ -449,6 +449,80 @@ public sealed class CompileCommandTests
     }
 
     [Fact]
+    public void Compile_Ppj_UnusedVariableEnv_DoesNotFail()
+    {
+        using var root = new TempDir();
+        File.WriteAllText(Path.Combine(root.Path, "Foo.psc"), TinyScript());
+        var unused = "PAPYRUS_TEST_UNUSED_" + Guid.NewGuid().ToString("N");
+        var project = Path.Combine(root.Path, "Mod.ppj");
+        File.WriteAllText(
+            project,
+            $$"""
+            <PapyrusProject Game="sse" Output="out">
+              <Variables>
+                <Variable Name="ScriptsDir" Value="${{{unused}}}\@ModName"/>
+              </Variables>
+              <Scripts>
+                <Script>Foo.psc</Script>
+              </Scripts>
+            </PapyrusProject>
+            """);
+        var pexPath = Path.Combine(root.Path, "out", "Foo.pex");
+
+        var code = Run(out var stdout, out var stderr, "compile", project);
+
+        Assert.Equal(0, code);
+        Assert.Empty(stderr);
+        Assert.True(File.Exists(pexPath));
+        Assert.Contains(pexPath, stdout, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Compile_Ppj_PreBuildFailure_SkipsCompileAndPostBuild()
+    {
+        using var root = new TempDir();
+        File.WriteAllText(Path.Combine(root.Path, "Foo.psc"), TinyScript());
+        const string preCommand = "exit 1";
+        string postCommand;
+        if (OperatingSystem.IsWindows())
+        {
+            File.WriteAllText(Path.Combine(root.Path, "post.cmd"), "echo. > post.marker\r\n");
+            postCommand = "post.cmd";
+        }
+        else
+        {
+            File.WriteAllText(Path.Combine(root.Path, "post.sh"), "echo post > post.marker\n");
+            postCommand = "sh post.sh";
+        }
+
+        var project = Path.Combine(root.Path, "Mod.ppj");
+        File.WriteAllText(
+            project,
+            $"""
+            <PapyrusProject Game="sse" Output="out">
+              <Scripts>
+                <Script>Foo.psc</Script>
+              </Scripts>
+              <PreBuild>
+                <Command>{preCommand}</Command>
+              </PreBuild>
+              <PostBuild>
+                <Command>{postCommand}</Command>
+              </PostBuild>
+            </PapyrusProject>
+            """);
+
+        var code = Run(out var stdout, out var stderr, "compile", project);
+
+        Assert.Equal(1, code);
+        Assert.Contains("pre-build", stderr, StringComparison.Ordinal);
+        Assert.Contains("exit code", stderr, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(root.Path, "out", "Foo.pex")));
+        Assert.False(File.Exists(Path.Combine(root.Path, "post.marker")));
+        Assert.DoesNotContain("Foo.pex", stdout, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Compile_IgnoreEngineLimits_WritesPex()
     {
         using var root = new TempDir();

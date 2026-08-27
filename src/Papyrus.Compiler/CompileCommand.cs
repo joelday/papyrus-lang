@@ -266,7 +266,7 @@ internal static class CompileCommand
         }
 
         // CLI default on. cwd is the .ppj directory; process environment is already used for ${ENV}.
-        if (!TryRunBuildCommands(project.PreBuild, projectDirectory, "pre-build", stdout, stderr))
+        if (!TryRunBuildCommands(project.PreBuild, projectDirectory, "pre-build", stderr))
         {
             return 1;
         }
@@ -304,7 +304,7 @@ internal static class CompileCommand
             return 1;
         }
 
-        return TryRunBuildCommands(project.PostBuild, projectDirectory, "post-build", stdout, stderr) ? 0 : 1;
+        return TryRunBuildCommands(project.PostBuild, projectDirectory, "post-build", stderr) ? 0 : 1;
     }
 
     private static int EmitScript(
@@ -376,7 +376,6 @@ internal static class CompileCommand
         ImmutableArray<string> commands,
         string projectDirectory,
         string stage,
-        TextWriter stdout,
         TextWriter stderr)
     {
         if (commands.IsDefaultOrEmpty)
@@ -392,7 +391,7 @@ internal static class CompileCommand
                 continue;
             }
 
-            if (!TryRunBuildCommand(command.Trim(), projectDirectory, stage, stdout, stderr))
+            if (!TryRunBuildCommand(command.Trim(), projectDirectory, stage, stderr))
             {
                 return false;
             }
@@ -405,7 +404,6 @@ internal static class CompileCommand
         string command,
         string projectDirectory,
         string stage,
-        TextWriter stdout,
         TextWriter stderr)
     {
         var startInfo = new ProcessStartInfo
@@ -419,9 +417,9 @@ internal static class CompileCommand
 
         if (OperatingSystem.IsWindows())
         {
+            // Raw /c string so cmd metacharacters and quoting match a shell command line.
             startInfo.FileName = "cmd.exe";
-            startInfo.ArgumentList.Add("/c");
-            startInfo.ArgumentList.Add(command);
+            startInfo.Arguments = "/c " + command;
         }
         else
         {
@@ -442,7 +440,8 @@ internal static class CompileCommand
             var outputTask = process.StandardOutput.ReadToEndAsync();
             var errorTask = process.StandardError.ReadToEndAsync();
             process.WaitForExit();
-            WriteProcessOutput(stdout, outputTask.GetAwaiter().GetResult());
+            // Keep papyrusc stdout as the written .pex path list.
+            WriteProcessOutput(stderr, outputTask.GetAwaiter().GetResult());
             WriteProcessOutput(stderr, errorTask.GetAwaiter().GetResult());
             if (process.ExitCode != 0)
             {

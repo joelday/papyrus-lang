@@ -109,12 +109,12 @@ public sealed class PapyrusProject
 
     public bool TryExpandEnvironmentVariables(out PapyrusProject expanded, out string missingName)
     {
+        // Variable values stay unexpanded until @Name substitution; unused ${ENV} there must not fail the compile.
         if (!TryExpandValue(Output, out var output, out missingName)
             || !TryExpandValue(Flags, out var flags, out missingName)
             || !TryExpandStrings(Imports, out var imports, out missingName)
             || !TryExpandFolders(Folders, out var folders, out missingName)
             || !TryExpandStrings(Scripts, out var scripts, out missingName)
-            || !TryExpandVariables(Variables, out var variables, out missingName)
             || !TryExpandStrings(PreBuild, out var preBuild, out missingName)
             || !TryExpandStrings(PostBuild, out var postBuild, out missingName))
         {
@@ -127,7 +127,6 @@ public sealed class PapyrusProject
             && imports.Equals(Imports)
             && folders.Equals(Folders)
             && scripts.Equals(Scripts)
-            && variables.Equals(Variables)
             && preBuild.Equals(PreBuild)
             && postBuild.Equals(PostBuild))
         {
@@ -140,7 +139,7 @@ public sealed class PapyrusProject
             imports,
             folders,
             scripts,
-            variables,
+            Variables,
             output,
             flags,
             Optimize,
@@ -237,44 +236,8 @@ public sealed class PapyrusProject
         return true;
     }
 
-    private static bool TryExpandVariables(
-        ImmutableDictionary<string, string> variables,
-        out ImmutableDictionary<string, string> expanded,
-        out string missingName)
-    {
-        missingName = "";
-        expanded = variables;
-        if (variables.IsEmpty)
-        {
-            return true;
-        }
-
-        ImmutableDictionary<string, string>.Builder? builder = null;
-        foreach (var pair in variables)
-        {
-            if (!TryReplaceEnvTokens(pair.Value, out var value, out missingName))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(value, pair.Value))
-            {
-                continue;
-            }
-
-            builder ??= variables.ToBuilder();
-            builder[pair.Key] = value;
-        }
-
-        if (builder is not null)
-        {
-            expanded = builder.ToImmutable();
-        }
-
-        return true;
-    }
-
     // Unset variables are errors. Empty-but-set values expand to empty, matching process environment.
+    // Any non-empty ${...} is an env token (including Windows names like ProgramFiles(x86)).
     private static bool TryReplaceEnvTokens(string value, out string expanded, out string missingName)
     {
         missingName = "";
@@ -299,7 +262,7 @@ public sealed class PapyrusProject
                 }
 
                 var nameLength = close - (i + 2);
-                if (nameLength > 0 && IsEnvironmentName(value, i + 2, nameLength))
+                if (nameLength > 0)
                 {
                     var name = value.Substring(i + 2, nameLength);
                     var env = Environment.GetEnvironmentVariable(name);
@@ -326,31 +289,6 @@ public sealed class PapyrusProject
 
         expanded = builder.ToString();
         return true;
-    }
-
-    private static bool IsEnvironmentName(string value, int start, int length)
-    {
-        var first = value[start];
-        if (!IsEnvironmentNameStart(first))
-        {
-            return false;
-        }
-
-        for (var i = 1; i < length; i++)
-        {
-            var c = value[start + i];
-            if (!IsEnvironmentNameStart(c) && (c < '0' || c > '9'))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static bool IsEnvironmentNameStart(char c)
-    {
-        return c is (>= 'A' and <= 'Z') or (>= 'a' and <= 'z') or '_';
     }
 }
 
