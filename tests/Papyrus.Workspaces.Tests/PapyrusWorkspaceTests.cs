@@ -342,6 +342,34 @@ public sealed class PapyrusWorkspaceTests : IDisposable
     }
 
     [Fact]
+    public void TryGetSyntaxTree_maps_document_ids_to_trees()
+    {
+        var scripts = CreateScriptsDirectory("scripts");
+        var diskPath = Path.Combine(scripts, "Foo.psc");
+        File.WriteAllText(diskPath, "ScriptName Foo\n");
+        var ppj = WriteProject("game.ppj", "scripts");
+
+        using var workspace = CreateWorkspace();
+        var project = workspace.LoadProject(ppj);
+        var solution = workspace.CurrentSolution;
+
+        Assert.True(solution.TryGetSyntaxTree(DocumentId.Create(project.Id, diskPath), out var tree));
+        Assert.Equal("ScriptName Foo\n", tree.GetText().ToString());
+
+        Assert.False(solution.TryGetSyntaxTree(
+            DocumentId.Create(project.Id, Path.Combine(_root, "Elsewhere.psc")),
+            out _));
+
+        // A valid-looking path with no file must not seed the compilation
+        // cache with a missing-script entry (it would surface as a spurious
+        // UnresolvedScript diagnostic on every later GetDiagnostics call).
+        Assert.False(solution.TryGetSyntaxTree(
+            DocumentId.Create(project.Id, Path.Combine(scripts, "Ghost.psc")),
+            out _));
+        Assert.Empty(solution.GetCompilation(project.Id).GetDiagnostics(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public void LoadProject_null_path_throws()
     {
         using var workspace = CreateWorkspace();

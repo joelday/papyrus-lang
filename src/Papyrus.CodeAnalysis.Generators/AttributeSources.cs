@@ -16,6 +16,8 @@ internal static class AttributeSources
         internal sealed class SyntaxTokenAttribute : Attribute
         {
             public string? Text { get; set; }
+
+            public bool Operator { get; set; }
         }
 
         [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]

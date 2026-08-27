@@ -4,6 +4,8 @@ namespace Papyrus.CodeAnalysis.Text;
 
 public abstract class SourceText
 {
+    private TextLineMap? _lines;
+
     private protected SourceText(PapyrusEncoding encoding)
     {
         Encoding = encoding;
@@ -12,6 +14,13 @@ public abstract class SourceText
     public PapyrusEncoding Encoding { get; }
 
     public abstract int Length { get; }
+
+    /// <summary>
+    /// Lazily computed line index for this text. The text is immutable, so
+    /// the map is computed once and cached (a benign race may compute it
+    /// twice).
+    /// </summary>
+    public TextLineMap Lines => _lines ??= TextLineMap.Create(this);
 
     public abstract char GetChar(int position);
 

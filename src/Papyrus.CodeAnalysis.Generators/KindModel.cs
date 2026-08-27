@@ -77,7 +77,8 @@ internal readonly struct KindModel : IEquatable<KindModel>
         string? text,
         ImmutableArray<ChildSlot> children,
         string typeName = "",
-        string baseTypeName = "")
+        string baseTypeName = "",
+        bool isOperator = false)
     {
         Name = name;
         Category = category;
@@ -85,6 +86,7 @@ internal readonly struct KindModel : IEquatable<KindModel>
         Children = children;
         TypeName = typeName;
         BaseTypeName = baseTypeName;
+        IsOperator = isOperator;
     }
 
     public string Name { get; }
@@ -99,10 +101,13 @@ internal readonly struct KindModel : IEquatable<KindModel>
 
     public string BaseTypeName { get; }
 
+    public bool IsOperator { get; }
+
     public bool Equals(KindModel other)
     {
         if (!string.Equals(Name, other.Name, StringComparison.Ordinal)
             || Category != other.Category
+            || IsOperator != other.IsOperator
             || !string.Equals(Text, other.Text, StringComparison.Ordinal)
             || !string.Equals(TypeName, other.TypeName, StringComparison.Ordinal)
             || !string.Equals(BaseTypeName, other.BaseTypeName, StringComparison.Ordinal)

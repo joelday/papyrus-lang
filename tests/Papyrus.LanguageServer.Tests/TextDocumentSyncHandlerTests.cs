@@ -59,7 +59,7 @@ public sealed class TextDocumentSyncHandlerTests : IDisposable
         var didChange = new DidChangeHandler(workspace);
         var didClose = new DidCloseHandler(workspace);
         var snapshot = new SnapshotHandler();
-        var uri = ToFileUri(diskPath);
+        var uri = LspTestWorkspace.ToFileUri(diskPath);
 
         var before = await scheduler.ExecuteAsync(snapshot, parameters: null, timeout.Token);
         Assert.Equal(0, before.Generation);
@@ -148,7 +148,7 @@ public sealed class TextDocumentSyncHandlerTests : IDisposable
             {
                 TextDocument = new TextDocumentItem
                 {
-                    Uri = ToFileUri(Path.Combine(_root, "Other.psc")),
+                    Uri = LspTestWorkspace.ToFileUri(Path.Combine(_root, "Other.psc")),
                     LanguageId = "papyrus",
                     Version = 1,
                     Text = "ScriptName Other\n",
@@ -158,16 +158,6 @@ public sealed class TextDocumentSyncHandlerTests : IDisposable
 
         Assert.Equal(1, scheduler.Generation);
         Assert.Empty(workspace.CurrentSolution.OpenDocumentIds);
-    }
-
-    private static string ToFileUri(string path)
-    {
-        return new UriBuilder
-        {
-            Scheme = Uri.UriSchemeFile,
-            Host = string.Empty,
-            Path = Path.GetFullPath(path),
-        }.Uri.AbsoluteUri;
     }
 
     private static string ReadScript(PapyrusWorkspace workspace, ProjectId projectId)

@@ -14,6 +14,8 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly DidChangeHandler _didChange;
     private readonly DidCloseHandler _didClose;
     private readonly SnapshotHandler _snapshot;
+    private readonly SemanticTokensFullHandler _semanticTokensFull;
+    private readonly SemanticTokensRangeHandler _semanticTokensRange;
 
     private int _shutdown;
     private int _disposed;
@@ -31,6 +33,8 @@ internal sealed class LanguageServerRpc : IDisposable
         _didChange = new DidChangeHandler(scheduler.Workspace);
         _didClose = new DidCloseHandler(scheduler.Workspace);
         _snapshot = new SnapshotHandler();
+        _semanticTokensFull = new SemanticTokensFullHandler();
+        _semanticTokensRange = new SemanticTokensRangeHandler();
     }
 
     internal Task<int> WaitForExitAsync() => _exit.Task;
@@ -67,6 +71,7 @@ internal sealed class LanguageServerRpc : IDisposable
                         OpenClose = true,
                         Change = TextDocumentSyncKind.Full,
                     },
+                    SemanticTokensProvider = LspSemanticTokens.CapabilityOptions(),
                 },
                 ServerInfo = new ServerInfo { Name = "Papyrus Language Server" },
             });
@@ -110,6 +115,22 @@ internal sealed class LanguageServerRpc : IDisposable
     public Task<SnapshotResult> SnapshotAsync(SnapshotParams? parameters, CancellationToken cancellationToken)
     {
         return _scheduler.ExecuteAsync(_snapshot, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(SemanticTokensFullHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<SemanticTokens> SemanticTokensFullAsync(
+        SemanticTokensParams? parameters,
+        CancellationToken cancellationToken)
+    {
+        return _scheduler.ExecuteAsync(_semanticTokensFull, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(SemanticTokensRangeHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<SemanticTokens> SemanticTokensRangeAsync(
+        SemanticTokensRangeParams? parameters,
+        CancellationToken cancellationToken)
+    {
+        return _scheduler.ExecuteAsync(_semanticTokensRange, parameters, cancellationToken);
     }
 
     [JsonRpcMethod("shutdown")]

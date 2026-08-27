@@ -96,6 +96,8 @@ internal static class SyntaxEmitter
         builder.AppendLine();
         AppendPredicate(builder, "IsTrivia", kinds, static kind => kind.Category == KindCategory.Trivia);
         builder.AppendLine();
+        AppendPredicate(builder, "IsOperator", kinds, static kind => kind.IsOperator);
+        builder.AppendLine();
         AppendPredicate(
             builder,
             "IsToken",

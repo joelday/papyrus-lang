@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using Papyrus.CodeAnalysis;
+using Papyrus.CodeAnalysis.Syntax;
 using Papyrus.CodeAnalysis.Text;
 
 namespace Papyrus.Workspaces;
@@ -113,6 +115,28 @@ public sealed class PapyrusSolution
         }
 
         return builder.ToImmutable();
+    }
+
+    public bool TryGetSyntaxTree(DocumentId documentId, out SyntaxTree tree)
+    {
+        ArgumentNullException.ThrowIfNull(documentId);
+        tree = null!;
+        if (!_projects.TryGetValue(documentId.ProjectId, out var state)
+            || !state.DiskResolver.TryGetNameFromPath(documentId.Path, out var name))
+        {
+            return false;
+        }
+
+        // GetSyntaxTree caches a missing-script entry for names it cannot
+        // resolve, so refuse documents that neither have an open buffer nor
+        // exist on disk rather than polluting the shared compilation cache.
+        if (!_openDocuments.ContainsKey(documentId) && !File.Exists(documentId.Path))
+        {
+            return false;
+        }
+
+        tree = state.Compilation.GetSyntaxTree(name);
+        return true;
     }
 
     public bool IsDocumentOpen(DocumentId documentId)
