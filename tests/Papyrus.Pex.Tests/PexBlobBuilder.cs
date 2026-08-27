@@ -69,6 +69,15 @@ internal sealed class PexBlobBuilder
         return this;
     }
 
+    public PexBlobBuilder StrBytes(params byte[] value)
+    {
+        if (value.Length > ushort.MaxValue)
+            throw new InvalidOperationException("String exceeds u16 length prefix.");
+        _writer.Write((ushort)value.Length);
+        _writer.Write(value);
+        return this;
+    }
+
     public PexBlobBuilder MagicLe()
     {
         _writer.Write(PexFile.MagicNumber);
