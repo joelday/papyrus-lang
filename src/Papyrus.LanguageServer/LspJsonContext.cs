@@ -10,8 +10,22 @@ namespace Papyrus.LanguageServer;
 [JsonSerializable(typeof(InitializedParams))]
 [JsonSerializable(typeof(ClientCapabilities))]
 [JsonSerializable(typeof(ServerCapabilities))]
+[JsonSerializable(typeof(TextDocumentSyncOptions))]
+[JsonSerializable(typeof(TextDocumentSyncKind))]
 [JsonSerializable(typeof(ClientInfo))]
 [JsonSerializable(typeof(ServerInfo))]
+[JsonSerializable(typeof(DidOpenTextDocumentParams))]
+[JsonSerializable(typeof(DidChangeTextDocumentParams))]
+[JsonSerializable(typeof(DidCloseTextDocumentParams))]
+[JsonSerializable(typeof(TextDocumentItem))]
+[JsonSerializable(typeof(VersionedTextDocumentIdentifier))]
+[JsonSerializable(typeof(TextDocumentIdentifier))]
+[JsonSerializable(typeof(TextDocumentContentChangeEvent))]
+[JsonSerializable(typeof(TextDocumentContentChangeEvent[]))]
+[JsonSerializable(typeof(Range))]
+[JsonSerializable(typeof(Position))]
+[JsonSerializable(typeof(SnapshotParams))]
+[JsonSerializable(typeof(SnapshotResult))]
 internal sealed partial class LspJsonContext : JsonSerializerContext
 {
 }

@@ -37,6 +37,21 @@ internal sealed class InitializeResult
 
 internal sealed class ServerCapabilities
 {
+    public TextDocumentSyncOptions? TextDocumentSync { get; set; }
+}
+
+internal sealed class TextDocumentSyncOptions
+{
+    public bool OpenClose { get; set; }
+
+    public TextDocumentSyncKind Change { get; set; }
+}
+
+internal enum TextDocumentSyncKind
+{
+    None = 0,
+    Full = 1,
+    Incremental = 2,
 }
 
 internal sealed class ServerInfo
@@ -48,4 +63,80 @@ internal sealed class ServerInfo
 
 internal sealed class InitializedParams
 {
+}
+
+internal sealed class DidOpenTextDocumentParams
+{
+    public TextDocumentItem? TextDocument { get; set; }
+}
+
+internal sealed class TextDocumentItem
+{
+    public string? Uri { get; set; }
+
+    public string? LanguageId { get; set; }
+
+    public int Version { get; set; }
+
+    public string? Text { get; set; }
+}
+
+internal sealed class DidChangeTextDocumentParams
+{
+    public VersionedTextDocumentIdentifier? TextDocument { get; set; }
+
+    public TextDocumentContentChangeEvent[]? ContentChanges { get; set; }
+}
+
+internal sealed class VersionedTextDocumentIdentifier
+{
+    public string? Uri { get; set; }
+
+    public int Version { get; set; }
+}
+
+internal sealed class TextDocumentContentChangeEvent
+{
+    public Range? Range { get; set; }
+
+    public int? RangeLength { get; set; }
+
+    public string? Text { get; set; }
+}
+
+internal sealed class Range
+{
+    public Position? Start { get; set; }
+
+    public Position? End { get; set; }
+}
+
+internal sealed class Position
+{
+    public int Line { get; set; }
+
+    public int Character { get; set; }
+}
+
+internal sealed class DidCloseTextDocumentParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+}
+
+internal sealed class TextDocumentIdentifier
+{
+    public string? Uri { get; set; }
+}
+
+internal sealed class SnapshotParams
+{
+}
+
+internal sealed class SnapshotResult
+{
+    public int Generation { get; set; }
+
+    public int OpenDocumentCount { get; set; }
+
+    public int ProjectCount { get; set; }
 }
