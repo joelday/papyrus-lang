@@ -22,7 +22,8 @@ internal sealed class CompileCommandOptions
         string? flags,
         string[] imports,
         long time,
-        bool ignoreEngineLimits)
+        bool ignoreEngineLimits,
+        bool champollionCompat = false)
     {
         Path = path;
         Game = game;
@@ -31,6 +32,7 @@ internal sealed class CompileCommandOptions
         Imports = imports;
         Time = time;
         IgnoreEngineLimits = ignoreEngineLimits;
+        ChampollionCompat = champollionCompat;
     }
 
     internal string Path { get; }
@@ -40,6 +42,7 @@ internal sealed class CompileCommandOptions
     internal string[] Imports { get; }
     internal long Time { get; }
     internal bool IgnoreEngineLimits { get; }
+    internal bool ChampollionCompat { get; }
 }
 
 internal static class CompileCommand
@@ -133,6 +136,7 @@ internal static class CompileCommand
             writeFlagsDiagnostics: true,
             options.Time,
             options.IgnoreEngineLimits,
+            options.ChampollionCompat,
             stdout,
             stderr);
     }
@@ -277,6 +281,7 @@ internal static class CompileCommand
                 writeFlagsDiagnostics: false,
                 options.Time,
                 options.IgnoreEngineLimits,
+                options.ChampollionCompat,
                 stdout,
                 stderr);
             if (code != 0)
@@ -299,6 +304,7 @@ internal static class CompileCommand
         bool writeFlagsDiagnostics,
         long time,
         bool ignoreEngineLimits,
+        bool champollionCompat,
         TextWriter stdout,
         TextWriter stderr)
     {
@@ -312,9 +318,11 @@ internal static class CompileCommand
         try
         {
             var text = SourceText.From(File.ReadAllBytes(scriptPath));
-            var parseOptions = ignoreEngineLimits
-                ? new PapyrusParseOptions { IgnoreEngineLimits = true }
-                : PapyrusParseOptions.Default;
+            var parseOptions = new PapyrusParseOptions
+            {
+                IgnoreEngineLimits = ignoreEngineLimits,
+                ChampollionCompat = champollionCompat,
+            };
             var compilation = PapyrusCompilation.Create(dialect, resolver, parseOptions)
                 .WithScriptText(name, text);
             var script = compilation.GetScript(name);
@@ -687,7 +695,20 @@ internal static class CompileCommand
         return false;
     }
 
-    private static QualifiedName GetScriptName(string fullPath, List<string> imports, GameId game)
+    internal static bool TryGetDialect(GameId game, out PapyrusDialect dialect)
+    {
+        dialect = game switch
+        {
+            GameId.SkyrimSpecialEdition => PapyrusDialect.SkyrimSe,
+            GameId.Skyrim => PapyrusDialect.SkyrimLe,
+            GameId.Fallout4 => PapyrusDialect.Fallout4,
+            GameId.Starfield => PapyrusDialect.Starfield,
+            _ => null!,
+        };
+        return dialect is not null;
+    }
+
+    internal static QualifiedName GetScriptName(string fullPath, List<string> imports, GameId game)
     {
         var supportsNamespaces = game is not (GameId.Skyrim or GameId.SkyrimSpecialEdition);
         string? bestImport = null;

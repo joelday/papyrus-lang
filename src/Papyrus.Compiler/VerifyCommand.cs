@@ -19,7 +19,9 @@ internal sealed class VerifyCommandOptions
         bool compile = false,
         string? allowlist = null,
         string? ckCompiler = null,
-        string? flags = null)
+        string? flags = null,
+        bool champollion = false,
+        string? champollionPath = null)
     {
         Source = source;
         Game = game;
@@ -31,6 +33,8 @@ internal sealed class VerifyCommandOptions
         Allowlist = allowlist;
         CkCompiler = ckCompiler;
         Flags = flags;
+        Champollion = champollion;
+        ChampollionPath = champollionPath;
     }
 
     internal string Source { get; }
@@ -43,12 +47,19 @@ internal sealed class VerifyCommandOptions
     internal string? Allowlist { get; }
     internal string? CkCompiler { get; }
     internal string? Flags { get; }
+    internal bool Champollion { get; }
+    internal string? ChampollionPath { get; }
 }
 
 internal static class VerifyCommand
 {
     internal static int Execute(VerifyCommandOptions options, TextWriter stdout, TextWriter stderr)
     {
+        if (options.Champollion)
+        {
+            return ChampollionCommand.Execute(options, stdout, stderr);
+        }
+
         if (!string.IsNullOrWhiteSpace(options.CkCompiler))
         {
             stderr.WriteLine(

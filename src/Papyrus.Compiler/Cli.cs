@@ -12,12 +12,13 @@ internal static class Cli
         """
         Usage: papyrusc <command>
 
-          papyrusc compile <script.psc|project.ppj> [--game <skyrimse|skyrimle|fallout4|starfield>] [--output <file.pex>] [--flags <file.flg>] [--import <dir>]... [--time <unix>] [--ignore-engine-limits]
+          papyrusc compile <script.psc|project.ppj> [--game <skyrimse|skyrimle|fallout4|starfield>] [--output <file.pex>] [--flags <file.flg>] [--import <dir>]... [--time <unix>] [--ignore-engine-limits] [--champollion-compat]
           papyrusc corpus acquire --game <game> --source <path> [--dest <path>] [--force]
           papyrusc hash <path> [--game <game>]
           papyrusc verify --source <path> --baseline <file> [--game <game>]
           papyrusc verify --compile [--game <game>] [--source <path>] [--baseline <file>] [--allowlist <file>] [--flags <file.flg>]
           papyrusc verify --write-baselines --source <path> --out <file> --attestation <file> --game <game>
+          papyrusc verify --champollion [--source <path>] [--game <game>] [--champollion-path <bin>]
           papyrusc --version
 
         compile
@@ -29,6 +30,7 @@ internal static class Cli
           --import   Additional script import directory (repeatable)
           --time     Unix compile timestamp (default: 0)
           --ignore-engine-limits  Downgrade engine-limit diagnostics to warnings
+          --champollion-compat    Accept ::-prefixed identifiers and Script#Struct types
 
         corpus acquire
           --game     skyrimse | fallout4 | starfield
@@ -45,7 +47,7 @@ internal static class Cli
         verify
           Compare hashes of existing .pex to a committed baseline. Does not compile
           unless --compile is set.
-          --baseline is required unless --write-baselines or --compile with no corpus.
+          --baseline is required unless --write-baselines, --champollion, or --compile with no corpus.
           --compile   Compile each .psc with PexEmitter and compare normalized hashes
                       to the baseline. Skips (exit 0) when the local corpus is absent.
                       --source defaults to ./corpus/<game>. Public CI must not require
@@ -56,6 +58,13 @@ internal static class Cli
           --ck-compiler <path>  Tier-2 CK differential; not implemented yet.
           --write-baselines is maintainer-only and requires --attestation and --game.
           See docs/compliance/baselines/README.md.
+
+        verify --champollion
+          Decompile vanilla .pex with Champollion, recompile with --champollion-compat,
+          and compare normalized hashes. Does not need the CK compiler.
+          Skips (exit 0) when the Champollion binary or corpus is missing (public CI).
+          --source             Directory of .pex (default: ./corpus/<game> or ./corpus)
+          --champollion-path   Champollion executable (else PAPYRUSC_CHAMPOLLION, PATH, tools/Champollion)
         """;
 
     // GetName().Version is AOT-safe; GetCustomAttribute is annotated RequiresUnreferencedCode.
@@ -320,6 +329,8 @@ internal static class Cli
         string? allowlist = null;
         string? ckCompiler = null;
         string? flags = null;
+        var champollion = false;
+        string? champollionPath = null;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -353,6 +364,17 @@ internal static class Cli
             if (name == "compile")
             {
                 compile = true;
+                continue;
+            }
+
+            if (name == "champollion")
+            {
+                champollion = true;
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    champollionPath = value;
+                }
+
                 continue;
             }
 
@@ -393,10 +415,25 @@ internal static class Cli
                 case "flags":
                     flags = value;
                     break;
+                case "champollion-path":
+                    champollionPath = value;
+                    break;
                 default:
                     error = $"error: unknown option --{name}";
                     return false;
             }
+        }
+
+        if (champollion && writeBaselines)
+        {
+            error = "error: --champollion cannot be used with --write-baselines";
+            return false;
+        }
+
+        if (champollion && compile)
+        {
+            error = "error: --champollion cannot be combined with --compile";
+            return false;
         }
 
         if (!string.IsNullOrWhiteSpace(ckCompiler))
@@ -411,7 +448,7 @@ internal static class Cli
             return false;
         }
 
-        if (!compile && string.IsNullOrWhiteSpace(source))
+        if (!compile && !champollion && string.IsNullOrWhiteSpace(source))
         {
             error = "error: --source is required";
             return false;
@@ -443,7 +480,7 @@ internal static class Cli
                 return false;
             }
         }
-        else if (!compile && string.IsNullOrWhiteSpace(baseline))
+        else if (!compile && !champollion && string.IsNullOrWhiteSpace(baseline))
         {
             error = "error: --baseline is required (use papyrusc hash to print hashes)";
             return false;
@@ -459,7 +496,9 @@ internal static class Cli
             compile,
             allowlist,
             ckCompiler,
-            flags);
+            flags,
+            champollion,
+            champollionPath);
         return true;
     }
 
@@ -477,6 +516,7 @@ internal static class Cli
         var imports = new List<string>();
         long time = 0;
         var ignoreEngineLimits = false;
+        var champollionCompat = false;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -516,6 +556,12 @@ internal static class Cli
             if (name == "ignore-engine-limits")
             {
                 ignoreEngineLimits = true;
+                continue;
+            }
+
+            if (name == "champollion-compat")
+            {
+                champollionCompat = true;
                 continue;
             }
 
@@ -577,7 +623,7 @@ internal static class Cli
             return false;
         }
 
-        options = new CompileCommandOptions(path, game, output, flags, imports.ToArray(), time, ignoreEngineLimits);
+        options = new CompileCommandOptions(path, game, output, flags, imports.ToArray(), time, ignoreEngineLimits, champollionCompat);
         return true;
     }
 

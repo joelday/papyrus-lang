@@ -20,3 +20,11 @@ papyrusc corpus acquire --game skyrimse|fallout4|starfield --source <path> [--de
 `--source` is a game install root or a scripts directory (typically `Data/Scripts` and `Data/Scripts/Source`). Only `.psc` and `.pex` files are copied.
 
 `--dest` defaults to `./corpus/<game>`. If the destination is inside a git worktree (a `.git` directory or file is found walking parents), the command refuses unless you pass `--force`. The default path is gitignored, but `--force` is still required when you acquire into this repository.
+
+## Champollion round-trip (tier 3)
+
+```
+papyrusc verify --champollion [--source <path>] [--game <game>] [--champollion-path <bin>]
+```
+
+Decompile `.pex` with a Champollion executable, recompile with `papyrusc --champollion-compat`, compare normalized hashes. `--source` defaults to `./corpus/<game>` or `./corpus`. Skips (exit 0) when Champollion or the corpus is missing. Binary path: `--champollion-path`, `PAPYRUSC_CHAMPOLLION`, `PATH`, or `tools/Champollion`. See `docs/spec/README.md`.
