@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
-using System.Text;
 
 namespace Papyrus.Pex;
 
@@ -58,7 +57,7 @@ public static class PexWriter
         {
             BuildStringTable();
 
-            using var writer = new BinaryWriter(stream, Encoding.Latin1, leaveOpen: true);
+            using var writer = new BinaryWriter(stream, Windows1252Encoding.Instance, leaveOpen: true);
             _writer = writer;
             WriteFile();
             writer.Flush();
@@ -375,7 +374,7 @@ public static class PexWriter
 
         private void WritePrefixedString(string? value)
         {
-            byte[] bytes = Encoding.Latin1.GetBytes(value ?? "");
+            byte[] bytes = Windows1252Encoding.Instance.GetBytes(value ?? "");
             if (bytes.Length > ushort.MaxValue)
                 throw new PexFormatException($"String exceeds u16 length prefix ({bytes.Length} bytes).");
             _writer.Write((ushort)bytes.Length);

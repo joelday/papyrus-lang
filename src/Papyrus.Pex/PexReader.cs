@@ -3,7 +3,6 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
-using System.Text;
 
 namespace Papyrus.Pex;
 
@@ -603,7 +602,7 @@ public static class PexReader
         {
             int length = ReadUInt16();
             ReadOnlySpan<byte> bytes = ReadBytes(length);
-            return Encoding.Latin1.GetString(bytes);
+            return Windows1252Encoding.Instance.GetString(bytes);
         }
 
         private DateTimeOffset ReadUnixTime()

@@ -2,10 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Papyrus.CodeAnalysis.Text;
+namespace Papyrus.Pex;
 
 /// <summary>
-/// Hand-rolled Windows-1252. Architecture tests ban <see cref="Encoding.GetEncoding(int)"/>.
+/// PEX length-prefixed strings are Windows-1252 (K19).
+/// </summary>
+public static class PexEncoding
+{
+    public static Encoding Windows1252 => Windows1252Encoding.Instance;
+}
+
+/// <summary>
+/// Hand-rolled Windows-1252 for PEX strings and source decode.
+/// Avoids <see cref="Encoding.GetEncoding(int)"/> (code pages / NativeAOT).
 /// </summary>
 internal sealed class Windows1252Encoding : Encoding
 {
