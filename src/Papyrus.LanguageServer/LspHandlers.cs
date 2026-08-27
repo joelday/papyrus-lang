@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
 using Papyrus.CodeAnalysis.Text;
@@ -28,7 +29,7 @@ internal sealed class DidOpenHandler : ILspHandler<DidOpenTextDocumentParams, Ls
 
     public Task<LspVoid> HandleAsync(
         DidOpenTextDocumentParams p,
-        PapyrusSolution solution,
+        LspSnapshot snapshot,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
@@ -39,6 +40,7 @@ internal sealed class DidOpenHandler : ILspHandler<DidOpenTextDocumentParams, Ls
             var text = SourceText.From(document.Text ?? "");
             TextDocumentSync.TryApply(
                 _workspace,
+                snapshot.Solution,
                 path,
                 id => new WorkspaceChange.OpenDocument(id, text));
         }
@@ -64,7 +66,7 @@ internal sealed class DidChangeHandler : ILspHandler<DidChangeTextDocumentParams
 
     public Task<LspVoid> HandleAsync(
         DidChangeTextDocumentParams p,
-        PapyrusSolution solution,
+        LspSnapshot snapshot,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
@@ -74,6 +76,7 @@ internal sealed class DidChangeHandler : ILspHandler<DidChangeTextDocumentParams
             var text = SourceText.From(fullText);
             TextDocumentSync.TryApply(
                 _workspace,
+                snapshot.Solution,
                 path,
                 id => new WorkspaceChange.ChangeDocument(id, text));
         }
@@ -99,7 +102,7 @@ internal sealed class DidCloseHandler : ILspHandler<DidCloseTextDocumentParams, 
 
     public Task<LspVoid> HandleAsync(
         DidCloseTextDocumentParams p,
-        PapyrusSolution solution,
+        LspSnapshot snapshot,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
@@ -107,6 +110,7 @@ internal sealed class DidCloseHandler : ILspHandler<DidCloseTextDocumentParams, 
         {
             TextDocumentSync.TryApply(
                 _workspace,
+                snapshot.Solution,
                 path,
                 id => new WorkspaceChange.CloseDocument(id));
         }
@@ -119,29 +123,22 @@ internal sealed class SnapshotHandler : ILspHandler<SnapshotParams?, SnapshotRes
 {
     internal const string MethodName = "papyrus/snapshot";
 
-    private readonly LspRequestScheduler _scheduler;
-
-    internal SnapshotHandler(LspRequestScheduler scheduler)
-    {
-        _scheduler = scheduler;
-    }
-
     public string Method => MethodName;
 
     public bool MutatesSolution => false;
 
     public Task<SnapshotResult> HandleAsync(
         SnapshotParams? p,
-        PapyrusSolution solution,
+        LspSnapshot snapshot,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         return Task.FromResult(
             new SnapshotResult
             {
-                Generation = _scheduler.Generation,
-                OpenDocumentCount = solution.OpenDocumentIds.Length,
-                ProjectCount = solution.ProjectIds.Length,
+                Generation = snapshot.Generation,
+                OpenDocumentCount = snapshot.Solution.OpenDocumentIds.Length,
+                ProjectCount = snapshot.Solution.ProjectIds.Length,
             });
     }
 }
@@ -170,15 +167,23 @@ internal static class TextDocumentSync
 {
     internal static void TryApply(
         PapyrusWorkspace workspace,
+        PapyrusSolution solution,
         string path,
         Func<DocumentId, WorkspaceChange> create)
     {
-        var projectIds = workspace.CurrentSolution.ProjectIds;
-        for (var i = 0; i < projectIds.Length; i++)
+        var ids = solution.GetDocumentIdsForPath(path);
+        if (ids.IsDefaultOrEmpty)
         {
-            var id = DocumentId.Create(projectIds[i], path);
-            workspace.ApplyChange(create(id));
+            return;
         }
+
+        var changes = ImmutableArray.CreateBuilder<WorkspaceChange>(ids.Length);
+        for (var i = 0; i < ids.Length; i++)
+        {
+            changes.Add(create(ids[i]));
+        }
+
+        workspace.ApplyChanges(changes.MoveToImmutable());
     }
 
     internal static bool TryGetFullText(DidChangeTextDocumentParams parameters, out string text)

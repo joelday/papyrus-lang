@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Papyrus.Workspaces;
@@ -11,9 +10,9 @@ internal sealed class LspRequestScheduler : IDisposable
     private readonly PapyrusWorkspace _workspace;
     private readonly SemaphoreSlim _mutate = new(1, 1);
     private readonly object _gate = new();
-    private readonly List<CancellationTokenSource> _retiredNonMutating = new();
 
     private CancellationTokenSource _nonMutatingCts = new();
+    private CancellationTokenSource? _retiredNonMutating;
     private int _generation;
     private bool _disposed;
 
@@ -31,6 +30,12 @@ internal sealed class LspRequestScheduler : IDisposable
     internal PapyrusWorkspace Workspace => _workspace;
 
     internal int Generation => Volatile.Read(ref _generation);
+
+    /// <summary>
+    /// Test hook: runs after the current read epoch is cancelled and before
+    /// <c>_mutate</c> is acquired.
+    /// </summary>
+    internal Func<CancellationToken, Task>? BeforeMutateWait { get; set; }
 
     internal async Task<TResult> ExecuteAsync<TParams, TResult>(
         ILspHandler<TParams, TResult> handler,
@@ -59,13 +64,9 @@ internal sealed class LspRequestScheduler : IDisposable
 
             _disposed = true;
             _nonMutatingCts.Cancel();
-            _retiredNonMutating.Add(_nonMutatingCts);
-            for (var i = 0; i < _retiredNonMutating.Count; i++)
-            {
-                _retiredNonMutating[i].Dispose();
-            }
-
-            _retiredNonMutating.Clear();
+            _nonMutatingCts.Dispose();
+            _retiredNonMutating?.Dispose();
+            _retiredNonMutating = null;
             _workspace.Dispose();
         }
 
@@ -77,14 +78,23 @@ internal sealed class LspRequestScheduler : IDisposable
         TParams parameters,
         CancellationToken cancellationToken)
     {
-        // In-flight reads are on a snapshot that is about to be replaced.
-        CancelInFlightNonMutating();
+        // Cancel the live read epoch without rotating so a reader that starts
+        // before we own _mutate still observes a cancelled token.
+        CancelNonMutatingEpoch();
+        if (BeforeMutateWait is { } beforeWait)
+        {
+            await beforeWait(cancellationToken).ConfigureAwait(false);
+        }
+
         await _mutate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            // Rotate only while exclusive: new reads either wait for this
+            // mutation's snapshot or were already cancelled above.
+            RotateNonMutatingEpoch();
             ThrowIfDisposed();
-            var solution = _workspace.CurrentSolution;
-            var result = await handler.HandleAsync(parameters, solution, cancellationToken).ConfigureAwait(false);
+            var snapshot = CaptureSnapshot();
+            var result = await handler.HandleAsync(parameters, snapshot, cancellationToken).ConfigureAwait(false);
             Interlocked.Increment(ref _generation);
             return result;
         }
@@ -111,27 +121,46 @@ internal sealed class LspRequestScheduler : IDisposable
         // Wait only long enough to observe a stable snapshot; run the handler
         // without holding the mutate lock so reads can overlap.
         await _mutate.WaitAsync(linked.Token).ConfigureAwait(false);
-        PapyrusSolution solution;
+        LspSnapshot snapshot;
         try
         {
             ThrowIfDisposed();
-            solution = _workspace.CurrentSolution;
+            snapshot = CaptureSnapshot();
         }
         finally
         {
             _mutate.Release();
         }
 
-        return await handler.HandleAsync(parameters, solution, linked.Token).ConfigureAwait(false);
+        return await handler.HandleAsync(parameters, snapshot, linked.Token).ConfigureAwait(false);
     }
 
-    private void CancelInFlightNonMutating()
+    private LspSnapshot CaptureSnapshot()
+    {
+        return new LspSnapshot(_workspace.CurrentSolution, Volatile.Read(ref _generation));
+    }
+
+    private void CancelNonMutatingEpoch()
     {
         lock (_gate)
         {
             ThrowIfDisposed_NoLock();
             _nonMutatingCts.Cancel();
-            _retiredNonMutating.Add(_nonMutatingCts);
+        }
+    }
+
+    private void RotateNonMutatingEpoch()
+    {
+        lock (_gate)
+        {
+            ThrowIfDisposed_NoLock();
+            if (!_nonMutatingCts.IsCancellationRequested)
+            {
+                _nonMutatingCts.Cancel();
+            }
+
+            _retiredNonMutating?.Dispose();
+            _retiredNonMutating = _nonMutatingCts;
             _nonMutatingCts = new CancellationTokenSource();
         }
     }

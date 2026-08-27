@@ -2,7 +2,6 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Papyrus.LanguageServer;
-using Papyrus.Workspaces;
 using Xunit;
 
 namespace Papyrus.LanguageServer.Tests;
@@ -87,6 +86,84 @@ public sealed class LspRequestSchedulerTests
     }
 
     [Fact]
+    public async Task Non_mutating_started_after_mutate_cancel_does_not_observe_old_snapshot()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var scheduler = new LspRequestScheduler();
+        var cancelledEpoch = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseMutateWait = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        scheduler.BeforeMutateWait = async cancellationToken =>
+        {
+            cancelledEpoch.TrySetResult();
+            await releaseMutateWait.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        };
+
+        var mutate = new DelegateHandler<int, int>(
+            "test/mutate",
+            mutatesSolution: true,
+            (_, _, _) => Task.FromResult(2));
+        var read = new DelegateHandler<int, int>(
+            "test/read",
+            mutatesSolution: false,
+            (_, snapshot, _) => Task.FromResult(snapshot.Generation));
+
+        var mutateTask = scheduler.ExecuteAsync(mutate, 2, timeout.Token);
+        await cancelledEpoch.Task.WaitAsync(timeout.Token);
+
+        var readTask = scheduler.ExecuteAsync(read, 1, CancellationToken.None);
+        await Task.Delay(50, timeout.Token);
+
+        releaseMutateWait.TrySetResult();
+        Assert.Equal(2, await mutateTask.WaitAsync(timeout.Token));
+        Assert.Equal(1, scheduler.Generation);
+
+        if (readTask.IsCompleted)
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                async () => await readTask.WaitAsync(timeout.Token));
+        }
+        else
+        {
+            Assert.Equal(1, await readTask.WaitAsync(timeout.Token));
+        }
+    }
+
+    [Fact]
+    public async Task Non_mutating_started_during_mutating_handler_waits_for_new_snapshot()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var scheduler = new LspRequestScheduler();
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var mutate = new DelegateHandler<int, int>(
+            "test/mutate",
+            mutatesSolution: true,
+            async (_, _, cancellationToken) =>
+            {
+                entered.TrySetResult();
+                await release.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                return 2;
+            });
+        var read = new DelegateHandler<int, int>(
+            "test/read",
+            mutatesSolution: false,
+            (_, snapshot, _) => Task.FromResult(snapshot.Generation));
+
+        var mutateTask = scheduler.ExecuteAsync(mutate, 2, timeout.Token);
+        await entered.Task.WaitAsync(timeout.Token);
+
+        var readTask = scheduler.ExecuteAsync(read, 1, timeout.Token);
+        await Task.Delay(50, timeout.Token);
+        Assert.False(readTask.IsCompleted);
+
+        release.TrySetResult();
+        Assert.Equal(2, await mutateTask.WaitAsync(timeout.Token));
+        Assert.Equal(1, await readTask.WaitAsync(timeout.Token));
+    }
+
+    [Fact]
     public async Task Non_mutating_requests_run_concurrently()
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
@@ -120,12 +197,12 @@ public sealed class LspRequestSchedulerTests
 
     private sealed class DelegateHandler<TParams, TResult> : ILspHandler<TParams, TResult>
     {
-        private readonly Func<TParams, PapyrusSolution, CancellationToken, Task<TResult>> _handle;
+        private readonly Func<TParams, LspSnapshot, CancellationToken, Task<TResult>> _handle;
 
         public DelegateHandler(
             string method,
             bool mutatesSolution,
-            Func<TParams, PapyrusSolution, CancellationToken, Task<TResult>> handle)
+            Func<TParams, LspSnapshot, CancellationToken, Task<TResult>> handle)
         {
             Method = method;
             MutatesSolution = mutatesSolution;
@@ -136,9 +213,9 @@ public sealed class LspRequestSchedulerTests
 
         public bool MutatesSolution { get; }
 
-        public Task<TResult> HandleAsync(TParams p, PapyrusSolution solution, CancellationToken ct)
+        public Task<TResult> HandleAsync(TParams p, LspSnapshot snapshot, CancellationToken ct)
         {
-            return _handle(p, solution, ct);
+            return _handle(p, snapshot, ct);
         }
     }
 }

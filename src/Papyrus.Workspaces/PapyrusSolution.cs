@@ -96,6 +96,25 @@ public sealed class PapyrusSolution
         return GetState(projectId).Compilation;
     }
 
+    public ImmutableArray<DocumentId> GetDocumentIdsForPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return ImmutableArray<DocumentId>.Empty;
+        }
+
+        var builder = ImmutableArray.CreateBuilder<DocumentId>();
+        foreach (var pair in _projects)
+        {
+            if (pair.Value.DiskResolver.TryGetNameFromPath(path, out _))
+            {
+                builder.Add(DocumentId.Create(pair.Key, path));
+            }
+        }
+
+        return builder.ToImmutable();
+    }
+
     public bool IsDocumentOpen(DocumentId documentId)
     {
         ArgumentNullException.ThrowIfNull(documentId);

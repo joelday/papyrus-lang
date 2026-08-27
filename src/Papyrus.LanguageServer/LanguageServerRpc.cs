@@ -30,7 +30,7 @@ internal sealed class LanguageServerRpc : IDisposable
         _didOpen = new DidOpenHandler(scheduler.Workspace);
         _didChange = new DidChangeHandler(scheduler.Workspace);
         _didClose = new DidCloseHandler(scheduler.Workspace);
-        _snapshot = new SnapshotHandler(scheduler);
+        _snapshot = new SnapshotHandler();
     }
 
     internal Task<int> WaitForExitAsync() => _exit.Task;

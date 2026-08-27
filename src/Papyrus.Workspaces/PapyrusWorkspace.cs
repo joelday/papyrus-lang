@@ -91,6 +91,16 @@ public sealed class PapyrusWorkspace : IDisposable
         ApplyChanges(ImmutableArray.Create(change));
     }
 
+    public void ApplyChanges(ImmutableArray<WorkspaceChange> changes)
+    {
+        if (changes.IsDefaultOrEmpty)
+        {
+            return;
+        }
+
+        ApplyChangesCore(changes);
+    }
+
     public void NotifyWatchEvent(WorkspaceChange change)
     {
         ArgumentNullException.ThrowIfNull(change);
@@ -132,7 +142,7 @@ public sealed class PapyrusWorkspace : IDisposable
             DisarmWatchTimer_NoLock();
         }
 
-        ApplyChanges(batch);
+        ApplyChangesCore(batch);
     }
 
     public void FlushWatchEventsIfDebounceElapsed()
@@ -204,7 +214,7 @@ public sealed class PapyrusWorkspace : IDisposable
         }
     }
 
-    private void ApplyChanges(ImmutableArray<WorkspaceChange> changes)
+    private void ApplyChangesCore(ImmutableArray<WorkspaceChange> changes)
     {
         if (changes.IsDefaultOrEmpty)
         {
