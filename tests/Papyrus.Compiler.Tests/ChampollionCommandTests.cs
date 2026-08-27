@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using Papyrus.CodeAnalysis;
 using Papyrus.Pex;
 using Xunit;
 
@@ -190,6 +192,34 @@ public sealed class ChampollionCommandTests
             "Vendor:Foo",
             out found));
         Assert.Equal(Path.GetFullPath(objectPsc), found);
+    }
+
+    [Fact]
+    public void TryCompile_UsesPexObjectName_NotDataScriptsPrefix()
+    {
+        using var root = new TempDir();
+        var dir = Path.Combine(root.Path, "Data", "Scripts", "Vendor");
+        Directory.CreateDirectory(dir);
+        var script = Path.Combine(dir, "Foo.psc");
+        File.WriteAllText(script, "ScriptName Vendor:Foo\nFunction Bar()\nEndFunction\n");
+
+        var fromPath = CompileCommand.GetScriptName(
+            script,
+            new List<string> { root.Path },
+            GameId.Fallout4);
+        Assert.Equal("Data:Scripts:Vendor:Foo", fromPath.ToString());
+        Assert.Equal("Vendor:Foo", ChampollionCommand.NameFromObject("Vendor:Foo").ToString());
+
+        using var stderr = new StringWriter();
+        Assert.True(ChampollionCommand.TryCompile(
+            script,
+            root.Path,
+            PapyrusDialect.Fallout4,
+            "Vendor:Foo",
+            out var bytes,
+            stderr));
+        Assert.Equal(0, stderr.GetStringBuilder().Length);
+        Assert.Equal("Vendor:Foo", Assert.Single(PexReader.Read(bytes).Objects).Name);
     }
 
     [Fact]

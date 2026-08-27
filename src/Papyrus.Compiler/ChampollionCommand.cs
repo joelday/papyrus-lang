@@ -273,23 +273,26 @@ internal static class ChampollionCommand
             return false;
         }
 
-        if (!TryCompile(pscPath, pscDir, dialect, out var compiled, stderr))
+        if (!TryCompile(pscPath, pscDir, dialect, objectName, out var compiled, stderr))
             return false;
 
         compiledHash = HashForRoundTrip(compiled, dialect.Game);
         return true;
     }
 
-    private static bool TryCompile(
+    internal static bool TryCompile(
         string scriptPath,
         string pscRoot,
         PapyrusDialect dialect,
+        string? objectName,
         out byte[] bytes,
         TextWriter stderr)
     {
         bytes = null!;
         var imports = new List<string> { pscRoot };
-        var name = CompileCommand.GetScriptName(scriptPath, imports, dialect.Game);
+        var name = NameFromObject(objectName);
+        if (name.Parts.Length == 0)
+            name = CompileCommand.GetScriptName(scriptPath, imports, dialect.Game);
         if (name.Parts.Length == 0)
         {
             stderr.WriteLine($"error: could not determine script name: {scriptPath}");
@@ -343,6 +346,15 @@ internal static class ChampollionCommand
 
         bytes = PexWriter.Write(pex);
         return true;
+    }
+
+    internal static QualifiedName NameFromObject(string? objectName)
+    {
+        if (string.IsNullOrEmpty(objectName))
+            return default;
+
+        var text = PexQualifiedName.Parse(objectName).Text;
+        return string.IsNullOrEmpty(text) ? default : QualifiedName.Parse(text);
     }
 
     internal static bool TryFindDecompiledScript(string pscDir, string relativePex, string? objectName, out string pscPath)
