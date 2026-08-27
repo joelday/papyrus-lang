@@ -1,21 +1,54 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using StreamJsonRpc;
 
 namespace Papyrus.LanguageServer;
 
-internal sealed class LanguageServerRpc
+internal sealed class LanguageServerRpc : IDisposable
 {
     private readonly TaskCompletionSource<int> _exit =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly LspRequestScheduler _scheduler;
+    private readonly DidOpenHandler _didOpen;
+    private readonly DidChangeHandler _didChange;
+    private readonly DidCloseHandler _didClose;
+    private readonly SnapshotHandler _snapshot;
 
     private int _shutdown;
+    private int _disposed;
+
+    internal LanguageServerRpc()
+        : this(new LspRequestScheduler())
+    {
+    }
+
+    internal LanguageServerRpc(LspRequestScheduler scheduler)
+    {
+        ArgumentNullException.ThrowIfNull(scheduler);
+        _scheduler = scheduler;
+        _didOpen = new DidOpenHandler(scheduler.Workspace);
+        _didChange = new DidChangeHandler(scheduler.Workspace);
+        _didClose = new DidCloseHandler(scheduler.Workspace);
+        _snapshot = new SnapshotHandler();
+    }
 
     internal Task<int> WaitForExitAsync() => _exit.Task;
 
     internal void NotifyDisconnected()
     {
+        Dispose();
         _exit.TrySetResult(1);
+    }
+
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
+        _scheduler.Dispose();
     }
 
     [JsonRpcMethod("initialize", UseSingleObjectParameterDeserialization = true)]
@@ -27,7 +60,14 @@ internal sealed class LanguageServerRpc
         return Task.FromResult(
             new InitializeResult
             {
-                Capabilities = new ServerCapabilities(),
+                Capabilities = new ServerCapabilities
+                {
+                    TextDocumentSync = new TextDocumentSyncOptions
+                    {
+                        OpenClose = true,
+                        Change = TextDocumentSyncKind.Full,
+                    },
+                },
                 ServerInfo = new ServerInfo { Name = "Papyrus Language Server" },
             });
     }
@@ -37,6 +77,39 @@ internal sealed class LanguageServerRpc
     {
         cancellationToken.ThrowIfCancellationRequested();
         return Task.CompletedTask;
+    }
+
+    [JsonRpcMethod(DidOpenHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public async Task DidOpenAsync(DidOpenTextDocumentParams? parameters, CancellationToken cancellationToken)
+    {
+        await _scheduler.ExecuteAsync(
+            _didOpen,
+            parameters ?? new DidOpenTextDocumentParams(),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    [JsonRpcMethod(DidChangeHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public async Task DidChangeAsync(DidChangeTextDocumentParams? parameters, CancellationToken cancellationToken)
+    {
+        await _scheduler.ExecuteAsync(
+            _didChange,
+            parameters ?? new DidChangeTextDocumentParams(),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    [JsonRpcMethod(DidCloseHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public async Task DidCloseAsync(DidCloseTextDocumentParams? parameters, CancellationToken cancellationToken)
+    {
+        await _scheduler.ExecuteAsync(
+            _didClose,
+            parameters ?? new DidCloseTextDocumentParams(),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    [JsonRpcMethod(SnapshotHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<SnapshotResult> SnapshotAsync(SnapshotParams? parameters, CancellationToken cancellationToken)
+    {
+        return _scheduler.ExecuteAsync(_snapshot, parameters, cancellationToken);
     }
 
     [JsonRpcMethod("shutdown")]
@@ -50,6 +123,7 @@ internal sealed class LanguageServerRpc
     [JsonRpcMethod("exit")]
     public Task ExitAsync()
     {
+        Dispose();
         _exit.TrySetResult(Volatile.Read(ref _shutdown) == 1 ? 0 : 1);
         return Task.CompletedTask;
     }

@@ -31,7 +31,7 @@ internal static class LanguageServerHost
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(output);
 
-        var target = new LanguageServerRpc();
+        using var target = new LanguageServerRpc();
         var formatter = CreateFormatter();
         var handler = new HeaderDelimitedMessageHandler(output, input, formatter);
         using var jsonRpc = new JsonRpc(handler);

@@ -114,6 +114,87 @@ public sealed class LanguageServerHostTests
         Assert.Equal(0, await session.HostTask.WaitAsync(cancellationToken));
     }
 
+    [Fact]
+    public async Task Snapshot_is_non_mutating_and_didOpen_advances_generation()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        var cancellationToken = timeout.Token;
+        await using var session = Session.Start(cancellationToken);
+
+        await session.RequestAsync(
+            1,
+            "initialize",
+            """{"capabilities":{}}""",
+            cancellationToken);
+
+        var before = await session.RequestAsync(2, "papyrus/snapshot", "{}", cancellationToken);
+        Assert.Equal(0, ReadGeneration(before));
+
+        var didOpen = await session.RequestAsync(
+            3,
+            "textDocument/didOpen",
+            """{"textDocument":{"uri":"file:///tmp/Foo.psc","languageId":"papyrus","version":1,"text":"ScriptName Foo\n"}}""",
+            cancellationToken);
+        AssertNoError(didOpen);
+
+        var afterOpen = await session.RequestAsync(4, "papyrus/snapshot", "{}", cancellationToken);
+        Assert.Equal(1, ReadGeneration(afterOpen));
+
+        var didChange = await session.RequestAsync(
+            5,
+            "textDocument/didChange",
+            """{"textDocument":{"uri":"file:///tmp/Foo.psc","version":2},"contentChanges":[{"text":"ScriptName Foo\nInt x = 1\n"}]}""",
+            cancellationToken);
+        AssertNoError(didChange);
+
+        var didClose = await session.RequestAsync(
+            6,
+            "textDocument/didClose",
+            """{"textDocument":{"uri":"file:///tmp/Foo.psc"}}""",
+            cancellationToken);
+        AssertNoError(didClose);
+
+        var afterClose = await session.RequestAsync(7, "papyrus/snapshot", "{}", cancellationToken);
+        Assert.Equal(3, ReadGeneration(afterClose));
+
+        await session.ShutdownAndExitAsync(expectedCode: 0, cancellationToken);
+    }
+
+    [Fact]
+    public async Task Initialize_advertises_full_text_document_sync()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        var cancellationToken = timeout.Token;
+        await using var session = Session.Start(cancellationToken);
+
+        var response = await session.RequestAsync(
+            1,
+            "initialize",
+            """{"capabilities":{}}""",
+            cancellationToken);
+
+        using var document = JsonDocument.Parse(response);
+        Assert.False(document.RootElement.TryGetProperty("error", out _), response);
+        var sync = document.RootElement.GetProperty("result").GetProperty("capabilities").GetProperty("textDocumentSync");
+        Assert.True(sync.GetProperty("openClose").GetBoolean());
+        Assert.Equal((int)TextDocumentSyncKind.Full, sync.GetProperty("change").GetInt32());
+
+        await session.ShutdownAndExitAsync(expectedCode: 0, cancellationToken);
+    }
+
+    private static void AssertNoError(string response)
+    {
+        using var document = JsonDocument.Parse(response);
+        Assert.False(document.RootElement.TryGetProperty("error", out _), response);
+    }
+
+    private static int ReadGeneration(string response)
+    {
+        using var document = JsonDocument.Parse(response);
+        Assert.False(document.RootElement.TryGetProperty("error", out _), response);
+        return document.RootElement.GetProperty("result").GetProperty("generation").GetInt32();
+    }
+
     private sealed class Session : IAsyncDisposable
     {
         private readonly Pipe _clientToServer;
