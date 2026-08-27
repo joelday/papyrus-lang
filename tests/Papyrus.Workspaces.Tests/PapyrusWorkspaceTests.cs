@@ -359,6 +359,14 @@ public sealed class PapyrusWorkspaceTests : IDisposable
         Assert.False(solution.TryGetSyntaxTree(
             DocumentId.Create(project.Id, Path.Combine(_root, "Elsewhere.psc")),
             out _));
+
+        // A valid-looking path with no file must not seed the compilation
+        // cache with a missing-script entry (it would surface as a spurious
+        // UnresolvedScript diagnostic on every later GetDiagnostics call).
+        Assert.False(solution.TryGetSyntaxTree(
+            DocumentId.Create(project.Id, Path.Combine(scripts, "Ghost.psc")),
+            out _));
+        Assert.Empty(solution.GetCompilation(project.Id).GetDiagnostics(TestContext.Current.CancellationToken));
     }
 
     [Fact]

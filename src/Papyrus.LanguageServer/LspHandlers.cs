@@ -163,6 +163,50 @@ internal static class LspUris
     }
 }
 
+internal static class LspDocuments
+{
+    /// <summary>
+    /// Resolves a request's document to a syntax tree. When the path belongs
+    /// to several projects, the open document (whose buffer overlays every
+    /// owning project identically) is preferred; otherwise the tie is broken
+    /// deterministically by project path.
+    /// </summary>
+    internal static bool TryGetTree(
+        LspSnapshot snapshot,
+        TextDocumentIdentifier? document,
+        out Papyrus.CodeAnalysis.Syntax.SyntaxTree tree)
+    {
+        tree = null!;
+        if (!LspUris.TryGetFilePath(document?.Uri, out var path))
+        {
+            return false;
+        }
+
+        var ids = snapshot.Solution.GetDocumentIdsForPath(path);
+        if (ids.IsDefaultOrEmpty)
+        {
+            return false;
+        }
+
+        var selected = ids[0];
+        for (var i = 0; i < ids.Length; i++)
+        {
+            if (snapshot.Solution.IsDocumentOpen(ids[i]))
+            {
+                selected = ids[i];
+                break;
+            }
+
+            if (string.CompareOrdinal(ids[i].ProjectId.Path, selected.ProjectId.Path) < 0)
+            {
+                selected = ids[i];
+            }
+        }
+
+        return snapshot.Solution.TryGetSyntaxTree(selected, out tree);
+    }
+}
+
 internal static class TextDocumentSync
 {
     internal static void TryApply(

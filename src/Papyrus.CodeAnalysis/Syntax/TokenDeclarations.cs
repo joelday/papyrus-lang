@@ -54,64 +54,64 @@ internal readonly partial struct DotToken;
 [SyntaxToken(Text = ",")]
 internal readonly partial struct CommaToken;
 
-[SyntaxToken(Text = "=")]
+[SyntaxToken(Text = "=", Operator = true)]
 internal readonly partial struct EqualsToken;
 
-[SyntaxToken(Text = "==")]
+[SyntaxToken(Text = "==", Operator = true)]
 internal readonly partial struct EqualsEqualsToken;
 
-[SyntaxToken(Text = "!")]
+[SyntaxToken(Text = "!", Operator = true)]
 internal readonly partial struct ExclamationToken;
 
-[SyntaxToken(Text = "!=")]
+[SyntaxToken(Text = "!=", Operator = true)]
 internal readonly partial struct ExclamationEqualsToken;
 
-[SyntaxToken(Text = "+")]
+[SyntaxToken(Text = "+", Operator = true)]
 internal readonly partial struct PlusToken;
 
-[SyntaxToken(Text = "+=")]
+[SyntaxToken(Text = "+=", Operator = true)]
 internal readonly partial struct PlusEqualsToken;
 
-[SyntaxToken(Text = "-")]
+[SyntaxToken(Text = "-", Operator = true)]
 internal readonly partial struct MinusToken;
 
-[SyntaxToken(Text = "-=")]
+[SyntaxToken(Text = "-=", Operator = true)]
 internal readonly partial struct MinusEqualsToken;
 
-[SyntaxToken(Text = "*")]
+[SyntaxToken(Text = "*", Operator = true)]
 internal readonly partial struct AsteriskToken;
 
-[SyntaxToken(Text = "*=")]
+[SyntaxToken(Text = "*=", Operator = true)]
 internal readonly partial struct AsteriskEqualsToken;
 
-[SyntaxToken(Text = "/")]
+[SyntaxToken(Text = "/", Operator = true)]
 internal readonly partial struct SlashToken;
 
-[SyntaxToken(Text = "/=")]
+[SyntaxToken(Text = "/=", Operator = true)]
 internal readonly partial struct SlashEqualsToken;
 
-[SyntaxToken(Text = "%")]
+[SyntaxToken(Text = "%", Operator = true)]
 internal readonly partial struct PercentToken;
 
-[SyntaxToken(Text = "%=")]
+[SyntaxToken(Text = "%=", Operator = true)]
 internal readonly partial struct PercentEqualsToken;
 
-[SyntaxToken(Text = "<")]
+[SyntaxToken(Text = "<", Operator = true)]
 internal readonly partial struct LessThanToken;
 
-[SyntaxToken(Text = "<=")]
+[SyntaxToken(Text = "<=", Operator = true)]
 internal readonly partial struct LessThanEqualsToken;
 
-[SyntaxToken(Text = ">")]
+[SyntaxToken(Text = ">", Operator = true)]
 internal readonly partial struct GreaterThanToken;
 
-[SyntaxToken(Text = ">=")]
+[SyntaxToken(Text = ">=", Operator = true)]
 internal readonly partial struct GreaterThanEqualsToken;
 
-[SyntaxToken(Text = "&&")]
+[SyntaxToken(Text = "&&", Operator = true)]
 internal readonly partial struct AmpersandAmpersandToken;
 
-[SyntaxToken(Text = "||")]
+[SyntaxToken(Text = "||", Operator = true)]
 internal readonly partial struct BarBarToken;
 
 [SyntaxToken]

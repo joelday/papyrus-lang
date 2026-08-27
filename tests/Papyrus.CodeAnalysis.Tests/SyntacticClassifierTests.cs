@@ -99,6 +99,41 @@ public sealed class SyntacticClassifierTests
     }
 
     [Fact]
+    public void Identifier_flags_classify_as_keywords()
+    {
+        const string source =
+            "ScriptName Foo\n" +
+            "Int myVar = 1 CustomFlag\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        var spans = SyntacticClassifier.Classify(tree, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(ClassificationKind.Keyword, GetKind(source, spans, "CustomFlag"));
+    }
+
+    [Fact]
+    public void Skipped_text_comment_scan_ignores_string_literals()
+    {
+        // The bad line is skipped whole (flattened to SkippedTokensTrivia);
+        // the ';' inside the string literal must not open a comment.
+        const string source =
+            "ScriptName Foo\n" +
+            "!! \"a ; not-comment {\" ; real comment\n" +
+            "Int a = 1\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        var spans = SyntacticClassifier.Classify(tree, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.DoesNotContain(spans, s => Covers(source, s, "; not-comment"));
+        Assert.Contains(
+            spans,
+            s => s.Kind == ClassificationKind.Comment
+                && s.Span.Start == source.IndexOf("; real comment", System.StringComparison.Ordinal)
+                && s.Span.Length == "; real comment".Length);
+        Assert.Equal(ClassificationKind.VariableName, GetKind(source, spans, "a ="));
+    }
+
+    [Fact]
     public void Span_filter_returns_only_intersecting_classifications()
     {
         const string source =

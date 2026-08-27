@@ -84,7 +84,13 @@ public sealed class SyntaxGenerator : IIncrementalGenerator
         }
 
         var category = IsKeywordName(name) ? KindCategory.Keyword : KindCategory.Token;
-        return new KindModel(name, category, text, ImmutableArray<ChildSlot>.Empty, type.Name);
+        return new KindModel(
+            name,
+            category,
+            text,
+            ImmutableArray<ChildSlot>.Empty,
+            type.Name,
+            isOperator: ReadOperatorArgument(context.Attributes));
     }
 
     private static KindModel? TransformTrivia(
@@ -198,6 +204,22 @@ public sealed class SyntaxGenerator : IIncrementalGenerator
         }
 
         return null;
+    }
+
+    private static bool ReadOperatorArgument(ImmutableArray<AttributeData> attributes)
+    {
+        foreach (var attribute in attributes)
+        {
+            foreach (var argument in attribute.NamedArguments)
+            {
+                if (argument.Key == "Operator" && argument.Value.Value is bool isOperator)
+                {
+                    return isOperator;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static bool IsKeywordName(string name)

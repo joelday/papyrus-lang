@@ -79,14 +79,9 @@ public static class SyntacticClassifier
                 {
                     if (Intersects(filter, elementOffset, element.FullWidth))
                     {
-                        if (element is GreenToken)
-                        {
-                            ClassifyToken(new SyntaxToken(element, parent, elementOffset), filter, builder);
-                        }
-                        else
-                        {
-                            VisitNode(element.CreateRed(parent, elementOffset), filter, builder, cancellationToken);
-                        }
+                        // List elements are not direct slots of the parent, so
+                        // pass -1 to create their red nodes positionally.
+                        VisitSlot(parent, element, elementOffset, -1, filter, builder, cancellationToken);
                     }
 
                     elementOffset += element.FullWidth;
@@ -96,7 +91,9 @@ public static class SyntacticClassifier
             return;
         }
 
-        var child = parent.GetRed<SyntaxNode>(slotIndex);
+        var child = slotIndex >= 0
+            ? parent.GetRed<SyntaxNode>(slotIndex)
+            : slot.CreateRed(parent, position);
         if (child is not null)
         {
             VisitNode(child, filter, builder, cancellationToken);
@@ -119,11 +116,7 @@ public static class SyntacticClassifier
             builder.Add(new ClassifiedSpan(span, kind, isDeclaration));
         }
 
-        ClassifyTrivia(
-            token.TrailingTrivia,
-            token.Position + token.FullWidth - token.TrailingTrivia.FullWidth,
-            filter,
-            builder);
+        ClassifyTrivia(token.TrailingTrivia, span.End, filter, builder);
     }
 
     private static void ClassifyTrivia(
@@ -188,6 +181,19 @@ public static class SyntacticClassifier
     {
         for (var i = 0; i < text.Length; i++)
         {
+            if (text[i] == '"')
+            {
+                // Skip string literals so a ';' or '{' inside one is not taken
+                // for a comment. Strings do not span lines; '\' escapes.
+                i++;
+                while (i < text.Length && text[i] != '"' && text[i] != '\n' && text[i] != '\r')
+                {
+                    i += text[i] == '\\' ? 2 : 1;
+                }
+
+                continue;
+            }
+
             if (text[i] != ';' && text[i] != '{')
             {
                 continue;
@@ -241,31 +247,15 @@ public static class SyntacticClassifier
             case SyntaxKind.DocCommentToken:
                 kind = ClassificationKind.Comment;
                 return true;
-            case SyntaxKind.EqualsToken:
-            case SyntaxKind.EqualsEqualsToken:
-            case SyntaxKind.ExclamationToken:
-            case SyntaxKind.ExclamationEqualsToken:
-            case SyntaxKind.PlusToken:
-            case SyntaxKind.PlusEqualsToken:
-            case SyntaxKind.MinusToken:
-            case SyntaxKind.MinusEqualsToken:
-            case SyntaxKind.AsteriskToken:
-            case SyntaxKind.AsteriskEqualsToken:
-            case SyntaxKind.SlashToken:
-            case SyntaxKind.SlashEqualsToken:
-            case SyntaxKind.PercentToken:
-            case SyntaxKind.PercentEqualsToken:
-            case SyntaxKind.LessThanToken:
-            case SyntaxKind.LessThanEqualsToken:
-            case SyntaxKind.GreaterThanToken:
-            case SyntaxKind.GreaterThanEqualsToken:
-            case SyntaxKind.AmpersandAmpersandToken:
-            case SyntaxKind.BarBarToken:
-                kind = ClassificationKind.Operator;
-                return true;
             case SyntaxKind.IdentifierToken:
                 return TryClassifyIdentifier(token, out kind, out isDeclaration);
             default:
+                if (SyntaxFacts.IsOperator(token.Kind))
+                {
+                    kind = ClassificationKind.Operator;
+                    return true;
+                }
+
                 if (SyntaxFacts.IsKeyword(token.Kind))
                 {
                     kind = ClassificationKind.Keyword;
@@ -289,6 +279,14 @@ public static class SyntacticClassifier
         {
             // The struct part of a `Type#Struct` type name.
             kind = ClassificationKind.StructName;
+            return true;
+        }
+
+        if (parent is FlagSyntax)
+        {
+            // User-defined .flg flags lex as identifiers but read as the
+            // built-in keyword flags beside them.
+            kind = ClassificationKind.Keyword;
             return true;
         }
 
