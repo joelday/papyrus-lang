@@ -15,6 +15,18 @@ namespace Papyrus.LanguageServer.Tests;
 public sealed class LanguageServerHostTests
 {
     [Fact]
+    public void Version_flag_prints_assembly_version()
+    {
+        using var stdout = new StringWriter();
+        Assert.True(Program.TryHandleCli(["--version"], stdout));
+        Assert.Equal(Program.Version, stdout.ToString().Trim());
+
+        using var empty = new StringWriter();
+        Assert.False(Program.TryHandleCli([], empty));
+        Assert.Empty(empty.ToString());
+    }
+
+    [Fact]
     public async Task Initialize_returns_result()
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));

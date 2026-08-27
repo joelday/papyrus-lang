@@ -3,7 +3,7 @@
     <OutputType>Exe</OutputType>
     <AssemblyName>papyrusc</AssemblyName>
     <RootNamespace>Papyrus.Compiler</RootNamespace>
-    <!-- RID is passed at publish (CI smokes win-x64). Do not bake RuntimeIdentifier. -->
+    <!-- RID is passed at publish (CI smokes win-x64, linux-x64, osx-arm64). Do not bake RuntimeIdentifier. -->
     <PublishAot>true</PublishAot>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
