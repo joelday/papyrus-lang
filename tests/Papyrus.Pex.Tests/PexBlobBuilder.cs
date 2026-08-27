@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Text;
 
 namespace Papyrus.Pex.Tests;
 
@@ -14,7 +13,7 @@ internal sealed class PexBlobBuilder
 
     public PexBlobBuilder()
     {
-        _writer = new BinaryWriter(_stream, Encoding.Latin1, leaveOpen: true);
+        _writer = new BinaryWriter(_stream, Windows1252Encoding.Instance, leaveOpen: true);
     }
 
     public PexBlobBuilder U8(byte value)
@@ -61,7 +60,7 @@ internal sealed class PexBlobBuilder
 
     public PexBlobBuilder Str(string value)
     {
-        byte[] bytes = Encoding.Latin1.GetBytes(value);
+        byte[] bytes = Windows1252Encoding.Instance.GetBytes(value);
         if (bytes.Length > ushort.MaxValue)
             throw new InvalidOperationException("String exceeds u16 length prefix.");
         _writer.Write((ushort)bytes.Length);

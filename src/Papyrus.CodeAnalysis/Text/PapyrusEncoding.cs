@@ -11,7 +11,7 @@ public enum PapyrusEncoding
 
 public static class PapyrusEncodings
 {
-    internal static readonly Encoding Windows1252 = Windows1252Encoding.Instance;
+    internal static readonly Encoding Windows1252 = PexEncoding.Windows1252;
 
     internal static readonly Encoding Utf8 = new UTF8Encoding(
         encoderShouldEmitUTF8Identifier: true,

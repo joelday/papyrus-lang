@@ -16,6 +16,5 @@
   <ItemGroup>
     <None Include="..\..\docs\packages.md" Pack="true" PackagePath="packages.md" />
     <InternalsVisibleTo Include="Papyrus.Pex.Tests" />
-    <InternalsVisibleTo Include="Papyrus.CodeAnalysis" />
   </ItemGroup>
 </Project>

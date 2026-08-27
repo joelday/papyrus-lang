@@ -5,6 +5,14 @@ using System.Text;
 namespace Papyrus.Pex;
 
 /// <summary>
+/// PEX length-prefixed strings are Windows-1252 (K19).
+/// </summary>
+public static class PexEncoding
+{
+    public static Encoding Windows1252 => Windows1252Encoding.Instance;
+}
+
+/// <summary>
 /// Hand-rolled Windows-1252 for PEX strings and source decode.
 /// Avoids <see cref="Encoding.GetEncoding(int)"/> (code pages / NativeAOT).
 /// </summary>
