@@ -14,6 +14,22 @@ This repo requires .NET SDK 10 / Visual Studio 2026 (`global.json` pins 10.0.201
 
 [`Papyrus.Pex`](https://www.nuget.org/packages/Papyrus.Pex) is an unstable 0.x NuGet package (no compatibility promise). See [docs/packages.md](docs/packages.md).
 
+## Compliance
+
+Byte-identical PEX is the gate. Semantic-equivalence exceptions live in [`docs/compliance/allowlist.md`](docs/compliance/allowlist.md) (reviewed like code). Public CI never needs game files:
+
+```
+papyrusc verify --compile --game skyrimse
+```
+
+skips with exit 0 when `./corpus/skyrimse` is absent. With a local corpus (see [docs/corpus.md](docs/corpus.md)):
+
+```
+papyrusc verify --compile --game skyrimse --source ./corpus/skyrimse --baseline docs/compliance/baselines/skyrimse.json
+```
+
+Tier 2 (`--ck-compiler`) is not implemented yet. See [docs/compliance/baselines/README.md](docs/compliance/baselines/README.md).
+
 ## ✒ Visual Studio Code Extension
 
 Updated frequently with new features and improvements.

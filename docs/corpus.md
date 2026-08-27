@@ -7,7 +7,7 @@ The compiler corpus is a local copy of **your** game scripts. This project does 
 - **User-owned.** Copy scripts from a game install you have a license to use.
 - **Gitignored.** `/corpus/` is ignored. Never commit `.psc` or `.pex` from the games.
 - **Required later for compliance.** Round-trip, bind, and emit work against this tree.
-- **Public CI uses hashes only.** Baselines live under `docs/compliance/baselines/`. No corpus source, no Bethesda output, and no Bethesda compiler in public CI.
+- **Public CI uses hashes only.** Baselines live under `docs/compliance/baselines/`. No corpus source, no game output, and no game compiler in public CI. `papyrusc verify --compile` skips (exit 0) when this tree is absent.
 
 Nothing here is downloaded. `papyrusc corpus acquire` only copies files from a path on disk.
 

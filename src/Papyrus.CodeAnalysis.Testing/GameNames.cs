@@ -1,4 +1,5 @@
 using System;
+using Papyrus.CodeAnalysis;
 using Papyrus.Pex;
 
 namespace Papyrus.CodeAnalysis.Testing;
@@ -48,5 +49,22 @@ public static class GameNames
         }
 
         return false;
+    }
+
+    public static bool TryGetDialect(string? value, out string canonical, out PapyrusDialect dialect)
+    {
+        dialect = null!;
+        if (!TryParse(value, out canonical, out var game))
+            return false;
+
+        dialect = game switch
+        {
+            GameId.SkyrimSpecialEdition => PapyrusDialect.SkyrimSe,
+            GameId.Skyrim => PapyrusDialect.SkyrimLe,
+            GameId.Fallout4 => PapyrusDialect.Fallout4,
+            GameId.Starfield => PapyrusDialect.Starfield,
+            _ => null!,
+        };
+        return dialect is not null;
     }
 }

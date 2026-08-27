@@ -18,6 +18,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\docs\compliance\allowlist.md" CopyToOutputDirectory="PreserveNewest" Link="compliance\allowlist.md" />
     <None Include="Fixtures\Parse\**\*.psc">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

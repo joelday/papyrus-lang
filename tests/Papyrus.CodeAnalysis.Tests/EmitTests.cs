@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Papyrus.CodeAnalysis;
 using Papyrus.CodeAnalysis.Emit;
+using Papyrus.CodeAnalysis.Testing;
 using Papyrus.CodeAnalysis.Text;
 using Papyrus.Pex;
 using Xunit;
@@ -12,6 +14,20 @@ namespace Papyrus.CodeAnalysis.Tests;
 
 public sealed class EmitTests
 {
+    [Fact]
+    public void Emit_tiny_script_normalized_hash_is_stable()
+    {
+        const string source = "ScriptName Foo\nFunction Bar()\nEndFunction\n";
+        var first = CompileHashHarness.HashScript(source);
+        var second = CompileHashHarness.HashScript(source);
+        Assert.Equal(first, second);
+        Assert.Matches("^[0-9a-f]{64}$", first);
+
+        var expected = BaselineFile.ParseHashList(File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "fixtures", "emit.hashes")));
+        Assert.Equal(expected["Foo"], first);
+    }
+
     [Fact]
     public void Emit_tiny_skyrim_script_round_trips_and_disassembles()
     {
