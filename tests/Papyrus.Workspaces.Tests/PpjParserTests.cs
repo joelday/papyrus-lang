@@ -113,6 +113,49 @@ public sealed class PpjParserTests
     }
 
     [Fact]
+    public void Parses_pre_and_post_build_commands()
+    {
+        const string xml =
+            """
+            <PapyrusProject Game="sse">
+              <PreBuild>
+                <Command>echo pre</Command>
+              </PreBuild>
+              <PostBuild>
+                <Command>echo post</Command>
+                <Command>echo post2</Command>
+              </PostBuild>
+            </PapyrusProject>
+            """;
+
+        var project = PpjParser.Parse(xml);
+
+        Assert.Equal(["echo pre"], project.PreBuild);
+        Assert.Equal(["echo post", "echo post2"], project.PostBuild);
+    }
+
+    [Fact]
+    public void Parses_pyro_pre_and_post_build_event_aliases()
+    {
+        const string xml =
+            """
+            <PapyrusProject Game="sse">
+              <PreBuildEvent>
+                <Command>echo pre</Command>
+              </PreBuildEvent>
+              <PostBuildEvent>
+                <Command>echo post</Command>
+              </PostBuildEvent>
+            </PapyrusProject>
+            """;
+
+        var project = PpjParser.Parse(xml);
+
+        Assert.Equal(["echo pre"], project.PreBuild);
+        Assert.Equal(["echo post"], project.PostBuild);
+    }
+
+    [Fact]
     public void Leaves_variable_values_unexpanded()
     {
         const string xml =
@@ -134,6 +177,38 @@ public sealed class PpjParserTests
         Assert.Equal("Demo", project.Variables["ModName"]);
         Assert.Equal("${GAME_DIR}\\@ModName", project.Variables["ScriptsDir"]);
         Assert.Equal(["@ScriptsDir"], project.Imports);
+
+        Assert.True(project.TryExpandEnvironmentVariables(out var expanded, out var missing));
+        Assert.Equal("", missing);
+        Assert.Equal("${GAME_DIR}\\@ModName", expanded.Variables["ScriptsDir"]);
+        Assert.Equal(["@ScriptsDir"], expanded.Imports);
+    }
+
+    [Fact]
+    public void ExpandEnvironmentVariables_expands_non_identifier_names()
+    {
+        var name = "PAPYRUS_TEST_DIR(x86)_" + Guid.NewGuid().ToString("N");
+        Environment.SetEnvironmentVariable(name, "expanded-out");
+        try
+        {
+            var project = PpjParser.Parse(
+                $$"""
+                <PapyrusProject Game="sse" Output="${{{name}}}">
+                  <Imports>
+                    <Import>${{{name}}}/scripts</Import>
+                  </Imports>
+                </PapyrusProject>
+                """);
+
+            Assert.True(project.TryExpandEnvironmentVariables(out var expanded, out var missing));
+            Assert.Equal("", missing);
+            Assert.Equal("expanded-out", expanded.Output);
+            Assert.Equal(["expanded-out/scripts"], expanded.Imports);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(name, null);
+        }
     }
 
     [Fact]

@@ -332,6 +332,197 @@ public sealed class CompileCommandTests
     }
 
     [Fact]
+    public void Compile_Ppj_ExpandsEnvInImportAndOutput()
+    {
+        using var root = new TempDir();
+        var importDir = Path.Combine(root.Path, "import");
+        var outputDir = Path.Combine(root.Path, "built");
+        Directory.CreateDirectory(importDir);
+        File.WriteAllText(Path.Combine(importDir, "Foo.psc"), TinyScript());
+        var importVar = "PAPYRUS_TEST_IMPORT_" + Guid.NewGuid().ToString("N");
+        var outputVar = "PAPYRUS_TEST_OUTPUT_" + Guid.NewGuid().ToString("N");
+        Environment.SetEnvironmentVariable(importVar, importDir);
+        Environment.SetEnvironmentVariable(outputVar, outputDir);
+        try
+        {
+            var project = Path.Combine(root.Path, "Mod.ppj");
+            File.WriteAllText(
+                project,
+                $$"""
+                <PapyrusProject Game="sse" Output="${{{outputVar}}}">
+                  <Imports>
+                    <Import>${{{importVar}}}</Import>
+                  </Imports>
+                  <Scripts>
+                    <Script>Foo.psc</Script>
+                  </Scripts>
+                </PapyrusProject>
+                """);
+            var pexPath = Path.Combine(outputDir, "Foo.pex");
+
+            var code = Run(out var stdout, out var stderr, "compile", project);
+
+            Assert.Equal(0, code);
+            Assert.Empty(stderr);
+            Assert.True(File.Exists(pexPath));
+            Assert.Contains(pexPath, stdout, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(importVar, null);
+            Environment.SetEnvironmentVariable(outputVar, null);
+        }
+    }
+
+    [Fact]
+    public void Compile_Ppj_MissingEnvVar_ExitsNonZero()
+    {
+        using var root = new TempDir();
+        File.WriteAllText(Path.Combine(root.Path, "Foo.psc"), TinyScript());
+        var missing = "PAPYRUS_TEST_MISSING_" + Guid.NewGuid().ToString("N");
+        var project = Path.Combine(root.Path, "Mod.ppj");
+        File.WriteAllText(
+            project,
+            $$"""
+            <PapyrusProject Game="sse" Output="${{{missing}}}">
+              <Scripts>
+                <Script>Foo.psc</Script>
+              </Scripts>
+            </PapyrusProject>
+            """);
+
+        var code = Run(out _, out var stderr, "compile", project);
+
+        Assert.Equal(1, code);
+        Assert.Contains(missing, stderr, StringComparison.Ordinal);
+        Assert.Contains("not set", stderr, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(root.Path, "Foo.pex")));
+    }
+
+    [Fact]
+    public void Compile_Ppj_PreAndPostBuild_WriteMarkers()
+    {
+        using var root = new TempDir();
+        File.WriteAllText(Path.Combine(root.Path, "Foo.psc"), TinyScript());
+        string preCommand;
+        string postCommand;
+        if (OperatingSystem.IsWindows())
+        {
+            File.WriteAllText(Path.Combine(root.Path, "pre.cmd"), "echo. > pre.marker\r\n");
+            File.WriteAllText(Path.Combine(root.Path, "post.cmd"), "echo. > post.marker\r\n");
+            preCommand = "pre.cmd";
+            postCommand = "post.cmd";
+        }
+        else
+        {
+            File.WriteAllText(Path.Combine(root.Path, "pre.sh"), "echo pre > pre.marker\n");
+            File.WriteAllText(Path.Combine(root.Path, "post.sh"), "echo post > post.marker\n");
+            preCommand = "sh pre.sh";
+            postCommand = "sh post.sh";
+        }
+
+        var project = Path.Combine(root.Path, "Mod.ppj");
+        File.WriteAllText(
+            project,
+            $"""
+            <PapyrusProject Game="sse" Output="out">
+              <Scripts>
+                <Script>Foo.psc</Script>
+              </Scripts>
+              <PreBuild>
+                <Command>{preCommand}</Command>
+              </PreBuild>
+              <PostBuild>
+                <Command>{postCommand}</Command>
+              </PostBuild>
+            </PapyrusProject>
+            """);
+
+        var code = Run(out var stdout, out var stderr, "compile", project);
+
+        Assert.Equal(0, code);
+        Assert.True(File.Exists(Path.Combine(root.Path, "out", "Foo.pex")));
+        Assert.Contains(Path.Combine(root.Path, "out", "Foo.pex"), stdout, StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(root.Path, "pre.marker")));
+        Assert.True(File.Exists(Path.Combine(root.Path, "post.marker")));
+        Assert.DoesNotContain("error:", stderr, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Compile_Ppj_UnusedVariableEnv_DoesNotFail()
+    {
+        using var root = new TempDir();
+        File.WriteAllText(Path.Combine(root.Path, "Foo.psc"), TinyScript());
+        var unused = "PAPYRUS_TEST_UNUSED_" + Guid.NewGuid().ToString("N");
+        var project = Path.Combine(root.Path, "Mod.ppj");
+        File.WriteAllText(
+            project,
+            $$"""
+            <PapyrusProject Game="sse" Output="out">
+              <Variables>
+                <Variable Name="ScriptsDir" Value="${{{unused}}}\@ModName"/>
+              </Variables>
+              <Scripts>
+                <Script>Foo.psc</Script>
+              </Scripts>
+            </PapyrusProject>
+            """);
+        var pexPath = Path.Combine(root.Path, "out", "Foo.pex");
+
+        var code = Run(out var stdout, out var stderr, "compile", project);
+
+        Assert.Equal(0, code);
+        Assert.Empty(stderr);
+        Assert.True(File.Exists(pexPath));
+        Assert.Contains(pexPath, stdout, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Compile_Ppj_PreBuildFailure_SkipsCompileAndPostBuild()
+    {
+        using var root = new TempDir();
+        File.WriteAllText(Path.Combine(root.Path, "Foo.psc"), TinyScript());
+        const string preCommand = "exit 1";
+        string postCommand;
+        if (OperatingSystem.IsWindows())
+        {
+            File.WriteAllText(Path.Combine(root.Path, "post.cmd"), "echo. > post.marker\r\n");
+            postCommand = "post.cmd";
+        }
+        else
+        {
+            File.WriteAllText(Path.Combine(root.Path, "post.sh"), "echo post > post.marker\n");
+            postCommand = "sh post.sh";
+        }
+
+        var project = Path.Combine(root.Path, "Mod.ppj");
+        File.WriteAllText(
+            project,
+            $"""
+            <PapyrusProject Game="sse" Output="out">
+              <Scripts>
+                <Script>Foo.psc</Script>
+              </Scripts>
+              <PreBuild>
+                <Command>{preCommand}</Command>
+              </PreBuild>
+              <PostBuild>
+                <Command>{postCommand}</Command>
+              </PostBuild>
+            </PapyrusProject>
+            """);
+
+        var code = Run(out var stdout, out var stderr, "compile", project);
+
+        Assert.Equal(1, code);
+        Assert.Contains("pre-build", stderr, StringComparison.Ordinal);
+        Assert.Contains("exit code", stderr, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(root.Path, "out", "Foo.pex")));
+        Assert.False(File.Exists(Path.Combine(root.Path, "post.marker")));
+        Assert.DoesNotContain("Foo.pex", stdout, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Compile_IgnoreEngineLimits_WritesPex()
     {
         using var root = new TempDir();

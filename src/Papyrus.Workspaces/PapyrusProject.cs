@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Immutable;
+using System.Text;
 using Papyrus.CodeAnalysis;
 using Papyrus.Pex;
 
@@ -19,12 +20,14 @@ public sealed class PapyrusProject
         bool release,
         bool final,
         AsmKind? asm = null,
+        ImmutableArray<string> preBuild = default,
+        ImmutableArray<string> postBuild = default,
         string? path = null)
     {
         Game = game;
-        Imports = imports;
-        Folders = folders;
-        Scripts = scripts;
+        Imports = imports.IsDefault ? ImmutableArray<string>.Empty : imports;
+        Folders = folders.IsDefault ? ImmutableArray<ProjectFolder>.Empty : folders;
+        Scripts = scripts.IsDefault ? ImmutableArray<string>.Empty : scripts;
         Variables = variables;
         Output = output;
         Flags = flags;
@@ -32,6 +35,8 @@ public sealed class PapyrusProject
         Release = release;
         Final = final;
         Asm = asm;
+        PreBuild = preBuild.IsDefault ? ImmutableArray<string>.Empty : preBuild;
+        PostBuild = postBuild.IsDefault ? ImmutableArray<string>.Empty : postBuild;
         Path = path;
     }
 
@@ -67,6 +72,10 @@ public sealed class PapyrusProject
 
     public AsmKind? Asm { get; }
 
+    public ImmutableArray<string> PreBuild { get; }
+
+    public ImmutableArray<string> PostBuild { get; }
+
     public string? Path { get; }
 
     public ProjectId Id => ProjectId.Create(Path ?? throw new InvalidOperationException("Project has no path."));
@@ -93,7 +102,193 @@ public sealed class PapyrusProject
             Release,
             Final,
             Asm,
+            PreBuild,
+            PostBuild,
             full);
+    }
+
+    public bool TryExpandEnvironmentVariables(out PapyrusProject expanded, out string missingName)
+    {
+        // Variable values stay unexpanded until @Name substitution; unused ${ENV} there must not fail the compile.
+        if (!TryExpandValue(Output, out var output, out missingName)
+            || !TryExpandValue(Flags, out var flags, out missingName)
+            || !TryExpandStrings(Imports, out var imports, out missingName)
+            || !TryExpandFolders(Folders, out var folders, out missingName)
+            || !TryExpandStrings(Scripts, out var scripts, out missingName)
+            || !TryExpandStrings(PreBuild, out var preBuild, out missingName)
+            || !TryExpandStrings(PostBuild, out var postBuild, out missingName))
+        {
+            expanded = this;
+            return false;
+        }
+
+        if (ReferenceEquals(output, Output)
+            && ReferenceEquals(flags, Flags)
+            && imports.Equals(Imports)
+            && folders.Equals(Folders)
+            && scripts.Equals(Scripts)
+            && preBuild.Equals(PreBuild)
+            && postBuild.Equals(PostBuild))
+        {
+            expanded = this;
+            return true;
+        }
+
+        expanded = new PapyrusProject(
+            Game,
+            imports,
+            folders,
+            scripts,
+            Variables,
+            output,
+            flags,
+            Optimize,
+            Release,
+            Final,
+            Asm,
+            preBuild,
+            postBuild,
+            Path);
+        return true;
+    }
+
+    private static bool TryExpandValue(string? value, out string? expanded, out string missingName)
+    {
+        missingName = "";
+        if (value is null)
+        {
+            expanded = null;
+            return true;
+        }
+
+        if (!TryReplaceEnvTokens(value, out expanded, out missingName))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryExpandStrings(
+        ImmutableArray<string> values,
+        out ImmutableArray<string> expanded,
+        out string missingName)
+    {
+        missingName = "";
+        if (values.IsDefaultOrEmpty)
+        {
+            expanded = values.IsDefault ? ImmutableArray<string>.Empty : values;
+            return true;
+        }
+
+        var builder = ImmutableArray.CreateBuilder<string>(values.Length);
+        var changed = false;
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (!TryReplaceEnvTokens(values[i], out var next, out missingName))
+            {
+                expanded = values;
+                return false;
+            }
+
+            changed |= !ReferenceEquals(next, values[i]);
+            builder.Add(next);
+        }
+
+        expanded = changed ? builder.MoveToImmutable() : values;
+        return true;
+    }
+
+    private static bool TryExpandFolders(
+        ImmutableArray<ProjectFolder> folders,
+        out ImmutableArray<ProjectFolder> expanded,
+        out string missingName)
+    {
+        missingName = "";
+        if (folders.IsDefaultOrEmpty)
+        {
+            expanded = folders.IsDefault ? ImmutableArray<ProjectFolder>.Empty : folders;
+            return true;
+        }
+
+        var builder = ImmutableArray.CreateBuilder<ProjectFolder>(folders.Length);
+        var changed = false;
+        for (var i = 0; i < folders.Length; i++)
+        {
+            var folder = folders[i];
+            if (!TryReplaceEnvTokens(folder.Path, out var path, out missingName))
+            {
+                expanded = folders;
+                return false;
+            }
+
+            if (ReferenceEquals(path, folder.Path))
+            {
+                builder.Add(folder);
+                continue;
+            }
+
+            changed = true;
+            builder.Add(new ProjectFolder(path, folder.NoRecurse));
+        }
+
+        expanded = changed ? builder.MoveToImmutable() : folders;
+        return true;
+    }
+
+    // Unset variables are errors. Empty-but-set values expand to empty, matching process environment.
+    // Any non-empty ${...} is an env token (including Windows names like ProgramFiles(x86)).
+    private static bool TryReplaceEnvTokens(string value, out string expanded, out string missingName)
+    {
+        missingName = "";
+        var start = value.IndexOf("${", StringComparison.Ordinal);
+        if (start < 0)
+        {
+            expanded = value;
+            return true;
+        }
+
+        var builder = new StringBuilder(value.Length);
+        var i = 0;
+        while (i < value.Length)
+        {
+            if (i + 1 < value.Length && value[i] == '$' && value[i + 1] == '{')
+            {
+                var close = value.IndexOf('}', i + 2);
+                if (close < 0)
+                {
+                    builder.Append(value, i, value.Length - i);
+                    break;
+                }
+
+                var nameLength = close - (i + 2);
+                if (nameLength > 0)
+                {
+                    var name = value.Substring(i + 2, nameLength);
+                    var env = Environment.GetEnvironmentVariable(name);
+                    if (env is null)
+                    {
+                        expanded = value;
+                        missingName = name;
+                        return false;
+                    }
+
+                    builder.Append(env);
+                    i = close + 1;
+                    continue;
+                }
+
+                builder.Append(value, i, close - i + 1);
+                i = close + 1;
+                continue;
+            }
+
+            builder.Append(value[i]);
+            i++;
+        }
+
+        expanded = builder.ToString();
+        return true;
     }
 }
 

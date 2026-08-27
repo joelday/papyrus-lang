@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Xml;
 using Papyrus.CodeAnalysis;
@@ -160,6 +162,12 @@ internal static class CompileCommand
             return 1;
         }
 
+        if (!project.TryExpandEnvironmentVariables(out project, out var missingName))
+        {
+            stderr.WriteLine($"error: environment variable '{missingName}' is not set");
+            return 1;
+        }
+
         PapyrusDialect dialect;
         if (options.Game is not null)
         {
@@ -261,6 +269,12 @@ internal static class CompileCommand
             return 1;
         }
 
+        // CLI default on. cwd is the .ppj directory; process environment is already used for ${ENV}.
+        if (!TryRunBuildCommands(project.PreBuild, projectDirectory, "pre-build", stderr))
+        {
+            return 1;
+        }
+
         var failed = false;
         foreach (var scriptPath in scripts)
         {
@@ -290,7 +304,12 @@ internal static class CompileCommand
             }
         }
 
-        return failed ? 1 : 0;
+        if (failed)
+        {
+            return 1;
+        }
+
+        return TryRunBuildCommands(project.PostBuild, projectDirectory, "post-build", stderr) ? 0 : 1;
     }
 
     private static int EmitScript(
@@ -358,6 +377,107 @@ internal static class CompileCommand
         {
             stderr.WriteLine($"error: {ex.Message}");
             return 1;
+        }
+    }
+
+    private static bool TryRunBuildCommands(
+        ImmutableArray<string> commands,
+        string projectDirectory,
+        string stage,
+        TextWriter stderr)
+    {
+        if (commands.IsDefaultOrEmpty)
+        {
+            return true;
+        }
+
+        for (var i = 0; i < commands.Length; i++)
+        {
+            var command = commands[i];
+            if (string.IsNullOrWhiteSpace(command))
+            {
+                continue;
+            }
+
+            if (!TryRunBuildCommand(command.Trim(), projectDirectory, stage, stderr))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool TryRunBuildCommand(
+        string command,
+        string projectDirectory,
+        string stage,
+        TextWriter stderr)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            WorkingDirectory = projectDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+
+        if (OperatingSystem.IsWindows())
+        {
+            // Raw /c string so cmd metacharacters and quoting match a shell command line.
+            startInfo.FileName = "cmd.exe";
+            startInfo.Arguments = "/c " + command;
+        }
+        else
+        {
+            startInfo.FileName = "/bin/sh";
+            startInfo.ArgumentList.Add("-c");
+            startInfo.ArgumentList.Add(command);
+        }
+
+        try
+        {
+            using var process = new Process { StartInfo = startInfo };
+            if (!process.Start())
+            {
+                stderr.WriteLine($"error: {stage} command failed to start: {command}");
+                return false;
+            }
+
+            var outputTask = process.StandardOutput.ReadToEndAsync();
+            var errorTask = process.StandardError.ReadToEndAsync();
+            process.WaitForExit();
+            // Keep papyrusc stdout as the written .pex path list.
+            WriteProcessOutput(stderr, outputTask.GetAwaiter().GetResult());
+            WriteProcessOutput(stderr, errorTask.GetAwaiter().GetResult());
+            if (process.ExitCode != 0)
+            {
+                stderr.WriteLine($"error: {stage} command failed with exit code {process.ExitCode}: {command}");
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex) when (ex is Win32Exception or IOException or UnauthorizedAccessException
+            or InvalidOperationException or ArgumentException or NotSupportedException)
+        {
+            stderr.WriteLine($"error: {stage} command failed: {ex.Message}");
+            return false;
+        }
+    }
+
+    private static void WriteProcessOutput(TextWriter writer, string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return;
+        }
+
+        writer.Write(text);
+        if (text[^1] is not '\n' and not '\r')
+        {
+            writer.WriteLine();
         }
     }
 
