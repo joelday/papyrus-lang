@@ -17,7 +17,7 @@ internal static class Cli
           papyrusc corpus acquire --game <game> --source <path> [--dest <path>] [--force]
           papyrusc hash <path> [--game <game>]
           papyrusc verify --source <path> --baseline <file> [--game <game>]
-          papyrusc verify --compile [--game <game>] [--source <path>] [--baseline <file>] [--allowlist <file>]
+          papyrusc verify --compile [--game <game>] [--source <path>] [--baseline <file>] [--allowlist <file>] [--flags <file.flg>]
           papyrusc verify --write-baselines --source <path> --out <file> --attestation <file> --game <game>
           papyrusc --version
 
@@ -50,6 +50,8 @@ internal static class Cli
                       --source defaults to ./corpus/<game>. Public CI must not require
                       game files.
           --allowlist Reviewed semantic-equivalence list (default docs/compliance/allowlist.md).
+          --flags     User flags file (.flg). Defaults to TESV_Papyrus_Flags.flg /
+                      Institute_Papyrus_Flags.flg in the corpus if present.
           --ck-compiler <path>  Tier-2 CK differential; not implemented yet.
           --write-baselines is maintainer-only and requires --attestation and --game.
           See docs/compliance/baselines/README.md.
@@ -317,6 +319,7 @@ internal static class Cli
         var compile = false;
         string? allowlist = null;
         string? ckCompiler = null;
+        string? flags = null;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -387,6 +390,9 @@ internal static class Cli
                 case "ck-compiler":
                     ckCompiler = value;
                     break;
+                case "flags":
+                    flags = value;
+                    break;
                 default:
                     error = $"error: unknown option --{name}";
                     return false;
@@ -452,7 +458,8 @@ internal static class Cli
             writeBaselines,
             compile,
             allowlist,
-            ckCompiler);
+            ckCompiler,
+            flags);
         return true;
     }
 

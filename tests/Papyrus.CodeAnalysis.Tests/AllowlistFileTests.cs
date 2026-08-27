@@ -19,9 +19,23 @@ public sealed class AllowlistFileTests
         Assert.Equal("parent-auto-read", document.Entries[2].Id);
         Assert.Equal("parent-scope-params", document.Entries[3].Id);
         Assert.All(document.Entries, static e => Assert.False(string.IsNullOrWhiteSpace(e.Justification)));
+        Assert.Equal("RobotSelfDestructScript", Assert.Single(document.Entries[3].Scripts));
         Assert.True(document.ContainsScript("RobotSelfDestructScript"));
         Assert.True(document.ContainsId("parent-scope-params"));
         Assert.False(document.ContainsScript("Actor"));
+        Assert.False(document.ContainsScript("None"));
+        Assert.False(document.ContainsScript("Bool"));
+        Assert.False(document.ContainsScript("String"));
+        Assert.False(document.ContainsScript("Auto"));
+        Assert.False(document.ContainsScript("Var"));
+        Assert.False(document.ContainsScript("object"));
+        Assert.False(document.ContainsScript("parent"));
+        Assert.False(document.ContainsScript("read"));
+        Assert.False(document.ContainsScript("scope"));
+        Assert.False(document.ContainsScript("params"));
+        Assert.False(document.ContainsScript("CK"));
+        Assert.False(document.ContainsScript("FO4"));
+        Assert.False(document.ContainsScript("frenzyFX"));
     }
 
     [Fact]
@@ -44,6 +58,30 @@ public sealed class AllowlistFileTests
         Assert.Equal("1", document.Entries[0].Id);
         Assert.Equal("First construct.", document.Entries[0].Justification);
         Assert.Equal("2", document.Entries[1].Id);
+        Assert.Empty(document.Entries[0].Scripts);
+    }
+
+    [Fact]
+    public void Allowlist_parse_scripts_line_is_explicit_not_prose()
+    {
+        var document = AllowlistFile.Parse(
+            """
+            1. `parent-scope-params` — Mentions None Bool String Auto in prose.
+               - scripts: RobotSelfDestructScript, Other.psc
+            """);
+
+        Assert.Equal(1, document.Size);
+        Assert.Equal("parent-scope-params", document.Entries[0].Id);
+        Assert.Contains("Mentions None Bool String Auto in prose.", document.Entries[0].Justification, StringComparison.Ordinal);
+        Assert.Equal(2, document.Entries[0].Scripts.Length);
+        Assert.Equal("RobotSelfDestructScript", document.Entries[0].Scripts[0]);
+        Assert.Equal("Other", document.Entries[0].Scripts[1]);
+        Assert.True(document.ContainsScript("RobotSelfDestructScript"));
+        Assert.True(document.ContainsScript("Other"));
+        Assert.False(document.ContainsScript("None"));
+        Assert.False(document.ContainsScript("Bool"));
+        Assert.False(document.ContainsScript("String"));
+        Assert.False(document.ContainsScript("Auto"));
     }
 
     [Fact]

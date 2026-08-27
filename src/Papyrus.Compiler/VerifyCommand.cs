@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using Papyrus.CodeAnalysis;
 using Papyrus.CodeAnalysis.Testing;
 using Papyrus.Pex;
 
@@ -17,7 +18,8 @@ internal sealed class VerifyCommandOptions
         bool writeBaselines,
         bool compile = false,
         string? allowlist = null,
-        string? ckCompiler = null)
+        string? ckCompiler = null,
+        string? flags = null)
     {
         Source = source;
         Game = game;
@@ -28,6 +30,7 @@ internal sealed class VerifyCommandOptions
         Compile = compile;
         Allowlist = allowlist;
         CkCompiler = ckCompiler;
+        Flags = flags;
     }
 
     internal string Source { get; }
@@ -39,6 +42,7 @@ internal sealed class VerifyCommandOptions
     internal bool Compile { get; }
     internal string? Allowlist { get; }
     internal string? CkCompiler { get; }
+    internal string? Flags { get; }
 }
 
 internal static class VerifyCommand
@@ -143,7 +147,10 @@ internal static class VerifyCommand
                 return 1;
             }
 
-            var compiled = CompileHashHarness.CompilePath(sourceFull, dialect);
+            if (!TryLoadFlags(options.Flags, sourceFull, dialect, stderr, out var flagsFile))
+                return 1;
+
+            var compiled = CompileHashHarness.CompilePath(sourceFull, dialect, flagsFile);
             var document = BaselineFile.Load(baselineFull);
             if (!string.IsNullOrEmpty(document.Game)
                 && !string.Equals(document.Game, gameName, StringComparison.OrdinalIgnoreCase)
@@ -180,6 +187,61 @@ internal static class VerifyCommand
             stderr.WriteLine($"error: {ex.Message}");
             return 1;
         }
+    }
+
+    private static bool TryLoadFlags(
+        string? flagsPath,
+        string source,
+        PapyrusDialect dialect,
+        TextWriter stderr,
+        out FlagsFile? flagsFile)
+    {
+        flagsFile = null;
+        string? resolved = flagsPath;
+        if (string.IsNullOrWhiteSpace(resolved))
+            resolved = CompileHashHarness.FindFlagsPath(source, dialect);
+
+        if (string.IsNullOrWhiteSpace(resolved))
+            return true;
+
+        string full;
+        try
+        {
+            full = Path.GetFullPath(resolved);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            stderr.WriteLine($"error: {ex.Message}");
+            return false;
+        }
+
+        if (!File.Exists(full))
+        {
+            stderr.WriteLine($"error: flags file not found: {full}");
+            return false;
+        }
+
+        try
+        {
+            flagsFile = FlagsFile.Parse(File.ReadAllText(full));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            stderr.WriteLine($"error: {ex.Message}");
+            return false;
+        }
+
+        foreach (var info in flagsFile.Diagnostics)
+        {
+            if (info.Descriptor.DefaultSeverity != DiagnosticSeverity.Error)
+                continue;
+
+            stderr.WriteLine($"error: {info.Id}: {info.GetMessage()}");
+            flagsFile = null;
+            return false;
+        }
+
+        return true;
     }
 
     private static AllowlistDocument? LoadAllowlist(string? path, TextWriter stderr)

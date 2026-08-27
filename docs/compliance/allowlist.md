@@ -11,6 +11,7 @@ Starting set (published CK differences):
 3. `parent-auto-read` — The CK generates direct reads of the underlying variable for `Auto` properties defined in parent classes. This is not safe; we only do this for `Auto` properties defined on the current class.
 
 4. `parent-scope-params` — The FO4 CK appears not to check whether parameter names conflict with names in a parent scope. Previous CK versions did; `RobotSelfDestructScript.frenzyFX` is a victim. We check, and this script is allowlisted.
+   - scripts: RobotSelfDestructScript
 
 ## Running
 

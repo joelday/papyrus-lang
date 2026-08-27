@@ -9,11 +9,16 @@ namespace Papyrus.CodeAnalysis.Testing;
 
 public sealed class AllowlistEntry
 {
-    public AllowlistEntry(int number, string id, string justification)
+    public AllowlistEntry(
+        int number,
+        string id,
+        string justification,
+        ImmutableArray<string> scripts = default)
     {
         Number = number;
         Id = id;
         Justification = justification;
+        Scripts = scripts.IsDefault ? ImmutableArray<string>.Empty : scripts;
     }
 
     public int Number { get; }
@@ -21,6 +26,11 @@ public sealed class AllowlistEntry
     public string Id { get; }
 
     public string Justification { get; }
+
+    /// <summary>
+    /// Explicit script names waived by this construct. Not parsed from prose.
+    /// </summary>
+    public ImmutableArray<string> Scripts { get; }
 }
 
 public sealed class AllowlistDocument
@@ -41,8 +51,11 @@ public sealed class AllowlistDocument
 
         foreach (var entry in Entries)
         {
-            if (ContainsName(entry.Justification, scriptName) || ContainsName(entry.Id, scriptName))
-                return true;
+            foreach (var listed in entry.Scripts)
+            {
+                if (ScriptNamesEqual(listed, scriptName))
+                    return true;
+            }
         }
 
         return false;
@@ -56,7 +69,10 @@ public sealed class AllowlistDocument
         foreach (var entry in Entries)
         {
             if (string.Equals(entry.Id, allowlistId, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(entry.Number.ToString(), allowlistId, StringComparison.OrdinalIgnoreCase))
+                || string.Equals(
+                    entry.Number.ToString(CultureInfo.InvariantCulture),
+                    allowlistId,
+                    StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
@@ -65,19 +81,25 @@ public sealed class AllowlistDocument
         return false;
     }
 
-    private static bool ContainsName(string text, string scriptName)
+    internal static bool ScriptNamesEqual(string listed, string actual)
     {
-        var index = text.IndexOf(scriptName, StringComparison.OrdinalIgnoreCase);
-        if (index < 0)
-            return false;
-
-        var before = index == 0 || !IsNameChar(text[index - 1]);
-        var afterIndex = index + scriptName.Length;
-        var after = afterIndex >= text.Length || !IsNameChar(text[afterIndex]);
-        return before && after;
+        return string.Equals(BaseScriptName(listed), BaseScriptName(actual), StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool IsNameChar(char c) => char.IsLetterOrDigit(c) || c == '_';
+    internal static string BaseScriptName(string name)
+    {
+        var text = name.Replace('\\', '/').Trim();
+        var slash = text.LastIndexOf('/');
+        if (slash >= 0)
+            text = text[(slash + 1)..];
+        var colon = text.LastIndexOf(':');
+        if (colon >= 0)
+            text = text[(colon + 1)..];
+        var dot = text.IndexOf('.');
+        if (dot >= 0)
+            text = text[..dot];
+        return text;
+    }
 }
 
 /// <summary>
@@ -97,6 +119,7 @@ public static class AllowlistFile
         var entries = ImmutableArray.CreateBuilder<AllowlistEntry>();
         AllowlistEntry? pending = null;
         var justification = new List<string>();
+        var scripts = new List<string>();
 
         void Flush()
         {
@@ -104,9 +127,10 @@ public static class AllowlistFile
                 return;
 
             var body = string.Join(" ", justification).Trim();
-            entries.Add(new AllowlistEntry(pending.Number, pending.Id, body));
+            entries.Add(new AllowlistEntry(pending.Number, pending.Id, body, scripts.ToImmutableArray()));
             pending = null;
             justification.Clear();
+            scripts.Clear();
         }
 
         foreach (string raw in text.Split(['\r', '\n']))
@@ -120,7 +144,9 @@ public static class AllowlistFile
                     ? match.Groups[2].Value.Trim()
                     : number.ToString(CultureInfo.InvariantCulture);
                 pending = new AllowlistEntry(number, id, "");
-                justification.Add(match.Groups[3].Value.Trim());
+                var rest = match.Groups[3].Value.Trim();
+                if (!TryTakeScripts(rest, scripts))
+                    justification.Add(rest);
                 continue;
             }
 
@@ -133,6 +159,9 @@ public static class AllowlistFile
                 Flush();
                 continue;
             }
+
+            if (TryTakeScripts(line, scripts))
+                continue;
 
             justification.Add(line);
         }
@@ -184,5 +213,42 @@ public static class AllowlistFile
         }
 
         return null;
+    }
+
+    private static bool TryTakeScripts(string line, List<string> scripts)
+    {
+        var text = line.Trim();
+        if (text.StartsWith("- ", StringComparison.Ordinal))
+            text = text[2..].Trim();
+
+        const string prefix = "scripts:";
+        if (!text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        foreach (string rawPart in text[prefix.Length..].Split(','))
+        {
+            var part = rawPart.Trim().Trim('`');
+            if (part.Length == 0)
+                continue;
+
+            var name = AllowlistDocument.BaseScriptName(part);
+            if (name.Length == 0)
+                continue;
+
+            var exists = false;
+            foreach (var listed in scripts)
+            {
+                if (AllowlistDocument.ScriptNamesEqual(listed, name))
+                {
+                    exists = true;
+                    break;
+                }
+            }
+
+            if (!exists)
+                scripts.Add(name);
+        }
+
+        return true;
     }
 }

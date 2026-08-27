@@ -28,6 +28,10 @@ papyrusc verify --compile --game skyrimse|fallout4|starfield \
 
 `--source` defaults to `./corpus/<game>`. If that tree has no `.psc` files, the command prints `allowlist size` and a skip message and exits 0.
 
+`--flags` points at a `.flg`. If omitted, the harness uses `TESV_Papyrus_Flags.flg` / `Institute_Papyrus_Flags.flg` / `Starfield_Papyrus_Flags.flg` in the corpus root when present (or the sole `.flg` there).
+
+A baseline row is waived only when `allowlistId` names a construct in `docs/compliance/allowlist.md`, or the script is on that construct's explicit `scripts:` list. `status: allowlisted` is metadata and is not a waiver by itself.
+
 Everything not on `docs/compliance/allowlist.md` must be byte-identical. Allowlisted scripts may differ (semantic equivalence only). The command prints the compliance number (`identical: N/M (P%)`) and the allowlist size.
 
 ## Tier 2 (CK compiler) — future

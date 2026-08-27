@@ -176,7 +176,10 @@ public static class CompileHashHarness
         return PexNormalizer.Hash(pex);
     }
 
-    public static ImmutableArray<CompiledPexHash> CompilePath(string path, PapyrusDialect dialect)
+    public static ImmutableArray<CompiledPexHash> CompilePath(
+        string path,
+        PapyrusDialect dialect,
+        FlagsFile? flagsFile = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(dialect);
@@ -188,13 +191,60 @@ public static class CompileHashHarness
                 throw new InvalidOperationException("not a .psc file: " + full);
 
             string directory = Path.GetDirectoryName(full) ?? full;
-            return CompileFiles(directory, [full], dialect);
+            flagsFile ??= LoadFlags(FindFlagsPath(directory, dialect));
+            return CompileFiles(directory, [full], dialect, flagsFile);
         }
 
         if (!Directory.Exists(full))
             throw new DirectoryNotFoundException("source not found: " + full);
 
-        return CompileFiles(full, ListPsc(full), dialect);
+        flagsFile ??= LoadFlags(FindFlagsPath(full, dialect));
+        return CompileFiles(full, ListPsc(full), dialect, flagsFile);
+    }
+
+    /// <summary>
+    /// <c>TESV_Papyrus_Flags.flg</c> / game equivalent in the corpus root, or the
+    /// sole <c>.flg</c> there. Null when none is present.
+    /// </summary>
+    public static string? FindFlagsPath(string source, PapyrusDialect? dialect = null)
+    {
+        if (string.IsNullOrWhiteSpace(source))
+            return null;
+
+        string dir;
+        try
+        {
+            dir = Path.GetFullPath(source);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return null;
+        }
+
+        if (File.Exists(dir))
+            dir = Path.GetDirectoryName(dir) ?? dir;
+
+        if (!Directory.Exists(dir))
+            return null;
+
+        foreach (string name in FlagsFileNames(dialect))
+        {
+            string candidate = Path.Combine(dir, name);
+            if (File.Exists(candidate))
+                return candidate;
+        }
+
+        string[] found;
+        try
+        {
+            found = Directory.GetFiles(dir, "*.flg");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+
+        return found.Length == 1 ? found[0] : null;
     }
 
     public static CompileVerifyResult Skip(string path, int allowlistSize)
@@ -239,6 +289,9 @@ public static class CompileHashHarness
                 errors.Add("missing from source: " + name);
                 continue;
             }
+
+            if (!string.IsNullOrWhiteSpace(script.AllowlistId) && !allowlist.ContainsId(script.AllowlistId))
+                errors.Add("unknown allowlistId: " + name + " uses '" + script.AllowlistId + "'");
 
             var waived = IsAllowlisted(script, name, allowlist);
             if (!entry.Succeeded)
@@ -324,7 +377,8 @@ public static class CompileHashHarness
     private static ImmutableArray<CompiledPexHash> CompileFiles(
         string root,
         List<string> files,
-        PapyrusDialect dialect)
+        PapyrusDialect dialect,
+        FlagsFile? flagsFile)
     {
         var sources = new List<KeyValuePair<QualifiedName, SourceText>>(files.Count);
         var names = new List<(string Relative, string ScriptName, QualifiedName Name)>(files.Count);
@@ -352,7 +406,7 @@ public static class CompileHashHarness
         var compilation = PapyrusCompilation.Create(dialect, new MemoryScriptResolver(sources));
         var builder = ImmutableArray.CreateBuilder<CompiledPexHash>(names.Count);
         foreach (var (relative, scriptName, name) in names)
-            builder.Add(CompileOne(compilation, relative, scriptName, name));
+            builder.Add(CompileOne(compilation, relative, scriptName, name, flagsFile));
 
         return builder.MoveToImmutable();
     }
@@ -361,13 +415,14 @@ public static class CompileHashHarness
         PapyrusCompilation compilation,
         string relative,
         string scriptName,
-        QualifiedName name)
+        QualifiedName name,
+        FlagsFile? flagsFile)
     {
         try
         {
             var script = compilation.GetScript(name);
             var tree = compilation.GetSyntaxTree(name);
-            var emitter = new PexEmitter();
+            var emitter = new PexEmitter(flagsFile);
             var pex = emitter.EmitFile(script);
 
             var errors = ImmutableArray.CreateBuilder<string>();
@@ -418,15 +473,31 @@ public static class CompileHashHarness
         return false;
     }
 
+    // Status is metadata. Waiver requires a reviewed construct id or an explicit script name.
     private static bool IsAllowlisted(BaselineScript script, string scriptName, AllowlistDocument allowlist)
     {
-        if (string.Equals(script.Status, "allowlisted", StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        if (!string.IsNullOrWhiteSpace(script.AllowlistId) && allowlist.ContainsId(script.AllowlistId))
-            return true;
+        if (!string.IsNullOrWhiteSpace(script.AllowlistId))
+            return allowlist.ContainsId(script.AllowlistId);
 
         return allowlist.ContainsScript(scriptName);
+    }
+
+    private static FlagsFile? LoadFlags(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            return null;
+
+        return FlagsFile.Parse(File.ReadAllText(path));
+    }
+
+    private static string[] FlagsFileNames(PapyrusDialect? dialect)
+    {
+        return dialect?.Game switch
+        {
+            GameId.Fallout4 => ["Institute_Papyrus_Flags.flg", "TESV_Papyrus_Flags.flg"],
+            GameId.Starfield => ["Starfield_Papyrus_Flags.flg", "TESV_Papyrus_Flags.flg"],
+            _ => ["TESV_Papyrus_Flags.flg"],
+        };
     }
 
     private static string ScriptName(string relativePath)
