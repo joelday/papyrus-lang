@@ -52,9 +52,29 @@ jobs:
       - name: Workspaces tests
         run: dotnet test tests/Papyrus.Workspaces.Tests --no-restore --configuration Release --no-build
 
+      - name: LanguageServer tests
+        run: dotnet test tests/Papyrus.LanguageServer.Tests --no-restore --configuration Release --no-build
+
   aot-smoke:
-    name: papyrusc NativeAOT (win-x64)
-    runs-on: windows-latest
+    name: NativeAOT (${{ matrix.rid }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            papyrusc: papyrusc.exe
+            language_server: Papyrus.LanguageServer.exe
+          - os: ubuntu-latest
+            rid: linux-x64
+            papyrusc: papyrusc
+            language_server: Papyrus.LanguageServer
+          # macos-latest is Apple Silicon. Smoke osx-arm64 only on that runner.
+          - os: macos-latest
+            rid: osx-arm64
+            papyrusc: papyrusc
+            language_server: Papyrus.LanguageServer
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,11 +84,17 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Publish NativeAOT
-        run: dotnet publish src/Papyrus.Compiler -c Release -r win-x64 /p:PublishAot=true -o artifacts/papyrusc-win-x64
+      - name: Publish papyrusc
+        run: dotnet publish src/Papyrus.Compiler -c Release -r ${{ matrix.rid }} /p:PublishAot=true -o artifacts/papyrusc-${{ matrix.rid }}
 
-      - name: Smoke --version
-        run: artifacts/papyrusc-win-x64/papyrusc.exe --version
+      - name: Smoke papyrusc --version
+        run: artifacts/papyrusc-${{ matrix.rid }}/${{ matrix.papyrusc }} --version
+
+      - name: Publish language server
+        run: dotnet publish src/Papyrus.LanguageServer -c Release -r ${{ matrix.rid }} /p:PublishAot=true -o artifacts/Papyrus.LanguageServer-${{ matrix.rid }}
+
+      - name: Smoke language server --version
+        run: artifacts/Papyrus.LanguageServer-${{ matrix.rid }}/${{ matrix.language_server }} --version
 
   pack:
     name: Pack Papyrus.Pex
