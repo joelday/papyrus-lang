@@ -77,6 +77,31 @@ public sealed class LanguageServerHostTests
         Assert.Equal(1, await session.HostTask);
     }
 
+    [Theory]
+    [InlineData("null")]
+    [InlineData("{}")]
+    public async Task Shutdown_then_exit_with_params_returns_zero(string parameters)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        var cancellationToken = timeout.Token;
+        await using var session = Session.Start(cancellationToken);
+
+        await session.RequestAsync(
+            1,
+            "initialize",
+            """{"capabilities":{}}""",
+            cancellationToken);
+        await session.NotifyAsync("initialized", parameters, cancellationToken);
+
+        var shutdown = await session.RequestAsync(2, "shutdown", parameters, cancellationToken);
+        using var document = JsonDocument.Parse(shutdown);
+        Assert.False(document.RootElement.TryGetProperty("error", out _), shutdown);
+        Assert.Equal(JsonValueKind.Null, document.RootElement.GetProperty("result").ValueKind);
+
+        await session.NotifyAsync("exit", parameters, cancellationToken);
+        Assert.Equal(0, await session.HostTask.WaitAsync(cancellationToken));
+    }
+
     private sealed class Session : IAsyncDisposable
     {
         private readonly Pipe _clientToServer;
@@ -109,7 +134,6 @@ public sealed class LanguageServerHostTests
             string? parameters,
             CancellationToken cancellationToken)
         {
-            // JSON null params crash the STJ formatter; omit the property instead.
             var payload = parameters is null
                 ? $$"""{"jsonrpc":"2.0","id":{{id.ToString(CultureInfo.InvariantCulture)}},"method":"{{method}}"}"""
                 : $$"""{"jsonrpc":"2.0","id":{{id.ToString(CultureInfo.InvariantCulture)}},"method":"{{method}}","params":{{parameters}}}""";

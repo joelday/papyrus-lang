@@ -2,6 +2,7 @@
   <PropertyGroup>
     <!-- xunit.v3 test projects are standalone executables. -->
     <OutputType>Exe</OutputType>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Papyrus.LanguageServer\Papyrus.LanguageServer.csproj" />

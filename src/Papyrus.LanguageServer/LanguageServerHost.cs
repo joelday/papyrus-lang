@@ -61,9 +61,9 @@ internal static class LanguageServerHost
 
     [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "User payloads go through LspJsonContext.")]
     [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "User payloads go through LspJsonContext.")]
-    private static SystemTextJsonFormatter CreateFormatter()
+    private static IJsonRpcMessageFormatter CreateFormatter()
     {
-        return new SystemTextJsonFormatter
+        var inner = new SystemTextJsonFormatter
         {
             JsonSerializerOptions =
             {
@@ -72,5 +72,6 @@ internal static class LanguageServerHost
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             },
         };
+        return new LspMessageFormatter(inner);
     }
 }
