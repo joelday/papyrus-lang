@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Reflection;
 using Papyrus.CodeAnalysis.Testing;
 
 namespace Papyrus.Compiler;
@@ -47,10 +46,9 @@ internal static class Cli
           See docs/compliance/baselines/README.md.
         """;
 
+    // GetName().Version is AOT-safe; GetCustomAttribute is annotated RequiresUnreferencedCode.
     internal static string Version =>
-        typeof(Cli).Assembly.GetName().Version?.ToString()
-        ?? typeof(Cli).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
-        ?? "0.0.0";
+        typeof(Cli).Assembly.GetName().Version?.ToString() ?? "0.0.0";
 
     internal static int Run(string[] args, TextWriter stdout, TextWriter stderr)
     {

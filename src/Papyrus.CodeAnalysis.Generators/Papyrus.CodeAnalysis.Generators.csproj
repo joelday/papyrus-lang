@@ -5,7 +5,16 @@
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IsRoslynComponent>true</IsRoslynComponent>
     <RootNamespace>Papyrus.CodeAnalysis.Generators</RootNamespace>
+    <IsPublishable>false</IsPublishable>
   </PropertyGroup>
+  <!-- /p:PublishAot=true is global; netstandard2.0 cannot AOT (NETSDK1207). -->
+  <Target Name="DisableAotForAnalyzer" BeforeTargets="_ComputeToolPackInputsToProcessFrameworkReferences">
+    <PropertyGroup>
+      <PublishAot>false</PublishAot>
+      <IsAotCompatible>false</IsAotCompatible>
+      <_RequiresILLinkPack>false</_RequiresILLinkPack>
+    </PropertyGroup>
+  </Target>
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
