@@ -13,7 +13,7 @@ internal static class Cli
         """
         Usage: papyrusc <command>
 
-          papyrusc compile <script.psc|project.ppj> --game <skyrimse|skyrimle|fallout4|starfield> [--output <file.pex>] [--flags <file.flg>] [--import <dir>]... [--time <unix>] [--ignore-engine-limits]
+          papyrusc compile <script.psc|project.ppj> [--game <skyrimse|skyrimle|fallout4|starfield>] [--output <file.pex>] [--flags <file.flg>] [--import <dir>]... [--time <unix>] [--ignore-engine-limits]
           papyrusc corpus acquire --game <game> --source <path> [--dest <path>] [--force]
           papyrusc hash <path> [--game <game>]
           papyrusc verify --source <path> --baseline <file> [--game <game>]

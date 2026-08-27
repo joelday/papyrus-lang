@@ -247,7 +247,7 @@ internal static class CompileCommand
             return 1;
         }
 
-        if (!TryCollectProjectScripts(project, projectDirectory, stderr, out var scripts))
+        if (!TryCollectProjectScripts(project, projectDirectory, includeDirectories, stderr, out var scripts))
         {
             return 1;
         }
@@ -471,6 +471,7 @@ internal static class CompileCommand
     private static bool TryCollectProjectScripts(
         PapyrusProject project,
         string projectDirectory,
+        List<string> includeDirectories,
         TextWriter stderr,
         out List<string> scripts)
     {
@@ -484,20 +485,8 @@ internal static class CompileCommand
                 continue;
             }
 
-            var relative = script.Replace(':', Path.DirectorySeparatorChar);
-            if (!Path.GetExtension(relative).Equals(".psc", StringComparison.OrdinalIgnoreCase))
+            if (!TryFindProjectScript(projectDirectory, includeDirectories, script, stderr, out var scriptPath))
             {
-                relative += ".psc";
-            }
-
-            if (!TryResolveProjectPath(projectDirectory, relative, stderr, out var scriptPath))
-            {
-                return false;
-            }
-
-            if (!File.Exists(scriptPath))
-            {
-                stderr.WriteLine($"error: path not found: {scriptPath}");
                 return false;
             }
 
@@ -551,6 +540,66 @@ internal static class CompileCommand
         }
 
         return true;
+    }
+
+    private static bool TryFindProjectScript(
+        string projectDirectory,
+        List<string> includeDirectories,
+        string script,
+        TextWriter stderr,
+        out string scriptPath)
+    {
+        scriptPath = null!;
+        var relative = script.Replace(':', Path.DirectorySeparatorChar);
+        if (!Path.GetExtension(relative).Equals(".psc", StringComparison.OrdinalIgnoreCase))
+        {
+            relative += ".psc";
+        }
+
+        if (Path.IsPathRooted(relative))
+        {
+            if (!TryGetFullPath(relative, stderr, out scriptPath))
+            {
+                return false;
+            }
+
+            if (File.Exists(scriptPath))
+            {
+                return true;
+            }
+
+            stderr.WriteLine($"error: path not found: {scriptPath}");
+            return false;
+        }
+
+        if (!TryResolveProjectPath(projectDirectory, relative, stderr, out var candidate))
+        {
+            return false;
+        }
+
+        if (File.Exists(candidate))
+        {
+            scriptPath = candidate;
+            return true;
+        }
+
+        var missingPath = candidate;
+        for (var i = 0; i < includeDirectories.Count; i++)
+        {
+            if (!TryGetFullPath(Path.Combine(includeDirectories[i], relative), stderr, out candidate))
+            {
+                return false;
+            }
+
+            if (File.Exists(candidate))
+            {
+                scriptPath = candidate;
+                return true;
+            }
+        }
+
+        stderr.WriteLine($"error: path not found: {missingPath}");
+        return false;
     }
 
     private static bool TryGetScriptOutputPath(
