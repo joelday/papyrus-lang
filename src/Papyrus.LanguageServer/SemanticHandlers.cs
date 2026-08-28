@@ -457,6 +457,108 @@ internal sealed class RenameHandler : ILspHandler<RenameParams?, WorkspaceEdit?>
     }
 }
 
+internal sealed class DocumentHighlightHandler
+    : ILspHandler<DocumentHighlightParams?, DocumentHighlight[]>
+{
+    internal const string MethodName = "textDocument/documentHighlight";
+    public string Method => MethodName;
+    public bool MutatesSolution => false;
+
+    public Task<DocumentHighlight[]> HandleAsync(
+        DocumentHighlightParams? p,
+        LspSnapshot snapshot,
+        CancellationToken ct
+    )
+    {
+        ct.ThrowIfCancellationRequested();
+        if (
+            p?.Position is null
+            || !LspDocuments.TryGetSemanticModel(
+                snapshot,
+                p.TextDocument,
+                out var model,
+                out var tree,
+                out _
+            )
+        )
+        {
+            return Task.FromResult(Array.Empty<DocumentHighlight>());
+        }
+
+        var lineMap = tree.GetText().Lines;
+        var offset = lineMap.GetOffset(p.Position.Line, p.Position.Character);
+        var occurrences = model.GetDocumentHighlights(offset, ct);
+
+        var highlights = new DocumentHighlight[occurrences.Length];
+        for (var i = 0; i < occurrences.Length; i++)
+        {
+            highlights[i] = new DocumentHighlight
+            {
+                Range = DocumentSymbolHandler.ToRange(lineMap, occurrences[i].Span),
+                Kind = occurrences[i].IsDeclaration ? 3 : 2,
+            };
+        }
+
+        return Task.FromResult(highlights);
+    }
+}
+
+internal sealed class InlayHintHandler : ILspHandler<InlayHintParams?, InlayHint[]>
+{
+    internal const string MethodName = "textDocument/inlayHint";
+    public string Method => MethodName;
+    public bool MutatesSolution => false;
+
+    public Task<InlayHint[]> HandleAsync(
+        InlayHintParams? p,
+        LspSnapshot snapshot,
+        CancellationToken ct
+    )
+    {
+        ct.ThrowIfCancellationRequested();
+        if (
+            !LspDocuments.TryGetSemanticModel(
+                snapshot,
+                p?.TextDocument,
+                out var model,
+                out var tree,
+                out _
+            )
+        )
+        {
+            return Task.FromResult(Array.Empty<InlayHint>());
+        }
+
+        var lineMap = tree.GetText().Lines;
+        var textLength = tree.GetText().Length;
+        var span =
+            p!.Range is { Start: { } start, End: { } end }
+                ? new Papyrus.CodeAnalysis.Text.TextSpan(
+                    lineMap.GetOffset(start.Line, start.Character),
+                    lineMap.GetOffset(end.Line, end.Character)
+                        - lineMap.GetOffset(start.Line, start.Character)
+                )
+                : new Papyrus.CodeAnalysis.Text.TextSpan(0, textLength);
+
+        var hints = model.GetInlayHints(span, ct);
+
+        var items = new InlayHint[hints.Length];
+        for (var i = 0; i < hints.Length; i++)
+        {
+            var (line, character) = lineMap.GetPosition(hints[i].Position);
+            items[i] = new InlayHint
+            {
+                Position = new Position { Line = line, Character = character },
+                Label = $"{hints[i].ParameterName.Text}:",
+                Kind = 2,
+                PaddingRight = true,
+            };
+        }
+
+        return Task.FromResult(items);
+    }
+}
+
 internal sealed class SignatureHelpHandler : ILspHandler<SignatureHelpParams?, SignatureHelp?>
 {
     internal const string MethodName = "textDocument/signatureHelp";

@@ -30,6 +30,8 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly ReferencesHandler _references;
     private readonly RenameHandler _rename;
     private readonly PrepareRenameHandler _prepareRename;
+    private readonly DocumentHighlightHandler _documentHighlight;
+    private readonly InlayHintHandler _inlayHint;
 
     private int _shutdown;
     private int _disposed;
@@ -60,6 +62,8 @@ internal sealed class LanguageServerRpc : IDisposable
         _references = new ReferencesHandler();
         _rename = new RenameHandler();
         _prepareRename = new PrepareRenameHandler();
+        _documentHighlight = new DocumentHighlightHandler();
+        _inlayHint = new InlayHintHandler();
     }
 
     internal Task<int> WaitForExitAsync() => _exit.Task;
@@ -115,6 +119,8 @@ internal sealed class LanguageServerRpc : IDisposable
                     },
                     ReferencesProvider = true,
                     RenameProvider = new RenameOptions { PrepareProvider = true },
+                    DocumentHighlightProvider = true,
+                    InlayHintProvider = true,
                 },
                 ServerInfo = new ServerInfo { Name = "Papyrus Language Server" },
             }
@@ -336,6 +342,27 @@ internal sealed class LanguageServerRpc : IDisposable
     )
     {
         return _scheduler.ExecuteAsync(_prepareRename, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(
+        DocumentHighlightHandler.MethodName,
+        UseSingleObjectParameterDeserialization = true
+    )]
+    public Task<DocumentHighlight[]> DocumentHighlightAsync(
+        DocumentHighlightParams? parameters,
+        CancellationToken cancellationToken
+    )
+    {
+        return _scheduler.ExecuteAsync(_documentHighlight, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(InlayHintHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<InlayHint[]> InlayHintAsync(
+        InlayHintParams? parameters,
+        CancellationToken cancellationToken
+    )
+    {
+        return _scheduler.ExecuteAsync(_inlayHint, parameters, cancellationToken);
     }
 
     [JsonRpcMethod("shutdown")]

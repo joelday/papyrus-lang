@@ -559,6 +559,63 @@ public sealed class StructureHandlerTests
         Assert.Null(result);
     }
 
+    [Fact]
+    public async Task DocumentHighlight_finds_declaration_and_call_sites_in_current_file()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        fixture.WriteScript(
+            "Other",
+            "ScriptName Other Extends Foo\nFunction Baz()\n  Bar()\nEndFunction\n"
+        );
+        await fixture.OpenAsync(
+            "ScriptName Foo\nFunction Bar()\n  Bar()\nEndFunction\n",
+            timeout.Token
+        );
+
+        var highlights = await fixture.Scheduler.ExecuteAsync(
+            new DocumentHighlightHandler(),
+            new DocumentHighlightParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                Position = new Position { Line = 1, Character = 10 },
+            },
+            timeout.Token
+        );
+
+        // Only the current file's own declaration + call site, not the Other.psc call.
+        Assert.Equal(2, highlights.Length);
+        Assert.Contains(highlights, h => h.Range.Start!.Line == 1 && h.Kind == 3);
+        Assert.Contains(highlights, h => h.Range.Start!.Line == 2 && h.Kind == 2);
+    }
+
+    [Fact]
+    public async Task InlayHint_reports_parameter_names_for_positional_call_arguments()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        await fixture.OpenAsync(
+            "ScriptName Foo\n"
+                + "Function Bar(Int a, Int b)\n"
+                + "EndFunction\n"
+                + "Function Baz()\n"
+                + "  Bar(1, 2)\n"
+                + "EndFunction\n",
+            timeout.Token
+        );
+
+        var hints = await fixture.Scheduler.ExecuteAsync(
+            new InlayHintHandler(),
+            new InlayHintParams { TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri } },
+            timeout.Token
+        );
+
+        Assert.Equal(2, hints.Length);
+        Assert.Contains(hints, h => h.Label == "a:");
+        Assert.Contains(hints, h => h.Label == "b:");
+        Assert.All(hints, h => Assert.Equal(4, h.Position.Line));
+    }
+
     private static bool Contains(Range outer, Range inner)
     {
         var startsBefore =

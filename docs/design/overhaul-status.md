@@ -9,7 +9,7 @@ git checkout rewrite
 dotnet build Papyrus.sln -c Release
 ```
 
-**Score:** 71 of 87 plan items merged or implemented locally. **16 remaining.**
+**Score:** 72 of 87 plan items merged or implemented locally. **15 remaining.**
 
 **Hard constraints for this run**
 
@@ -38,7 +38,7 @@ The new `Papyrus.LanguageServer` process speaks StreamJsonRpc with a mutating/no
 
 ---
 
-## Done (70)
+## Done (72)
 
 ### Phase 0 — Foundations and PEX oracle (P0.00–P0.12)
 
@@ -88,6 +88,7 @@ Syntax generator, green/red trees, lexer, script/decls/FO4+/Starfield/statements
 | P4.03f | Completion + signature help                                               |
 | P4.03g | References + prepare-rename + rename                                      |
 | P4.04  | Completion resolve + commit characters (**#181**, **#190**)               |
+| P4.03h | Inlay hints + document highlight                                          |
 
 ### Phase 5 — debugger line (partial)
 
@@ -105,13 +106,12 @@ Dependencies are from the accepted PR plan. Ready now means every listed depende
 
 ### Ready now
 
-P4.02 and P4.05 are done, so the remaining P4.03 handler slices and P5.03 are unblocked. P5.03 remains intentionally deferred until the managed debugger API is stable and Windows/MSVC validation is available.
+P4.02 and P4.05 are done, so the remaining P4.03 handler slice and P5.03 are unblocked. P5.03 remains intentionally deferred until the managed debugger API is stable and Windows/MSVC validation is available.
 
-| ID     | Title                            | Depends on          | Notes                                                 |
-| ------ | -------------------------------- | ------------------- | ----------------------------------------------------- |
-| P4.03h | Inlay hints + document highlight | P4.02, P2.09        |                                                       |
-| P4.03i | Remaining LSP                    | P4.02, P3.05, P2.00 | diagnostics, assembly, scriptInfo, projectInfos, pull |
-| P5.03  | NativeAOT debug adapter          | P4.05, P0.04        | **#180**                                              |
+| ID     | Title                   | Depends on          | Notes                                                 |
+| ------ | ----------------------- | ------------------- | ----------------------------------------------------- |
+| P4.03i | Remaining LSP           | P4.02, P3.05, P2.00 | diagnostics, assembly, scriptInfo, projectInfos, pull |
+| P5.03  | NativeAOT debug adapter | P4.05, P0.04        | **#180**                                              |
 
 ### Phase 4 — after handlers / AOT
 
@@ -123,7 +123,7 @@ P4.02 and P4.05 are done, so the remaining P4.03 handler slices and P5.03 are un
 | P4.08  | Diagnostic report + redaction test                       | P4.07          |
 | P4.09  | Delete `DarkId.Papyrus.*` managed tree                   | P4.06b, P4.08  |
 
-P4.03h–i can run in parallel (P4.03h also needs P2.09, already done; P4.03i also needs P3.05 and P2.00, already done).
+P4.03i also needs P3.05 and P2.00, both already done.
 
 ### Phase 5 — remaining
 
@@ -167,7 +167,7 @@ Old `DarkId.Papyrus.*` managed projects stay until P4.09.
 ## How to resume
 
 1. `git checkout rewrite` for the integration point, or create a topic branch from it for the next slice.
-2. Continue the plan from **P4.03d–i** (handlers). P5.03 (NativeAOT debug adapter) is unblocked in the dependency graph but intentionally deferred until the managed debugger API is stable and Windows/MSVC validation is available.
+2. Continue the plan from **P4.03i**. P5.03 (NativeAOT debug adapter) is unblocked in the dependency graph but intentionally deferred until the managed debugger API is stable and Windows/MSVC validation is available.
 3. Keep the no-push constraint unless the owner lifts it.
 
 The work is organized as ordinary local topic branches from `rewrite`; there is no agent-orchestration branch naming convention to recover.

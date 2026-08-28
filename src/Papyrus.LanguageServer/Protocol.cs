@@ -60,6 +60,10 @@ internal sealed class ServerCapabilities
     public bool? ReferencesProvider { get; set; }
 
     public RenameOptions? RenameProvider { get; set; }
+
+    public bool? DocumentHighlightProvider { get; set; }
+
+    public bool? InlayHintProvider { get; set; }
 }
 
 internal sealed class RenameOptions
@@ -413,6 +417,40 @@ internal sealed class PrepareRenameResult
     public Range Range { get; set; } = new();
 
     public string Placeholder { get; set; } = "";
+}
+
+internal sealed class DocumentHighlightParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+
+    public Position? Position { get; set; }
+}
+
+internal sealed class DocumentHighlight
+{
+    public Range Range { get; set; } = new();
+
+    /// <summary>1 = Text, 2 = Read, 3 = Write (LSP <c>DocumentHighlightKind</c>).</summary>
+    public int Kind { get; set; }
+}
+
+internal sealed class InlayHintParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+
+    public Range? Range { get; set; }
+}
+
+internal sealed class InlayHint
+{
+    public Position Position { get; set; } = new();
+
+    public string Label { get; set; } = "";
+
+    /// <summary>1 = Type, 2 = Parameter (LSP <c>InlayHintKind</c>).</summary>
+    public int Kind { get; set; }
+
+    public bool? PaddingRight { get; set; }
 }
 
 internal sealed class WorkspaceEdit

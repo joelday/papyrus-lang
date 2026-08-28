@@ -468,6 +468,84 @@ public sealed class SemanticModelTests
     }
 
     [Fact]
+    public void GetDocumentHighlights_finds_declaration_and_call_sites()
+    {
+        var compilation = Compilation(
+            PapyrusDialect.SkyrimSe,
+            "Foo",
+            "ScriptName Foo\nFunction Bar()\n  Bar()\nEndFunction\n"
+        );
+        var tree = compilation.GetSyntaxTree(QualifiedName.Parse("Foo"));
+        var model = compilation.GetSemanticModel(tree);
+        var source = tree.GetText();
+
+        // Position on the `Bar()` call inside the function body.
+        var callOffset = source.ToString().LastIndexOf("Bar()", StringComparison.Ordinal);
+
+        var highlights = model.GetDocumentHighlights(
+            callOffset,
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Equal(2, highlights.Length);
+        Assert.All(highlights, h => Assert.Equal("Bar", source.ToString(h.Span)));
+        Assert.Contains(highlights, h => h.IsDeclaration);
+        Assert.Contains(highlights, h => !h.IsDeclaration);
+    }
+
+    [Fact]
+    public void GetInlayHints_reports_parameter_names_for_positional_arguments()
+    {
+        var compilation = Compilation(
+            PapyrusDialect.SkyrimSe,
+            "Foo",
+            "ScriptName Foo\n"
+                + "Function Bar(Int a, Int b)\n"
+                + "EndFunction\n"
+                + "Function Baz()\n"
+                + "  Bar(1, 2)\n"
+                + "EndFunction\n"
+        );
+        var tree = compilation.GetSyntaxTree(QualifiedName.Parse("Foo"));
+        var model = compilation.GetSemanticModel(tree);
+        var source = tree.GetText();
+
+        var hints = model.GetInlayHints(
+            new TextSpan(0, source.Length),
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Equal(2, hints.Length);
+        Assert.Contains(hints, h => h.ParameterName.Text == "a");
+        Assert.Contains(hints, h => h.ParameterName.Text == "b");
+    }
+
+    [Fact]
+    public void GetInlayHints_skips_named_arguments()
+    {
+        var compilation = Compilation(
+            PapyrusDialect.SkyrimSe,
+            "Foo",
+            "ScriptName Foo\n"
+                + "Function Bar(Int a, Int b)\n"
+                + "EndFunction\n"
+                + "Function Baz()\n"
+                + "  Bar(a = 1, b = 2)\n"
+                + "EndFunction\n"
+        );
+        var tree = compilation.GetSyntaxTree(QualifiedName.Parse("Foo"));
+        var model = compilation.GetSemanticModel(tree);
+        var source = tree.GetText();
+
+        var hints = model.GetInlayHints(
+            new TextSpan(0, source.Length),
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Empty(hints);
+    }
+
+    [Fact]
     public void TryGetRenameInfo_resolves_identifier_span_and_symbol()
     {
         var compilation = Compilation(

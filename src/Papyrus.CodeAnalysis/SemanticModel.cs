@@ -201,9 +201,15 @@ public sealed class SemanticModel
         ImmutableArray<IdentifierNameSyntax>.Builder builder
     )
     {
-        if (node is IdentifierNameSyntax identifier)
+        CollectNodes(node, builder);
+    }
+
+    private static void CollectNodes<T>(SyntaxNode node, ImmutableArray<T>.Builder builder)
+        where T : SyntaxNode
+    {
+        if (node is T match)
         {
-            builder.Add(identifier);
+            builder.Add(match);
         }
 
         var offset = node.Position;
@@ -223,7 +229,7 @@ public sealed class SemanticModel
                     var item = slot.GetSlot(j);
                     if (item is not null and not Papyrus.CodeAnalysis.Syntax.InternalSyntax.GreenToken)
                     {
-                        CollectIdentifierNames(item.CreateRed(node, listOffset), builder);
+                        CollectNodes(item.CreateRed(node, listOffset), builder);
                     }
 
                     listOffset += item?.FullWidth ?? 0;
@@ -231,7 +237,7 @@ public sealed class SemanticModel
             }
             else if (slot is not Papyrus.CodeAnalysis.Syntax.InternalSyntax.GreenToken)
             {
-                CollectIdentifierNames(slot.CreateRed(node, offset), builder);
+                CollectNodes(slot.CreateRed(node, offset), builder);
             }
 
             offset += slot.FullWidth;
@@ -861,7 +867,97 @@ public sealed class SemanticModel
         var span = node.FullSpan;
         return position >= span.Start && position <= span.End;
     }
+
+    /// <summary>
+    /// Finds every occurrence of the symbol at <paramref name="position"/> within
+    /// this model's own tree (declaration and every use site), for
+    /// <c>textDocument/documentHighlight</c>. Unlike <see cref="FindReferencesInTree"/>
+    /// this resolves the symbol from a position rather than accepting one, since the
+    /// LSP request only carries a position.
+    /// </summary>
+    public ImmutableArray<ReferenceLocation> GetDocumentHighlights(
+        int position,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var node = FindNode(position, cancellationToken);
+        var identifier =
+            node as IdentifierNameSyntax
+            ?? (node?.Parent as IdentifierNameSyntax);
+        if (identifier is null)
+        {
+            return ImmutableArray<ReferenceLocation>.Empty;
+        }
+
+        var symbol =
+            GetDeclaredSymbol(identifier, cancellationToken)
+            ?? GetSymbolInfo(identifier, cancellationToken);
+        return symbol is null
+            ? ImmutableArray<ReferenceLocation>.Empty
+            : FindReferencesInTree(symbol, cancellationToken);
+    }
+
+    /// <summary>
+    /// Reports a parameter-name inlay hint for every positional call argument within
+    /// <paramref name="span"/> (named arguments already show the name in source, so
+    /// they are skipped). Hints are derived from the symbol graph, not a static list.
+    /// </summary>
+    public ImmutableArray<InlayHint> GetInlayHints(
+        TextSpan span,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (!SyntaxTree.TryGetRoot(out var root))
+        {
+            return ImmutableArray<InlayHint>.Empty;
+        }
+
+        var invocations = ImmutableArray.CreateBuilder<InvocationExpressionSyntax>();
+        CollectNodes(root, invocations);
+
+        var hints = ImmutableArray.CreateBuilder<InlayHint>();
+        for (var i = 0; i < invocations.Count; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var invocation = invocations[i];
+            if (invocation.Span.End < span.Start || invocation.Span.Start > span.End)
+            {
+                continue;
+            }
+
+            if (
+                GetSymbolInfo(invocation.Expression, cancellationToken)
+                is not IFunctionSymbol function
+            )
+            {
+                continue;
+            }
+
+            var arguments = invocation.ArgumentList.Arguments;
+            for (var a = 0; a < arguments.Count && a < function.Parameters.Length; a++)
+            {
+                var argument = arguments.Get(a);
+                if (argument.Name is not null)
+                {
+                    continue;
+                }
+
+                hints.Add(
+                    new InlayHint(argument.Expression.Span.Start, function.Parameters[a].Name)
+                );
+            }
+        }
+
+        return hints.ToImmutable();
+    }
 }
+
+/// <summary>
+/// A parameter-name inlay hint at <paramref name="Position"/> (the start of the
+/// argument expression it labels), from <see
+/// cref="SemanticModel.GetInlayHints(TextSpan, CancellationToken)"/>.
+/// </summary>
+public readonly record struct InlayHint(int Position, PapyrusName ParameterName);
 
 /// <summary>
 /// A single reference to a symbol found by <see
