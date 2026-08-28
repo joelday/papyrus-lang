@@ -157,6 +157,53 @@ public sealed class SyntaxStructureTests
             node => node.IsToken && node.Kind == SyntaxKind.ScriptNameKeyword && node.Text == "ScriptName");
     }
 
+    [Fact]
+    public void Indentation_edits_are_source_preserving_and_idempotent()
+    {
+        const string source =
+            "ScriptName Foo\n" +
+            "Function Go()\n" +
+            "  If true\n" +
+            "x = 1\n" +
+            "  EndIf\n" +
+            "EndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        var formatted = SyntaxFormatter.ApplyIndentation(tree);
+        Assert.Equal(
+            "ScriptName Foo\n" +
+            "Function Go()\n" +
+            "    If true\n" +
+            "        x = 1\n" +
+            "    EndIf\n" +
+            "EndFunction\n",
+            formatted);
+        Assert.Equal(
+            formatted,
+            SyntaxFormatter.ApplyIndentation(SyntaxTree.Parse(formatted, PapyrusDialect.SkyrimSe)));
+        Assert.Contains("If true", formatted);
+        Assert.Contains("x = 1", formatted);
+    }
+
+    [Fact]
+    public void Indentation_handles_typed_function_and_property_declarations()
+    {
+        const string source =
+            "ScriptName Foo\n" +
+            "Int Property Value\n" +
+            "  Int Function Get()\n" +
+            "  Return 1\n" +
+            "  EndFunction\n" +
+            "EndProperty\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        var formatted = SyntaxFormatter.ApplyIndentation(tree);
+
+        Assert.Contains("    Int Function Get()\n", formatted);
+        Assert.Contains("        Return 1\n", formatted);
+        Assert.Contains("    EndFunction\n", formatted);
+    }
+
     private static void AssertContains(
         string source,
         ImmutableArray<FoldingSpan> spans,

@@ -20,6 +20,7 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly SelectionRangeHandler _selectionRange;
     private readonly DocumentSymbolHandler _documentSymbol;
     private readonly DocumentSyntaxTreeHandler _syntaxTree;
+    private readonly FormattingHandler _formatting;
 
     private int _shutdown;
     private int _disposed;
@@ -43,6 +44,7 @@ internal sealed class LanguageServerRpc : IDisposable
         _selectionRange = new SelectionRangeHandler();
         _documentSymbol = new DocumentSymbolHandler();
         _syntaxTree = new DocumentSyntaxTreeHandler();
+        _formatting = new FormattingHandler();
     }
 
     internal Task<int> WaitForExitAsync() => _exit.Task;
@@ -83,6 +85,7 @@ internal sealed class LanguageServerRpc : IDisposable
                     FoldingRangeProvider = true,
                     SelectionRangeProvider = true,
                     DocumentSymbolProvider = true,
+                    DocumentFormattingProvider = true,
                 },
                 ServerInfo = new ServerInfo { Name = "Papyrus Language Server" },
             });
@@ -174,6 +177,14 @@ internal sealed class LanguageServerRpc : IDisposable
         CancellationToken cancellationToken)
     {
         return _scheduler.ExecuteAsync(_syntaxTree, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(FormattingHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<TextEdit[]> FormattingAsync(
+        DocumentFormattingParams? parameters,
+        CancellationToken cancellationToken)
+    {
+        return _scheduler.ExecuteAsync(_formatting, parameters, cancellationToken);
     }
 
     [JsonRpcMethod("shutdown")]

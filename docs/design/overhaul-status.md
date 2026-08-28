@@ -9,7 +9,7 @@ git checkout rewrite
 dotnet build Papyrus.sln -c Release
 ```
 
-**Score:** 66 of 87 plan items merged or implemented locally. **21 remaining.**
+**Score:** 68 of 87 plan items merged or implemented locally. **19 remaining.**
 
 **Hard constraints for this run**
 
@@ -34,11 +34,11 @@ papyrusc --version
 
 `--game skyrimle` is supported. `.ppj` builds expand `${ENV}` and run pre/post steps. `--ignore-engine-limits` downgrades `PAP20xx` to warnings. Public CI never needs game files: `verify --compile` skips with exit 0 when `./corpus/<game>` is absent.
 
-The new `Papyrus.LanguageServer` process speaks StreamJsonRpc with a mutating/non-mutating request scheduler and text-document sync. Semantic tokens, folding, selection ranges, document symbols, and `textDocument/syntaxTree` are wired. The shipping extension does **not** launch this process.
+The new `Papyrus.LanguageServer` process speaks StreamJsonRpc with a mutating/non-mutating request scheduler and text-document sync. Semantic tokens, folding, selection ranges, document symbols, `textDocument/syntaxTree`, and indent-only formatting are wired. The shipping extension does **not** launch this process.
 
 ---
 
-## Done (66)
+## Done (68)
 
 ### Phase 0 — Foundations and PEX oracle (P0.00–P0.12)
 
@@ -83,6 +83,7 @@ Syntax generator, green/red trees, lexer, script/decls/FO4+/Starfield/statements
 | P4.03a | Semantic tokens |
 | P4.03b | Folding + selection ranges |
 | P4.03c | Document symbols + `textDocument/syntaxTree` |
+| P4.03d | Indent-only formatter |
 
 ### Phase 5 — debugger line (partial)
 
@@ -94,7 +95,7 @@ None. P6.05 (`LanguageVersion.Extended`) is gated by K5 until official-syntax co
 
 ---
 
-## Remaining (21)
+## Remaining (19)
 
 Dependencies are from the accepted PR plan. Ready now means every listed dependency is already on this branch.
 
@@ -104,7 +105,6 @@ P4.02 and P4.05 are done, so the remaining P4.03 handler slices and P5.03 are un
 
 | ID | Title | Depends on | Notes |
 |---|---|---|---|
-| P4.03d | Indent-only formatter (**#39**) | P4.02 | Appendix B |
 | P4.03e | Hover + definition | P4.02, P2.09 | |
 | P4.03f | Completion + signature help | P4.02, P2.09 | |
 | P4.03g | References + rename | P4.02, P2.09 | **#73/#74/#75**, **#84** |

@@ -46,6 +46,8 @@ internal sealed class ServerCapabilities
     public bool? SelectionRangeProvider { get; set; }
 
     public bool? DocumentSymbolProvider { get; set; }
+
+    public bool? DocumentFormattingProvider { get; set; }
 }
 
 internal sealed class FoldingRangeParams
@@ -102,6 +104,27 @@ internal sealed class DocumentSyntaxTreeParams
 internal sealed class DocumentSyntaxTree
 {
     public SyntaxTreeNode? Root { get; set; }
+}
+
+internal sealed class DocumentFormattingParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+
+    public FormattingOptions? Options { get; set; }
+}
+
+internal sealed class FormattingOptions
+{
+    public int TabSize { get; set; } = 4;
+
+    public bool InsertSpaces { get; set; } = true;
+}
+
+internal sealed class TextEdit
+{
+    public Range Range { get; set; } = new();
+
+    public string NewText { get; set; } = "";
 }
 
 internal sealed class SyntaxTreeNode

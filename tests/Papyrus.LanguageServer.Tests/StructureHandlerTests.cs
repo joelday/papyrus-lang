@@ -156,6 +156,28 @@ public sealed class StructureHandlerTests
             node => node.IsToken && node.Kind == "ScriptNameKeyword" && node.Text == "ScriptName");
     }
 
+    [Fact]
+    public async Task Formatting_returns_leading_indentation_edits()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        await fixture.OpenAsync("ScriptName Foo\nFunction Go()\nx = 1\nEndFunction\n", timeout.Token);
+
+        var result = await fixture.Scheduler.ExecuteAsync(
+            new FormattingHandler(),
+            new DocumentFormattingParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                Options = new FormattingOptions { TabSize = 4, InsertSpaces = true },
+            },
+            timeout.Token);
+
+        var edit = Assert.Single(result);
+        Assert.Equal(2, edit.Range.Start!.Line);
+        Assert.Equal(4, edit.NewText.Length);
+        Assert.Equal("    ", edit.NewText);
+    }
+
     private static bool Contains(Range outer, Range inner)
     {
         var startsBefore = outer.Start!.Line < inner.Start!.Line
