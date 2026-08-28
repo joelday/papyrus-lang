@@ -526,6 +526,21 @@ internal sealed class ProjectInfoScript
 
 internal sealed class ProjectInfosParams { }
 
+/// <summary>
+/// Response shape for <c>textDocument/assembly</c>: Caprica/CK-flavor Papyrus
+/// assembly (.pas) text for the requested document's compiled script, or null if
+/// it could not be resolved or emitted.
+/// </summary>
+internal sealed class DocumentAssembly
+{
+    public string? Assembly { get; set; }
+}
+
+internal sealed class DocumentAssemblyParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+}
+
 internal sealed class SnapshotParams { }
 
 

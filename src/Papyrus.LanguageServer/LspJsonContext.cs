@@ -56,4 +56,6 @@ namespace Papyrus.LanguageServer;
 [JsonSerializable(typeof(ProjectInfoScript))]
 [JsonSerializable(typeof(ProjectInfoScript[]))]
 [JsonSerializable(typeof(ProjectInfosParams))]
+[JsonSerializable(typeof(DocumentAssembly))]
+[JsonSerializable(typeof(DocumentAssemblyParams))]
 internal sealed partial class LspJsonContext : JsonSerializerContext { }

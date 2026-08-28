@@ -716,6 +716,26 @@ public sealed class StructureHandlerTests
         Assert.Contains(include.Scripts, s => s.Identifier == "Foo");
     }
 
+    [Fact]
+    public async Task Assembly_disassembles_the_open_document()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        await fixture.OpenAsync("ScriptName Foo\n", timeout.Token);
+
+        var result = await fixture.Scheduler.ExecuteAsync(
+            new DocumentAssemblyHandler(),
+            new DocumentAssemblyParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+            },
+            timeout.Token
+        );
+
+        Assert.NotNull(result.Assembly);
+        Assert.Contains(".object Foo", result.Assembly);
+    }
+
     private static bool Contains(Range outer, Range inner)
     {
         var startsBefore =

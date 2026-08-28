@@ -36,6 +36,7 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly DiagnosticHandler _diagnostic;
     private readonly DocumentScriptInfoHandler _scriptInfo;
     private readonly ProjectInfosHandler _projectInfos;
+    private readonly DocumentAssemblyHandler _assembly;
 
     private int _shutdown;
     private int _disposed;
@@ -71,6 +72,7 @@ internal sealed class LanguageServerRpc : IDisposable
         _diagnostic = new DiagnosticHandler();
         _scriptInfo = new DocumentScriptInfoHandler();
         _projectInfos = new ProjectInfosHandler();
+        _assembly = new DocumentAssemblyHandler();
         _scheduler.Workspace.WorkspaceChanged += OnWorkspaceChanged;
     }
 
@@ -462,6 +464,18 @@ internal sealed class LanguageServerRpc : IDisposable
     )
     {
         return _scheduler.ExecuteAsync(_projectInfos, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(
+        DocumentAssemblyHandler.MethodName,
+        UseSingleObjectParameterDeserialization = true
+    )]
+    public Task<DocumentAssembly> AssemblyAsync(
+        DocumentAssemblyParams? parameters,
+        CancellationToken cancellationToken
+    )
+    {
+        return _scheduler.ExecuteAsync(_assembly, parameters, cancellationToken);
     }
 
     [JsonRpcMethod("shutdown")]

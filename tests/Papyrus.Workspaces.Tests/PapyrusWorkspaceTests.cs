@@ -485,6 +485,59 @@ public sealed class PapyrusWorkspaceTests : IDisposable
         Assert.Equal(2, identifierFiles.Files.Length);
     }
 
+    [Fact]
+    public void GetAssembly_disassembles_the_compiled_script()
+    {
+        var scripts = CreateScriptsDirectory("scripts");
+        var fooPath = Path.Combine(scripts, "Foo.psc");
+        File.WriteAllText(fooPath, "ScriptName Foo\n");
+        var ppj = WriteProject("game.ppj", "scripts");
+
+        using var workspace = CreateWorkspace();
+        var project = workspace.LoadProject(ppj);
+
+        var assembly = workspace.CurrentSolution.GetAssembly(
+            DocumentId.Create(project.Id, fooPath),
+            TestContext.Current.CancellationToken);
+
+        Assert.NotNull(assembly);
+        Assert.Contains(".object Foo", assembly);
+    }
+
+    [Fact]
+    public void GetAssembly_returns_null_for_a_script_with_binding_errors()
+    {
+        var scripts = CreateScriptsDirectory("scripts");
+        var fooPath = Path.Combine(scripts, "Foo.psc");
+        File.WriteAllText(fooPath, "ScriptName Foo\nUnknownType Baz\n");
+        var ppj = WriteProject("game.ppj", "scripts");
+
+        using var workspace = CreateWorkspace();
+        var project = workspace.LoadProject(ppj);
+
+        var assembly = workspace.CurrentSolution.GetAssembly(
+            DocumentId.Create(project.Id, fooPath),
+            TestContext.Current.CancellationToken);
+
+        Assert.Null(assembly);
+    }
+
+    [Fact]
+    public void GetAssembly_returns_null_for_an_unresolvable_document()
+    {
+        var scripts = CreateScriptsDirectory("scripts");
+        var ppj = WriteProject("game.ppj", "scripts");
+
+        using var workspace = CreateWorkspace();
+        var project = workspace.LoadProject(ppj);
+
+        var assembly = workspace.CurrentSolution.GetAssembly(
+            DocumentId.Create(project.Id, Path.Combine(scripts, "Missing.psc")),
+            TestContext.Current.CancellationToken);
+
+        Assert.Null(assembly);
+    }
+
     private PapyrusWorkspace CreateWorkspace(TimeProvider? timeProvider = null)
     {
         return new PapyrusWorkspace(

@@ -9,7 +9,7 @@ git checkout rewrite
 dotnet build Papyrus.sln -c Release
 ```
 
-**Score:** 73 of 88 plan items merged or implemented locally. **15 remaining.**
+**Score:** 74 of 88 plan items merged or implemented locally. **14 remaining.**
 
 **Hard constraints for this run**
 
@@ -90,8 +90,9 @@ Syntax generator, green/red trees, lexer, script/decls/FO4+/Starfield/statements
 | P4.04  | Completion resolve + commit characters (**#181**, **#190**)               |
 | P4.03h | Inlay hints + document highlight                                          |
 | P4.03i | Diagnostics (push + pull), `scriptInfo`, `projectInfos`                   |
+| P4.03j | `textDocument/assembly` (PEX disassembly)                                 |
 
-`PapyrusWorkspace`'s file watcher is now enabled by default in the real server too (the stdio entrypoint's `LspRequestScheduler()` had been overriding it off); out-of-editor edits are picked up and republish diagnostics via the same `WorkspaceChanged` hook used for LSP-driven edits. `textDocument/assembly` (PEX disassembly) is descoped from P4.03i to **P4.03j** below since it needs the emit pipeline wired into the language server, a materially bigger lift than the other three custom methods.
+`PapyrusWorkspace`'s file watcher is now enabled by default in the real server too (the stdio entrypoint's `LspRequestScheduler()` had been overriding it off); out-of-editor edits are picked up and republish diagnostics via the same `WorkspaceChanged` hook used for LSP-driven edits. `textDocument/assembly` emits via `PexEmitter` and disassembles via `PasDisassembler` from `Papyrus.Workspaces`, without consulting a flags file -- it is a read-only diagnostic view of the script, not a build artifact.
 
 ### Phase 5 — debugger line (partial)
 
@@ -103,18 +104,17 @@ None. P6.05 (`LanguageVersion.Extended`) is gated by K5 until official-syntax co
 
 ---
 
-## Remaining (15)
+## Remaining (14)
 
 Dependencies are from the accepted PR plan. Ready now means every listed dependency is already on this branch.
 
 ### Ready now
 
-P4.02 and P4.05 are done, so P4.03j and P5.03 are unblocked. P5.03 remains intentionally deferred until the managed debugger API is stable and Windows/MSVC validation is available.
+P4.02 and P4.05 are done, so P5.03 is unblocked. It remains intentionally deferred until the managed debugger API is stable and Windows/MSVC validation is available.
 
-| ID     | Title                   | Depends on                   | Notes                                                                         |
-| ------ | ----------------------- | ---------------------------- | ----------------------------------------------------------------------------- |
-| P4.03j | `textDocument/assembly` | P4.03i, P3.03b, P3.05, P2.00 | PEX disassembly of the open script; needs the emit pipeline wired into the LS |
-| P5.03  | NativeAOT debug adapter | P4.05, P0.04                 | **#180**                                                                      |
+| ID    | Title                   | Depends on   | Notes    |
+| ----- | ----------------------- | ------------ | -------- |
+| P5.03 | NativeAOT debug adapter | P4.05, P0.04 | **#180** |
 
 ### Phase 4 — after handlers / AOT
 
@@ -168,7 +168,7 @@ Old `DarkId.Papyrus.*` managed projects stay until P4.09.
 ## How to resume
 
 1. `git checkout rewrite` for the integration point, or create a topic branch from it for the next slice.
-2. Continue the plan from **P4.03j**. P5.03 (NativeAOT debug adapter) is unblocked in the dependency graph but intentionally deferred until the managed debugger API is stable and Windows/MSVC validation is available.
+2. Continue the plan from **P4.06a**. P5.03 (NativeAOT debug adapter) is unblocked in the dependency graph but intentionally deferred until the managed debugger API is stable and Windows/MSVC validation is available.
 3. Keep the no-push constraint unless the owner lifts it.
 
 The work is organized as ordinary local topic branches from `rewrite`; there is no agent-orchestration branch naming convention to recover.

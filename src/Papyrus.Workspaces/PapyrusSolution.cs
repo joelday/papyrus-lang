@@ -190,6 +190,66 @@ public sealed class PapyrusSolution
         return files.ToImmutable();
     }
 
+    /// <summary>
+    /// Disassembles a document's compiled script into Caprica/CK-flavor Papyrus
+    /// assembly (.pas) text, forcing that script to be emitted so the result
+    /// reflects the current buffer. Returns null for documents that cannot be
+    /// resolved, or that fail to bind/emit (diagnostics should already explain why
+    /// via <see cref="GetDiagnostics(DocumentId, CancellationToken)"/>). Flags files
+    /// are not consulted here -- this is a read-only diagnostic view of the script,
+    /// not a build artifact, so user-flag names in the output may differ slightly
+    /// from a real build's PEX.
+    /// </summary>
+    public string? GetAssembly(DocumentId documentId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(documentId);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!_projects.TryGetValue(documentId.ProjectId, out var state)
+            || !state.DiskResolver.TryGetNameFromPath(documentId.Path, out var name))
+        {
+            return null;
+        }
+
+        try
+        {
+            // Emit diagnostics alone miss binding errors (e.g. an unresolved type):
+            // the emitter can still walk a partially-bound tree without complaint.
+            // Check the script's own binding diagnostics first, same as the
+            // compiler CLI does before writing a PEX.
+            var diagnostics = state.Compilation.GetDiagnostics(name, cancellationToken);
+            if (HasError(diagnostics))
+            {
+                return null;
+            }
+
+            var script = state.Compilation.GetScript(name);
+            var emitter = new CodeAnalysis.Emit.PexEmitter();
+            var pex = emitter.EmitFile(script, cancellationToken);
+            return HasError(emitter.Diagnostics)
+                ? null
+                : global::Papyrus.Pex.PasDisassembler.Disassemble(pex);
+        }
+        catch (Exception ex)
+            when (ex is InvalidOperationException or NotSupportedException
+                or global::Papyrus.Pex.PexFormatException)
+        {
+            return null;
+        }
+    }
+
+    private static bool HasError(ImmutableArray<Diagnostic> diagnostics)
+    {
+        foreach (var diagnostic in diagnostics)
+        {
+            if (diagnostic.Severity == DiagnosticSeverity.Error)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public PapyrusCompilation? Compilation
     {
         get
