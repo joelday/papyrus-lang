@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Threading;
 using Papyrus.CodeAnalysis;
 using Papyrus.CodeAnalysis.Syntax;
 using Papyrus.CodeAnalysis.Text;
@@ -96,6 +97,41 @@ public sealed class PapyrusSolution
     public PapyrusCompilation GetCompilation(ProjectId projectId)
     {
         return GetState(projectId).Compilation;
+    }
+
+    /// <summary>
+    /// Finds every reference to <paramref name="symbol"/> across every script in
+    /// the given project, including scripts that have not been opened as
+    /// documents. Open-document edits are already reflected in the project's
+    /// <see cref="PapyrusCompilation"/>, so this picks them up automatically;
+    /// only new, unsaved files with no path on disk are not covered. Symbols
+    /// are compared by reference and are only meaningful within the
+    /// compilation they were resolved from, so searching is scoped to a
+    /// single project.
+    /// </summary>
+    public ImmutableArray<ScriptReferences> FindReferences(
+        ProjectId projectId,
+        CodeAnalysis.Symbols.ISymbol symbol,
+        CancellationToken cancellationToken = default
+    )
+    {
+        ArgumentNullException.ThrowIfNull(symbol);
+        var state = GetState(projectId);
+
+        var results = ImmutableArray.CreateBuilder<ScriptReferences>();
+        foreach (var (name, path) in state.DiskResolver.EnumerateScripts())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var tree = state.Compilation.GetSyntaxTree(name);
+            var model = state.Compilation.GetSemanticModel(tree);
+            var spans = model.FindReferencesInTree(symbol, cancellationToken);
+            if (!spans.IsEmpty)
+            {
+                results.Add(new ScriptReferences(path, tree, spans));
+            }
+        }
+
+        return results.ToImmutable();
     }
 
     public ImmutableArray<DocumentId> GetDocumentIdsForPath(string path)
@@ -248,6 +284,27 @@ public sealed class PapyrusSolution
 
         return new PapyrusSolution(_projects.Remove(projectId), openDocuments);
     }
+}
+
+/// <summary>
+/// The set of reference locations found for a symbol within a single script.
+/// </summary>
+public sealed class ScriptReferences
+{
+    public ScriptReferences(string path, SyntaxTree tree, ImmutableArray<ReferenceLocation> spans)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(tree);
+        Path = path;
+        Tree = tree;
+        Spans = spans;
+    }
+
+    public string Path { get; }
+
+    public SyntaxTree Tree { get; }
+
+    public ImmutableArray<ReferenceLocation> Spans { get; }
 }
 
 internal sealed class ProjectState

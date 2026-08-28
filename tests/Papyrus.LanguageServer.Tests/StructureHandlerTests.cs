@@ -321,6 +321,94 @@ public sealed class StructureHandlerTests
         Assert.Equal(1, help!.ActiveParameter);
     }
 
+    [Fact]
+    public async Task References_finds_all_call_sites_across_scripts()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        fixture.WriteScript("Other", "ScriptName Other Extends Foo\nFunction Baz()\n  Bar()\nEndFunction\n");
+        await fixture.OpenAsync(
+            "ScriptName Foo\nFunction Bar()\n  Bar()\nEndFunction\n",
+            timeout.Token
+        );
+
+        var references = await fixture.Scheduler.ExecuteAsync(
+            new ReferencesHandler(),
+            new ReferenceParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                Position = new Position { Line = 1, Character = 10 },
+                Context = new ReferenceContext { IncludeDeclaration = true },
+            },
+            timeout.Token
+        );
+
+        Assert.Equal(3, references.Length);
+        Assert.Contains(references, r => r.Uri == fixture.ScriptUri && r.Range.Start!.Line == 1);
+        Assert.Contains(references, r => r.Uri == fixture.ScriptUri && r.Range.Start!.Line == 2);
+        Assert.Contains(references, r => r.Uri != fixture.ScriptUri);
+    }
+
+    [Fact]
+    public async Task References_excludes_declaration_when_not_requested()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        await fixture.OpenAsync(
+            "ScriptName Foo\nFunction Bar()\n  Bar()\nEndFunction\n",
+            timeout.Token
+        );
+
+        var references = await fixture.Scheduler.ExecuteAsync(
+            new ReferencesHandler(),
+            new ReferenceParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                Position = new Position { Line = 1, Character = 10 },
+                Context = new ReferenceContext { IncludeDeclaration = false },
+            },
+            timeout.Token
+        );
+
+        var location = Assert.Single(references);
+        Assert.Equal(2, location.Range.Start!.Line);
+    }
+
+    [Fact]
+    public async Task Rename_edits_every_reference_across_scripts()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        var otherPath = fixture.WriteScript(
+            "Other",
+            "ScriptName Other Extends Foo\nFunction Baz()\n  Bar()\nEndFunction\n"
+        );
+        await fixture.OpenAsync(
+            "ScriptName Foo\nFunction Bar()\n  Bar()\nEndFunction\n",
+            timeout.Token
+        );
+
+        var edit = await fixture.Scheduler.ExecuteAsync(
+            new RenameHandler(),
+            new RenameParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                Position = new Position { Line = 1, Character = 10 },
+                NewName = "Greet",
+            },
+            timeout.Token
+        );
+
+        Assert.NotNull(edit?.Changes);
+        Assert.Equal(2, edit.Changes.Count);
+        var fooEdits = edit.Changes[fixture.ScriptUri];
+        Assert.Equal(2, fooEdits.Length);
+        Assert.All(fooEdits, e => Assert.Equal("Greet", e.NewText));
+        var otherUri = LspTestWorkspace.ToFileUri(otherPath);
+        var otherEdits = edit.Changes[otherUri];
+        Assert.Equal("Greet", Assert.Single(otherEdits).NewText);
+    }
+
     private static bool Contains(Range outer, Range inner)
     {
         var startsBefore =

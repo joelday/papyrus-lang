@@ -38,6 +38,18 @@ internal sealed class LspTestWorkspace : IDisposable
 
     internal string ScriptUri => ToFileUri(ScriptPath);
 
+    /// <summary>
+    /// Writes an additional script directly to the project's scripts
+    /// directory (no open document), for tests exercising cross-file
+    /// features like references and rename.
+    /// </summary>
+    internal string WriteScript(string name, string text)
+    {
+        var path = Path.Combine(Path.GetDirectoryName(ScriptPath)!, name + ".psc");
+        File.WriteAllText(path, text);
+        return path;
+    }
+
     internal static LspTestWorkspace Create(string prefix)
     {
         var root = Path.Combine(Path.GetTempPath(), prefix + Guid.NewGuid().ToString("N"));

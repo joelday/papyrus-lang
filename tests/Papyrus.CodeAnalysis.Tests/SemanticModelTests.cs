@@ -414,6 +414,60 @@ public sealed class SemanticModelTests
     }
 
     [Fact]
+    public void FindReferencesInTree_finds_declaration_and_all_call_sites()
+    {
+        var compilation = Compilation(
+            PapyrusDialect.SkyrimSe,
+            "Foo",
+            "ScriptName Foo\n"
+                + "Function Bar()\n"
+                + "  Bar()\n"
+                + "EndFunction\n"
+                + "Function Baz()\n"
+                + "  Bar()\n"
+                + "EndFunction\n"
+        );
+        var tree = compilation.GetSyntaxTree(QualifiedName.Parse("Foo"));
+        var model = compilation.GetSemanticModel(tree);
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var symbol = Assert.IsAssignableFrom<IFunctionSymbol>(
+            model.GetDeclaredSymbol(function, TestContext.Current.CancellationToken)
+        );
+
+        var spans = model.FindReferencesInTree(symbol, TestContext.Current.CancellationToken);
+
+        Assert.Equal(3, spans.Length);
+        Assert.Equal(1, spans.Count(s => s.IsDeclaration));
+        var source = tree.GetText();
+        Assert.All(spans, span => Assert.Equal("Bar", source.ToString(span.Span)));
+    }
+
+    [Fact]
+    public void FindReferencesInTree_excludes_unrelated_symbols()
+    {
+        var compilation = Compilation(
+            PapyrusDialect.SkyrimSe,
+            "Foo",
+            "ScriptName Foo\nFunction Bar()\nEndFunction\nFunction Baz()\nEndFunction\n"
+        );
+        var tree = compilation.GetSyntaxTree(QualifiedName.Parse("Foo"));
+        var model = compilation.GetSemanticModel(tree);
+        Assert.True(tree.TryGetRoot(out var root));
+        var bar = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var barSymbol = model.GetDeclaredSymbol(bar, TestContext.Current.CancellationToken)!;
+
+        var spans = model.FindReferencesInTree(
+            barSymbol,
+            TestContext.Current.CancellationToken
+        );
+
+        var source = tree.GetText();
+        Assert.All(spans, span => Assert.Equal("Bar", source.ToString(span.Span)));
+        Assert.DoesNotContain(spans, span => source.ToString(span.Span) == "Baz");
+    }
+
+    [Fact]
     public void TryGetSpeculativeSemanticModel_null_returns_false()
     {
         var compilation = Compilation(PapyrusDialect.SkyrimSe, "Foo", "ScriptName Foo\n");

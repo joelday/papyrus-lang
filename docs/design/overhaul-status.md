@@ -9,7 +9,7 @@ git checkout rewrite
 dotnet build Papyrus.sln -c Release
 ```
 
-**Score:** 69 of 87 plan items merged or implemented locally. **18 remaining.**
+**Score:** 70 of 87 plan items merged or implemented locally. **17 remaining.**
 
 **Hard constraints for this run**
 
@@ -86,6 +86,7 @@ Syntax generator, green/red trees, lexer, script/decls/FO4+/Starfield/statements
 | P4.03d | Indent-only formatter                                                     |
 | P4.03e | Hover + definition                                                        |
 | P4.03f | Completion + signature help                                               |
+| P4.03g | References + rename                                                       |
 
 ### Phase 5 — debugger line (partial)
 
@@ -97,7 +98,7 @@ None. P6.05 (`LanguageVersion.Extended`) is gated by K5 until official-syntax co
 
 ---
 
-## Remaining (17)
+## Remaining (16)
 
 Dependencies are from the accepted PR plan. Ready now means every listed dependency is already on this branch.
 
@@ -108,7 +109,6 @@ P4.02 and P4.05 are done, so the remaining P4.03 handler slices and P5.03 are un
 | ID     | Title                                                       | Depends on          | Notes                                                 |
 | ------ | ----------------------------------------------------------- | ------------------- | ----------------------------------------------------- |
 | P4.04  | Completion resolve + commit characters (**#181**, **#190**) | P4.03f              |                                                       |
-| P4.03g | References + rename                                         | P4.02, P2.09        | **#73/#74/#75**, **#84**                              |
 | P4.03h | Inlay hints + document highlight                            | P4.02, P2.09        |                                                       |
 | P4.03i | Remaining LSP                                               | P4.02, P3.05, P2.00 | diagnostics, assembly, scriptInfo, projectInfos, pull |
 | P5.03  | NativeAOT debug adapter                                     | P4.05, P0.04        | **#180**                                              |
@@ -123,7 +123,7 @@ P4.02 and P4.05 are done, so the remaining P4.03 handler slices and P5.03 are un
 | P4.08  | Diagnostic report + redaction test                       | P4.07          |
 | P4.09  | Delete `DarkId.Papyrus.*` managed tree                   | P4.06b, P4.08  |
 
-P4.03g–i can run in parallel (P4.03g–h also need P2.09, already done; P4.03i also needs P3.05 and P2.00, already done).
+P4.03h–i can run in parallel (P4.03h also needs P2.09, already done; P4.03i also needs P3.05 and P2.00, already done).
 
 ### Phase 5 — remaining
 

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Papyrus.LanguageServer;
 
 internal sealed class InitializeParams
@@ -54,6 +56,10 @@ internal sealed class ServerCapabilities
     public CompletionOptions? CompletionProvider { get; set; }
 
     public SignatureHelpOptions? SignatureHelpProvider { get; set; }
+
+    public bool? ReferencesProvider { get; set; }
+
+    public bool? RenameProvider { get; set; }
 }
 
 internal sealed class CompletionOptions
@@ -345,6 +351,34 @@ internal sealed class SignatureInformation
 internal sealed class ParameterInformation
 {
     public string Label { get; set; } = "";
+}
+
+internal sealed class ReferenceParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+
+    public Position? Position { get; set; }
+
+    public ReferenceContext? Context { get; set; }
+}
+
+internal sealed class ReferenceContext
+{
+    public bool IncludeDeclaration { get; set; }
+}
+
+internal sealed class RenameParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+
+    public Position? Position { get; set; }
+
+    public string? NewName { get; set; }
+}
+
+internal sealed class WorkspaceEdit
+{
+    public Dictionary<string, TextEdit[]>? Changes { get; set; }
 }
 
 internal sealed class SnapshotParams { }

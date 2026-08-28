@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Papyrus.CodeAnalysis.Symbols;
 using Papyrus.CodeAnalysis.Text;
+using Papyrus.Workspaces;
 
 namespace Papyrus.LanguageServer;
 
@@ -110,7 +111,7 @@ internal sealed class DefinitionHandler : ILspHandler<DefinitionParams?, Locatio
                 locations.Add(
                     new Location
                     {
-                        Uri = p.TextDocument?.Uri ?? LspTestUri(path),
+                        Uri = p.TextDocument?.Uri ?? LspUris.ToUri(path),
                         Range = DocumentSymbolHandler.ToRange(lineMap, reference.Span),
                     }
                 );
@@ -119,8 +120,6 @@ internal sealed class DefinitionHandler : ILspHandler<DefinitionParams?, Locatio
 
         return Task.FromResult(locations.ToArray());
     }
-
-    private static string LspTestUri(string path) => new Uri(path).AbsoluteUri;
 }
 
 internal sealed class CompletionHandler : ILspHandler<CompletionParams?, CompletionItem[]>
@@ -193,6 +192,130 @@ internal sealed class CompletionHandler : ILspHandler<CompletionParams?, Complet
             SymbolKind.Struct => 22,
             _ => 1,
         };
+    }
+}
+
+internal sealed class ReferencesHandler : ILspHandler<ReferenceParams?, Location[]>
+{
+    internal const string MethodName = "textDocument/references";
+    public string Method => MethodName;
+    public bool MutatesSolution => false;
+
+    public Task<Location[]> HandleAsync(
+        ReferenceParams? p,
+        LspSnapshot snapshot,
+        CancellationToken ct
+    )
+    {
+        ct.ThrowIfCancellationRequested();
+        if (
+            p?.Position is null
+            || !LspDocuments.TryGetSemanticModel(
+                snapshot,
+                p.TextDocument,
+                out var model,
+                out var tree,
+                out _,
+                out var projectId
+            )
+        )
+        {
+            return Task.FromResult(Array.Empty<Location>());
+        }
+
+        var offset = tree.GetText().Lines.GetOffset(p.Position.Line, p.Position.Character);
+        var symbol = model.GetSymbolInfo(offset, ct);
+        if (symbol is null)
+        {
+            return Task.FromResult(Array.Empty<Location>());
+        }
+
+        var includeDeclaration = p.Context?.IncludeDeclaration ?? false;
+        var results = snapshot.Solution.FindReferences(projectId, symbol, ct);
+        var locations = new List<Location>();
+        foreach (var script in results)
+        {
+            var uri = LspUris.ToUri(script.Path);
+            var lineMap = script.Tree.GetText().Lines;
+            foreach (var reference in script.Spans)
+            {
+                if (!includeDeclaration && reference.IsDeclaration)
+                {
+                    continue;
+                }
+
+                locations.Add(
+                    new Location
+                    {
+                        Uri = uri,
+                        Range = DocumentSymbolHandler.ToRange(lineMap, reference.Span),
+                    }
+                );
+            }
+        }
+
+        return Task.FromResult(locations.ToArray());
+    }
+}
+
+internal sealed class RenameHandler : ILspHandler<RenameParams?, WorkspaceEdit?>
+{
+    internal const string MethodName = "textDocument/rename";
+    public string Method => MethodName;
+    public bool MutatesSolution => false;
+
+    public Task<WorkspaceEdit?> HandleAsync(
+        RenameParams? p,
+        LspSnapshot snapshot,
+        CancellationToken ct
+    )
+    {
+        ct.ThrowIfCancellationRequested();
+        if (
+            string.IsNullOrEmpty(p?.NewName)
+            || p.Position is null
+            || !LspDocuments.TryGetSemanticModel(
+                snapshot,
+                p.TextDocument,
+                out var model,
+                out var tree,
+                out _,
+                out var projectId
+            )
+        )
+        {
+            return Task.FromResult<WorkspaceEdit?>(null);
+        }
+
+        var offset = tree.GetText().Lines.GetOffset(p.Position.Line, p.Position.Character);
+        var symbol = model.GetSymbolInfo(offset, ct);
+        if (symbol is null || symbol.Kind == SymbolKind.Script)
+        {
+            // Script (type) rename requires cross-file import/extends updates
+            // and a physical file rename, which is out of scope for now.
+            return Task.FromResult<WorkspaceEdit?>(null);
+        }
+
+        var results = snapshot.Solution.FindReferences(projectId, symbol, ct);
+        var changes = new Dictionary<string, TextEdit[]>();
+        foreach (var script in results)
+        {
+            var uri = LspUris.ToUri(script.Path);
+            var lineMap = script.Tree.GetText().Lines;
+            var edits = new TextEdit[script.Spans.Length];
+            for (var i = 0; i < script.Spans.Length; i++)
+            {
+                edits[i] = new TextEdit
+                {
+                    Range = DocumentSymbolHandler.ToRange(lineMap, script.Spans[i].Span),
+                    NewText = p.NewName,
+                };
+            }
+
+            changes[uri] = edits;
+        }
+
+        return Task.FromResult<WorkspaceEdit?>(new WorkspaceEdit { Changes = changes });
     }
 }
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Papyrus.CodeAnalysis;
@@ -367,6 +368,41 @@ public sealed class PapyrusWorkspaceTests : IDisposable
             DocumentId.Create(project.Id, Path.Combine(scripts, "Ghost.psc")),
             out _));
         Assert.Empty(solution.GetCompilation(project.Id).GetDiagnostics(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public void FindReferences_finds_matches_across_scripts_in_project()
+    {
+        var scripts = CreateScriptsDirectory("scripts");
+        File.WriteAllText(
+            Path.Combine(scripts, "Base.psc"),
+            "ScriptName Base\nFunction Greet()\nEndFunction\n");
+        File.WriteAllText(
+            Path.Combine(scripts, "Foo.psc"),
+            "ScriptName Foo Extends Base\nFunction Bar()\n  Greet()\nEndFunction\n");
+        var ppj = WriteProject("game.ppj", "scripts");
+
+        using var workspace = CreateWorkspace();
+        var project = workspace.LoadProject(ppj);
+        var solution = workspace.CurrentSolution;
+        var compilation = solution.GetCompilation(project.Id);
+
+        var baseTree = compilation.GetSyntaxTree(QualifiedName.Parse("Base"));
+        var baseModel = compilation.GetSemanticModel(baseTree);
+        var offset = baseTree.GetText().ToString().IndexOf("Greet", StringComparison.Ordinal);
+        var symbol = baseModel.GetSymbolInfo(offset, TestContext.Current.CancellationToken)!;
+
+        var results = solution.FindReferences(
+            project.Id,
+            symbol,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, results.Length);
+        var byPath = results.ToDictionary(
+            r => Path.GetFileName(r.Path),
+            r => r.Spans.Length);
+        Assert.Equal(1, byPath["Base.psc"]);
+        Assert.Equal(1, byPath["Foo.psc"]);
     }
 
     [Fact]

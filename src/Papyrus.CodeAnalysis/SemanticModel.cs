@@ -100,6 +100,111 @@ public sealed class SemanticModel
         return node;
     }
 
+    /// <summary>
+    /// Finds every reference to <paramref name="symbol"/> within this model's own
+    /// tree, including its declaration. Because <see cref="GetSymbolInfo(SyntaxNode,
+    /// CancellationToken)"/> resolves an identifier at a declaration site to the
+    /// same declared symbol as at a use site, this only needs to walk every
+    /// <see cref="IdentifierNameSyntax"/> in the tree and keep the ones that bind to
+    /// <paramref name="symbol"/>. Symbols are compared by reference since members are
+    /// cached per <see cref="PapyrusCompilation"/>; searching across a different
+    /// compilation (e.g. another project) is not supported.
+    /// </summary>
+    public ImmutableArray<ReferenceLocation> FindReferencesInTree(
+        ISymbol symbol,
+        CancellationToken cancellationToken = default
+    )
+    {
+        ArgumentNullException.ThrowIfNull(symbol);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!SyntaxTree.TryGetRoot(out var root))
+        {
+            return ImmutableArray<ReferenceLocation>.Empty;
+        }
+
+        var identifiers = ImmutableArray.CreateBuilder<IdentifierNameSyntax>();
+        CollectIdentifierNames(root, identifiers);
+
+        var locations = ImmutableArray.CreateBuilder<ReferenceLocation>();
+        for (var i = 0; i < identifiers.Count; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var identifier = identifiers[i];
+            var declared = GetDeclaredSymbol(identifier, cancellationToken);
+            if (declared is not null)
+            {
+                if (SymbolsRefer(declared, symbol))
+                {
+                    locations.Add(new ReferenceLocation(identifier.Span, IsDeclaration: true));
+                }
+
+                continue;
+            }
+
+            if (SymbolsRefer(GetSymbolInfo(identifier, cancellationToken), symbol))
+            {
+                locations.Add(new ReferenceLocation(identifier.Span, IsDeclaration: false));
+            }
+        }
+
+        return locations.ToImmutable();
+    }
+
+    private static bool SymbolsRefer(ISymbol? candidate, ISymbol target)
+    {
+        return candidate is not null
+            && (
+                ReferenceEquals(candidate, target)
+                || (
+                    candidate.Kind == target.Kind
+                    && candidate.Name.Equals(target.Name)
+                    && ReferenceEquals(candidate.ContainingSymbol, target.ContainingSymbol)
+                )
+            );
+    }
+
+    private static void CollectIdentifierNames(
+        SyntaxNode node,
+        ImmutableArray<IdentifierNameSyntax>.Builder builder
+    )
+    {
+        if (node is IdentifierNameSyntax identifier)
+        {
+            builder.Add(identifier);
+        }
+
+        var offset = node.Position;
+        for (var i = 0; i < node.Green.SlotCount; i++)
+        {
+            var slot = node.Green.GetSlot(i);
+            if (slot is null)
+            {
+                continue;
+            }
+
+            if (slot.Kind == SyntaxKind.List)
+            {
+                var listOffset = offset;
+                for (var j = 0; j < slot.SlotCount; j++)
+                {
+                    var item = slot.GetSlot(j);
+                    if (item is not null and not Papyrus.CodeAnalysis.Syntax.InternalSyntax.GreenToken)
+                    {
+                        CollectIdentifierNames(item.CreateRed(node, listOffset), builder);
+                    }
+
+                    listOffset += item?.FullWidth ?? 0;
+                }
+            }
+            else if (slot is not Papyrus.CodeAnalysis.Syntax.InternalSyntax.GreenToken)
+            {
+                CollectIdentifierNames(slot.CreateRed(node, offset), builder);
+            }
+
+            offset += slot.FullWidth;
+        }
+    }
+
     public ISymbol? GetDeclaredSymbol(
         SyntaxNode node,
         CancellationToken cancellationToken = default
@@ -698,3 +803,10 @@ public sealed class SemanticModel
         return position >= span.Start && position <= span.End;
     }
 }
+
+/// <summary>
+/// A single reference to a symbol found by <see
+/// cref="SemanticModel.FindReferencesInTree(ISymbol, CancellationToken)"/>.
+/// </summary>
+public readonly record struct ReferenceLocation(TextSpan Span, bool IsDeclaration);
+

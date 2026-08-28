@@ -170,6 +170,8 @@ internal static class LspUris
         path = parsed.LocalPath;
         return !string.IsNullOrWhiteSpace(path);
     }
+
+    internal static string ToUri(string path) => new Uri(path).AbsoluteUri;
 }
 
 internal static class LspDocuments
@@ -182,24 +184,33 @@ internal static class LspDocuments
         out string path
     )
     {
+        return TryGetSemanticModel(snapshot, document, out model, out tree, out path, out _);
+    }
+
+    internal static bool TryGetSemanticModel(
+        LspSnapshot snapshot,
+        TextDocumentIdentifier? document,
+        out Papyrus.CodeAnalysis.SemanticModel model,
+        out Papyrus.CodeAnalysis.Syntax.SyntaxTree tree,
+        out string path,
+        out ProjectId projectId
+    )
+    {
         model = null!;
         tree = null!;
         path = "";
+        projectId = null!;
         if (
-            !TryGetTree(snapshot, document, out tree)
-            || !LspUris.TryGetFilePath(document?.Uri, out path)
+            !LspUris.TryGetFilePath(document?.Uri, out path)
+            || !TryGetDocumentId(snapshot, document, out var documentId)
+            || !snapshot.Solution.TryGetSyntaxTree(documentId, out tree)
         )
         {
             return false;
         }
 
-        var ids = snapshot.Solution.GetDocumentIdsForPath(path);
-        if (ids.IsDefaultOrEmpty || !snapshot.Solution.TryGetSyntaxTree(ids[0], out tree))
-        {
-            return false;
-        }
-
-        model = snapshot.Solution.GetCompilation(ids[0].ProjectId).GetSemanticModel(tree);
+        projectId = documentId.ProjectId;
+        model = snapshot.Solution.GetCompilation(projectId).GetSemanticModel(tree);
         return true;
     }
 
@@ -216,6 +227,17 @@ internal static class LspDocuments
     )
     {
         tree = null!;
+        return TryGetDocumentId(snapshot, document, out var documentId)
+            && snapshot.Solution.TryGetSyntaxTree(documentId, out tree);
+    }
+
+    private static bool TryGetDocumentId(
+        LspSnapshot snapshot,
+        TextDocumentIdentifier? document,
+        out DocumentId documentId
+    )
+    {
+        documentId = null!;
         if (!LspUris.TryGetFilePath(document?.Uri, out var path))
         {
             return false;
@@ -242,7 +264,8 @@ internal static class LspDocuments
             }
         }
 
-        return snapshot.Solution.TryGetSyntaxTree(selected, out tree);
+        documentId = selected;
+        return true;
     }
 }
 

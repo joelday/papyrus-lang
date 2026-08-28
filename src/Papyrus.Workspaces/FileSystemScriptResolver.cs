@@ -116,6 +116,41 @@ public sealed class FileSystemScriptResolver : ScriptResolver
         return false;
     }
 
+    /// <summary>
+    /// Enumerates every script found under <see cref="IncludeDirectories"/>, in
+    /// include-directory precedence order (matching <see cref="TryResolve"/>): if the
+    /// same qualified name exists under more than one include directory, only the
+    /// first one encountered is returned.
+    /// </summary>
+    internal IEnumerable<(QualifiedName Name, string Path)> EnumerateScripts()
+    {
+        var seen = new HashSet<QualifiedName>();
+        for (var i = 0; i < IncludeDirectories.Length; i++)
+        {
+            var directory = IncludeDirectories[i];
+            if (!Directory.Exists(directory))
+            {
+                continue;
+            }
+
+            foreach (
+                var path in Directory.EnumerateFiles(
+                    directory,
+                    "*.psc",
+                    SearchOption.AllDirectories
+                )
+            )
+            {
+                if (!TryGetNameFromPath(path, out var name) || !seen.Add(name))
+                {
+                    continue;
+                }
+
+                yield return (name, path);
+            }
+        }
+    }
+
     internal ImmutableArray<string> CandidateSourcePaths(QualifiedName name)
     {
         if (!TryGetRelativeSourcePath(name, out var relativePath))
