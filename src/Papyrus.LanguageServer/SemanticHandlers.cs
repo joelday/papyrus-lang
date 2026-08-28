@@ -154,17 +154,18 @@ internal sealed class CompletionHandler : ILspHandler<CompletionParams?, Complet
             ? containerType
             : null;
         var symbols = model.LookupSymbols(offset, container);
+        var uri = p.TextDocument?.Uri ?? "";
 
         var items = new CompletionItem[symbols.Length];
         for (var i = 0; i < symbols.Length; i++)
         {
-            items[i] = ToCompletionItem(symbols[i]);
+            items[i] = ToCompletionItem(symbols[i], uri, offset);
         }
 
         return Task.FromResult(items);
     }
 
-    private static CompletionItem ToCompletionItem(ISymbol symbol)
+    private static CompletionItem ToCompletionItem(ISymbol symbol, string uri, int offset)
     {
         return new CompletionItem
         {
@@ -178,8 +179,20 @@ internal sealed class CompletionHandler : ILspHandler<CompletionParams?, Complet
                 IParameterSymbol parameter => parameter.Type.Name.Text,
                 _ => null,
             },
+            CommitCharacters = symbol.Kind is SymbolKind.Function or SymbolKind.Event
+                ? CommitCharactersOpenParen
+                : null,
+            Data = new CompletionItemData
+            {
+                Uri = uri,
+                Offset = offset,
+                Name = symbol.Name.Text,
+                Kind = (int)symbol.Kind,
+            },
         };
     }
+
+    private static readonly string[] CommitCharactersOpenParen = ["("];
 
     private static int ToLspKind(ISymbol symbol)
     {
@@ -192,6 +205,89 @@ internal sealed class CompletionHandler : ILspHandler<CompletionParams?, Complet
             SymbolKind.Struct => 22,
             _ => 1,
         };
+    }
+}
+
+/// <summary>
+/// Handles <c>completionItem/resolve</c>. Per the LSP spec this request carries only
+/// the <see cref="CompletionItem"/> returned earlier (via its <see cref="CompletionItem.Data"/>),
+/// not the original document/position, so the symbol lookup is redone from scratch here.
+/// For an inherited <see cref="SymbolKind.Event"/> that the script does not yet override,
+/// this expands the item into a full event-skeleton snippet built from the event's own
+/// signature in the symbol graph (see #190), rather than a static snippet file.
+/// </summary>
+internal sealed class CompletionResolveHandler : ILspHandler<CompletionItem?, CompletionItem?>
+{
+    internal const string MethodName = "completionItem/resolve";
+    public string Method => MethodName;
+    public bool MutatesSolution => false;
+
+    public Task<CompletionItem?> HandleAsync(
+        CompletionItem? p,
+        LspSnapshot snapshot,
+        CancellationToken ct
+    )
+    {
+        ct.ThrowIfCancellationRequested();
+        if (p is null || p.Data is not { } data)
+        {
+            return Task.FromResult<CompletionItem?>(p);
+        }
+
+        if (
+            !LspDocuments.TryGetSemanticModel(
+                snapshot,
+                new TextDocumentIdentifier { Uri = data.Uri },
+                out var model,
+                out _,
+                out _
+            )
+        )
+        {
+            return Task.FromResult<CompletionItem?>(p);
+        }
+
+        var container = model.TryGetMemberAccessContainer(
+            data.Offset,
+            out var containerType,
+            ct
+        )
+            ? containerType
+            : null;
+
+        var kind = (SymbolKind)data.Kind;
+        ISymbol? symbol = null;
+        foreach (var candidate in model.LookupSymbols(data.Offset, container))
+        {
+            if (candidate.Kind == kind && candidate.Name.Text == data.Name)
+            {
+                symbol = candidate;
+                break;
+            }
+        }
+
+        if (
+            symbol is IEventSymbol eventSymbol
+            && !model.DeclaresMemberDirectly(eventSymbol.Name, SymbolKind.Event)
+        )
+        {
+            p.InsertText = BuildEventSnippet(eventSymbol);
+            p.InsertTextFormat = 2;
+        }
+
+        return Task.FromResult<CompletionItem?>(p);
+    }
+
+    private static string BuildEventSnippet(IEventSymbol eventSymbol)
+    {
+        var parameters = string.Join(
+            ", ",
+            eventSymbol.Parameters.Select(parameter =>
+                $"{parameter.Type.Name.Text} {parameter.Name.Text}"
+            )
+        );
+
+        return $"Event {eventSymbol.Name.Text}({parameters})\n\t$0\nEndEvent";
     }
 }
 

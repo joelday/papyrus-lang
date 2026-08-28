@@ -292,6 +292,84 @@ public sealed class StructureHandlerTests
     }
 
     [Fact]
+    public async Task Completion_sets_commit_characters_and_data_for_functions_and_events()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        fixture.WriteScript("Base", "ScriptName Base\nEvent OnInit()\nEndEvent\n");
+        await fixture.OpenAsync(
+            "ScriptName Foo Extends Base\n" + "Function Bar()\n" + "  \n" + "EndFunction\n",
+            timeout.Token
+        );
+
+        var completions = await fixture.Scheduler.ExecuteAsync(
+            new CompletionHandler(),
+            new CompletionParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                Position = new Position { Line = 2, Character = 0 },
+            },
+            timeout.Token
+        );
+
+        var bar = Assert.Single(completions, item => item.Label == "Bar");
+        Assert.Equal(["("], bar.CommitCharacters ?? []);
+        Assert.NotNull(bar.Data);
+        Assert.Equal("Bar", bar.Data!.Name);
+
+        var onInit = Assert.Single(completions, item => item.Label == "OnInit");
+        Assert.Equal(["("], onInit.CommitCharacters ?? []);
+    }
+
+    [Fact]
+    public async Task CompletionResolve_expands_unoverridden_event_into_skeleton_snippet()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        fixture.WriteScript(
+            "Base",
+            "ScriptName Base\nEvent OnInit()\nEndEvent\nEvent OnLoad(Int a)\nEndEvent\n"
+        );
+        await fixture.OpenAsync(
+            "ScriptName Foo Extends Base\n"
+                + "Event OnInit()\n"
+                + "EndEvent\n"
+                + "Function Bar()\n"
+                + "  \n"
+                + "EndFunction\n",
+            timeout.Token
+        );
+
+        var completions = await fixture.Scheduler.ExecuteAsync(
+            new CompletionHandler(),
+            new CompletionParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                Position = new Position { Line = 4, Character = 0 },
+            },
+            timeout.Token
+        );
+
+        var onLoad = Assert.Single(completions, item => item.Label == "OnLoad");
+        var resolvedOnLoad = await fixture.Scheduler.ExecuteAsync(
+            new CompletionResolveHandler(),
+            onLoad,
+            timeout.Token
+        );
+        Assert.Equal(2, resolvedOnLoad?.InsertTextFormat);
+        Assert.Contains("Event OnLoad(Int a)", resolvedOnLoad?.InsertText);
+        Assert.Contains("EndEvent", resolvedOnLoad?.InsertText);
+
+        var onInit = completions.First(item => item.Label == "OnInit");
+        var resolvedOnInit = await fixture.Scheduler.ExecuteAsync(
+            new CompletionResolveHandler(),
+            onInit,
+            timeout.Token
+        );
+        Assert.Null(resolvedOnInit?.InsertText);
+    }
+
+    [Fact]
     public async Task SignatureHelp_reports_active_parameter()
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));

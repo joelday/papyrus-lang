@@ -25,6 +25,7 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly HoverHandler _hover;
     private readonly DefinitionHandler _definition;
     private readonly CompletionHandler _completion;
+    private readonly CompletionResolveHandler _completionResolve;
     private readonly SignatureHelpHandler _signatureHelp;
     private readonly ReferencesHandler _references;
     private readonly RenameHandler _rename;
@@ -54,6 +55,7 @@ internal sealed class LanguageServerRpc : IDisposable
         _hover = new HoverHandler();
         _definition = new DefinitionHandler();
         _completion = new CompletionHandler();
+        _completionResolve = new CompletionResolveHandler();
         _signatureHelp = new SignatureHelpHandler();
         _references = new ReferencesHandler();
         _rename = new RenameHandler();
@@ -102,7 +104,11 @@ internal sealed class LanguageServerRpc : IDisposable
                     DocumentFormattingProvider = true,
                     HoverProvider = true,
                     DefinitionProvider = true,
-                    CompletionProvider = new CompletionOptions { TriggerCharacters = ["."] },
+                    CompletionProvider = new CompletionOptions
+                    {
+                        TriggerCharacters = ["."],
+                        ResolveProvider = true,
+                    },
                     SignatureHelpProvider = new SignatureHelpOptions
                     {
                         TriggerCharacters = ["(", ","],
@@ -279,6 +285,18 @@ internal sealed class LanguageServerRpc : IDisposable
     )
     {
         return _scheduler.ExecuteAsync(_completion, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(
+        CompletionResolveHandler.MethodName,
+        UseSingleObjectParameterDeserialization = true
+    )]
+    public Task<CompletionItem?> CompletionResolveAsync(
+        CompletionItem? parameters,
+        CancellationToken cancellationToken
+    )
+    {
+        return _scheduler.ExecuteAsync(_completionResolve, parameters, cancellationToken);
     }
 
     [JsonRpcMethod(SignatureHelpHandler.MethodName, UseSingleObjectParameterDeserialization = true)]

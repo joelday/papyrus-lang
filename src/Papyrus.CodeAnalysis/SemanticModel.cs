@@ -367,6 +367,32 @@ public sealed class SemanticModel
         return builder.ToImmutable();
     }
 
+    /// <summary>
+    /// True when this script directly declares a member named <paramref name="name"/>
+    /// of the given <paramref name="kind"/> (as opposed to only inheriting one). Used
+    /// by completion to tell an already-overridden event apart from one only offered
+    /// by the base type chain, so the latter can be completed as a full override
+    /// skeleton built from the symbol's own shape rather than a static snippet.
+    /// </summary>
+    public bool DeclaresMemberDirectly(PapyrusName name, SymbolKind kind)
+    {
+        var script = GetScript();
+        if (script is null)
+        {
+            return false;
+        }
+
+        foreach (var member in script.GetMembers(name))
+        {
+            if (member.Kind == kind)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static void AddMembersWithBaseTypes(
         ITypeSymbol container,
         ImmutableArray<ISymbol>.Builder builder

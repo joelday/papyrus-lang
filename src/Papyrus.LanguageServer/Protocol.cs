@@ -70,6 +70,8 @@ internal sealed class RenameOptions
 internal sealed class CompletionOptions
 {
     public string[]? TriggerCharacters { get; set; }
+
+    public bool? ResolveProvider { get; set; }
 }
 
 internal sealed class SignatureHelpOptions
@@ -328,6 +330,31 @@ internal sealed class CompletionItem
     public int Kind { get; set; }
 
     public string? Detail { get; set; }
+
+    public string[]? CommitCharacters { get; set; }
+
+    public string? InsertText { get; set; }
+
+    /// <summary>1 = PlainText, 2 = Snippet (LSP <c>InsertTextFormat</c>).</summary>
+    public int? InsertTextFormat { get; set; }
+
+    public CompletionItemData? Data { get; set; }
+}
+
+/// <summary>
+/// Enough context to re-resolve the symbol behind a <see cref="CompletionItem"/>
+/// during <c>completionItem/resolve</c>, which the protocol delivers with only
+/// the item itself (no document/position).
+/// </summary>
+internal sealed class CompletionItemData
+{
+    public string Uri { get; set; } = "";
+
+    public int Offset { get; set; }
+
+    public string Name { get; set; } = "";
+
+    public int Kind { get; set; }
 }
 
 internal sealed class SignatureHelpParams

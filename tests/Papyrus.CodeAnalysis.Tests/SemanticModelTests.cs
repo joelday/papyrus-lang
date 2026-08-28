@@ -537,6 +537,22 @@ public sealed class SemanticModelTests
     }
 
     [Fact]
+    public void DeclaresMemberDirectly_distinguishes_own_from_inherited_events()
+    {
+        var compilation = Compilation(
+            PapyrusDialect.SkyrimSe,
+            "Foo",
+            "ScriptName Foo Extends Base\nEvent OnInit()\nEndEvent\n",
+            ("Base", "ScriptName Base\nEvent OnInit()\nEndEvent\nEvent OnLoad()\nEndEvent\n")
+        );
+        var tree = compilation.GetSyntaxTree(QualifiedName.Parse("Foo"));
+        var model = compilation.GetSemanticModel(tree);
+
+        Assert.True(model.DeclaresMemberDirectly(new PapyrusName("OnInit"), SymbolKind.Event));
+        Assert.False(model.DeclaresMemberDirectly(new PapyrusName("OnLoad"), SymbolKind.Event));
+    }
+
+    [Fact]
     public void TryGetSpeculativeSemanticModel_null_returns_false()
     {
         var compilation = Compilation(PapyrusDialect.SkyrimSe, "Foo", "ScriptName Foo\n");

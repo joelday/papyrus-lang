@@ -9,7 +9,7 @@ git checkout rewrite
 dotnet build Papyrus.sln -c Release
 ```
 
-**Score:** 70 of 87 plan items merged or implemented locally. **17 remaining.**
+**Score:** 71 of 87 plan items merged or implemented locally. **16 remaining.**
 
 **Hard constraints for this run**
 
@@ -38,7 +38,7 @@ The new `Papyrus.LanguageServer` process speaks StreamJsonRpc with a mutating/no
 
 ---
 
-## Done (69)
+## Done (70)
 
 ### Phase 0 — Foundations and PEX oracle (P0.00–P0.12)
 
@@ -87,6 +87,7 @@ Syntax generator, green/red trees, lexer, script/decls/FO4+/Starfield/statements
 | P4.03e | Hover + definition                                                        |
 | P4.03f | Completion + signature help                                               |
 | P4.03g | References + prepare-rename + rename                                      |
+| P4.04  | Completion resolve + commit characters (**#181**, **#190**)               |
 
 ### Phase 5 — debugger line (partial)
 
@@ -98,7 +99,7 @@ None. P6.05 (`LanguageVersion.Extended`) is gated by K5 until official-syntax co
 
 ---
 
-## Remaining (16)
+## Remaining (15)
 
 Dependencies are from the accepted PR plan. Ready now means every listed dependency is already on this branch.
 
@@ -106,12 +107,11 @@ Dependencies are from the accepted PR plan. Ready now means every listed depende
 
 P4.02 and P4.05 are done, so the remaining P4.03 handler slices and P5.03 are unblocked. P5.03 remains intentionally deferred until the managed debugger API is stable and Windows/MSVC validation is available.
 
-| ID     | Title                                                       | Depends on          | Notes                                                 |
-| ------ | ----------------------------------------------------------- | ------------------- | ----------------------------------------------------- |
-| P4.04  | Completion resolve + commit characters (**#181**, **#190**) | P4.03f              |                                                       |
-| P4.03h | Inlay hints + document highlight                            | P4.02, P2.09        |                                                       |
-| P4.03i | Remaining LSP                                               | P4.02, P3.05, P2.00 | diagnostics, assembly, scriptInfo, projectInfos, pull |
-| P5.03  | NativeAOT debug adapter                                     | P4.05, P0.04        | **#180**                                              |
+| ID     | Title                            | Depends on          | Notes                                                 |
+| ------ | -------------------------------- | ------------------- | ----------------------------------------------------- |
+| P4.03h | Inlay hints + document highlight | P4.02, P2.09        |                                                       |
+| P4.03i | Remaining LSP                    | P4.02, P3.05, P2.00 | diagnostics, assembly, scriptInfo, projectInfos, pull |
+| P5.03  | NativeAOT debug adapter          | P4.05, P0.04        | **#180**                                              |
 
 ### Phase 4 — after handlers / AOT
 
