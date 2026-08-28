@@ -118,7 +118,7 @@ P4.02 and P4.05 are done, so the P4.03 handler slice and P5.03 are unblocked.
 |---|---|---|
 | P4.04 | Completion resolve + commit characters (**#181**, **#190**) | P4.03f |
 | P4.06a | Extension: `vscode-languageclient` 9, drop RxJS | P4.05 |
-| P4.06b | Drop inversify/webpack, launch one LS, new-major VSIX | P4.06a, P4.03i |
+| P4.06b | Drop inversify/webpack, launch one LS, new-major VSIX (K29: also drops `generateProject` scaffolding + ambient/no-`.ppj` mode) | P4.06a, P4.03i |
 | P4.07 | Multi-root path hardening (**#193**, **#205**, **#208**) | P4.06b, P2.00 |
 | P4.08 | Diagnostic report + redaction test | P4.07 |
 | P4.09 | Delete `DarkId.Papyrus.*` managed tree | P4.06b, P4.08 |

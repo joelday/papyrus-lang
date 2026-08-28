@@ -162,6 +162,7 @@ A version-bump of OmniSharp, a net8 retarget, or a 64-bit host cannot happen whi
 | K26 | **Skyrim LE is carried, with no corpus gate and no LE compliance number.** Keep `GameId.Skyrim`, `SkyrimLe` dialect, `papyrusc --game skyrimle`, and the existing extension toggle / generate-project. | **Confirmed** | Same language and opcode set as SSE; PEX 3.1 / 3.2 mapping only. |
 | K27 | **Oblivion / Oblivion Remastered (#207) is out of scope.** Not a compile target. Not on the roadmap. Dialects-as-data does not schedule it. | **Confirmed** | Owner decision. Do not implement or evaluate it in this overhaul. |
 | K28 | **Repo strategy: new top-level tree inside `papyrus-lang`.** `Papyrus.sln` + `src/Papyrus.*` sit next to `DarkId.Papyrus.sln`. This design file lives at `docs/design/compiler-and-language-service-overhaul.md`. Issue tracker and VSIX history stay here. | **Confirmed** | One tracker, one Marketplace extension id. |
+| K29 | **Drop two extension affordances at cutover (P4.06b), amending K26: (1) `papyrus.*.generateProject` commands + bundled `launch.json`/`tasks.json`/`.code-workspace`/`.ppj` templates under `resources/{fo4,sse,tesv}` (opinionated workspace scaffolding), and (2) the ambient/no-`.ppj` project mode (`ambientProjectName: 'Creation Kit'` in `LanguageClientHost`, loose-script editing driven by CK ini settings). K26's "existing extension toggle / generate-project" phrase is superseded for the generate-project half only; the Skyrim LE game toggle itself (`GameId.Skyrim`, `SkyrimLe` dialect, `papyrusc --game skyrimle`) is unaffected and still carried.** `Papyrus.LanguageServer` has no ambient-project concept and is not gaining one; every workspace it serves has a `.ppj`. | **Confirmed** | Believed unused / low-value: nobody has reported relying on either. Avoids building new-server affordances (e.g. re-deriving an ambient/no-ppj mode, or template regeneration) for features being removed anyway. Owner call; revisit only if usage evidence surfaces before P4.06b lands. |
 
 ---
 
@@ -2325,9 +2326,9 @@ No phase-2 LSP handlers. No shadow mode.
 - **Depends on:** P4.05
 
 #### P4.06b — Extension: drop inversify/webpack, launch one LS, new-major VSIX
-- **Files:** `getLanguageToolPath`, `LanguageClientManager`, `package.json` major bump, `initializationOptions.games[]`
+- **Files:** `getLanguageToolPath`, `LanguageClientManager`, `package.json` major bump, `initializationOptions.games[]`; also removed here per K29: `GenerateProjectCommand` + `papyrus.*.generateProject` contributions/menus, `resources/{fo4,sse,tesv}` scaffolding templates, and the ambient-project path in `LanguageClientHost` (`ambientProjectName`)
 - **Depends on:** P4.06a, P4.03i
-- **Description:** Shipping extension now starts **one** `Papyrus.LanguageServer`. This is the cutover commit for users. Old 4.x VSIX remains on Marketplace.
+- **Description:** Shipping extension now starts **one** `Papyrus.LanguageServer`. This is the cutover commit for users. Old 4.x VSIX remains on Marketplace. Per K29, this commit does not re-implement workspace-scaffolding or ambient/no-`.ppj` project support against the new server — those are dropped, not ported.
 
 #### P4.07 — Multi-root path hardening
 - **Depends on:** P4.06b, P2.00
@@ -2388,4 +2389,4 @@ No phase-2 LSP handlers. No shadow mode.
 
 ---
 
-*End of accepted design. Product questions are closed (K3–K5, K18, K25–K28). Implementation starts at P0.00.*
+*End of accepted design. Product questions are closed (K3–K5, K18, K25–K29). Implementation starts at P0.00.*
