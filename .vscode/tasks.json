@@ -4,6 +4,24 @@
   "version": "2.0.0",
   "tasks": [
     {
+      // Builds the new RxJS/inversify-free extension (papyrus-lang-vscode2)
+      // via its own npm scripts (tsc + eslint + esbuild). Used as the
+      // preLaunchTask for "Launch papyrus-lang-vscode2" in launch.json.
+      "label": "buildExtension2",
+      "type": "npm",
+      "script": "compile",
+      "path": "src/papyrus-lang-vscode2",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$tsc"]
+    }
+
+    // --- Legacy papyrus-lang-vscode (RxJS/inversify) build tasks below,
+    // --- disabled while papyrus-lang-vscode2 is under active development.
+    /*
+    ,{
       "label": "build",
       "group": {
         "kind": "build",
@@ -43,5 +61,7 @@
       "args": ["--target=\"build-extension\""],
       "problemMatcher": ["$tsc", "$msCompile"]
     }
+    */
   ]
 }
+
