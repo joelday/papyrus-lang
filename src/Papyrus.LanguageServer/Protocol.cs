@@ -48,6 +48,10 @@ internal sealed class ServerCapabilities
     public bool? DocumentSymbolProvider { get; set; }
 
     public bool? DocumentFormattingProvider { get; set; }
+
+    public bool? HoverProvider { get; set; }
+
+    public bool? DefinitionProvider { get; set; }
 }
 
 internal sealed class FoldingRangeParams
@@ -259,6 +263,34 @@ internal sealed class DidCloseTextDocumentParams
 internal sealed class TextDocumentIdentifier
 {
     public string? Uri { get; set; }
+}
+
+internal sealed class TextDocumentPositionParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+
+    public Position? Position { get; set; }
+}
+
+internal sealed class Hover
+{
+    public string[] Contents { get; set; } = [];
+
+    public Range? Range { get; set; }
+}
+
+internal sealed class DefinitionParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+
+    public Position? Position { get; set; }
+}
+
+internal sealed class Location
+{
+    public string Uri { get; set; } = "";
+
+    public Range Range { get; set; } = new();
 }
 
 internal sealed class SnapshotParams

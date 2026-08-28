@@ -21,6 +21,8 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly DocumentSymbolHandler _documentSymbol;
     private readonly DocumentSyntaxTreeHandler _syntaxTree;
     private readonly FormattingHandler _formatting;
+    private readonly HoverHandler _hover;
+    private readonly DefinitionHandler _definition;
 
     private int _shutdown;
     private int _disposed;
@@ -45,6 +47,8 @@ internal sealed class LanguageServerRpc : IDisposable
         _documentSymbol = new DocumentSymbolHandler();
         _syntaxTree = new DocumentSyntaxTreeHandler();
         _formatting = new FormattingHandler();
+        _hover = new HoverHandler();
+        _definition = new DefinitionHandler();
     }
 
     internal Task<int> WaitForExitAsync() => _exit.Task;
@@ -86,6 +90,8 @@ internal sealed class LanguageServerRpc : IDisposable
                     SelectionRangeProvider = true,
                     DocumentSymbolProvider = true,
                     DocumentFormattingProvider = true,
+                    HoverProvider = true,
+                    DefinitionProvider = true,
                 },
                 ServerInfo = new ServerInfo { Name = "Papyrus Language Server" },
             });
@@ -185,6 +191,18 @@ internal sealed class LanguageServerRpc : IDisposable
         CancellationToken cancellationToken)
     {
         return _scheduler.ExecuteAsync(_formatting, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(HoverHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<Hover?> HoverAsync(TextDocumentPositionParams? parameters, CancellationToken cancellationToken)
+    {
+        return _scheduler.ExecuteAsync(_hover, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(DefinitionHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<Location[]> DefinitionAsync(DefinitionParams? parameters, CancellationToken cancellationToken)
+    {
+        return _scheduler.ExecuteAsync(_definition, parameters, cancellationToken);
     }
 
     [JsonRpcMethod("shutdown")]

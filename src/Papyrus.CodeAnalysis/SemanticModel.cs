@@ -34,6 +34,58 @@ public sealed class SemanticModel
 
     public SyntaxTree SyntaxTree { get; }
 
+    public ISymbol? GetSymbolInfo(int position, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var root = SyntaxTree.GetRoot();
+        if (position < root.FullSpan.Start || position >= root.FullSpan.End)
+        {
+            return null;
+        }
+
+        var node = FindNode(root, position);
+        return node is null ? null : GetSymbolInfo(node, cancellationToken);
+    }
+
+    private static SyntaxNode? FindNode(SyntaxNode node, int position)
+    {
+        var offset = node.Position;
+        for (var i = 0; i < node.Green.SlotCount; i++)
+        {
+            var slot = node.Green.GetSlot(i);
+            if (slot is null || position < offset || position >= offset + slot.FullWidth)
+            {
+                offset += slot?.FullWidth ?? 0;
+                continue;
+            }
+
+            if (slot.Kind == SyntaxKind.List)
+            {
+                var listOffset = offset;
+                for (var j = 0; j < slot.SlotCount; j++)
+                {
+                    var item = slot.GetSlot(j);
+                    if (item is not null && position >= listOffset && position < listOffset + item.FullWidth)
+                    {
+                        return item is Papyrus.CodeAnalysis.Syntax.InternalSyntax.GreenToken
+                            ? node
+                            : FindNode(item.CreateRed(node, listOffset), position) ?? node;
+                    }
+
+                    listOffset += item?.FullWidth ?? 0;
+                }
+            }
+            else if (slot is not Papyrus.CodeAnalysis.Syntax.InternalSyntax.GreenToken)
+            {
+                return FindNode(slot.CreateRed(node, offset), position) ?? node;
+            }
+
+            return node;
+        }
+
+        return node;
+    }
+
     public ISymbol? GetDeclaredSymbol(SyntaxNode node, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(node);

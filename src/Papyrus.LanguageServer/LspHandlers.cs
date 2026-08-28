@@ -165,6 +165,32 @@ internal static class LspUris
 
 internal static class LspDocuments
 {
+    internal static bool TryGetSemanticModel(
+        LspSnapshot snapshot,
+        TextDocumentIdentifier? document,
+        out Papyrus.CodeAnalysis.SemanticModel model,
+        out Papyrus.CodeAnalysis.Syntax.SyntaxTree tree,
+        out string path)
+    {
+        model = null!;
+        tree = null!;
+        path = "";
+        if (!TryGetTree(snapshot, document, out tree)
+            || !LspUris.TryGetFilePath(document?.Uri, out path))
+        {
+            return false;
+        }
+
+        var ids = snapshot.Solution.GetDocumentIdsForPath(path);
+        if (ids.IsDefaultOrEmpty || !snapshot.Solution.TryGetSyntaxTree(ids[0], out tree))
+        {
+            return false;
+        }
+
+        model = snapshot.Solution.GetCompilation(ids[0].ProjectId).GetSemanticModel(tree);
+        return true;
+    }
+
     /// <summary>
     /// Resolves a request's document to a syntax tree. When the path belongs
     /// to several projects, the open document (whose buffer overlays every

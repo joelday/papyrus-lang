@@ -113,6 +113,11 @@ internal sealed class FunctionSymbol : Symbol, IFunctionSymbol
 
     internal FunctionDeclarationSyntax? Declaration { get; }
 
+    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences
+        => Declaration is null
+            ? ImmutableArray<SyntaxReference>.Empty
+            : [new SyntaxReference(Declaration.SyntaxTree, Declaration.Span)];
+
     public ITypeSymbol ReturnType
     {
         get
@@ -176,6 +181,11 @@ internal sealed class EventSymbol : Symbol, IEventSymbol
     }
 
     internal EventDeclarationSyntax? Declaration { get; }
+
+    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences
+        => Declaration is null
+            ? ImmutableArray<SyntaxReference>.Empty
+            : [new SyntaxReference(Declaration.SyntaxTree, Declaration.Span)];
 
     public ITypeSymbol ReturnType
     {
@@ -248,6 +258,11 @@ internal sealed class PropertySymbol : Symbol, IPropertySymbol
 
     internal PropertyDeclarationSyntax? Declaration { get; }
 
+    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences
+        => Declaration is null
+            ? ImmutableArray<SyntaxReference>.Empty
+            : [new SyntaxReference(Declaration.SyntaxTree, Declaration.Span)];
+
     public ITypeSymbol Type
     {
         get
@@ -300,6 +315,11 @@ internal sealed class VariableSymbol : Symbol, IVariableSymbol
     }
 
     internal VariableDeclarationSyntax? Declaration { get; }
+
+    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences
+        => Declaration is null
+            ? ImmutableArray<SyntaxReference>.Empty
+            : [new SyntaxReference(Declaration.SyntaxTree, Declaration.Span)];
 
     public ITypeSymbol Type
     {

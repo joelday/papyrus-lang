@@ -219,6 +219,41 @@ public sealed class SemanticModelTests
     }
 
     [Fact]
+    public void GetSymbolInfo_by_position_resolves_identifier()
+    {
+        var compilation = Compilation(
+            PapyrusDialect.SkyrimSe,
+            "Foo",
+            "ScriptName Foo\nFunction Bar()\n  Bar()\nEndFunction\n");
+        var tree = compilation.GetSyntaxTree(QualifiedName.Parse("Foo"));
+        var model = compilation.GetSemanticModel(tree);
+        var position = tree.GetText().ToString().LastIndexOf("Bar()", StringComparison.Ordinal);
+
+        var symbol = model.GetSymbolInfo(position, TestContext.Current.CancellationToken);
+
+        Assert.Equal("Bar", symbol?.Name.Text);
+        Assert.Equal(SymbolKind.Function, symbol?.Kind);
+    }
+
+    [Fact]
+    public void Source_symbol_exposes_declaration_reference()
+    {
+        var compilation = Compilation(
+            PapyrusDialect.SkyrimSe,
+            "Foo",
+            "ScriptName Foo\nFunction Bar()\nEndFunction\n");
+        var tree = compilation.GetSyntaxTree(QualifiedName.Parse("Foo"));
+        var model = compilation.GetSemanticModel(tree);
+        var symbol = model.GetSymbolInfo(
+            tree.GetText().ToString().IndexOf("Bar", StringComparison.Ordinal),
+            TestContext.Current.CancellationToken);
+
+        var reference = Assert.Single(symbol!.DeclaringSyntaxReferences);
+        Assert.Same(tree, reference.SyntaxTree);
+        Assert.Equal("Function Bar()\nEndFunction", tree.GetText().ToString(reference.Span));
+    }
+
+    [Fact]
     public void TryGetSpeculativeSemanticModel_null_returns_false()
     {
         var compilation = Compilation(PapyrusDialect.SkyrimSe, "Foo", "ScriptName Foo\n");

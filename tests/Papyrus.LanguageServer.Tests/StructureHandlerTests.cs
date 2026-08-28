@@ -178,6 +178,38 @@ public sealed class StructureHandlerTests
         Assert.Equal("    ", edit.NewText);
     }
 
+    [Fact]
+    public async Task Hover_and_definition_use_new_semantic_model()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        await fixture.OpenAsync(
+            "ScriptName Foo\nFunction Bar()\n  Bar()\nEndFunction\n",
+            timeout.Token);
+
+        var hover = await fixture.Scheduler.ExecuteAsync(
+            new HoverHandler(),
+            new TextDocumentPositionParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                Position = new Position { Line = 2, Character = 3 },
+            },
+            timeout.Token);
+        var definition = await fixture.Scheduler.ExecuteAsync(
+            new DefinitionHandler(),
+            new DefinitionParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                Position = new Position { Line = 2, Character = 3 },
+            },
+            timeout.Token);
+
+        Assert.Contains(hover?.Contents ?? [], content => content.Contains("Bar", StringComparison.Ordinal));
+        var location = Assert.Single(definition);
+        Assert.Equal(fixture.ScriptUri, location.Uri);
+        Assert.Equal(1, location.Range.Start!.Line);
+    }
+
     private static bool Contains(Range outer, Range inner)
     {
         var startsBefore = outer.Start!.Line < inner.Start!.Line

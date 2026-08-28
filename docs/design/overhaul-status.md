@@ -9,7 +9,7 @@ git checkout rewrite
 dotnet build Papyrus.sln -c Release
 ```
 
-**Score:** 68 of 87 plan items merged or implemented locally. **19 remaining.**
+**Score:** 69 of 87 plan items merged or implemented locally. **18 remaining.**
 
 **Hard constraints for this run**
 
@@ -38,7 +38,7 @@ The new `Papyrus.LanguageServer` process speaks StreamJsonRpc with a mutating/no
 
 ---
 
-## Done (68)
+## Done (69)
 
 ### Phase 0 — Foundations and PEX oracle (P0.00–P0.12)
 
@@ -84,6 +84,7 @@ Syntax generator, green/red trees, lexer, script/decls/FO4+/Starfield/statements
 | P4.03b | Folding + selection ranges |
 | P4.03c | Document symbols + `textDocument/syntaxTree` |
 | P4.03d | Indent-only formatter |
+| P4.03e | Hover + definition |
 
 ### Phase 5 — debugger line (partial)
 
@@ -95,7 +96,7 @@ None. P6.05 (`LanguageVersion.Extended`) is gated by K5 until official-syntax co
 
 ---
 
-## Remaining (19)
+## Remaining (18)
 
 Dependencies are from the accepted PR plan. Ready now means every listed dependency is already on this branch.
 
@@ -105,7 +106,6 @@ P4.02 and P4.05 are done, so the remaining P4.03 handler slices and P5.03 are un
 
 | ID | Title | Depends on | Notes |
 |---|---|---|---|
-| P4.03e | Hover + definition | P4.02, P2.09 | |
 | P4.03f | Completion + signature help | P4.02, P2.09 | |
 | P4.03g | References + rename | P4.02, P2.09 | **#73/#74/#75**, **#84** |
 | P4.03h | Inlay hints + document highlight | P4.02, P2.09 | |
