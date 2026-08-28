@@ -86,7 +86,7 @@ Syntax generator, green/red trees, lexer, script/decls/FO4+/Starfield/statements
 | P4.03d | Indent-only formatter                                                     |
 | P4.03e | Hover + definition                                                        |
 | P4.03f | Completion + signature help                                               |
-| P4.03g | References + rename                                                       |
+| P4.03g | References + prepare-rename + rename                                      |
 
 ### Phase 5 — debugger line (partial)
 

@@ -258,6 +258,51 @@ internal sealed class ReferencesHandler : ILspHandler<ReferenceParams?, Location
     }
 }
 
+internal sealed class PrepareRenameHandler
+    : ILspHandler<TextDocumentPositionParams?, PrepareRenameResult?>
+{
+    internal const string MethodName = "textDocument/prepareRename";
+    public string Method => MethodName;
+    public bool MutatesSolution => false;
+
+    public Task<PrepareRenameResult?> HandleAsync(
+        TextDocumentPositionParams? p,
+        LspSnapshot snapshot,
+        CancellationToken ct
+    )
+    {
+        ct.ThrowIfCancellationRequested();
+        if (
+            p?.Position is null
+            || !LspDocuments.TryGetSemanticModel(
+                snapshot,
+                p.TextDocument,
+                out var model,
+                out var tree,
+                out _
+            )
+        )
+        {
+            return Task.FromResult<PrepareRenameResult?>(null);
+        }
+
+        var lineMap = tree.GetText().Lines;
+        var offset = lineMap.GetOffset(p.Position.Line, p.Position.Character);
+        if (!model.TryGetRenameInfo(offset, ct, out var span, out _))
+        {
+            return Task.FromResult<PrepareRenameResult?>(null);
+        }
+
+        return Task.FromResult<PrepareRenameResult?>(
+            new PrepareRenameResult
+            {
+                Range = DocumentSymbolHandler.ToRange(lineMap, span),
+                Placeholder = tree.GetText().ToString(span),
+            }
+        );
+    }
+}
+
 internal sealed class RenameHandler : ILspHandler<RenameParams?, WorkspaceEdit?>
 {
     internal const string MethodName = "textDocument/rename";
@@ -288,11 +333,8 @@ internal sealed class RenameHandler : ILspHandler<RenameParams?, WorkspaceEdit?>
         }
 
         var offset = tree.GetText().Lines.GetOffset(p.Position.Line, p.Position.Character);
-        var symbol = model.GetSymbolInfo(offset, ct);
-        if (symbol is null || symbol.Kind == SymbolKind.Script)
+        if (!model.TryGetRenameInfo(offset, ct, out _, out var symbol))
         {
-            // Script (type) rename requires cross-file import/extends updates
-            // and a physical file rename, which is out of scope for now.
             return Task.FromResult<WorkspaceEdit?>(null);
         }
 

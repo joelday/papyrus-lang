@@ -40,6 +40,39 @@ public sealed class SemanticModel
     }
 
     /// <summary>
+    /// Resolves the identifier at <paramref name="position"/> for a rename
+    /// request. Returns <see langword="false"/> when there is no identifier
+    /// there, or the bound symbol cannot be renamed: script (type) symbols
+    /// need cross-file import/extends updates plus a physical file rename
+    /// (out of scope for now), and native symbols are backed by engine code
+    /// the workspace cannot edit (**#75**).
+    /// </summary>
+    public bool TryGetRenameInfo(
+        int position,
+        CancellationToken cancellationToken,
+        out TextSpan span,
+        out ISymbol symbol
+    )
+    {
+        span = default;
+        symbol = null!;
+        if (FindNode(position, cancellationToken) is not IdentifierNameSyntax identifier)
+        {
+            return false;
+        }
+
+        var candidate = GetSymbolInfo(identifier, cancellationToken);
+        if (candidate is null || candidate.Kind == SymbolKind.Script || candidate.IsNative)
+        {
+            return false;
+        }
+
+        span = identifier.Span;
+        symbol = candidate;
+        return true;
+    }
+
+    /// <summary>
     /// Finds the narrowest syntax node whose span contains <paramref name="position"/>,
     /// stopping descent at the first token slot reached (mirroring Roslyn's
     /// <c>SyntaxNode.FindNode</c>). Returns <see langword="null"/> when the position

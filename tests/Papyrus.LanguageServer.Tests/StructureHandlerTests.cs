@@ -409,6 +409,78 @@ public sealed class StructureHandlerTests
         Assert.Equal("Greet", Assert.Single(otherEdits).NewText);
     }
 
+    [Fact]
+    public async Task Rename_rejects_native_symbols()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        await fixture.OpenAsync(
+            "ScriptName Foo\nFunction Bar() Native\nFunction Baz()\n  Bar()\nEndFunction\n",
+            timeout.Token
+        );
+
+        var edit = await fixture.Scheduler.ExecuteAsync(
+            new RenameHandler(),
+            new RenameParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                Position = new Position { Line = 1, Character = 10 },
+                NewName = "Greet",
+            },
+            timeout.Token
+        );
+
+        Assert.Null(edit);
+    }
+
+    [Fact]
+    public async Task PrepareRename_reports_identifier_span_and_placeholder()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        await fixture.OpenAsync(
+            "ScriptName Foo\nFunction Bar()\n  Bar()\nEndFunction\n",
+            timeout.Token
+        );
+
+        var result = await fixture.Scheduler.ExecuteAsync(
+            new PrepareRenameHandler(),
+            new TextDocumentPositionParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                Position = new Position { Line = 1, Character = 10 },
+            },
+            timeout.Token
+        );
+
+        Assert.NotNull(result);
+        Assert.Equal("Bar", result!.Placeholder);
+        Assert.Equal(1, result.Range.Start!.Line);
+    }
+
+    [Fact]
+    public async Task PrepareRename_rejects_native_symbols()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        await fixture.OpenAsync(
+            "ScriptName Foo\nFunction Bar() Native\nFunction Baz()\n  Bar()\nEndFunction\n",
+            timeout.Token
+        );
+
+        var result = await fixture.Scheduler.ExecuteAsync(
+            new PrepareRenameHandler(),
+            new TextDocumentPositionParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                Position = new Position { Line = 1, Character = 10 },
+            },
+            timeout.Token
+        );
+
+        Assert.Null(result);
+    }
+
     private static bool Contains(Range outer, Range inner)
     {
         var startsBefore =

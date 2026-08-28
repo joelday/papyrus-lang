@@ -28,6 +28,7 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly SignatureHelpHandler _signatureHelp;
     private readonly ReferencesHandler _references;
     private readonly RenameHandler _rename;
+    private readonly PrepareRenameHandler _prepareRename;
 
     private int _shutdown;
     private int _disposed;
@@ -56,6 +57,7 @@ internal sealed class LanguageServerRpc : IDisposable
         _signatureHelp = new SignatureHelpHandler();
         _references = new ReferencesHandler();
         _rename = new RenameHandler();
+        _prepareRename = new PrepareRenameHandler();
     }
 
     internal Task<int> WaitForExitAsync() => _exit.Task;
@@ -106,7 +108,7 @@ internal sealed class LanguageServerRpc : IDisposable
                         TriggerCharacters = ["(", ","],
                     },
                     ReferencesProvider = true,
-                    RenameProvider = true,
+                    RenameProvider = new RenameOptions { PrepareProvider = true },
                 },
                 ServerInfo = new ServerInfo { Name = "Papyrus Language Server" },
             }
@@ -304,6 +306,18 @@ internal sealed class LanguageServerRpc : IDisposable
     )
     {
         return _scheduler.ExecuteAsync(_rename, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(
+        PrepareRenameHandler.MethodName,
+        UseSingleObjectParameterDeserialization = true
+    )]
+    public Task<PrepareRenameResult?> PrepareRenameAsync(
+        TextDocumentPositionParams? parameters,
+        CancellationToken cancellationToken
+    )
+    {
+        return _scheduler.ExecuteAsync(_prepareRename, parameters, cancellationToken);
     }
 
     [JsonRpcMethod("shutdown")]

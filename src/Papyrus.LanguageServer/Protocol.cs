@@ -59,7 +59,12 @@ internal sealed class ServerCapabilities
 
     public bool? ReferencesProvider { get; set; }
 
-    public bool? RenameProvider { get; set; }
+    public RenameOptions? RenameProvider { get; set; }
+}
+
+internal sealed class RenameOptions
+{
+    public bool PrepareProvider { get; set; }
 }
 
 internal sealed class CompletionOptions
@@ -374,6 +379,13 @@ internal sealed class RenameParams
     public Position? Position { get; set; }
 
     public string? NewName { get; set; }
+}
+
+internal sealed class PrepareRenameResult
+{
+    public Range Range { get; set; } = new();
+
+    public string Placeholder { get; set; } = "";
 }
 
 internal sealed class WorkspaceEdit

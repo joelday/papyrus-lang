@@ -468,6 +468,75 @@ public sealed class SemanticModelTests
     }
 
     [Fact]
+    public void TryGetRenameInfo_resolves_identifier_span_and_symbol()
+    {
+        var compilation = Compilation(
+            PapyrusDialect.SkyrimSe,
+            "Foo",
+            "ScriptName Foo\nFunction Bar()\n  Bar()\nEndFunction\n"
+        );
+        var tree = compilation.GetSyntaxTree(QualifiedName.Parse("Foo"));
+        var model = compilation.GetSemanticModel(tree);
+        var offset = tree.GetText().ToString().IndexOf("Bar()\nEndFunction", StringComparison.Ordinal);
+
+        var result = model.TryGetRenameInfo(
+            offset,
+            TestContext.Current.CancellationToken,
+            out var span,
+            out var symbol
+        );
+
+        Assert.True(result);
+        Assert.Equal("Bar", tree.GetText().ToString(span));
+        Assert.Equal("Bar", symbol.Name.Text);
+    }
+
+    [Fact]
+    public void TryGetRenameInfo_rejects_native_symbols()
+    {
+        var compilation = Compilation(
+            PapyrusDialect.SkyrimSe,
+            "Foo",
+            "ScriptName Foo\nFunction Bar() Native\nFunction Baz()\n  Bar()\nEndFunction\n"
+        );
+        var tree = compilation.GetSyntaxTree(QualifiedName.Parse("Foo"));
+        var model = compilation.GetSemanticModel(tree);
+        var offset = tree.GetText().ToString().IndexOf("Bar()\nEndFunction", StringComparison.Ordinal);
+
+        var result = model.TryGetRenameInfo(
+            offset,
+            TestContext.Current.CancellationToken,
+            out _,
+            out _
+        );
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void TryGetRenameInfo_rejects_script_symbols()
+    {
+        var compilation = Compilation(
+            PapyrusDialect.SkyrimSe,
+            "Foo",
+            "ScriptName Foo Extends Base\n",
+            ("Base", "ScriptName Base\n")
+        );
+        var tree = compilation.GetSyntaxTree(QualifiedName.Parse("Foo"));
+        var model = compilation.GetSemanticModel(tree);
+        var offset = tree.GetText().ToString().IndexOf("Base", StringComparison.Ordinal);
+
+        var result = model.TryGetRenameInfo(
+            offset,
+            TestContext.Current.CancellationToken,
+            out _,
+            out _
+        );
+
+        Assert.False(result);
+    }
+
+    [Fact]
     public void TryGetSpeculativeSemanticModel_null_returns_false()
     {
         var compilation = Compilation(PapyrusDialect.SkyrimSe, "Foo", "ScriptName Foo\n");
