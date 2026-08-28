@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Papyrus.CodeAnalysis;
@@ -113,6 +114,49 @@ public sealed class SyntaxStructureTests
         Assert.Empty(SyntaxStructure.GetSelectionSpans(tree, -1, TestContext.Current.CancellationToken));
     }
 
+    [Fact]
+    public void Document_symbols_are_structural_and_nested()
+    {
+        const string source =
+            "ScriptName Foo\n" +
+            "Int Property Value Auto\n" +
+            "State Waiting\n" +
+            "  Function DoThing()\n" +
+            "  EndFunction\n" +
+            "EndState\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        var symbols = SyntaxStructure.GetDocumentSymbols(tree, TestContext.Current.CancellationToken);
+
+        var script = Assert.Single(symbols);
+        Assert.Equal("Foo", script.Name);
+        Assert.Equal(DocumentSymbolKind.Class, script.Kind);
+        Assert.Equal(new TextSpan(source.IndexOf("Foo", System.StringComparison.Ordinal), 3), script.SelectionSpan);
+
+        var property = Assert.Single(script.Children, symbol => symbol.Name == "Value");
+        Assert.Equal(DocumentSymbolKind.Property, property.Kind);
+        var state = Assert.Single(script.Children, symbol => symbol.Name == "Waiting");
+        var function = Assert.Single(state.Children);
+        Assert.Equal("DoThing", function.Name);
+        Assert.Equal(DocumentSymbolKind.Method, function.Kind);
+    }
+
+    [Fact]
+    public void Syntax_tree_projection_preserves_root_text_and_tokens()
+    {
+        const string source = "ScriptName Foo\nFunction Go()\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        var projection = SyntaxStructure.GetSyntaxTree(tree);
+
+        Assert.Equal(SyntaxKind.ScriptDeclaration, projection.Kind);
+        Assert.Equal(source, projection.Text);
+        Assert.False(projection.IsToken);
+        Assert.Contains(
+            projection.Children.SelectMany(DescendantsAndSelf),
+            node => node.IsToken && node.Kind == SyntaxKind.ScriptNameKeyword && node.Text == "ScriptName");
+    }
+
     private static void AssertContains(
         string source,
         ImmutableArray<FoldingSpan> spans,
@@ -137,5 +181,17 @@ public sealed class SyntaxStructureTests
     {
         var start = source.IndexOf(anchor, System.StringComparison.Ordinal);
         return span.Start == start && span.Length == anchor.Length;
+    }
+
+    private static IEnumerable<SyntaxTreeNode> DescendantsAndSelf(SyntaxTreeNode node)
+    {
+        yield return node;
+        foreach (var child in node.Children)
+        {
+            foreach (var descendant in DescendantsAndSelf(child))
+            {
+                yield return descendant;
+            }
+        }
     }
 }

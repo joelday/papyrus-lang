@@ -2,14 +2,14 @@
 
 One-stop tracker for the clean-slate compiler and language-service rewrite specified in [`compiler-and-language-service-overhaul.md`](compiler-and-language-service-overhaul.md).
 
-**Where the work lives:** local branch `execute-plan/b734a463` (not pushed). Tip moves as PRs merge; checkout this file's commit to match the snapshot, or the branch tip for latest. Default branch remains `develop`; the shipping VS Code extension is still the old OmniSharp / PCompiler host.
+**Where the work lives:** local branch `rewrite` (not pushed). Topic branches are created from that integration point and merged back manually when a slice is complete. There is intentionally no configured remote. The shipping VS Code extension is still the old OmniSharp / PCompiler host.
 
 ```
-git checkout execute-plan/b734a463
+git checkout rewrite
 dotnet build Papyrus.sln -c Release
 ```
 
-**Score:** 63 of 87 plan PRs merged locally. **24 remaining.**
+**Score:** 66 of 87 plan items merged or implemented locally. **21 remaining.**
 
 **Hard constraints for this run**
 
@@ -34,11 +34,11 @@ papyrusc --version
 
 `--game skyrimle` is supported. `.ppj` builds expand `${ENV}` and run pre/post steps. `--ignore-engine-limits` downgrades `PAP20xx` to warnings. Public CI never needs game files: `verify --compile` skips with exit 0 when `./corpus/<game>` is absent.
 
-The new `Papyrus.LanguageServer` process speaks StreamJsonRpc with a mutating/non-mutating request scheduler and text-document sync stubs. Feature handlers (tokens, hover, …) are not wired yet. The shipping extension does **not** launch this process.
+The new `Papyrus.LanguageServer` process speaks StreamJsonRpc with a mutating/non-mutating request scheduler and text-document sync. Semantic tokens, folding, selection ranges, document symbols, and `textDocument/syntaxTree` are wired. The shipping extension does **not** launch this process.
 
 ---
 
-## Done (60)
+## Done (66)
 
 ### Phase 0 — Foundations and PEX oracle (P0.00–P0.12)
 
@@ -80,6 +80,9 @@ Syntax generator, green/red trees, lexer, script/decls/FO4+/Starfield/statements
 | P4.01 | StreamJsonRpc LSP host (`initialize` / `shutdown` / `exit`) |
 | P4.02 | Request scheduler (mutating serializes; non-mutating cancel on mutation) |
 | P4.05 | NativeAOT publish smokes: win-x64, linux-x64, osx-arm64 (`papyrusc` + LS) |
+| P4.03a | Semantic tokens |
+| P4.03b | Folding + selection ranges |
+| P4.03c | Document symbols + `textDocument/syntaxTree` |
 
 ### Phase 5 — debugger line (partial)
 
@@ -91,19 +94,16 @@ None. P6.05 (`LanguageVersion.Extended`) is gated by K5 until official-syntax co
 
 ---
 
-## Remaining (24)
+## Remaining (21)
 
 Dependencies are from the accepted PR plan. Ready now means every listed dependency is already on this branch.
 
 ### Ready now
 
-P4.02 and P4.05 are done, so the P4.03 handler slice and P5.03 are unblocked.
+P4.02 and P4.05 are done, so the remaining P4.03 handler slices and P5.03 are unblocked. P5.03 remains intentionally deferred until the managed debugger API is stable and Windows/MSVC validation is available.
 
 | ID | Title | Depends on | Notes |
 |---|---|---|---|
-| P4.03a | Semantic tokens | P4.02 | |
-| P4.03b | Folding + selection ranges | P4.02 | |
-| P4.03c | Document symbols + `textDocument/syntaxTree` | P4.02 | |
 | P4.03d | Indent-only formatter (**#39**) | P4.02 | Appendix B |
 | P4.03e | Hover + definition | P4.02, P2.09 | |
 | P4.03f | Completion + signature help | P4.02, P2.09 | |
@@ -155,7 +155,7 @@ src/Papyrus.CodeAnalysis.Generators source generators
 src/Papyrus.Pex                     PEX read/write/normalize/PAS
 src/Papyrus.Workspaces              .ppj / workspace
 src/Papyrus.Compiler                papyrusc
-src/Papyrus.LanguageServer          StreamJsonRpc host + request scheduler (handlers next)
+src/Papyrus.LanguageServer          StreamJsonRpc host + request scheduler + LSP handlers
 src/Papyrus.DebugAdapter            stub (P5.03)
 src/Papyrus.CodeAnalysis.Testing    corpus / allowlist / hash harness
 ```
@@ -166,8 +166,8 @@ Old `DarkId.Papyrus.*` managed projects stay until P4.09.
 
 ## How to resume
 
-1. `git checkout execute-plan/b734a463` (this document and the code).
-2. Continue the plan from **P4.03a–i** (handlers) and **P5.03** (NativeAOT debug adapter). P4.03a–d depend only on P4.02. P4.06a can start after P4.05 (already done) but cutover still needs P4.03i.
+1. `git checkout rewrite` for the integration point, or create a topic branch from it for the next slice.
+2. Continue the plan from **P4.03d–i** (handlers). P5.03 (NativeAOT debug adapter) is unblocked in the dependency graph but intentionally deferred until the managed debugger API is stable and Windows/MSVC validation is available.
 3. Keep the no-push constraint unless the owner lifts it.
 
-Plan id for the execute-plan run: `b734a463`. Per-PR branches are `execute-plan/b734a463-pr-N-…`; completed work is fast-forwarded or merge-committed onto `execute-plan/b734a463`.
+The work is organized as ordinary local topic branches from `rewrite`; there is no agent-orchestration branch naming convention to recover.

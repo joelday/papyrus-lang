@@ -18,6 +18,8 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly SemanticTokensRangeHandler _semanticTokensRange;
     private readonly FoldingRangeHandler _foldingRange;
     private readonly SelectionRangeHandler _selectionRange;
+    private readonly DocumentSymbolHandler _documentSymbol;
+    private readonly DocumentSyntaxTreeHandler _syntaxTree;
 
     private int _shutdown;
     private int _disposed;
@@ -39,6 +41,8 @@ internal sealed class LanguageServerRpc : IDisposable
         _semanticTokensRange = new SemanticTokensRangeHandler();
         _foldingRange = new FoldingRangeHandler();
         _selectionRange = new SelectionRangeHandler();
+        _documentSymbol = new DocumentSymbolHandler();
+        _syntaxTree = new DocumentSyntaxTreeHandler();
     }
 
     internal Task<int> WaitForExitAsync() => _exit.Task;
@@ -78,6 +82,7 @@ internal sealed class LanguageServerRpc : IDisposable
                     SemanticTokensProvider = LspSemanticTokens.CapabilityOptions(),
                     FoldingRangeProvider = true,
                     SelectionRangeProvider = true,
+                    DocumentSymbolProvider = true,
                 },
                 ServerInfo = new ServerInfo { Name = "Papyrus Language Server" },
             });
@@ -153,6 +158,22 @@ internal sealed class LanguageServerRpc : IDisposable
         CancellationToken cancellationToken)
     {
         return _scheduler.ExecuteAsync(_selectionRange, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(DocumentSymbolHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<DocumentSymbol[]> DocumentSymbolAsync(
+        DocumentSymbolParams? parameters,
+        CancellationToken cancellationToken)
+    {
+        return _scheduler.ExecuteAsync(_documentSymbol, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(DocumentSyntaxTreeHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<DocumentSyntaxTree?> SyntaxTreeAsync(
+        DocumentSyntaxTreeParams? parameters,
+        CancellationToken cancellationToken)
+    {
+        return _scheduler.ExecuteAsync(_syntaxTree, parameters, cancellationToken);
     }
 
     [JsonRpcMethod("shutdown")]

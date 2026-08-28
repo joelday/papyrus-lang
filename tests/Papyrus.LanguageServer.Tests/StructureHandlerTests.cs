@@ -106,6 +106,56 @@ public sealed class StructureHandlerTests
         Assert.Empty(selection);
     }
 
+    [Fact]
+    public async Task Document_symbols_return_hierarchical_ranges()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        await fixture.OpenAsync(
+            "ScriptName Foo\nInt Property Value Auto\nState Waiting\n  Function DoThing()\n  EndFunction\nEndState\n",
+            timeout.Token);
+
+        var result = await fixture.Scheduler.ExecuteAsync(
+            new DocumentSymbolHandler(),
+            new DocumentSymbolParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+            },
+            timeout.Token);
+
+        var script = Assert.Single(result);
+        Assert.Equal("Foo", script.Name);
+        Assert.Equal(5, script.Kind);
+        Assert.Contains(script.Children, symbol => symbol.Name == "Value" && symbol.Kind == 7);
+        var state = Assert.Single(script.Children, symbol => symbol.Name == "Waiting");
+        var function = Assert.Single(state.Children);
+        Assert.Equal("DoThing", function.Name);
+        Assert.Equal(6, function.Kind);
+        Assert.True(function.SelectionRange.Start!.Line >= state.Range.Start!.Line);
+    }
+
+    [Fact]
+    public async Task Syntax_tree_returns_root_and_token_nodes()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        await fixture.OpenAsync(Script, timeout.Token);
+
+        var result = await fixture.Scheduler.ExecuteAsync(
+            new DocumentSyntaxTreeHandler(),
+            new DocumentSyntaxTreeParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+            },
+            timeout.Token);
+
+        Assert.NotNull(result?.Root);
+        Assert.Equal("ScriptDeclaration", result!.Root!.Kind);
+        Assert.Contains(
+            DescendantsAndSelf(result.Root),
+            node => node.IsToken && node.Kind == "ScriptNameKeyword" && node.Text == "ScriptName");
+    }
+
     private static bool Contains(Range outer, Range inner)
     {
         var startsBefore = outer.Start!.Line < inner.Start!.Line
@@ -113,5 +163,17 @@ public sealed class StructureHandlerTests
         var endsAfter = outer.End!.Line > inner.End!.Line
             || (outer.End.Line == inner.End.Line && outer.End.Character >= inner.End.Character);
         return startsBefore && endsAfter;
+    }
+
+    private static System.Collections.Generic.IEnumerable<SyntaxTreeNode> DescendantsAndSelf(SyntaxTreeNode node)
+    {
+        yield return node;
+        foreach (var child in node.Children)
+        {
+            foreach (var descendant in DescendantsAndSelf(child))
+            {
+                yield return descendant;
+            }
+        }
     }
 }

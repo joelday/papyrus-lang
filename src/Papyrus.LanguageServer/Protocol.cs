@@ -44,6 +44,8 @@ internal sealed class ServerCapabilities
     public bool? FoldingRangeProvider { get; set; }
 
     public bool? SelectionRangeProvider { get; set; }
+
+    public bool? DocumentSymbolProvider { get; set; }
 }
 
 internal sealed class FoldingRangeParams
@@ -72,6 +74,47 @@ internal sealed class SelectionRange
     public Range Range { get; set; } = new();
 
     public SelectionRange? Parent { get; set; }
+}
+
+internal sealed class DocumentSymbolParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+}
+
+internal sealed class DocumentSymbol
+{
+    public string Name { get; set; } = "";
+
+    public int Kind { get; set; }
+
+    public Range Range { get; set; } = new();
+
+    public Range SelectionRange { get; set; } = new();
+
+    public DocumentSymbol[] Children { get; set; } = [];
+}
+
+internal sealed class DocumentSyntaxTreeParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+}
+
+internal sealed class DocumentSyntaxTree
+{
+    public SyntaxTreeNode? Root { get; set; }
+}
+
+internal sealed class SyntaxTreeNode
+{
+    public string Kind { get; set; } = "";
+
+    public string Text { get; set; } = "";
+
+    public Range Range { get; set; } = new();
+
+    public bool IsToken { get; set; }
+
+    public SyntaxTreeNode[] Children { get; set; } = [];
 }
 
 internal sealed class SemanticTokensOptions

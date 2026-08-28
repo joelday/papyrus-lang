@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Immutable;
 using System.Threading;
 using Papyrus.CodeAnalysis.Syntax;
@@ -29,6 +30,71 @@ public readonly struct FoldingSpan
     public override string ToString() => $"{Span} {Kind}";
 }
 
+public enum DocumentSymbolKind
+{
+    Class,
+    Event,
+    Field,
+    Method,
+    Namespace,
+    Property,
+    Struct,
+}
+
+public sealed class DocumentSymbol
+{
+    public DocumentSymbol(
+        string name,
+        DocumentSymbolKind kind,
+        TextSpan span,
+        TextSpan selectionSpan,
+        ImmutableArray<DocumentSymbol> children)
+    {
+        Name = name;
+        Kind = kind;
+        Span = span;
+        SelectionSpan = selectionSpan;
+        Children = children;
+    }
+
+    public string Name { get; }
+
+    public DocumentSymbolKind Kind { get; }
+
+    public TextSpan Span { get; }
+
+    public TextSpan SelectionSpan { get; }
+
+    public ImmutableArray<DocumentSymbol> Children { get; }
+}
+
+public sealed class SyntaxTreeNode
+{
+    public SyntaxTreeNode(
+        SyntaxKind kind,
+        TextSpan span,
+        string text,
+        bool isToken,
+        ImmutableArray<SyntaxTreeNode> children)
+    {
+        Kind = kind;
+        Span = span;
+        Text = text;
+        IsToken = isToken;
+        Children = children;
+    }
+
+    public SyntaxKind Kind { get; }
+
+    public TextSpan Span { get; }
+
+    public string Text { get; }
+
+    public bool IsToken { get; }
+
+    public ImmutableArray<SyntaxTreeNode> Children { get; }
+}
+
 /// <summary>
 /// Structural facts about a syntax tree that need no symbol information:
 /// foldable regions and the ancestor span chain used for selection ranges.
@@ -37,6 +103,23 @@ public readonly struct FoldingSpan
 /// </summary>
 public static class SyntaxStructure
 {
+    public static ImmutableArray<DocumentSymbol> GetDocumentSymbols(
+        SyntaxTree tree,
+        CancellationToken cancellationToken = default)
+    {
+        System.ArgumentNullException.ThrowIfNull(tree);
+        cancellationToken.ThrowIfCancellationRequested();
+        return tree.GetRoot() is ScriptDeclarationSyntax script
+            ? [CreateDocumentSymbol(script, cancellationToken)]
+            : ImmutableArray<DocumentSymbol>.Empty;
+    }
+
+    public static SyntaxTreeNode GetSyntaxTree(SyntaxTree tree)
+    {
+        System.ArgumentNullException.ThrowIfNull(tree);
+        return CreateSyntaxTreeNode(tree.GetRoot());
+    }
+
     public static ImmutableArray<FoldingSpan> GetFoldingSpans(
         SyntaxTree tree,
         CancellationToken cancellationToken = default)
@@ -103,6 +186,158 @@ public static class SyntaxStructure
             VisitFoldingSlot(node, slot, offset, i, builder, cancellationToken);
             offset += slot.FullWidth;
         }
+    }
+
+    private static DocumentSymbol CreateDocumentSymbol(
+        SyntaxNode node,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        string name;
+        DocumentSymbolKind kind;
+        TextSpan selectionSpan;
+        ImmutableArray<DocumentSymbol> children;
+        switch (node)
+        {
+            case ScriptDeclarationSyntax script:
+                name = GetNameText(script.Name);
+                kind = DocumentSymbolKind.Class;
+                selectionSpan = script.Name.Span;
+                children = CreateDocumentSymbols(script.Members, cancellationToken);
+                break;
+            case FunctionDeclarationSyntax function:
+                name = GetNameText(function.Name);
+                kind = DocumentSymbolKind.Method;
+                selectionSpan = function.Name.Span;
+                children = ImmutableArray<DocumentSymbol>.Empty;
+                break;
+            case EventDeclarationSyntax @event:
+                name = GetNameText(@event.Name);
+                kind = DocumentSymbolKind.Event;
+                selectionSpan = @event.Name.Span;
+                children = ImmutableArray<DocumentSymbol>.Empty;
+                break;
+            case PropertyDeclarationSyntax property:
+                name = GetNameText(property.Name);
+                kind = DocumentSymbolKind.Property;
+                selectionSpan = property.Name.Span;
+                children = CreateDocumentSymbols(property.Accessors, cancellationToken);
+                break;
+            case VariableDeclarationSyntax variable:
+                name = GetNameText(variable.Name);
+                kind = DocumentSymbolKind.Field;
+                selectionSpan = variable.Name.Span;
+                children = ImmutableArray<DocumentSymbol>.Empty;
+                break;
+            case StateDeclarationSyntax state:
+                name = GetNameText(state.Name);
+                kind = DocumentSymbolKind.Namespace;
+                selectionSpan = state.Name.Span;
+                children = CreateDocumentSymbols(state.Members, cancellationToken);
+                break;
+            case StructDeclarationSyntax struc:
+                name = GetNameText(struc.Name);
+                kind = DocumentSymbolKind.Struct;
+                selectionSpan = struc.Name.Span;
+                children = CreateDocumentSymbols(struc.Members, cancellationToken);
+                break;
+            case GroupDeclarationSyntax group:
+                name = GetNameText(group.Name);
+                kind = DocumentSymbolKind.Namespace;
+                selectionSpan = group.Name.Span;
+                children = CreateDocumentSymbols(group.Members, cancellationToken);
+                break;
+            case CustomEventDeclarationSyntax customEvent:
+                name = GetNameText(customEvent.Name);
+                kind = DocumentSymbolKind.Event;
+                selectionSpan = customEvent.Name.Span;
+                children = ImmutableArray<DocumentSymbol>.Empty;
+                break;
+            case GuardDeclarationSyntax guard:
+                name = GetNameText(guard.Name);
+                kind = DocumentSymbolKind.Namespace;
+                selectionSpan = guard.Name.Span;
+                children = ImmutableArray<DocumentSymbol>.Empty;
+                break;
+            default:
+                throw new ArgumentException($"Unsupported document symbol node: {node.Kind}", nameof(node));
+        }
+
+        return new DocumentSymbol(name, kind, node.Span, selectionSpan, children);
+    }
+
+    private static ImmutableArray<DocumentSymbol> CreateDocumentSymbols<T>(
+        SyntaxList<T> nodes,
+        CancellationToken cancellationToken)
+        where T : SyntaxNode
+    {
+        var builder = ImmutableArray.CreateBuilder<DocumentSymbol>(nodes.Count);
+        for (var i = 0; i < nodes.Count; i++)
+        {
+            builder.Add(CreateDocumentSymbol(nodes.Get(i), cancellationToken));
+        }
+
+        return builder.MoveToImmutable();
+    }
+
+    private static SyntaxTreeNode CreateSyntaxTreeNode(SyntaxNode node)
+    {
+        var children = ImmutableArray.CreateBuilder<SyntaxTreeNode>();
+        var offset = node.Position;
+        for (var i = 0; i < node.Green.SlotCount; i++)
+        {
+            var slot = node.Green.GetSlot(i);
+            if (slot is not null)
+            {
+                AddSyntaxTreeChildren(node, slot, offset, children);
+                offset += slot.FullWidth;
+            }
+        }
+
+        return new SyntaxTreeNode(node.Kind, node.Span, node.ToFullString(), false, children.ToImmutable());
+    }
+
+    private static string GetNameText(SyntaxNode name)
+    {
+        return name.SyntaxTree.GetText().ToString(name.Span);
+    }
+
+    private static void AddSyntaxTreeChildren(
+        SyntaxNode parent,
+        GreenNode slot,
+        int position,
+        ImmutableArray<SyntaxTreeNode>.Builder children)
+    {
+        if (slot is GreenToken token)
+        {
+            var syntaxToken = new SyntaxToken(token, parent, position);
+            children.Add(new SyntaxTreeNode(
+                syntaxToken.Kind,
+                syntaxToken.Span,
+                syntaxToken.Text,
+                true,
+                ImmutableArray<SyntaxTreeNode>.Empty));
+            return;
+        }
+
+        if (slot.Kind == SyntaxKind.List)
+        {
+            var offset = position;
+            for (var i = 0; i < slot.SlotCount; i++)
+            {
+                var child = slot.GetSlot(i);
+                if (child is not null)
+                {
+                    AddSyntaxTreeChildren(parent, child, offset, children);
+                    offset += child.FullWidth;
+                }
+            }
+
+            return;
+        }
+
+        var childNode = slot.CreateRed(parent, position);
+        children.Add(CreateSyntaxTreeNode(childNode));
     }
 
     private static void VisitFoldingSlot(
