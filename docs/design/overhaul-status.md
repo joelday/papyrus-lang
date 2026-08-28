@@ -126,6 +126,8 @@ P4.02 and P4.05 are done, so P5.03 is unblocked. It remains intentionally deferr
 | P4.08  | Diagnostic report + redaction test                       | P4.07          |
 | P4.09  | Delete `DarkId.Papyrus.*` managed tree                   | P4.06b, P4.08  |
 
+P4.06a part 1 (the `vscode-languageclient` 9 bump) is done: `src/server/LanguageClient.ts` and the four `src/server/messages/*.ts` request/notification definitions were updated for the new generic arity and the `/node` entrypoint move, and `engines.vscode`/`@types/vscode` were bumped to `^1.82.0` to match. Dropping RxJS is still outstanding -- it is a much larger, deeply-coupled refactor across ~13 files (`LanguageClientManager`'s `combineLatest`/custom `asyncDisposable` operator, config-as-`Observable`, per-game client lifecycle, tree/codelens/status-bar consumers) and needs an explicit replacement-pattern decision before starting.
+
 ### Phase 5 — remaining
 
 | ID     | Title                                  | Depends on     |
