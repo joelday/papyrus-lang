@@ -17,7 +17,9 @@ internal sealed class LspRequestScheduler : IDisposable
     private bool _disposed;
 
     internal LspRequestScheduler()
-        : this(new PapyrusWorkspace(TimeProvider.System, enableFileWatching: false)) { }
+        // enableFileWatching stays on so external edits (git checkout, other tools) are
+        // picked up in the real server; only tests construct a workspace directly to opt out.
+        : this(new PapyrusWorkspace(TimeProvider.System)) { }
 
     internal LspRequestScheduler(PapyrusWorkspace workspace)
     {

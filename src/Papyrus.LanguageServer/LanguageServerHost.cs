@@ -39,6 +39,7 @@ internal static class LanguageServerHost
         var handler = new HeaderDelimitedMessageHandler(output, input, formatter);
         using var jsonRpc = new JsonRpc(handler);
         AddRpcTarget(jsonRpc, target);
+        target.Notifier = new JsonRpcNotifier(jsonRpc);
         jsonRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed = true;
         jsonRpc.Disconnected += (_, _) => target.NotifyDisconnected();
         jsonRpc.StartListening();

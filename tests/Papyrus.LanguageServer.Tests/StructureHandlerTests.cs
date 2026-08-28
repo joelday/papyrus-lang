@@ -616,6 +616,64 @@ public sealed class StructureHandlerTests
         Assert.All(hints, h => Assert.Equal(4, h.Position.Line));
     }
 
+    [Fact]
+    public async Task Diagnostic_pull_reports_binding_errors_for_the_open_document()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        await fixture.OpenAsync("ScriptName Foo\nUnknownType Baz\n", timeout.Token);
+
+        var report = await fixture.Scheduler.ExecuteAsync(
+            new DiagnosticHandler(),
+            new DiagnosticParams { TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri } },
+            timeout.Token
+        );
+
+        Assert.Equal("full", report.Kind);
+        Assert.NotEmpty(report.Items);
+        Assert.All(report.Items, d => Assert.Equal("papyrus", d.Source));
+        Assert.All(report.Items, d => Assert.NotNull(d.Range));
+    }
+
+    [Fact]
+    public async Task PublishDiagnostics_is_pushed_when_the_workspace_changes()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        using var rpc = new LanguageServerRpc(fixture.Scheduler);
+        var notifier = new RecordingNotifier();
+        rpc.Notifier = notifier;
+
+        await fixture.OpenAsync("ScriptName Foo\nUnknownType Baz\n", timeout.Token);
+
+        // The push runs fire-and-forget off the workspace-changed event; give it a
+        // moment to land rather than coupling the test to that implementation detail.
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (notifier.Publishes.IsEmpty && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(10, timeout.Token);
+        }
+
+        Assert.True(notifier.Publishes.TryDequeue(out var published));
+        Assert.Equal(fixture.ScriptUri, published.Uri);
+        Assert.NotEmpty(published.Diagnostics ?? []);
+    }
+
+    private sealed class RecordingNotifier : ILspNotifier
+    {
+        internal readonly System.Collections.Concurrent.ConcurrentQueue<PublishDiagnosticsParams> Publishes = new();
+
+        public Task NotifyAsync(string method, object? parameters, CancellationToken cancellationToken)
+        {
+            if (method == "textDocument/publishDiagnostics" && parameters is PublishDiagnosticsParams p)
+            {
+                Publishes.Enqueue(p);
+            }
+
+            return Task.CompletedTask;
+        }
+    }
+
     private static bool Contains(Range outer, Range inner)
     {
         var startsBefore =

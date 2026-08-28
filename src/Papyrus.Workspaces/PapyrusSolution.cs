@@ -175,6 +175,26 @@ public sealed class PapyrusSolution
         return true;
     }
 
+    /// <summary>
+    /// Computes diagnostics for a single document, forcing that script's binding to
+    /// complete so results are up to date even if nothing else has touched it yet.
+    /// Returns an empty array for documents that cannot be resolved (e.g. neither
+    /// open nor present on disk).
+    /// </summary>
+    public ImmutableArray<Diagnostic> GetDiagnostics(
+        DocumentId documentId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(documentId);
+        if (!_projects.TryGetValue(documentId.ProjectId, out var state)
+            || !state.DiskResolver.TryGetNameFromPath(documentId.Path, out var name))
+        {
+            return ImmutableArray<Diagnostic>.Empty;
+        }
+
+        return state.Compilation.GetDiagnostics(name, cancellationToken);
+    }
+
     public bool IsDocumentOpen(DocumentId documentId)
     {
         ArgumentNullException.ThrowIfNull(documentId);

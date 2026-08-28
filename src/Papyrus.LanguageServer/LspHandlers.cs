@@ -231,7 +231,7 @@ internal static class LspDocuments
             && snapshot.Solution.TryGetSyntaxTree(documentId, out tree);
     }
 
-    private static bool TryGetDocumentId(
+    internal static bool TryGetDocumentId(
         LspSnapshot snapshot,
         TextDocumentIdentifier? document,
         out DocumentId documentId

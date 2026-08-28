@@ -39,4 +39,9 @@ namespace Papyrus.LanguageServer;
 [JsonSerializable(typeof(Position[]))]
 [JsonSerializable(typeof(SnapshotParams))]
 [JsonSerializable(typeof(SnapshotResult))]
+[JsonSerializable(typeof(PublishDiagnosticsParams))]
+[JsonSerializable(typeof(Diagnostic))]
+[JsonSerializable(typeof(Diagnostic[]))]
+[JsonSerializable(typeof(DiagnosticParams))]
+[JsonSerializable(typeof(DocumentDiagnosticReport))]
 internal sealed partial class LspJsonContext : JsonSerializerContext { }

@@ -64,6 +64,15 @@ internal sealed class ServerCapabilities
     public bool? DocumentHighlightProvider { get; set; }
 
     public bool? InlayHintProvider { get; set; }
+
+    public DiagnosticOptions? DiagnosticProvider { get; set; }
+}
+
+internal sealed class DiagnosticOptions
+{
+    public bool InterFileDependencies { get; set; }
+
+    public bool WorkspaceDiagnostics { get; set; }
 }
 
 internal sealed class RenameOptions
@@ -467,4 +476,42 @@ internal sealed class SnapshotResult
     public int OpenDocumentCount { get; set; }
 
     public int ProjectCount { get; set; }
+}
+
+/// <summary>
+/// Server-to-client notification (<c>textDocument/publishDiagnostics</c>).
+/// </summary>
+internal sealed class PublishDiagnosticsParams
+{
+    public string? Uri { get; set; }
+
+    public Diagnostic[]? Diagnostics { get; set; }
+}
+
+internal sealed class Diagnostic
+{
+    public Range? Range { get; set; }
+
+    public int Severity { get; set; }
+
+    public string? Code { get; set; }
+
+    public string? Source { get; set; }
+
+    public string? Message { get; set; }
+}
+
+internal sealed class DiagnosticParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+}
+
+/// <summary>
+/// Response shape for the pull-diagnostics request (<c>textDocument/diagnostic</c>, LSP 3.17).
+/// </summary>
+internal sealed class DocumentDiagnosticReport
+{
+    public string Kind { get; set; } = "full";
+
+    public Diagnostic[] Items { get; set; } = [];
 }

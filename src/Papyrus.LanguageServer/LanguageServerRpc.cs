@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Papyrus.Workspaces;
 using StreamJsonRpc;
 
 namespace Papyrus.LanguageServer;
@@ -32,6 +33,7 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly PrepareRenameHandler _prepareRename;
     private readonly DocumentHighlightHandler _documentHighlight;
     private readonly InlayHintHandler _inlayHint;
+    private readonly DiagnosticHandler _diagnostic;
 
     private int _shutdown;
     private int _disposed;
@@ -64,7 +66,15 @@ internal sealed class LanguageServerRpc : IDisposable
         _prepareRename = new PrepareRenameHandler();
         _documentHighlight = new DocumentHighlightHandler();
         _inlayHint = new InlayHintHandler();
+        _diagnostic = new DiagnosticHandler();
+        _scheduler.Workspace.WorkspaceChanged += OnWorkspaceChanged;
     }
+
+    /// <summary>
+    /// Set once the transport is listening so <see cref="OnWorkspaceChanged"/> can push
+    /// <c>textDocument/publishDiagnostics</c>. Left null in tests that never attach a client.
+    /// </summary>
+    internal ILspNotifier? Notifier { get; set; }
 
     internal Task<int> WaitForExitAsync() => _exit.Task;
 
@@ -81,7 +91,57 @@ internal sealed class LanguageServerRpc : IDisposable
             return;
         }
 
+        _scheduler.Workspace.WorkspaceChanged -= OnWorkspaceChanged;
         _scheduler.Dispose();
+    }
+
+    // Fired for every workspace mutation -- LSP-request-driven (didOpen/didChange) and
+    // file-watcher-driven (out-of-editor edits) alike -- so this single hook keeps open
+    // documents' diagnostics current regardless of what triggered the change.
+    private void OnWorkspaceChanged(object? sender, WorkspaceChangeEventArgs e)
+    {
+        if (Notifier is not { } notifier || Volatile.Read(ref _disposed) != 0)
+        {
+            return;
+        }
+
+        _ = PublishDiagnosticsAsync(notifier, e.NewSolution);
+    }
+
+    private static async Task PublishDiagnosticsAsync(
+        ILspNotifier notifier,
+        Papyrus.Workspaces.PapyrusSolution solution
+    )
+    {
+        foreach (var documentId in solution.OpenDocumentIds)
+        {
+            try
+            {
+                if (!solution.TryGetSyntaxTree(documentId, out var tree))
+                {
+                    continue;
+                }
+
+                var diagnostics = solution.GetDiagnostics(documentId);
+                var lineMap = tree.GetText().Lines;
+                await notifier
+                    .NotifyAsync(
+                        "textDocument/publishDiagnostics",
+                        new PublishDiagnosticsParams
+                        {
+                            Uri = LspUris.ToUri(documentId.Path),
+                            Diagnostics = LspDiagnostics.ToLsp(diagnostics, lineMap),
+                        },
+                        CancellationToken.None
+                    )
+                    .ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                // Best-effort push: a client disconnect or a transient analyzer error
+                // should not tear down the workspace-change subscription.
+            }
+        }
     }
 
     [JsonRpcMethod("initialize", UseSingleObjectParameterDeserialization = true)]
@@ -121,6 +181,11 @@ internal sealed class LanguageServerRpc : IDisposable
                     RenameProvider = new RenameOptions { PrepareProvider = true },
                     DocumentHighlightProvider = true,
                     InlayHintProvider = true,
+                    DiagnosticProvider = new DiagnosticOptions
+                    {
+                        InterFileDependencies = false,
+                        WorkspaceDiagnostics = false,
+                    },
                 },
                 ServerInfo = new ServerInfo { Name = "Papyrus Language Server" },
             }
@@ -363,6 +428,15 @@ internal sealed class LanguageServerRpc : IDisposable
     )
     {
         return _scheduler.ExecuteAsync(_inlayHint, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(DiagnosticHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<DocumentDiagnosticReport> DiagnosticAsync(
+        DiagnosticParams? parameters,
+        CancellationToken cancellationToken
+    )
+    {
+        return _scheduler.ExecuteAsync(_diagnostic, parameters, cancellationToken);
     }
 
     [JsonRpcMethod("shutdown")]
