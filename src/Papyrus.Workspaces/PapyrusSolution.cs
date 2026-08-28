@@ -57,6 +57,139 @@ public sealed class PapyrusSolution
         }
     }
 
+    /// <summary>
+    /// Describes every loaded project's name and source layout (each import/folder
+    /// entry plus the scripts found under it). Mirrors the legacy
+    /// <c>papyrus/projectInfos</c> shape.
+    /// </summary>
+    public ImmutableArray<ProjectInfo> GetProjectInfos()
+    {
+        var builder = ImmutableArray.CreateBuilder<ProjectInfo>(_projects.Count);
+        foreach (var pair in _projects)
+        {
+            builder.Add(DescribeProject(pair.Value));
+        }
+
+        return builder.MoveToImmutable();
+    }
+
+    private static ProjectInfo DescribeProject(ProjectState state)
+    {
+        var project = state.Project;
+        var resolver = state.DiskResolver;
+        var name = project.Path is null
+            ? project.Game?.ToString() ?? "Unknown"
+            : Path.GetFileNameWithoutExtension(project.Path);
+
+        // IncludeDirectories is built import-then-folder (see
+        // FileSystemScriptResolver(PapyrusProject, string)), so the same index maps
+        // each resolved directory back to the import/folder entry that produced it.
+        var includes = ImmutableArray.CreateBuilder<ProjectInfoSourceInclude>(
+            resolver.IncludeDirectories.Length);
+        for (var i = 0; i < resolver.IncludeDirectories.Length; i++)
+        {
+            var isImport = i < project.Imports.Length;
+            var declared = isImport
+                ? project.Imports[i]
+                : project.Folders[i - project.Imports.Length].Path;
+            includes.Add(
+                new ProjectInfoSourceInclude(
+                    declared,
+                    resolver.IncludeDirectories[i],
+                    isImport,
+                    ScriptsUnder(resolver.IncludeDirectories[i], resolver)));
+        }
+
+        return new ProjectInfo(name, includes.MoveToImmutable());
+    }
+
+    private static ImmutableArray<ProjectInfoScript> ScriptsUnder(
+        string directory,
+        FileSystemScriptResolver resolver)
+    {
+        if (!Directory.Exists(directory))
+        {
+            return ImmutableArray<ProjectInfoScript>.Empty;
+        }
+
+        var builder = ImmutableArray.CreateBuilder<ProjectInfoScript>();
+        foreach (var path in Directory.EnumerateFiles(directory, "*.psc", SearchOption.AllDirectories))
+        {
+            if (resolver.TryGetNameFromPath(path, out var name))
+            {
+                builder.Add(new ProjectInfoScript(name, path));
+            }
+        }
+
+        return builder.ToImmutable();
+    }
+
+    /// <summary>
+    /// Resolves a file path against every loaded project's search paths, returning
+    /// every qualified name the path could represent plus, per candidate name, every
+    /// file (across every project) that shares it -- more than one file for a name
+    /// usually means it is shadowed across import folders. Mirrors the legacy
+    /// <c>textDocument/scriptInfo</c> shape.
+    /// </summary>
+    public ScriptInfo GetScriptInfo(string filePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        var full = Path.GetFullPath(filePath);
+
+        var searchPaths = ImmutableArray.CreateBuilder<string>();
+        var seenSearchPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in _projects)
+        {
+            foreach (var directory in pair.Value.DiskResolver.IncludeDirectories)
+            {
+                if (seenSearchPaths.Add(directory))
+                {
+                    searchPaths.Add(directory);
+                }
+            }
+        }
+
+        var identifiers = ImmutableArray.CreateBuilder<CodeAnalysis.QualifiedName>();
+        var seenIdentifiers = new HashSet<CodeAnalysis.QualifiedName>();
+        foreach (var pair in _projects)
+        {
+            if (pair.Value.DiskResolver.TryGetNameFromPath(full, out var name)
+                && seenIdentifiers.Add(name))
+            {
+                identifiers.Add(name);
+            }
+        }
+
+        var identifierFiles = ImmutableArray.CreateBuilder<ScriptIdentifierFiles>(identifiers.Count);
+        foreach (var identifier in identifiers)
+        {
+            identifierFiles.Add(new ScriptIdentifierFiles(identifier, FilesForIdentifier(identifier)));
+        }
+
+        return new ScriptInfo(
+            identifiers.ToImmutable(),
+            identifierFiles.MoveToImmutable(),
+            searchPaths.ToImmutable());
+    }
+
+    private ImmutableArray<string> FilesForIdentifier(CodeAnalysis.QualifiedName identifier)
+    {
+        var files = ImmutableArray.CreateBuilder<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in _projects)
+        {
+            foreach (var candidate in pair.Value.DiskResolver.CandidateSourcePaths(identifier))
+            {
+                if (File.Exists(candidate) && seen.Add(candidate))
+                {
+                    files.Add(candidate);
+                }
+            }
+        }
+
+        return files.ToImmutable();
+    }
+
     public PapyrusCompilation? Compilation
     {
         get

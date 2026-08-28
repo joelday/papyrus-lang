@@ -674,6 +674,48 @@ public sealed class StructureHandlerTests
         }
     }
 
+    [Fact]
+    public async Task ScriptInfo_resolves_identifier_and_search_paths_for_the_open_document()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        await fixture.OpenAsync("ScriptName Foo\n", timeout.Token);
+
+        var info = await fixture.Scheduler.ExecuteAsync(
+            new DocumentScriptInfoHandler(),
+            new DocumentScriptInfoParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+            },
+            timeout.Token
+        );
+
+        Assert.Contains("Foo", info.Identifiers);
+        Assert.NotEmpty(info.SearchPaths);
+        var identifierFiles = Assert.Single(info.IdentifierFiles);
+        Assert.Equal("Foo", identifierFiles.Identifier);
+        Assert.Equal(fixture.ScriptPath, Assert.Single(identifierFiles.Files));
+    }
+
+    [Fact]
+    public async Task ProjectInfos_reports_the_loaded_project_and_its_scripts()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        await fixture.OpenAsync("ScriptName Foo\n", timeout.Token);
+
+        var result = await fixture.Scheduler.ExecuteAsync(
+            new ProjectInfosHandler(),
+            new ProjectInfosParams(),
+            timeout.Token
+        );
+
+        var project = Assert.Single(result.Projects);
+        var include = Assert.Single(project.SourceIncludes);
+        Assert.True(include.IsImport);
+        Assert.Contains(include.Scripts, s => s.Identifier == "Foo");
+    }
+
     private static bool Contains(Range outer, Range inner)
     {
         var startsBefore =

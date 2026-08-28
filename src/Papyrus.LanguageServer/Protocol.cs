@@ -467,7 +467,67 @@ internal sealed class WorkspaceEdit
     public Dictionary<string, TextEdit[]>? Changes { get; set; }
 }
 
+/// <summary>
+/// Response shape for <c>textDocument/scriptInfo</c>. Mirrors the legacy handler:
+/// candidate qualified names for the requested path, per-name shadowing info, and
+/// the full list of search paths across every loaded project.
+/// </summary>
+internal sealed class DocumentScriptInfo
+{
+    public string[] Identifiers { get; set; } = [];
+
+    public IdentifierFiles[] IdentifierFiles { get; set; } = [];
+
+    public string[] SearchPaths { get; set; } = [];
+}
+
+internal sealed class IdentifierFiles
+{
+    public string? Identifier { get; set; }
+
+    public string[] Files { get; set; } = [];
+}
+
+internal sealed class DocumentScriptInfoParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+}
+
+/// <summary>Response shape for <c>papyrus/projectInfos</c>.</summary>
+internal sealed class ProjectInfos
+{
+    public ProjectInfo[] Projects { get; set; } = [];
+}
+
+internal sealed class ProjectInfo
+{
+    public string? Name { get; set; }
+
+    public ProjectInfoSourceInclude[] SourceIncludes { get; set; } = [];
+}
+
+internal sealed class ProjectInfoSourceInclude
+{
+    public string? Name { get; set; }
+
+    public string? FullPath { get; set; }
+
+    public bool IsImport { get; set; }
+
+    public ProjectInfoScript[] Scripts { get; set; } = [];
+}
+
+internal sealed class ProjectInfoScript
+{
+    public string? Identifier { get; set; }
+
+    public string? FilePath { get; set; }
+}
+
+internal sealed class ProjectInfosParams { }
+
 internal sealed class SnapshotParams { }
+
 
 internal sealed class SnapshotResult
 {

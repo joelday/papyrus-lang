@@ -34,6 +34,8 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly DocumentHighlightHandler _documentHighlight;
     private readonly InlayHintHandler _inlayHint;
     private readonly DiagnosticHandler _diagnostic;
+    private readonly DocumentScriptInfoHandler _scriptInfo;
+    private readonly ProjectInfosHandler _projectInfos;
 
     private int _shutdown;
     private int _disposed;
@@ -67,6 +69,8 @@ internal sealed class LanguageServerRpc : IDisposable
         _documentHighlight = new DocumentHighlightHandler();
         _inlayHint = new InlayHintHandler();
         _diagnostic = new DiagnosticHandler();
+        _scriptInfo = new DocumentScriptInfoHandler();
+        _projectInfos = new ProjectInfosHandler();
         _scheduler.Workspace.WorkspaceChanged += OnWorkspaceChanged;
     }
 
@@ -437,6 +441,27 @@ internal sealed class LanguageServerRpc : IDisposable
     )
     {
         return _scheduler.ExecuteAsync(_diagnostic, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(
+        DocumentScriptInfoHandler.MethodName,
+        UseSingleObjectParameterDeserialization = true
+    )]
+    public Task<DocumentScriptInfo> ScriptInfoAsync(
+        DocumentScriptInfoParams? parameters,
+        CancellationToken cancellationToken
+    )
+    {
+        return _scheduler.ExecuteAsync(_scriptInfo, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(ProjectInfosHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<ProjectInfos> ProjectInfosAsync(
+        ProjectInfosParams? parameters,
+        CancellationToken cancellationToken
+    )
+    {
+        return _scheduler.ExecuteAsync(_projectInfos, parameters, cancellationToken);
     }
 
     [JsonRpcMethod("shutdown")]

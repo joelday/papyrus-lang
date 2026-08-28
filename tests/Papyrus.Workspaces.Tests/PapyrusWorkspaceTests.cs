@@ -414,6 +414,77 @@ public sealed class PapyrusWorkspaceTests : IDisposable
         Assert.Throws<ArgumentNullException>(() => workspace.ApplyChange(null!));
     }
 
+    [Fact]
+    public void GetProjectInfos_describes_imports_and_their_scripts()
+    {
+        var scripts = CreateScriptsDirectory("scripts");
+        File.WriteAllText(Path.Combine(scripts, "Foo.psc"), "ScriptName Foo\n");
+        var ppj = WriteProject("game.ppj", "scripts");
+
+        using var workspace = CreateWorkspace();
+        var project = workspace.LoadProject(ppj);
+
+        var infos = workspace.CurrentSolution.GetProjectInfos();
+
+        var info = Assert.Single(infos);
+        Assert.Equal("game", info.Name);
+        var include = Assert.Single(info.SourceIncludes);
+        Assert.Equal("scripts", include.Name);
+        Assert.True(include.IsImport);
+        Assert.Equal(Path.GetFullPath(scripts), include.FullPath);
+        var script = Assert.Single(include.Scripts);
+        Assert.Equal("Foo", script.Identifier.ToString());
+        Assert.Equal(Path.Combine(scripts, "Foo.psc"), script.FilePath);
+    }
+
+    [Fact]
+    public void GetScriptInfo_reports_candidate_identifier_and_search_paths()
+    {
+        var scripts = CreateScriptsDirectory("scripts");
+        var fooPath = Path.Combine(scripts, "Foo.psc");
+        File.WriteAllText(fooPath, "ScriptName Foo\n");
+        var ppj = WriteProject("game.ppj", "scripts");
+
+        using var workspace = CreateWorkspace();
+        workspace.LoadProject(ppj);
+
+        var info = workspace.CurrentSolution.GetScriptInfo(fooPath);
+
+        Assert.Equal(["Foo"], info.Identifiers.Select(n => n.ToString()));
+        Assert.Contains(Path.GetFullPath(scripts), info.SearchPaths);
+        var identifierFiles = Assert.Single(info.IdentifierFiles);
+        Assert.Equal("Foo", identifierFiles.Identifier.ToString());
+        Assert.Equal([fooPath], identifierFiles.Files);
+    }
+
+    [Fact]
+    public void GetScriptInfo_detects_shadowing_across_two_import_folders()
+    {
+        var first = CreateScriptsDirectory("first");
+        var second = CreateScriptsDirectory("second");
+        File.WriteAllText(Path.Combine(first, "Foo.psc"), "ScriptName Foo\n");
+        File.WriteAllText(Path.Combine(second, "Foo.psc"), "ScriptName Foo\n");
+        var ppj = Path.Combine(_root, "game.ppj");
+        File.WriteAllText(
+            ppj,
+            """
+            <PapyrusProject Game="sse">
+              <Imports>
+                <Import>first</Import>
+                <Import>second</Import>
+              </Imports>
+            </PapyrusProject>
+            """);
+
+        using var workspace = CreateWorkspace();
+        workspace.LoadProject(ppj);
+
+        var info = workspace.CurrentSolution.GetScriptInfo(Path.Combine(first, "Foo.psc"));
+
+        var identifierFiles = Assert.Single(info.IdentifierFiles);
+        Assert.Equal(2, identifierFiles.Files.Length);
+    }
+
     private PapyrusWorkspace CreateWorkspace(TimeProvider? timeProvider = null)
     {
         return new PapyrusWorkspace(

@@ -9,7 +9,7 @@ git checkout rewrite
 dotnet build Papyrus.sln -c Release
 ```
 
-**Score:** 72 of 87 plan items merged or implemented locally. **15 remaining.**
+**Score:** 73 of 88 plan items merged or implemented locally. **15 remaining.**
 
 **Hard constraints for this run**
 
@@ -89,6 +89,9 @@ Syntax generator, green/red trees, lexer, script/decls/FO4+/Starfield/statements
 | P4.03g | References + prepare-rename + rename                                      |
 | P4.04  | Completion resolve + commit characters (**#181**, **#190**)               |
 | P4.03h | Inlay hints + document highlight                                          |
+| P4.03i | Diagnostics (push + pull), `scriptInfo`, `projectInfos`                   |
+
+`PapyrusWorkspace`'s file watcher is now enabled by default in the real server too (the stdio entrypoint's `LspRequestScheduler()` had been overriding it off); out-of-editor edits are picked up and republish diagnostics via the same `WorkspaceChanged` hook used for LSP-driven edits. `textDocument/assembly` (PEX disassembly) is descoped from P4.03i to **P4.03j** below since it needs the emit pipeline wired into the language server, a materially bigger lift than the other three custom methods.
 
 ### Phase 5 — debugger line (partial)
 
@@ -106,24 +109,22 @@ Dependencies are from the accepted PR plan. Ready now means every listed depende
 
 ### Ready now
 
-P4.02 and P4.05 are done, so the remaining P4.03 handler slice and P5.03 are unblocked. P5.03 remains intentionally deferred until the managed debugger API is stable and Windows/MSVC validation is available.
+P4.02 and P4.05 are done, so P4.03j and P5.03 are unblocked. P5.03 remains intentionally deferred until the managed debugger API is stable and Windows/MSVC validation is available.
 
-| ID     | Title                   | Depends on          | Notes                                                 |
-| ------ | ----------------------- | ------------------- | ----------------------------------------------------- |
-| P4.03i | Remaining LSP           | P4.02, P3.05, P2.00 | diagnostics, assembly, scriptInfo, projectInfos, pull |
-| P5.03  | NativeAOT debug adapter | P4.05, P0.04        | **#180**                                              |
+| ID     | Title                   | Depends on                   | Notes                                                                         |
+| ------ | ----------------------- | ---------------------------- | ----------------------------------------------------------------------------- |
+| P4.03j | `textDocument/assembly` | P4.03i, P3.03b, P3.05, P2.00 | PEX disassembly of the open script; needs the emit pipeline wired into the LS |
+| P5.03  | NativeAOT debug adapter | P4.05, P0.04                 | **#180**                                                                      |
 
 ### Phase 4 — after handlers / AOT
 
 | ID     | Title                                                    | Depends on     |
 | ------ | -------------------------------------------------------- | -------------- |
 | P4.06a | Extension: `vscode-languageclient` 9, drop RxJS          | P4.05          |
-| P4.06b | Drop inversify/webpack, launch one LS, new-major VSIX    | P4.06a, P4.03i |
+| P4.06b | Drop inversify/webpack, launch one LS, new-major VSIX    | P4.06a, P4.03j |
 | P4.07  | Multi-root path hardening (**#193**, **#205**, **#208**) | P4.06b, P2.00  |
 | P4.08  | Diagnostic report + redaction test                       | P4.07          |
 | P4.09  | Delete `DarkId.Papyrus.*` managed tree                   | P4.06b, P4.08  |
-
-P4.03i also needs P3.05 and P2.00, both already done.
 
 ### Phase 5 — remaining
 
@@ -167,7 +168,7 @@ Old `DarkId.Papyrus.*` managed projects stay until P4.09.
 ## How to resume
 
 1. `git checkout rewrite` for the integration point, or create a topic branch from it for the next slice.
-2. Continue the plan from **P4.03i**. P5.03 (NativeAOT debug adapter) is unblocked in the dependency graph but intentionally deferred until the managed debugger API is stable and Windows/MSVC validation is available.
+2. Continue the plan from **P4.03j**. P5.03 (NativeAOT debug adapter) is unblocked in the dependency graph but intentionally deferred until the managed debugger API is stable and Windows/MSVC validation is available.
 3. Keep the no-push constraint unless the owner lifts it.
 
 The work is organized as ordinary local topic branches from `rewrite`; there is no agent-orchestration branch naming convention to recover.
