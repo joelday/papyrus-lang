@@ -35,6 +35,18 @@ public sealed class SemanticModel
 
     public ISymbol? GetSymbolInfo(int position, CancellationToken cancellationToken = default)
     {
+        var node = FindNode(position, cancellationToken);
+        return node is null ? null : GetSymbolInfo(node, cancellationToken);
+    }
+
+    /// <summary>
+    /// Finds the narrowest syntax node whose span contains <paramref name="position"/>,
+    /// stopping descent at the first token slot reached (mirroring Roslyn's
+    /// <c>SyntaxNode.FindNode</c>). Returns <see langword="null"/> when the position
+    /// falls outside the tree.
+    /// </summary>
+    public SyntaxNode? FindNode(int position, CancellationToken cancellationToken = default)
+    {
         cancellationToken.ThrowIfCancellationRequested();
         var root = SyntaxTree.GetRoot();
         if (position < root.FullSpan.Start || position >= root.FullSpan.End)
@@ -42,8 +54,7 @@ public sealed class SemanticModel
             return null;
         }
 
-        var node = FindNode(root, position);
-        return node is null ? null : GetSymbolInfo(node, cancellationToken);
+        return FindNode(root, position);
     }
 
     private static SyntaxNode? FindNode(SyntaxNode node, int position)
@@ -185,15 +196,101 @@ public sealed class SemanticModel
         );
     }
 
+    /// <summary>
+    /// Looks up the symbols reachable at <paramref name="position"/>. When
+    /// <paramref name="container"/> is given, this returns its members plus any inherited
+    /// members walked up its base-type chain (member-access lookup, e.g. after
+    /// <c>expr.</c>). Otherwise it returns the locals and parameters visible in the
+    /// enclosing function plus the containing script's own and inherited members
+    /// (unqualified lookup).
+    /// </summary>
     public ImmutableArray<ISymbol> LookupSymbols(int position, ITypeSymbol? container = null)
     {
+        var builder = ImmutableArray.CreateBuilder<ISymbol>();
         if (container is not null)
         {
-            return container.GetMembers();
+            AddMembersWithBaseTypes(container, builder);
+            return builder.ToImmutable();
+        }
+
+        var function = FindContainingFunction(position);
+        if (function is not null)
+        {
+            builder.AddRange(function.Parameters);
+            builder.AddRange(function.Locals);
         }
 
         var script = GetScript();
-        return script is null ? ImmutableArray<ISymbol>.Empty : script.GetMembers();
+        if (script is not null)
+        {
+            AddMembersWithBaseTypes(script, builder);
+        }
+
+        return builder.ToImmutable();
+    }
+
+    private static void AddMembersWithBaseTypes(
+        ITypeSymbol container,
+        ImmutableArray<ISymbol>.Builder builder
+    )
+    {
+        for (ITypeSymbol? current = container; current is not null; )
+        {
+            builder.AddRange(current.GetMembers());
+            current = current is IScriptSymbol script ? script.BaseType : null;
+        }
+    }
+
+    /// <summary>
+    /// Resolves the innermost invocation whose argument list encloses
+    /// <paramref name="position"/>, along with the zero-based index of the parameter
+    /// being written (the number of argument-list commas that precede the position).
+    /// </summary>
+    public bool TryGetInvocationContext(
+        int position,
+        out IFunctionSymbol? function,
+        out int activeParameterIndex,
+        CancellationToken cancellationToken = default
+    )
+    {
+        function = null;
+        activeParameterIndex = 0;
+
+        for (
+            var current = FindNode(position, cancellationToken);
+            current is not null;
+            current = current.Parent
+        )
+        {
+            if (
+                current is InvocationExpressionSyntax invocation
+                && Contains(invocation.ArgumentList, position)
+            )
+            {
+                function =
+                    GetSymbolInfo(invocation.Expression, cancellationToken) as IFunctionSymbol;
+                activeParameterIndex = CountPrecedingCommas(invocation.ArgumentList, position);
+                return function is not null;
+            }
+        }
+
+        return false;
+    }
+
+    private static int CountPrecedingCommas(ArgumentListSyntax argumentList, int position)
+    {
+        var arguments = argumentList.Arguments;
+        var count = 0;
+        for (var i = 0; i < arguments.Count; i++)
+        {
+            var comma = arguments.Get(i).CommaToken;
+            if (comma.Kind == SyntaxKind.CommaToken && comma.Span.End <= position)
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     // Speculative bind must not replace or reparse SyntaxTree.
@@ -213,24 +310,60 @@ public sealed class SemanticModel
         return true;
     }
 
+    /// <summary>
+    /// Resolves the container type for a member access at <paramref name="position"/>,
+    /// i.e. the type of <c>expr</c> in <c>expr.name</c>, whether <c>name</c> is
+    /// missing (cursor right after the dot) or partially typed. Returns
+    /// <see langword="false"/> when the position is not within a member access.
+    /// </summary>
+    public bool TryGetMemberAccessContainer(
+        int position,
+        out ITypeSymbol? container,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var node = FindNode(position, cancellationToken);
+        var member =
+            node as MemberAccessExpressionSyntax
+            ?? (
+                node is IdentifierNameSyntax identifier
+                && identifier.Parent is MemberAccessExpressionSyntax parentMember
+                && ReferenceEquals(parentMember.Name, identifier)
+                    ? parentMember
+                    : null
+            );
+
+        if (member is null)
+        {
+            container = null;
+            return false;
+        }
+
+        container = ResolveContainerType(member.Expression, cancellationToken);
+        return container is not null;
+    }
+
+    private ITypeSymbol? ResolveContainerType(
+        ExpressionSyntax expression,
+        CancellationToken cancellationToken
+    )
+    {
+        var container = TypeOf(GetSymbolInfo(expression, cancellationToken));
+        if (container is not null)
+        {
+            return container;
+        }
+
+        var bound = new ExpressionTypeBinder(Compilation, GetScript()).Bind(expression).ResultType;
+        return bound.TypeKind == TypeKind.Error ? null : bound;
+    }
+
     private ISymbol? BindMemberAccess(
         MemberAccessExpressionSyntax member,
         CancellationToken cancellationToken
     )
     {
-        var left = GetSymbolInfo(member.Expression, cancellationToken);
-        var container = TypeOf(left);
-        if (container is null && member.Expression is ExpressionSyntax expression)
-        {
-            container = new ExpressionTypeBinder(Compilation, GetScript())
-                .Bind(expression)
-                .ResultType;
-            if (container.TypeKind == TypeKind.Error)
-            {
-                container = null;
-            }
-        }
-
+        var container = ResolveContainerType(member.Expression, cancellationToken);
         if (container is null || !TryGetName(member.Name, out var name))
         {
             return null;

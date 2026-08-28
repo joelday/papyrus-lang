@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Papyrus.CodeAnalysis;
 using Papyrus.CodeAnalysis.Symbols;
 using Papyrus.CodeAnalysis.Syntax;
@@ -136,6 +137,121 @@ public sealed class SemanticModelTests
         var script = compilation.GetScript(QualifiedName.Parse("Foo"));
         var fromContainer = model.LookupSymbols(function.Span.Start, script);
         Assert.Equal("Bar", Assert.Single(fromContainer).Name.Text);
+    }
+
+    [Fact]
+    public void LookupSymbols_at_position_includes_locals_parameters_and_base_members()
+    {
+        var compilation = Compilation(
+            PapyrusDialect.SkyrimSe,
+            "Foo",
+            "ScriptName Foo Extends Base\nFunction Bar(Int a)\n  Int b = 1\nEndFunction\n",
+            ("Base", "ScriptName Base\nFunction Inherited()\nEndFunction\n")
+        );
+        var tree = compilation.GetSyntaxTree(QualifiedName.Parse("Foo"));
+        var model = compilation.GetSemanticModel(tree);
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+        var declare = Assert.IsType<DeclareStatementSyntax>(function.Statements.Get(0));
+
+        var symbols = model.LookupSymbols(declare.Span.Start);
+        var names = symbols.Select(s => s.Name.Text).ToArray();
+
+        Assert.Contains("a", names);
+        Assert.Contains("Bar", names);
+        Assert.Contains("Inherited", names);
+    }
+
+    [Fact]
+    public void LookupSymbols_with_container_walks_base_type_chain()
+    {
+        var compilation = Compilation(
+            PapyrusDialect.SkyrimSe,
+            "Foo",
+            "ScriptName Foo Extends Base\nFunction Bar()\nEndFunction\n",
+            ("Base", "ScriptName Base\nFunction Inherited()\nEndFunction\n")
+        );
+        var script = compilation.GetScript(QualifiedName.Parse("Foo"));
+        var tree = compilation.GetSyntaxTree(QualifiedName.Parse("Foo"));
+        var model = compilation.GetSemanticModel(tree);
+
+        var names = model.LookupSymbols(0, script).Select(s => s.Name.Text).ToArray();
+
+        Assert.Contains("Bar", names);
+        Assert.Contains("Inherited", names);
+    }
+
+    [Fact]
+    public void TryGetMemberAccessContainer_resolves_type_before_dot()
+    {
+        var compilation = Compilation(
+            PapyrusDialect.SkyrimSe,
+            "Foo",
+            "ScriptName Foo\nFunction Bar()\nEndFunction\n"
+                + "Function Baz()\n  Foo x\n  x.Bar()\nEndFunction\n"
+        );
+        var tree = compilation.GetSyntaxTree(QualifiedName.Parse("Foo"));
+        var model = compilation.GetSemanticModel(tree);
+        var source = tree.GetText().ToString();
+        var dotPosition = source.IndexOf("x.Bar", StringComparison.Ordinal) + 1;
+
+        var found = model.TryGetMemberAccessContainer(
+            dotPosition,
+            out var container,
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.True(found);
+        Assert.Equal("Foo", container?.Name.Text);
+    }
+
+    [Fact]
+    public void TryGetMemberAccessContainer_outside_member_access_returns_false()
+    {
+        var compilation = Compilation(
+            PapyrusDialect.SkyrimSe,
+            "Foo",
+            "ScriptName Foo\nFunction Bar()\nEndFunction\n"
+        );
+        var tree = compilation.GetSyntaxTree(QualifiedName.Parse("Foo"));
+        var model = compilation.GetSemanticModel(tree);
+        Assert.True(tree.TryGetRoot(out var root));
+        var function = Assert.IsType<FunctionDeclarationSyntax>(root.Members.Get(0));
+
+        var found = model.TryGetMemberAccessContainer(
+            function.Span.Start,
+            out var container,
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.False(found);
+        Assert.Null(container);
+    }
+
+    [Fact]
+    public void TryGetInvocationContext_reports_function_and_active_parameter()
+    {
+        var compilation = Compilation(
+            PapyrusDialect.SkyrimSe,
+            "Foo",
+            "ScriptName Foo\nFunction Bar(Int a, Int b)\nEndFunction\n"
+                + "Function Baz()\n  Bar(1, 2)\nEndFunction\n"
+        );
+        var tree = compilation.GetSyntaxTree(QualifiedName.Parse("Foo"));
+        var model = compilation.GetSemanticModel(tree);
+        var source = tree.GetText().ToString();
+        var secondArgumentPosition = source.IndexOf("2)", StringComparison.Ordinal);
+
+        var found = model.TryGetInvocationContext(
+            secondArgumentPosition,
+            out var function,
+            out var activeParameterIndex,
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.True(found);
+        Assert.Equal("Bar", function?.Name.Text);
+        Assert.Equal(1, activeParameterIndex);
     }
 
     [Fact]

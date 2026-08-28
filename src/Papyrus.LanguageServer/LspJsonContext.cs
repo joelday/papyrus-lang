@@ -4,7 +4,8 @@ namespace Papyrus.LanguageServer;
 
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+)]
 [JsonSerializable(typeof(InitializeParams))]
 [JsonSerializable(typeof(InitializeResult))]
 [JsonSerializable(typeof(InitializedParams))]
@@ -38,6 +39,4 @@ namespace Papyrus.LanguageServer;
 [JsonSerializable(typeof(Position[]))]
 [JsonSerializable(typeof(SnapshotParams))]
 [JsonSerializable(typeof(SnapshotResult))]
-internal sealed partial class LspJsonContext : JsonSerializerContext
-{
-}
+internal sealed partial class LspJsonContext : JsonSerializerContext { }

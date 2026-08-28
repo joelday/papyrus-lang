@@ -24,6 +24,8 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly FormattingHandler _formatting;
     private readonly HoverHandler _hover;
     private readonly DefinitionHandler _definition;
+    private readonly CompletionHandler _completion;
+    private readonly SignatureHelpHandler _signatureHelp;
 
     private int _shutdown;
     private int _disposed;
@@ -48,6 +50,8 @@ internal sealed class LanguageServerRpc : IDisposable
         _formatting = new FormattingHandler();
         _hover = new HoverHandler();
         _definition = new DefinitionHandler();
+        _completion = new CompletionHandler();
+        _signatureHelp = new SignatureHelpHandler();
     }
 
     internal Task<int> WaitForExitAsync() => _exit.Task;
@@ -92,6 +96,11 @@ internal sealed class LanguageServerRpc : IDisposable
                     DocumentFormattingProvider = true,
                     HoverProvider = true,
                     DefinitionProvider = true,
+                    CompletionProvider = new CompletionOptions { TriggerCharacters = ["."] },
+                    SignatureHelpProvider = new SignatureHelpOptions
+                    {
+                        TriggerCharacters = ["(", ","],
+                    },
                 },
                 ServerInfo = new ServerInfo { Name = "Papyrus Language Server" },
             }
@@ -253,6 +262,24 @@ internal sealed class LanguageServerRpc : IDisposable
     )
     {
         return _scheduler.ExecuteAsync(_definition, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(CompletionHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<CompletionItem[]> CompletionAsync(
+        CompletionParams? parameters,
+        CancellationToken cancellationToken
+    )
+    {
+        return _scheduler.ExecuteAsync(_completion, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(SignatureHelpHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<SignatureHelp?> SignatureHelpAsync(
+        SignatureHelpParams? parameters,
+        CancellationToken cancellationToken
+    )
+    {
+        return _scheduler.ExecuteAsync(_signatureHelp, parameters, cancellationToken);
     }
 
     [JsonRpcMethod("shutdown")]

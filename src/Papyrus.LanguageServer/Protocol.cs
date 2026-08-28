@@ -50,6 +50,20 @@ internal sealed class ServerCapabilities
     public bool? HoverProvider { get; set; }
 
     public bool? DefinitionProvider { get; set; }
+
+    public CompletionOptions? CompletionProvider { get; set; }
+
+    public SignatureHelpOptions? SignatureHelpProvider { get; set; }
+}
+
+internal sealed class CompletionOptions
+{
+    public string[]? TriggerCharacters { get; set; }
+}
+
+internal sealed class SignatureHelpOptions
+{
+    public string[]? TriggerCharacters { get; set; }
 }
 
 internal sealed class FoldingRangeParams
@@ -287,6 +301,50 @@ internal sealed class Location
     public string Uri { get; set; } = "";
 
     public Range Range { get; set; } = new();
+}
+
+internal sealed class CompletionParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+
+    public Position? Position { get; set; }
+}
+
+internal sealed class CompletionItem
+{
+    public string Label { get; set; } = "";
+
+    public int Kind { get; set; }
+
+    public string? Detail { get; set; }
+}
+
+internal sealed class SignatureHelpParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+
+    public Position? Position { get; set; }
+}
+
+internal sealed class SignatureHelp
+{
+    public SignatureInformation[] Signatures { get; set; } = [];
+
+    public int ActiveSignature { get; set; }
+
+    public int ActiveParameter { get; set; }
+}
+
+internal sealed class SignatureInformation
+{
+    public string Label { get; set; } = "";
+
+    public ParameterInformation[] Parameters { get; set; } = [];
+}
+
+internal sealed class ParameterInformation
+{
+    public string Label { get; set; } = "";
 }
 
 internal sealed class SnapshotParams { }

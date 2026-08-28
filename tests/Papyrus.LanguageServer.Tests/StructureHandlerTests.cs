@@ -229,6 +229,98 @@ public sealed class StructureHandlerTests
         Assert.Equal(1, location.Range.Start!.Line);
     }
 
+    [Fact]
+    public async Task Completion_lists_locals_parameters_and_script_members_in_scope()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        await fixture.OpenAsync(
+            "ScriptName Foo\n"
+                + "Function Bar(Int a)\n"
+                + "  Int b = 1\n"
+                + "  \n"
+                + "EndFunction\n"
+                + "Function Baz()\n"
+                + "EndFunction\n",
+            timeout.Token
+        );
+
+        var completions = await fixture.Scheduler.ExecuteAsync(
+            new CompletionHandler(),
+            new CompletionParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                Position = new Position { Line = 3, Character = 0 },
+            },
+            timeout.Token
+        );
+
+        var labels = completions.Select(item => item.Label).ToArray();
+        Assert.Contains("a", labels);
+        Assert.Contains("b", labels);
+        Assert.Contains("Bar", labels);
+        Assert.Contains("Baz", labels);
+    }
+
+    [Fact]
+    public async Task Completion_after_dot_lists_container_members()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        await fixture.OpenAsync(
+            "ScriptName Foo\n"
+                + "Function Bar()\n"
+                + "EndFunction\n"
+                + "Function Baz()\n"
+                + "  Foo x\n"
+                + "  x.Bar()\n"
+                + "EndFunction\n",
+            timeout.Token
+        );
+
+        var completions = await fixture.Scheduler.ExecuteAsync(
+            new CompletionHandler(),
+            new CompletionParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                Position = new Position { Line = 5, Character = 5 },
+            },
+            timeout.Token
+        );
+
+        Assert.Contains(completions, item => item.Label == "Bar");
+    }
+
+    [Fact]
+    public async Task SignatureHelp_reports_active_parameter()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        await fixture.OpenAsync(
+            "ScriptName Foo\n"
+                + "Function Bar(Int a, Int b)\n"
+                + "EndFunction\n"
+                + "Function Baz()\n"
+                + "  Bar(1, )\n"
+                + "EndFunction\n",
+            timeout.Token
+        );
+
+        var help = await fixture.Scheduler.ExecuteAsync(
+            new SignatureHelpHandler(),
+            new SignatureHelpParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                Position = new Position { Line = 4, Character = 9 },
+            },
+            timeout.Token
+        );
+
+        var signature = Assert.Single(help?.Signatures ?? []);
+        Assert.Equal("Bar(Int a, Int b)", signature.Label);
+        Assert.Equal(1, help!.ActiveParameter);
+    }
+
     private static bool Contains(Range outer, Range inner)
     {
         var startsBefore =
