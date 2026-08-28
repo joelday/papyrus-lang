@@ -48,7 +48,8 @@ public sealed class DocumentSymbol
         DocumentSymbolKind kind,
         TextSpan span,
         TextSpan selectionSpan,
-        ImmutableArray<DocumentSymbol> children)
+        ImmutableArray<DocumentSymbol> children
+    )
     {
         Name = name;
         Kind = kind;
@@ -75,7 +76,8 @@ public sealed class SyntaxTreeNode
         TextSpan span,
         string text,
         bool isToken,
-        ImmutableArray<SyntaxTreeNode> children)
+        ImmutableArray<SyntaxTreeNode> children
+    )
     {
         Kind = kind;
         Span = span;
@@ -105,7 +107,8 @@ public static class SyntaxStructure
 {
     public static ImmutableArray<DocumentSymbol> GetDocumentSymbols(
         SyntaxTree tree,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         System.ArgumentNullException.ThrowIfNull(tree);
         cancellationToken.ThrowIfCancellationRequested();
@@ -122,14 +125,18 @@ public static class SyntaxStructure
 
     public static ImmutableArray<FoldingSpan> GetFoldingSpans(
         SyntaxTree tree,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         System.ArgumentNullException.ThrowIfNull(tree);
         var builder = ImmutableArray.CreateBuilder<FoldingSpan>();
         VisitFolding(tree.GetRoot(), builder, cancellationToken);
-        builder.Sort(static (a, b) => a.Span.Start != b.Span.Start
-            ? a.Span.Start.CompareTo(b.Span.Start)
-            : b.Span.End.CompareTo(a.Span.End));
+        builder.Sort(
+            static (a, b) =>
+                a.Span.Start != b.Span.Start
+                    ? a.Span.Start.CompareTo(b.Span.Start)
+                    : b.Span.End.CompareTo(a.Span.End)
+        );
         return builder.ToImmutable();
     }
 
@@ -140,7 +147,8 @@ public static class SyntaxStructure
     public static ImmutableArray<TextSpan> GetSelectionSpans(
         SyntaxTree tree,
         int position,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         System.ArgumentNullException.ThrowIfNull(tree);
         var root = tree.GetRoot();
@@ -168,7 +176,8 @@ public static class SyntaxStructure
     private static void VisitFolding(
         SyntaxNode node,
         ImmutableArray<FoldingSpan>.Builder builder,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
         AddNodeFolding(node, builder);
@@ -190,7 +199,8 @@ public static class SyntaxStructure
 
     private static DocumentSymbol CreateDocumentSymbol(
         SyntaxNode node,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
         string name;
@@ -260,7 +270,10 @@ public static class SyntaxStructure
                 children = ImmutableArray<DocumentSymbol>.Empty;
                 break;
             default:
-                throw new ArgumentException($"Unsupported document symbol node: {node.Kind}", nameof(node));
+                throw new ArgumentException(
+                    $"Unsupported document symbol node: {node.Kind}",
+                    nameof(node)
+                );
         }
 
         return new DocumentSymbol(name, kind, node.Span, selectionSpan, children);
@@ -268,7 +281,8 @@ public static class SyntaxStructure
 
     private static ImmutableArray<DocumentSymbol> CreateDocumentSymbols<T>(
         SyntaxList<T> nodes,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
         where T : SyntaxNode
     {
         var builder = ImmutableArray.CreateBuilder<DocumentSymbol>(nodes.Count);
@@ -294,7 +308,13 @@ public static class SyntaxStructure
             }
         }
 
-        return new SyntaxTreeNode(node.Kind, node.Span, node.ToFullString(), false, children.ToImmutable());
+        return new SyntaxTreeNode(
+            node.Kind,
+            node.Span,
+            node.ToFullString(),
+            false,
+            children.ToImmutable()
+        );
     }
 
     private static string GetNameText(SyntaxNode name)
@@ -306,17 +326,21 @@ public static class SyntaxStructure
         SyntaxNode parent,
         GreenNode slot,
         int position,
-        ImmutableArray<SyntaxTreeNode>.Builder children)
+        ImmutableArray<SyntaxTreeNode>.Builder children
+    )
     {
         if (slot is GreenToken token)
         {
             var syntaxToken = new SyntaxToken(token, parent, position);
-            children.Add(new SyntaxTreeNode(
-                syntaxToken.Kind,
-                syntaxToken.Span,
-                syntaxToken.Text,
-                true,
-                ImmutableArray<SyntaxTreeNode>.Empty));
+            children.Add(
+                new SyntaxTreeNode(
+                    syntaxToken.Kind,
+                    syntaxToken.Span,
+                    syntaxToken.Text,
+                    true,
+                    ImmutableArray<SyntaxTreeNode>.Empty
+                )
+            );
             return;
         }
 
@@ -346,7 +370,8 @@ public static class SyntaxStructure
         int position,
         int slotIndex,
         ImmutableArray<FoldingSpan>.Builder builder,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         if (slot is GreenToken token)
         {
@@ -362,7 +387,14 @@ public static class SyntaxStructure
                 var element = slot.GetSlot(i);
                 if (element is not null)
                 {
-                    VisitFoldingSlot(parent, element, elementOffset, -1, builder, cancellationToken);
+                    VisitFoldingSlot(
+                        parent,
+                        element,
+                        elementOffset,
+                        -1,
+                        builder,
+                        cancellationToken
+                    );
                     elementOffset += element.FullWidth;
                 }
             }
@@ -370,9 +402,10 @@ public static class SyntaxStructure
             return;
         }
 
-        var child = slotIndex >= 0
-            ? parent.GetRed<SyntaxNode>(slotIndex)
-            : slot.CreateRed(parent, position);
+        var child =
+            slotIndex >= 0
+                ? parent.GetRed<SyntaxNode>(slotIndex)
+                : slot.CreateRed(parent, position);
         if (child is not null)
         {
             VisitFolding(child, builder, cancellationToken);
@@ -387,21 +420,33 @@ public static class SyntaxStructure
                 AddImportsFolding(script, builder);
                 break;
             case FunctionDeclarationSyntax function:
-                AddBlock(builder, HeaderStart(function.ReturnType?.Span.Start, function.FunctionKeyword), node);
+                AddBlock(
+                    builder,
+                    HeaderStart(function.ReturnType?.Span.Start, function.FunctionKeyword),
+                    node
+                );
                 break;
             case EventDeclarationSyntax @event:
                 AddBlock(builder, HeaderStart(null, @event.EventKeyword), node);
                 break;
             case PropertyDeclarationSyntax property when property.Accessors.Count > 0:
-                AddBlock(builder, HeaderStart(property.TypeName.Span.Start, property.PropertyKeyword), node);
+                AddBlock(
+                    builder,
+                    HeaderStart(property.TypeName.Span.Start, property.PropertyKeyword),
+                    node
+                );
                 break;
             case StateDeclarationSyntax state:
                 AddBlock(
                     builder,
-                    HeaderStart(state.AutoKeyword.IsMissing || state.AutoKeyword.Kind == SyntaxKind.None
-                        ? null
-                        : state.AutoKeyword.Span.Start, state.StateKeyword),
-                    node);
+                    HeaderStart(
+                        state.AutoKeyword.IsMissing || state.AutoKeyword.Kind == SyntaxKind.None
+                            ? null
+                            : state.AutoKeyword.Span.Start,
+                        state.StateKeyword
+                    ),
+                    node
+                );
                 break;
             case StructDeclarationSyntax @struct:
                 AddBlock(builder, HeaderStart(null, @struct.StructKeyword), node);
@@ -432,7 +477,8 @@ public static class SyntaxStructure
 
     private static void AddImportsFolding(
         ScriptDeclarationSyntax script,
-        ImmutableArray<FoldingSpan>.Builder builder)
+        ImmutableArray<FoldingSpan>.Builder builder
+    )
     {
         var imports = script.Imports;
         if (imports.Count < 2)
@@ -461,26 +507,32 @@ public static class SyntaxStructure
     private static void AddBlock(
         ImmutableArray<FoldingSpan>.Builder builder,
         int? start,
-        SyntaxNode node)
+        SyntaxNode node
+    )
     {
         var span = node.Span;
         var from = start ?? span.Start;
         if (span.End > from)
         {
-            builder.Add(new FoldingSpan(new TextSpan(from, span.End - from), FoldingSpanKind.Block));
+            builder.Add(
+                new FoldingSpan(new TextSpan(from, span.End - from), FoldingSpanKind.Block)
+            );
         }
     }
 
     private static void AddTokenFolding(
         GreenToken token,
         int position,
-        ImmutableArray<FoldingSpan>.Builder builder)
+        ImmutableArray<FoldingSpan>.Builder builder
+    )
     {
         var offset = position;
         AddTriviaFolding(token.Leading, ref offset, builder);
         if (token.Kind == SyntaxKind.DocCommentToken && token.Text.Length > 0)
         {
-            builder.Add(new FoldingSpan(new TextSpan(offset, token.Text.Length), FoldingSpanKind.Comment));
+            builder.Add(
+                new FoldingSpan(new TextSpan(offset, token.Text.Length), FoldingSpanKind.Comment)
+            );
         }
 
         offset += token.Text.Length;
@@ -490,7 +542,8 @@ public static class SyntaxStructure
     private static void AddTriviaFolding(
         GreenNode? trivia,
         ref int position,
-        ImmutableArray<FoldingSpan>.Builder builder)
+        ImmutableArray<FoldingSpan>.Builder builder
+    )
     {
         if (trivia is null)
         {
@@ -517,11 +570,14 @@ public static class SyntaxStructure
     private static void AddSingleTriviaFolding(
         GreenTrivia trivia,
         int position,
-        ImmutableArray<FoldingSpan>.Builder builder)
+        ImmutableArray<FoldingSpan>.Builder builder
+    )
     {
         if (trivia.Kind == SyntaxKind.BlockCommentTrivia && trivia.FullWidth > 0)
         {
-            builder.Add(new FoldingSpan(new TextSpan(position, trivia.FullWidth), FoldingSpanKind.Comment));
+            builder.Add(
+                new FoldingSpan(new TextSpan(position, trivia.FullWidth), FoldingSpanKind.Comment)
+            );
         }
         else if (trivia.Kind == SyntaxKind.SkippedTokensTrivia)
         {
@@ -539,7 +595,8 @@ public static class SyntaxStructure
         SyntaxNode node,
         int position,
         ImmutableArray<TextSpan>.Builder outerFirst,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
         var span = node.Span;
@@ -560,7 +617,15 @@ public static class SyntaxStructure
 
             if (position >= offset && position < offset + slot.FullWidth)
             {
-                CollectSelectionSlot(node, slot, offset, i, position, outerFirst, cancellationToken);
+                CollectSelectionSlot(
+                    node,
+                    slot,
+                    offset,
+                    i,
+                    position,
+                    outerFirst,
+                    cancellationToken
+                );
                 return;
             }
 
@@ -575,7 +640,8 @@ public static class SyntaxStructure
         int slotIndex,
         int target,
         ImmutableArray<TextSpan>.Builder outerFirst,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         if (slot is GreenToken)
         {
@@ -599,7 +665,15 @@ public static class SyntaxStructure
                 {
                     if (target >= elementOffset && target < elementOffset + element.FullWidth)
                     {
-                        CollectSelectionSlot(parent, element, elementOffset, -1, target, outerFirst, cancellationToken);
+                        CollectSelectionSlot(
+                            parent,
+                            element,
+                            elementOffset,
+                            -1,
+                            target,
+                            outerFirst,
+                            cancellationToken
+                        );
                         return;
                     }
 
@@ -610,9 +684,10 @@ public static class SyntaxStructure
             return;
         }
 
-        var child = slotIndex >= 0
-            ? parent.GetRed<SyntaxNode>(slotIndex)
-            : slot.CreateRed(parent, position);
+        var child =
+            slotIndex >= 0
+                ? parent.GetRed<SyntaxNode>(slotIndex)
+                : slot.CreateRed(parent, position);
         if (child is not null)
         {
             CollectSelectionSpans(child, target, outerFirst, cancellationToken);

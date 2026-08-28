@@ -24,9 +24,7 @@ internal sealed class ClientInfo
     public string? Version { get; set; }
 }
 
-internal sealed class ClientCapabilities
-{
-}
+internal sealed class ClientCapabilities { }
 
 internal sealed class InitializeResult
 {
@@ -198,9 +196,7 @@ internal sealed class ServerInfo
     public string? Version { get; set; }
 }
 
-internal sealed class InitializedParams
-{
-}
+internal sealed class InitializedParams { }
 
 internal sealed class DidOpenTextDocumentParams
 {
@@ -293,9 +289,7 @@ internal sealed class Location
     public Range Range { get; set; } = new();
 }
 
-internal sealed class SnapshotParams
-{
-}
+internal sealed class SnapshotParams { }
 
 internal sealed class SnapshotResult
 {

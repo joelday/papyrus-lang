@@ -23,7 +23,8 @@ public static class SyntaxFormatter
     public static ImmutableArray<IndentationEdit> GetIndentationEdits(
         SyntaxTree tree,
         int indentSize = 4,
-        bool useTabs = false)
+        bool useTabs = false
+    )
     {
         ArgumentNullException.ThrowIfNull(tree);
         if (indentSize < 1)
@@ -71,17 +72,15 @@ public static class SyntaxFormatter
         return edits.ToImmutable();
     }
 
-    public static string ApplyIndentation(
-        SyntaxTree tree,
-        int indentSize = 4,
-        bool useTabs = false)
+    public static string ApplyIndentation(SyntaxTree tree, int indentSize = 4, bool useTabs = false)
     {
         var text = tree.GetText().ToString();
         var edits = GetIndentationEdits(tree, indentSize, useTabs);
         for (var i = edits.Length - 1; i >= 0; i--)
         {
             var edit = edits[i];
-            text = text.Remove(edit.Span.Start, edit.Span.Length).Insert(edit.Span.Start, edit.NewText);
+            text = text.Remove(edit.Span.Start, edit.Span.Length)
+                .Insert(edit.Span.Start, edit.NewText);
         }
 
         return text;
@@ -157,8 +156,8 @@ public static class SyntaxFormatter
                 return false;
             }
 
-            var endsAtWord = index + word.Length == text.Length
-                || char.IsWhiteSpace(text[index + word.Length]);
+            var endsAtWord =
+                index + word.Length == text.Length || char.IsWhiteSpace(text[index + word.Length]);
             if ((index == 0 || char.IsWhiteSpace(text[index - 1])) && endsAtWord)
             {
                 return true;

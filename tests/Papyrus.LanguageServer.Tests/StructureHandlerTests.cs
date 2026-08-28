@@ -11,12 +11,17 @@ namespace Papyrus.LanguageServer.Tests;
 public sealed class StructureHandlerTests
 {
     private const string Script =
-        "ScriptName Foo\n" +          // 0
-        "Function DoThing(Int a)\n" + // 1
-        "  If a > 0\n" +              // 2
-        "    a = 1\n" +               // 3
-        "  EndIf\n" +                 // 4
-        "EndFunction\n";              // 5
+        "ScriptName Foo\n"
+        + // 0
+        "Function DoThing(Int a)\n"
+        + // 1
+        "  If a > 0\n"
+        + // 2
+        "    a = 1\n"
+        + // 3
+        "  EndIf\n"
+        + // 4
+        "EndFunction\n"; // 5
 
     [Fact]
     public async Task Folding_returns_line_ranges_for_blocks()
@@ -31,7 +36,8 @@ public sealed class StructureHandlerTests
             {
                 TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
             },
-            timeout.Token);
+            timeout.Token
+        );
 
         Assert.Contains(result, r => r is { StartLine: 1, EndLine: 5, Kind: null });
         Assert.Contains(result, r => r is { StartLine: 2, EndLine: 4, Kind: null });
@@ -52,18 +58,19 @@ public sealed class StructureHandlerTests
                 TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
                 Positions =
                 [
-                    new Position { Line = 3, Character = 4 },   // the 'a' in 'a = 1'
-                    new Position { Line = 0, Character = 0 },   // 'ScriptName'
+                    new Position { Line = 3, Character = 4 }, // the 'a' in 'a = 1'
+                    new Position { Line = 0, Character = 0 }, // 'ScriptName'
                 ],
             },
-            timeout.Token);
+            timeout.Token
+        );
 
         Assert.Equal(2, result.Length);
 
         var first = result[0];
         Assert.Equal(3, first.Range.Start?.Line);
         Assert.Equal(4, first.Range.Start?.Character);
-        Assert.Equal(5, first.Range.End?.Character);   // the identifier token 'a'
+        Assert.Equal(5, first.Range.End?.Character); // the identifier token 'a'
 
         // Walk the parent chain; each parent strictly contains its child.
         var depth = 0;
@@ -92,15 +99,13 @@ public sealed class StructureHandlerTests
         var folding = await fixture.Scheduler.ExecuteAsync(
             new FoldingRangeHandler(),
             new FoldingRangeParams { TextDocument = missing },
-            timeout.Token);
+            timeout.Token
+        );
         var selection = await fixture.Scheduler.ExecuteAsync(
             new SelectionRangeHandler(),
-            new SelectionRangeParams
-            {
-                TextDocument = missing,
-                Positions = [new Position()],
-            },
-            timeout.Token);
+            new SelectionRangeParams { TextDocument = missing, Positions = [new Position()] },
+            timeout.Token
+        );
 
         Assert.Empty(folding);
         Assert.Empty(selection);
@@ -113,7 +118,8 @@ public sealed class StructureHandlerTests
         using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
         await fixture.OpenAsync(
             "ScriptName Foo\nInt Property Value Auto\nState Waiting\n  Function DoThing()\n  EndFunction\nEndState\n",
-            timeout.Token);
+            timeout.Token
+        );
 
         var result = await fixture.Scheduler.ExecuteAsync(
             new DocumentSymbolHandler(),
@@ -121,7 +127,8 @@ public sealed class StructureHandlerTests
             {
                 TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
             },
-            timeout.Token);
+            timeout.Token
+        );
 
         var script = Assert.Single(result);
         Assert.Equal("Foo", script.Name);
@@ -147,13 +154,15 @@ public sealed class StructureHandlerTests
             {
                 TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
             },
-            timeout.Token);
+            timeout.Token
+        );
 
         Assert.NotNull(result?.Root);
         Assert.Equal("ScriptDeclaration", result!.Root!.Kind);
         Assert.Contains(
             DescendantsAndSelf(result.Root),
-            node => node.IsToken && node.Kind == "ScriptNameKeyword" && node.Text == "ScriptName");
+            node => node.IsToken && node.Kind == "ScriptNameKeyword" && node.Text == "ScriptName"
+        );
     }
 
     [Fact]
@@ -161,7 +170,10 @@ public sealed class StructureHandlerTests
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
-        await fixture.OpenAsync("ScriptName Foo\nFunction Go()\nx = 1\nEndFunction\n", timeout.Token);
+        await fixture.OpenAsync(
+            "ScriptName Foo\nFunction Go()\nx = 1\nEndFunction\n",
+            timeout.Token
+        );
 
         var result = await fixture.Scheduler.ExecuteAsync(
             new FormattingHandler(),
@@ -170,7 +182,8 @@ public sealed class StructureHandlerTests
                 TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
                 Options = new FormattingOptions { TabSize = 4, InsertSpaces = true },
             },
-            timeout.Token);
+            timeout.Token
+        );
 
         var edit = Assert.Single(result);
         Assert.Equal(2, edit.Range.Start!.Line);
@@ -185,7 +198,8 @@ public sealed class StructureHandlerTests
         using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
         await fixture.OpenAsync(
             "ScriptName Foo\nFunction Bar()\n  Bar()\nEndFunction\n",
-            timeout.Token);
+            timeout.Token
+        );
 
         var hover = await fixture.Scheduler.ExecuteAsync(
             new HoverHandler(),
@@ -194,7 +208,8 @@ public sealed class StructureHandlerTests
                 TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
                 Position = new Position { Line = 2, Character = 3 },
             },
-            timeout.Token);
+            timeout.Token
+        );
         var definition = await fixture.Scheduler.ExecuteAsync(
             new DefinitionHandler(),
             new DefinitionParams
@@ -202,9 +217,13 @@ public sealed class StructureHandlerTests
                 TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
                 Position = new Position { Line = 2, Character = 3 },
             },
-            timeout.Token);
+            timeout.Token
+        );
 
-        Assert.Contains(hover?.Contents ?? [], content => content.Contains("Bar", StringComparison.Ordinal));
+        Assert.Contains(
+            hover?.Contents ?? [],
+            content => content.Contains("Bar", StringComparison.Ordinal)
+        );
         var location = Assert.Single(definition);
         Assert.Equal(fixture.ScriptUri, location.Uri);
         Assert.Equal(1, location.Range.Start!.Line);
@@ -212,14 +231,21 @@ public sealed class StructureHandlerTests
 
     private static bool Contains(Range outer, Range inner)
     {
-        var startsBefore = outer.Start!.Line < inner.Start!.Line
-            || (outer.Start.Line == inner.Start.Line && outer.Start.Character <= inner.Start.Character);
-        var endsAfter = outer.End!.Line > inner.End!.Line
+        var startsBefore =
+            outer.Start!.Line < inner.Start!.Line
+            || (
+                outer.Start.Line == inner.Start.Line
+                && outer.Start.Character <= inner.Start.Character
+            );
+        var endsAfter =
+            outer.End!.Line > inner.End!.Line
             || (outer.End.Line == inner.End.Line && outer.End.Character >= inner.End.Character);
         return startsBefore && endsAfter;
     }
 
-    private static System.Collections.Generic.IEnumerable<SyntaxTreeNode> DescendantsAndSelf(SyntaxTreeNode node)
+    private static System.Collections.Generic.IEnumerable<SyntaxTreeNode> DescendantsAndSelf(
+        SyntaxTreeNode node
+    )
     {
         yield return node;
         foreach (var child in node.Children)

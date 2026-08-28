@@ -14,15 +14,14 @@ public sealed class SemanticModel
     private IScriptSymbol? _script;
 
     internal SemanticModel(PapyrusCompilation compilation, SyntaxTree tree)
-        : this(compilation, tree, speculative: null, position: 0)
-    {
-    }
+        : this(compilation, tree, speculative: null, position: 0) { }
 
     private SemanticModel(
         PapyrusCompilation compilation,
         SyntaxTree tree,
         SyntaxNode? speculative,
-        int position)
+        int position
+    )
     {
         Compilation = compilation;
         SyntaxTree = tree;
@@ -65,7 +64,11 @@ public sealed class SemanticModel
                 for (var j = 0; j < slot.SlotCount; j++)
                 {
                     var item = slot.GetSlot(j);
-                    if (item is not null && position >= listOffset && position < listOffset + item.FullWidth)
+                    if (
+                        item is not null
+                        && position >= listOffset
+                        && position < listOffset + item.FullWidth
+                    )
                     {
                         return item is Papyrus.CodeAnalysis.Syntax.InternalSyntax.GreenToken
                             ? node
@@ -86,7 +89,10 @@ public sealed class SemanticModel
         return node;
     }
 
-    public ISymbol? GetDeclaredSymbol(SyntaxNode node, CancellationToken cancellationToken = default)
+    public ISymbol? GetDeclaredSymbol(
+        SyntaxNode node,
+        CancellationToken cancellationToken = default
+    )
     {
         ArgumentNullException.ThrowIfNull(node);
         cancellationToken.ThrowIfCancellationRequested();
@@ -144,7 +150,8 @@ public sealed class SemanticModel
                 return GetSymbolInfo(invocation.Expression, cancellationToken);
             case MemberAccessExpressionSyntax member:
                 return BindMemberAccess(member, cancellationToken);
-            case IdentifierNameSyntax identifier when node.Parent is MemberAccessExpressionSyntax member:
+            case IdentifierNameSyntax identifier
+                when node.Parent is MemberAccessExpressionSyntax member:
                 return BindMemberAccess(member, cancellationToken);
             case IdentifierNameSyntax identifier when IsExtendsName(identifier):
                 return GetScript()?.BaseType;
@@ -164,14 +171,18 @@ public sealed class SemanticModel
 
         if (node is ExpressionSyntax expression)
         {
-            var type = new ExpressionTypeBinder(Compilation, GetScript()).Bind(expression).ResultType;
+            var type = new ExpressionTypeBinder(Compilation, GetScript())
+                .Bind(expression)
+                .ResultType;
             if (type.TypeKind != TypeKind.Error)
             {
                 return type;
             }
         }
 
-        return TypeOf(GetSymbolInfo(node, cancellationToken) ?? GetDeclaredSymbol(node, cancellationToken));
+        return TypeOf(
+            GetSymbolInfo(node, cancellationToken) ?? GetDeclaredSymbol(node, cancellationToken)
+        );
     }
 
     public ImmutableArray<ISymbol> LookupSymbols(int position, ITypeSymbol? container = null)
@@ -186,7 +197,11 @@ public sealed class SemanticModel
     }
 
     // Speculative bind must not replace or reparse SyntaxTree.
-    public bool TryGetSpeculativeSemanticModel(int position, SyntaxNode speculative, out SemanticModel model)
+    public bool TryGetSpeculativeSemanticModel(
+        int position,
+        SyntaxNode speculative,
+        out SemanticModel model
+    )
     {
         if (speculative is null)
         {
@@ -198,13 +213,18 @@ public sealed class SemanticModel
         return true;
     }
 
-    private ISymbol? BindMemberAccess(MemberAccessExpressionSyntax member, CancellationToken cancellationToken)
+    private ISymbol? BindMemberAccess(
+        MemberAccessExpressionSyntax member,
+        CancellationToken cancellationToken
+    )
     {
         var left = GetSymbolInfo(member.Expression, cancellationToken);
         var container = TypeOf(left);
         if (container is null && member.Expression is ExpressionSyntax expression)
         {
-            container = new ExpressionTypeBinder(Compilation, GetScript()).Bind(expression).ResultType;
+            container = new ExpressionTypeBinder(Compilation, GetScript())
+                .Bind(expression)
+                .ResultType;
             if (container.TypeKind == TypeKind.Error)
             {
                 container = null;
@@ -361,7 +381,10 @@ public sealed class SemanticModel
         return FindContainingFunction(root.Members, position);
     }
 
-    private IFunctionSymbol? FindContainingFunction(SyntaxList<MemberDeclarationSyntax> members, int position)
+    private IFunctionSymbol? FindContainingFunction(
+        SyntaxList<MemberDeclarationSyntax> members,
+        int position
+    )
     {
         var count = members.Count;
         for (var i = 0; i < count; i++)
@@ -396,7 +419,8 @@ public sealed class SemanticModel
 
     private IFunctionSymbol? FindContainingAccessor(
         SyntaxList<FunctionDeclarationSyntax> accessors,
-        int position)
+        int position
+    )
     {
         var count = accessors.Count;
         for (var i = 0; i < count; i++)
@@ -476,7 +500,11 @@ public sealed class SemanticModel
             return members[0];
         }
 
-        if (includeBase && type is IScriptSymbol script && script.BaseType is { TypeKind: not TypeKind.Error } baseType)
+        if (
+            includeBase
+            && type is IScriptSymbol script
+            && script.BaseType is { TypeKind: not TypeKind.Error } baseType
+        )
         {
             return FindMember(baseType, name, includeBase: true);
         }

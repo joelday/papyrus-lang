@@ -13,11 +13,23 @@ internal sealed class HoverHandler : ILspHandler<TextDocumentPositionParams?, Ho
     public string Method => MethodName;
     public bool MutatesSolution => false;
 
-    public Task<Hover?> HandleAsync(TextDocumentPositionParams? p, LspSnapshot snapshot, CancellationToken ct)
+    public Task<Hover?> HandleAsync(
+        TextDocumentPositionParams? p,
+        LspSnapshot snapshot,
+        CancellationToken ct
+    )
     {
         ct.ThrowIfCancellationRequested();
-        if (p?.Position is null
-            || !LspDocuments.TryGetSemanticModel(snapshot, p.TextDocument, out var model, out var tree, out _))
+        if (
+            p?.Position is null
+            || !LspDocuments.TryGetSemanticModel(
+                snapshot,
+                p.TextDocument,
+                out var model,
+                out var tree,
+                out _
+            )
+        )
         {
             return Task.FromResult<Hover?>(null);
         }
@@ -29,17 +41,15 @@ internal sealed class HoverHandler : ILspHandler<TextDocumentPositionParams?, Ho
             return Task.FromResult<Hover?>(null);
         }
 
-        return Task.FromResult<Hover?>(new Hover
-        {
-            Contents = [FormatSymbol(symbol)],
-        });
+        return Task.FromResult<Hover?>(new Hover { Contents = [FormatSymbol(symbol)] });
     }
 
     private static string FormatSymbol(ISymbol symbol)
     {
         return symbol switch
         {
-            IFunctionSymbol function => $"{function.Name.Text}({string.Join(", ", Parameters(function))}) -> {function.ReturnType.Name.Text}",
+            IFunctionSymbol function =>
+                $"{function.Name.Text}({string.Join(", ", Parameters(function))}) -> {function.ReturnType.Name.Text}",
             IPropertySymbol property => $"{property.Type.Name.Text} {property.Name.Text}",
             IVariableSymbol variable => $"{variable.Type.Name.Text} {variable.Name.Text}",
             IParameterSymbol parameter => $"{parameter.Type.Name.Text} {parameter.Name.Text}",
@@ -62,11 +72,23 @@ internal sealed class DefinitionHandler : ILspHandler<DefinitionParams?, Locatio
     public string Method => MethodName;
     public bool MutatesSolution => false;
 
-    public Task<Location[]> HandleAsync(DefinitionParams? p, LspSnapshot snapshot, CancellationToken ct)
+    public Task<Location[]> HandleAsync(
+        DefinitionParams? p,
+        LspSnapshot snapshot,
+        CancellationToken ct
+    )
     {
         ct.ThrowIfCancellationRequested();
-        if (p?.Position is null
-            || !LspDocuments.TryGetSemanticModel(snapshot, p.TextDocument, out var model, out var tree, out var path))
+        if (
+            p?.Position is null
+            || !LspDocuments.TryGetSemanticModel(
+                snapshot,
+                p.TextDocument,
+                out var model,
+                out var tree,
+                out var path
+            )
+        )
         {
             return Task.FromResult(Array.Empty<Location>());
         }
@@ -84,11 +106,13 @@ internal sealed class DefinitionHandler : ILspHandler<DefinitionParams?, Locatio
         {
             if (reference.SyntaxTree == tree)
             {
-                locations.Add(new Location
-                {
-                    Uri = p.TextDocument?.Uri ?? LspTestUri(path),
-                    Range = DocumentSymbolHandler.ToRange(lineMap, reference.Span),
-                });
+                locations.Add(
+                    new Location
+                    {
+                        Uri = p.TextDocument?.Uri ?? LspTestUri(path),
+                        Range = DocumentSymbolHandler.ToRange(lineMap, reference.Span),
+                    }
+                );
             }
         }
 

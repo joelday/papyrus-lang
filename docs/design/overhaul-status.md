@@ -54,37 +54,37 @@ Syntax generator, green/red trees, lexer, script/decls/FO4+/Starfield/statements
 
 ### Phase 3 — Emit + CLI (all except P3.12)
 
-| ID | Title |
-|---|---|
-| P3.01 | Bound tree |
-| P3.02 | Lowering |
-| P3.03a | CFG |
-| P3.03b | Temp pooling + PEX emit (`PexFunctionBuilder`, `PexEmitter`) |
-| P3.03c | Optimizer (Caprica starting rules, default off) |
-| P3.04 | Engine-limit diagnostics (`PAP20xx`) |
-| P3.05 | `papyrusc compile` (single file; `--game skyrimle`) |
-| P3.05b | NativeAOT smoke of `papyrusc` on `windows-latest` / win-x64 |
-| P3.06a | Native `.ppj` builds |
-| P3.06b | `${ENV}` + pre/post build (CLI default on) |
-| P3.07 | Differential compliance + allowlist (`docs/compliance/allowlist.md`) |
-| P3.09 | Debug-info emit |
-| P3.10 | Champollion tier-3 (optional; skips if binary/corpus missing) |
-| P3.11 | Encoding contract tests (Windows-1252 string tables) |
+| ID     | Title                                                                |
+| ------ | -------------------------------------------------------------------- |
+| P3.01  | Bound tree                                                           |
+| P3.02  | Lowering                                                             |
+| P3.03a | CFG                                                                  |
+| P3.03b | Temp pooling + PEX emit (`PexFunctionBuilder`, `PexEmitter`)         |
+| P3.03c | Optimizer (Caprica starting rules, default off)                      |
+| P3.04  | Engine-limit diagnostics (`PAP20xx`)                                 |
+| P3.05  | `papyrusc compile` (single file; `--game skyrimle`)                  |
+| P3.05b | NativeAOT smoke of `papyrusc` on `windows-latest` / win-x64          |
+| P3.06a | Native `.ppj` builds                                                 |
+| P3.06b | `${ENV}` + pre/post build (CLI default on)                           |
+| P3.07  | Differential compliance + allowlist (`docs/compliance/allowlist.md`) |
+| P3.09  | Debug-info emit                                                      |
+| P3.10  | Champollion tier-3 (optional; skips if binary/corpus missing)        |
+| P3.11  | Encoding contract tests (Windows-1252 string tables)                 |
 
 **Phase 3 complete,** including P3.12 pack metadata for `Papyrus.CodeAnalysis` 0.x (nuget.org push still disabled). Cutover still waits on a real corpus compliance number (K3), not just the harness.
 
 ### Phase 4 — started
 
-| ID | Title |
-|---|---|
-| P4.01 | StreamJsonRpc LSP host (`initialize` / `shutdown` / `exit`) |
-| P4.02 | Request scheduler (mutating serializes; non-mutating cancel on mutation) |
-| P4.05 | NativeAOT publish smokes: win-x64, linux-x64, osx-arm64 (`papyrusc` + LS) |
-| P4.03a | Semantic tokens |
-| P4.03b | Folding + selection ranges |
-| P4.03c | Document symbols + `textDocument/syntaxTree` |
-| P4.03d | Indent-only formatter |
-| P4.03e | Hover + definition |
+| ID     | Title                                                                     |
+| ------ | ------------------------------------------------------------------------- |
+| P4.01  | StreamJsonRpc LSP host (`initialize` / `shutdown` / `exit`)               |
+| P4.02  | Request scheduler (mutating serializes; non-mutating cancel on mutation)  |
+| P4.05  | NativeAOT publish smokes: win-x64, linux-x64, osx-arm64 (`papyrusc` + LS) |
+| P4.03a | Semantic tokens                                                           |
+| P4.03b | Folding + selection ranges                                                |
+| P4.03c | Document symbols + `textDocument/syntaxTree`                              |
+| P4.03d | Indent-only formatter                                                     |
+| P4.03e | Hover + definition                                                        |
 
 ### Phase 5 — debugger line (partial)
 
@@ -104,44 +104,44 @@ Dependencies are from the accepted PR plan. Ready now means every listed depende
 
 P4.02 and P4.05 are done, so the remaining P4.03 handler slices and P5.03 are unblocked. P5.03 remains intentionally deferred until the managed debugger API is stable and Windows/MSVC validation is available.
 
-| ID | Title | Depends on | Notes |
-|---|---|---|---|
-| P4.03f | Completion + signature help | P4.02, P2.09 | |
-| P4.03g | References + rename | P4.02, P2.09 | **#73/#74/#75**, **#84** |
-| P4.03h | Inlay hints + document highlight | P4.02, P2.09 | |
-| P4.03i | Remaining LSP | P4.02, P3.05, P2.00 | diagnostics, assembly, scriptInfo, projectInfos, pull |
-| P5.03 | NativeAOT debug adapter | P4.05, P0.04 | **#180** |
+| ID     | Title                            | Depends on          | Notes                                                 |
+| ------ | -------------------------------- | ------------------- | ----------------------------------------------------- |
+| P4.03f | Completion + signature help      | P4.02, P2.09        |                                                       |
+| P4.03g | References + rename              | P4.02, P2.09        | **#73/#74/#75**, **#84**                              |
+| P4.03h | Inlay hints + document highlight | P4.02, P2.09        |                                                       |
+| P4.03i | Remaining LSP                    | P4.02, P3.05, P2.00 | diagnostics, assembly, scriptInfo, projectInfos, pull |
+| P5.03  | NativeAOT debug adapter          | P4.05, P0.04        | **#180**                                              |
 
 ### Phase 4 — after handlers / AOT
 
-| ID | Title | Depends on |
-|---|---|---|
-| P4.04 | Completion resolve + commit characters (**#181**, **#190**) | P4.03f |
-| P4.06a | Extension: `vscode-languageclient` 9, drop RxJS | P4.05 |
-| P4.06b | Drop inversify/webpack, launch one LS, new-major VSIX | P4.06a, P4.03i |
-| P4.07 | Multi-root path hardening (**#193**, **#205**, **#208**) | P4.06b, P2.00 |
-| P4.08 | Diagnostic report + redaction test | P4.07 |
-| P4.09 | Delete `DarkId.Papyrus.*` managed tree | P4.06b, P4.08 |
+| ID     | Title                                                       | Depends on     |
+| ------ | ----------------------------------------------------------- | -------------- |
+| P4.04  | Completion resolve + commit characters (**#181**, **#190**) | P4.03f         |
+| P4.06a | Extension: `vscode-languageclient` 9, drop RxJS             | P4.05          |
+| P4.06b | Drop inversify/webpack, launch one LS, new-major VSIX       | P4.06a, P4.03i |
+| P4.07  | Multi-root path hardening (**#193**, **#205**, **#208**)    | P4.06b, P2.00  |
+| P4.08  | Diagnostic report + redaction test                          | P4.07          |
+| P4.09  | Delete `DarkId.Papyrus.*` managed tree                      | P4.06b, P4.08  |
 
 P4.03a–i can run in parallel (P4.03e–h also need P2.09, already done; P4.03i also needs P3.05 and P2.00, already done).
 
 ### Phase 5 — remaining
 
-| ID | Title | Depends on |
-|---|---|---|
-| P5.05a | DAP caps + **#85** / **#72** | P5.03 |
+| ID     | Title                                  | Depends on     |
+| ------ | -------------------------------------- | -------------- |
+| P5.05a | DAP caps + **#85** / **#72**           | P5.03          |
 | P5.05b | Interpreted `evaluate` / `setVariable` | P5.05a, P4.03e |
-| P5.05c | Conditional / hit-count breakpoints | P5.05b |
+| P5.05c | Conditional / hit-count breakpoints    | P5.05b         |
 
 ### Phase 6
 
-| ID | Title | Depends on |
-|---|---|---|
-| P6.01 | Code-action infrastructure | P4.03i |
-| P6.02 | First built-in fixes | P6.01 |
-| P6.03 | Refactorings | P6.02 |
-| P6.04 | Call / type hierarchy + workspace symbols | P4.03e, P4.03i |
-| P6.05 | `LanguageVersion.Extended` | P1.07, P3.02, **K5** |
+| ID    | Title                                     | Depends on           |
+| ----- | ----------------------------------------- | -------------------- |
+| P6.01 | Code-action infrastructure                | P4.03i               |
+| P6.02 | First built-in fixes                      | P6.01                |
+| P6.03 | Refactorings                              | P6.02                |
+| P6.04 | Call / type hierarchy + workspace symbols | P4.03e, P4.03i       |
+| P6.05 | `LanguageVersion.Extended`                | P1.07, P3.02, **K5** |
 
 P6.05 must not ship official-syntax-breaking extensions until the compliance number exists. DAG deps are already satisfied; the product gate is K5, not the graph.
 

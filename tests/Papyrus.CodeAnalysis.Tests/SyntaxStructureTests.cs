@@ -15,19 +15,31 @@ public sealed class SyntaxStructureTests
     public void Folds_functions_states_conditionals_and_comments()
     {
         const string source =
-            "ScriptName Foo\n" +                     // 0
-            "Import Utility\n" +                     // 1
-            "Import Math\n" +                        // 2
-            ";/ block\ncomment /;\n" +               // 3-4
-            "Function DoThing(Int a)\n" +            // 5
-            "  If a > 0\n" +                         // 6
-            "    a = 1\n" +                          // 7
-            "  Else\n" +                             // 8
-            "    a = 2\n" +                          // 9
-            "  EndIf\n" +                            // 10
-            "EndFunction\n" +                        // 11
-            "State Waiting\n" +                      // 12
-            "EndState\n";                            // 13
+            "ScriptName Foo\n"
+            + // 0
+            "Import Utility\n"
+            + // 1
+            "Import Math\n"
+            + // 2
+            ";/ block\ncomment /;\n"
+            + // 3-4
+            "Function DoThing(Int a)\n"
+            + // 5
+            "  If a > 0\n"
+            + // 6
+            "    a = 1\n"
+            + // 7
+            "  Else\n"
+            + // 8
+            "    a = 2\n"
+            + // 9
+            "  EndIf\n"
+            + // 10
+            "EndFunction\n"
+            + // 11
+            "State Waiting\n"
+            + // 12
+            "EndState\n"; // 13
         var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
 
         var spans = SyntaxStructure.GetFoldingSpans(tree, TestContext.Current.CancellationToken);
@@ -50,20 +62,23 @@ public sealed class SyntaxStructureTests
     public void Auto_properties_do_not_fold_but_full_properties_do()
     {
         const string source =
-            "ScriptName Foo\n" +
-            "Int Property Simple = 1 Auto\n" +
-            "Int Property Full\n" +
-            "  Int Function Get()\n" +
-            "    Return 1\n" +
-            "  EndFunction\n" +
-            "EndProperty\n";
+            "ScriptName Foo\n"
+            + "Int Property Simple = 1 Auto\n"
+            + "Int Property Full\n"
+            + "  Int Function Get()\n"
+            + "    Return 1\n"
+            + "  EndFunction\n"
+            + "EndProperty\n";
         var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
 
         var spans = SyntaxStructure.GetFoldingSpans(tree, TestContext.Current.CancellationToken);
 
         Assert.DoesNotContain(
             spans,
-            s => s.Span.Start == source.IndexOf("Int Property Simple", System.StringComparison.Ordinal));
+            s =>
+                s.Span.Start
+                == source.IndexOf("Int Property Simple", System.StringComparison.Ordinal)
+        );
         AssertContains(source, spans, "Int Property Full", "EndProperty", FoldingSpanKind.Block);
         AssertContains(source, spans, "Int Function Get", "EndFunction", FoldingSpanKind.Block);
     }
@@ -72,14 +87,15 @@ public sealed class SyntaxStructureTests
     public void Selection_spans_widen_from_token_to_ancestors()
     {
         const string source =
-            "ScriptName Foo\n" +
-            "Function DoThing(Int a)\n" +
-            "  a = a + 1\n" +
-            "EndFunction\n";
+            "ScriptName Foo\n" + "Function DoThing(Int a)\n" + "  a = a + 1\n" + "EndFunction\n";
         var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
         var position = source.IndexOf("a + 1", System.StringComparison.Ordinal);
 
-        var chain = SyntaxStructure.GetSelectionSpans(tree, position, TestContext.Current.CancellationToken);
+        var chain = SyntaxStructure.GetSelectionSpans(
+            tree,
+            position,
+            TestContext.Current.CancellationToken
+        );
 
         Assert.NotEmpty(chain);
 
@@ -91,11 +107,16 @@ public sealed class SyntaxStructureTests
         // The assignment statement's span includes its end-of-line token.
         Assert.Contains(
             chain,
-            s => s.Start == source.IndexOf("a = a + 1", System.StringComparison.Ordinal)
-                && s.End >= source.IndexOf("a = a + 1", System.StringComparison.Ordinal) + "a = a + 1".Length);
+            s =>
+                s.Start == source.IndexOf("a = a + 1", System.StringComparison.Ordinal)
+                && s.End
+                    >= source.IndexOf("a = a + 1", System.StringComparison.Ordinal)
+                        + "a = a + 1".Length
+        );
         Assert.Contains(
             chain,
-            s => s.Start == source.IndexOf("Function DoThing", System.StringComparison.Ordinal));
+            s => s.Start == source.IndexOf("Function DoThing", System.StringComparison.Ordinal)
+        );
 
         // Strictly widening.
         for (var i = 1; i < chain.Length; i++)
@@ -110,28 +131,38 @@ public sealed class SyntaxStructureTests
     {
         var tree = SyntaxTree.Parse("ScriptName Foo\n", PapyrusDialect.SkyrimSe);
 
-        Assert.Empty(SyntaxStructure.GetSelectionSpans(tree, 1000, TestContext.Current.CancellationToken));
-        Assert.Empty(SyntaxStructure.GetSelectionSpans(tree, -1, TestContext.Current.CancellationToken));
+        Assert.Empty(
+            SyntaxStructure.GetSelectionSpans(tree, 1000, TestContext.Current.CancellationToken)
+        );
+        Assert.Empty(
+            SyntaxStructure.GetSelectionSpans(tree, -1, TestContext.Current.CancellationToken)
+        );
     }
 
     [Fact]
     public void Document_symbols_are_structural_and_nested()
     {
         const string source =
-            "ScriptName Foo\n" +
-            "Int Property Value Auto\n" +
-            "State Waiting\n" +
-            "  Function DoThing()\n" +
-            "  EndFunction\n" +
-            "EndState\n";
+            "ScriptName Foo\n"
+            + "Int Property Value Auto\n"
+            + "State Waiting\n"
+            + "  Function DoThing()\n"
+            + "  EndFunction\n"
+            + "EndState\n";
         var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
 
-        var symbols = SyntaxStructure.GetDocumentSymbols(tree, TestContext.Current.CancellationToken);
+        var symbols = SyntaxStructure.GetDocumentSymbols(
+            tree,
+            TestContext.Current.CancellationToken
+        );
 
         var script = Assert.Single(symbols);
         Assert.Equal("Foo", script.Name);
         Assert.Equal(DocumentSymbolKind.Class, script.Kind);
-        Assert.Equal(new TextSpan(source.IndexOf("Foo", System.StringComparison.Ordinal), 3), script.SelectionSpan);
+        Assert.Equal(
+            new TextSpan(source.IndexOf("Foo", System.StringComparison.Ordinal), 3),
+            script.SelectionSpan
+        );
 
         var property = Assert.Single(script.Children, symbol => symbol.Name == "Value");
         Assert.Equal(DocumentSymbolKind.Property, property.Kind);
@@ -154,33 +185,39 @@ public sealed class SyntaxStructureTests
         Assert.False(projection.IsToken);
         Assert.Contains(
             projection.Children.SelectMany(DescendantsAndSelf),
-            node => node.IsToken && node.Kind == SyntaxKind.ScriptNameKeyword && node.Text == "ScriptName");
+            node =>
+                node.IsToken
+                && node.Kind == SyntaxKind.ScriptNameKeyword
+                && node.Text == "ScriptName"
+        );
     }
 
     [Fact]
     public void Indentation_edits_are_source_preserving_and_idempotent()
     {
         const string source =
-            "ScriptName Foo\n" +
-            "Function Go()\n" +
-            "  If true\n" +
-            "x = 1\n" +
-            "  EndIf\n" +
-            "EndFunction\n";
+            "ScriptName Foo\n"
+            + "Function Go()\n"
+            + "  If true\n"
+            + "x = 1\n"
+            + "  EndIf\n"
+            + "EndFunction\n";
         var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
 
         var formatted = SyntaxFormatter.ApplyIndentation(tree);
         Assert.Equal(
-            "ScriptName Foo\n" +
-            "Function Go()\n" +
-            "    If true\n" +
-            "        x = 1\n" +
-            "    EndIf\n" +
-            "EndFunction\n",
-            formatted);
+            "ScriptName Foo\n"
+                + "Function Go()\n"
+                + "    If true\n"
+                + "        x = 1\n"
+                + "    EndIf\n"
+                + "EndFunction\n",
+            formatted
+        );
         Assert.Equal(
             formatted,
-            SyntaxFormatter.ApplyIndentation(SyntaxTree.Parse(formatted, PapyrusDialect.SkyrimSe)));
+            SyntaxFormatter.ApplyIndentation(SyntaxTree.Parse(formatted, PapyrusDialect.SkyrimSe))
+        );
         Assert.Contains("If true", formatted);
         Assert.Contains("x = 1", formatted);
     }
@@ -189,12 +226,12 @@ public sealed class SyntaxStructureTests
     public void Indentation_handles_typed_function_and_property_declarations()
     {
         const string source =
-            "ScriptName Foo\n" +
-            "Int Property Value\n" +
-            "  Int Function Get()\n" +
-            "  Return 1\n" +
-            "  EndFunction\n" +
-            "EndProperty\n";
+            "ScriptName Foo\n"
+            + "Int Property Value\n"
+            + "  Int Function Get()\n"
+            + "  Return 1\n"
+            + "  EndFunction\n"
+            + "EndProperty\n";
         var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
 
         var formatted = SyntaxFormatter.ApplyIndentation(tree);
@@ -209,7 +246,8 @@ public sealed class SyntaxStructureTests
         ImmutableArray<FoldingSpan> spans,
         string startAnchor,
         string endAnchor,
-        FoldingSpanKind kind)
+        FoldingSpanKind kind
+    )
     {
         var start = source.IndexOf(startAnchor, System.StringComparison.Ordinal);
         Assert.True(start >= 0, $"start anchor not found: {startAnchor}");
@@ -217,11 +255,15 @@ public sealed class SyntaxStructureTests
         Assert.True(endAnchorStart >= 0, $"end anchor not found: {endAnchor}");
 
         var matches = spans.Where(s => s.Span.Start == start && s.Kind == kind).ToArray();
-        Assert.True(matches.Length == 1, $"expected one {kind} span at '{startAnchor}', found {matches.Length}");
+        Assert.True(
+            matches.Length == 1,
+            $"expected one {kind} span at '{startAnchor}', found {matches.Length}"
+        );
         var span = matches[0].Span;
         Assert.True(
             span.End >= endAnchorStart && span.End <= endAnchorStart + endAnchor.Length + 1,
-            $"span {span} does not end at '{endAnchor}' ({endAnchorStart}..{endAnchorStart + endAnchor.Length})");
+            $"span {span} does not end at '{endAnchor}' ({endAnchorStart}..{endAnchorStart + endAnchor.Length})"
+        );
     }
 
     private static bool Matches(string source, TextSpan span, string anchor)

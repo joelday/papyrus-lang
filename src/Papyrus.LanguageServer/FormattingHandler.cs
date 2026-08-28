@@ -17,7 +17,8 @@ internal sealed class FormattingHandler : ILspHandler<DocumentFormattingParams?,
     public Task<TextEdit[]> HandleAsync(
         DocumentFormattingParams? p,
         LspSnapshot snapshot,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ct.ThrowIfCancellationRequested();
         if (!LspDocuments.TryGetTree(snapshot, p?.TextDocument, out var tree))
@@ -29,7 +30,8 @@ internal sealed class FormattingHandler : ILspHandler<DocumentFormattingParams?,
         var edits = SyntaxFormatter.GetIndentationEdits(
             tree,
             Math.Max(1, options.TabSize),
-            useTabs: !options.InsertSpaces);
+            useTabs: !options.InsertSpaces
+        );
         var lineMap = tree.GetText().Lines;
         var result = new TextEdit[edits.Length];
         for (var i = 0; i < edits.Length; i++)

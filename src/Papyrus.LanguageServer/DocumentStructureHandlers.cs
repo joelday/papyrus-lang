@@ -17,7 +17,8 @@ internal sealed class DocumentSymbolHandler : ILspHandler<DocumentSymbolParams?,
     public Task<DocumentSymbol[]> HandleAsync(
         DocumentSymbolParams? p,
         LspSnapshot snapshot,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ct.ThrowIfCancellationRequested();
         if (!LspDocuments.TryGetTree(snapshot, p?.TextDocument, out var tree))
@@ -39,7 +40,8 @@ internal sealed class DocumentSymbolHandler : ILspHandler<DocumentSymbolParams?,
     private static DocumentSymbol CreateSymbol(
         Papyrus.CodeAnalysis.Structure.DocumentSymbol symbol,
         TextLineMap lineMap,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ct.ThrowIfCancellationRequested();
         var children = new DocumentSymbol[symbol.Children.Length];
@@ -85,7 +87,8 @@ internal sealed class DocumentSymbolHandler : ILspHandler<DocumentSymbolParams?,
     }
 }
 
-internal sealed class DocumentSyntaxTreeHandler : ILspHandler<DocumentSyntaxTreeParams?, DocumentSyntaxTree?>
+internal sealed class DocumentSyntaxTreeHandler
+    : ILspHandler<DocumentSyntaxTreeParams?, DocumentSyntaxTree?>
 {
     internal const string MethodName = "textDocument/syntaxTree";
 
@@ -96,7 +99,8 @@ internal sealed class DocumentSyntaxTreeHandler : ILspHandler<DocumentSyntaxTree
     public Task<DocumentSyntaxTree?> HandleAsync(
         DocumentSyntaxTreeParams? p,
         LspSnapshot snapshot,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ct.ThrowIfCancellationRequested();
         if (!LspDocuments.TryGetTree(snapshot, p?.TextDocument, out var tree))
@@ -105,16 +109,19 @@ internal sealed class DocumentSyntaxTreeHandler : ILspHandler<DocumentSyntaxTree
         }
 
         var lineMap = tree.GetText().Lines;
-        return Task.FromResult<DocumentSyntaxTree?>(new DocumentSyntaxTree
-        {
-            Root = CreateNode(SyntaxStructure.GetSyntaxTree(tree), lineMap, ct),
-        });
+        return Task.FromResult<DocumentSyntaxTree?>(
+            new DocumentSyntaxTree
+            {
+                Root = CreateNode(SyntaxStructure.GetSyntaxTree(tree), lineMap, ct),
+            }
+        );
     }
 
     private static SyntaxTreeNode CreateNode(
         Papyrus.CodeAnalysis.Structure.SyntaxTreeNode node,
         TextLineMap lineMap,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ct.ThrowIfCancellationRequested();
         var children = new SyntaxTreeNode[node.Children.Length];
