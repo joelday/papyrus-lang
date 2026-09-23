@@ -512,6 +512,49 @@ public sealed class SemanticModel
         return InFunctionBody(position) ? CompletionContextKind.Statement : CompletionContextKind.Declaration;
     }
 
+    /// <summary>The function, event, or property accessor whose body contains <paramref name="position"/>.</summary>
+    public IFunctionSymbol? GetEnclosingFunction(int position) => FindContainingFunction(position);
+
+    /// <summary>
+    /// Every call in <paramref name="function"/>'s body that resolves to a function, with the
+    /// span of the called name.
+    /// </summary>
+    public ImmutableArray<(IFunctionSymbol Target, TextSpan Span)> GetOutgoingCalls(
+        IFunctionSymbol function,
+        CancellationToken cancellationToken = default)
+    {
+        SyntaxNode? body = function switch
+        {
+            FunctionSymbol { Declaration: { } syntax } => syntax,
+            EventSymbol { Declaration: { } syntax } => syntax,
+            _ => null,
+        };
+        if (body is null || !ReferenceEquals(body.SyntaxTree, SyntaxTree))
+        {
+            return ImmutableArray<(IFunctionSymbol, TextSpan)>.Empty;
+        }
+
+        var invocations = ImmutableArray.CreateBuilder<InvocationExpressionSyntax>();
+        CollectNodes(body, invocations);
+        var calls = ImmutableArray.CreateBuilder<(IFunctionSymbol, TextSpan)>();
+        foreach (var invocation in invocations)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var name = invocation.Expression switch
+            {
+                NameExpressionSyntax { Name: IdentifierNameSyntax identifier } => identifier,
+                MemberAccessExpressionSyntax member => member.Name,
+                _ => null,
+            };
+            if (name is not null && GetSymbolInfo(invocation.Expression, cancellationToken) is IFunctionSymbol target)
+            {
+                calls.Add((target, name.Span));
+            }
+        }
+
+        return calls.ToImmutable();
+    }
+
     /// <summary>
     /// What this script's <c>Import</c>s put in scope unqualified: their global functions
     /// and their structs.

@@ -37,6 +37,14 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly DocumentScriptInfoHandler _scriptInfo;
     private readonly ProjectInfosHandler _projectInfos;
     private readonly WorkspaceSymbolHandler _workspaceSymbol = new();
+    private readonly TypeDefinitionHandler _typeDefinition = new();
+    private readonly ImplementationHandler _implementation = new();
+    private readonly PrepareCallHierarchyHandler _prepareCallHierarchy = new();
+    private readonly IncomingCallsHandler _incomingCalls = new();
+    private readonly OutgoingCallsHandler _outgoingCalls = new();
+    private readonly PrepareTypeHierarchyHandler _prepareTypeHierarchy = new();
+    private readonly SupertypesHandler _supertypes = new();
+    private readonly SubtypesHandler _subtypes = new();
     private readonly DocumentAssemblyHandler _assembly;
     private readonly WorkspaceFoldersHandler _workspaceFolders;
     private WorkspaceFolderChange? _initialWorkspaceFolders;
@@ -202,6 +210,10 @@ internal sealed class LanguageServerRpc : IDisposable
                         WorkspaceDiagnostics = false,
                     },
                     WorkspaceSymbolProvider = true,
+                    TypeDefinitionProvider = true,
+                    ImplementationProvider = true,
+                    CallHierarchyProvider = true,
+                    TypeHierarchyProvider = true,
                     Workspace = new WorkspaceServerCapabilities
                     {
                         WorkspaceFolders = new WorkspaceFoldersServerCapabilities
@@ -506,6 +518,46 @@ internal sealed class LanguageServerRpc : IDisposable
     {
         return _scheduler.ExecuteAsync(_workspaceSymbol, parameters, cancellationToken);
     }
+
+    [JsonRpcMethod(TypeDefinitionHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<Location[]> TypeDefinitionAsync(DefinitionParams? parameters, CancellationToken cancellationToken) =>
+        _scheduler.ExecuteAsync(_typeDefinition, parameters, cancellationToken);
+
+    [JsonRpcMethod(ImplementationHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<Location[]> ImplementationAsync(DefinitionParams? parameters, CancellationToken cancellationToken) =>
+        _scheduler.ExecuteAsync(_implementation, parameters, cancellationToken);
+
+    [JsonRpcMethod(PrepareCallHierarchyHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<HierarchyItem[]?> PrepareCallHierarchyAsync(
+        TextDocumentPositionParams? parameters,
+        CancellationToken cancellationToken
+    ) => _scheduler.ExecuteAsync(_prepareCallHierarchy, parameters, cancellationToken);
+
+    [JsonRpcMethod(IncomingCallsHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<CallHierarchyIncomingCall[]?> IncomingCallsAsync(
+        HierarchyItemParams? parameters,
+        CancellationToken cancellationToken
+    ) => _scheduler.ExecuteAsync(_incomingCalls, parameters, cancellationToken);
+
+    [JsonRpcMethod(OutgoingCallsHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<CallHierarchyOutgoingCall[]?> OutgoingCallsAsync(
+        HierarchyItemParams? parameters,
+        CancellationToken cancellationToken
+    ) => _scheduler.ExecuteAsync(_outgoingCalls, parameters, cancellationToken);
+
+    [JsonRpcMethod(PrepareTypeHierarchyHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<HierarchyItem[]?> PrepareTypeHierarchyAsync(
+        TextDocumentPositionParams? parameters,
+        CancellationToken cancellationToken
+    ) => _scheduler.ExecuteAsync(_prepareTypeHierarchy, parameters, cancellationToken);
+
+    [JsonRpcMethod(SupertypesHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<HierarchyItem[]?> SupertypesAsync(HierarchyItemParams? parameters, CancellationToken cancellationToken) =>
+        _scheduler.ExecuteAsync(_supertypes, parameters, cancellationToken);
+
+    [JsonRpcMethod(SubtypesHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<HierarchyItem[]?> SubtypesAsync(HierarchyItemParams? parameters, CancellationToken cancellationToken) =>
+        _scheduler.ExecuteAsync(_subtypes, parameters, cancellationToken);
 
     [JsonRpcMethod(ProjectInfosHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
     public Task<ProjectInfos> ProjectInfosAsync(

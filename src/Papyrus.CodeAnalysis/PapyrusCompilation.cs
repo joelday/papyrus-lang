@@ -174,6 +174,18 @@ public sealed class PapyrusCompilation
         return CanResolve(name);
     }
 
+    /// <summary>
+    /// The script <paramref name="name"/> extends, completing only what that needs (not the
+    /// script's bodies), or null when it extends nothing or cannot be resolved.
+    /// </summary>
+    public IScriptSymbol? GetBaseScript(QualifiedName name)
+    {
+        var script = GetScriptForType(name);
+        return script.TypeKind == TypeKind.Error || script.BaseType is not { TypeKind: not TypeKind.Error } baseType
+            ? null
+            : baseType;
+    }
+
     public IReadOnlyCollection<QualifiedName> GetDependents(QualifiedName name)
     {
         name = Intern(name);

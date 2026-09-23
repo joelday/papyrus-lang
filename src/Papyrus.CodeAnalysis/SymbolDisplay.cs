@@ -33,6 +33,39 @@ public static class SymbolDisplay
         };
     }
 
+    /// <summary>
+    /// The span of the name in the symbol's declaration (where an editor puts the cursor or
+    /// highlight), or of the whole declaration when the name cannot be located.
+    /// </summary>
+    public static Papyrus.CodeAnalysis.Text.TextSpan? GetNameSpan(ISymbol symbol)
+    {
+        ArgumentNullException.ThrowIfNull(symbol);
+        return symbol switch
+        {
+            FunctionSymbol { Declaration: { } syntax } => syntax.Name.Span,
+            EventSymbol { Declaration: { } syntax } => syntax.Name.Span,
+            PropertySymbol { Declaration: { } syntax } => syntax.Name.Span,
+            VariableSymbol { Declaration: { } syntax } => syntax.Name.Span,
+            VariableSymbol { LocalDeclaration: { } syntax } => syntax.Name.Span,
+            StateSymbol { Declaration: { } syntax } => syntax.Name.Span,
+            IScriptSymbol script when ScriptRoot(script) is { } root => root.Name.Span,
+            _ => symbol.DeclaringSyntaxReferences.IsDefaultOrEmpty ? null : symbol.DeclaringSyntaxReferences[0].Span,
+        };
+    }
+
+    private static ScriptDeclarationSyntax? ScriptRoot(IScriptSymbol script)
+    {
+        foreach (var reference in script.DeclaringSyntaxReferences)
+        {
+            if (reference.SyntaxTree is { } tree && tree.TryGetRoot(out var root))
+            {
+                return root;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>A parameter as it appears in its function's declaration: <c>Int a = 5</c>.</summary>
     public static string ToParameterString(IParameterSymbol parameter)
     {

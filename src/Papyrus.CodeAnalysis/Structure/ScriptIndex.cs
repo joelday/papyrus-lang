@@ -43,13 +43,17 @@ public sealed class ScriptIndex
 
     private readonly HashSet<string> _identifiers;
 
-    private ScriptIndex(ImmutableArray<IndexedDeclaration> declarations, HashSet<string> identifiers)
+    private ScriptIndex(ImmutableArray<IndexedDeclaration> declarations, HashSet<string> identifiers, string? baseName)
     {
         Declarations = declarations;
         _identifiers = identifiers;
+        BaseName = baseName;
     }
 
     public ImmutableArray<IndexedDeclaration> Declarations { get; }
+
+    /// <summary>The <c>Extends</c> name as written (possibly namespace-relative), or null.</summary>
+    public string? BaseName { get; }
 
     public static ScriptIndex Get(SyntaxTree tree)
     {
@@ -66,14 +70,20 @@ public sealed class ScriptIndex
         CollectIdentifiers(tree.GetRoot().Green, identifiers);
 
         var declarations = ImmutableArray.CreateBuilder<IndexedDeclaration>();
-        if (tree.TryGetRoot(out var root) && !root.Name.IsMissing)
+        string? baseName = null;
+        if (tree.TryGetRoot(out var root) && root.ExtendsClause is { TypeName.Name: { IsMissing: false } extendsName })
+        {
+            baseName = extendsName.ToFullString().Trim();
+        }
+
+        if (root is not null && !root.Name.IsMissing)
         {
             var scriptName = root.Name.ToFullString().Trim();
             declarations.Add(new IndexedDeclaration(scriptName, IndexedDeclarationKind.Script, root.Name.Span, null));
             AddMembers(root.Members, scriptName, declarations);
         }
 
-        return new ScriptIndex(declarations.ToImmutable(), identifiers);
+        return new ScriptIndex(declarations.ToImmutable(), identifiers, baseName);
     }
 
     private static void AddMembers<T>(

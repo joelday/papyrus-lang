@@ -356,6 +356,134 @@ public sealed class PapyrusSolution
     }
 
     /// <summary>
+    /// Scripts in the project that extend <paramref name="script"/> (directly, or at any
+    /// depth when <paramref name="transitive"/>). Each script's Extends name (from its
+    /// syntax index) prefilters, and only candidates are resolved.
+    /// </summary>
+    public ImmutableArray<(QualifiedName Name, string Path)> FindDerivedScripts(
+        ProjectId projectId,
+        CodeAnalysis.Symbols.IScriptSymbol script,
+        bool transitive,
+        CancellationToken cancellationToken = default)
+    {
+        var state = GetState(projectId);
+        var targets = new HashSet<QualifiedName> { script.QualifiedName };
+        var targetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { script.Name.Text };
+        var results = ImmutableArray.CreateBuilder<(QualifiedName, string)>();
+        var found = true;
+        while (found)
+        {
+            found = false;
+            foreach (var (name, path) in state.DiskResolver.GetScripts())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (targets.Contains(name))
+                {
+                    continue;
+                }
+
+                var baseName = CodeAnalysis.Structure.ScriptIndex.Get(state.Compilation.GetSyntaxTree(name)).BaseName;
+                if (baseName is null || !targetNames.Contains(baseName[(baseName.LastIndexOf(':') + 1)..]))
+                {
+                    continue;
+                }
+
+                if (state.Compilation.GetBaseScript(name) is { } resolved && targets.Contains(resolved.QualifiedName))
+                {
+                    results.Add((name, path));
+                    if (transitive)
+                    {
+                        targets.Add(name);
+                        targetNames.Add(name.Parts[^1].Text);
+                        found = true;
+                    }
+                }
+            }
+        }
+
+        return results.ToImmutable();
+    }
+
+    /// <summary>
+    /// Where <paramref name="symbol"/> is implemented further down the hierarchy: for a
+    /// script, every script extending it; for a function or event, the same-named
+    /// declarations in those scripts.
+    /// </summary>
+    public ImmutableArray<DeclarationMatch> FindImplementations(
+        ProjectId projectId,
+        CodeAnalysis.Symbols.ISymbol symbol,
+        CancellationToken cancellationToken = default)
+    {
+        var state = GetState(projectId);
+        var owner = symbol as CodeAnalysis.Symbols.IScriptSymbol ?? symbol.ContainingScript;
+        var results = ImmutableArray.CreateBuilder<DeclarationMatch>();
+        if (owner is null || symbol is not (CodeAnalysis.Symbols.IScriptSymbol or CodeAnalysis.Symbols.IFunctionSymbol))
+        {
+            return results.ToImmutable();
+        }
+
+        foreach (var (name, path) in FindDerivedScripts(projectId, owner, transitive: true, cancellationToken))
+        {
+            var tree = state.Compilation.GetSyntaxTree(name);
+            foreach (var declaration in CodeAnalysis.Structure.ScriptIndex.Get(tree).Declarations)
+            {
+                var matches = symbol is CodeAnalysis.Symbols.IScriptSymbol
+                    ? declaration.Kind == CodeAnalysis.Structure.IndexedDeclarationKind.Script
+                    : declaration.Kind is CodeAnalysis.Structure.IndexedDeclarationKind.Function
+                        or CodeAnalysis.Structure.IndexedDeclarationKind.Event
+                      && declaration.Name.Equals(symbol.Name.Text, StringComparison.OrdinalIgnoreCase);
+                if (matches)
+                {
+                    results.Add(new DeclarationMatch(path, tree, declaration));
+                }
+            }
+        }
+
+        return results.ToImmutable();
+    }
+
+    /// <summary>
+    /// The functions that call <paramref name="function"/>, each with the spans of its calls.
+    /// </summary>
+    public ImmutableArray<(CodeAnalysis.Symbols.IFunctionSymbol Caller, string Path, SyntaxTree Tree, ImmutableArray<TextSpan> Calls)> FindCallers(
+        ProjectId projectId,
+        CodeAnalysis.Symbols.IFunctionSymbol function,
+        CancellationToken cancellationToken = default)
+    {
+        var state = GetState(projectId);
+        var results = ImmutableArray.CreateBuilder<(CodeAnalysis.Symbols.IFunctionSymbol, string, SyntaxTree, ImmutableArray<TextSpan>)>();
+        foreach (var script in FindReferences(projectId, function, cancellationToken))
+        {
+            var model = state.Compilation.GetSemanticModel(script.Tree);
+            var byCaller = new Dictionary<CodeAnalysis.Symbols.IFunctionSymbol, ImmutableArray<TextSpan>.Builder>(ReferenceEqualityComparer.Instance);
+            var order = new List<CodeAnalysis.Symbols.IFunctionSymbol>();
+            foreach (var reference in script.Spans)
+            {
+                if (reference.IsDeclaration || model.GetEnclosingFunction(reference.Span.Start) is not { } caller)
+                {
+                    continue;
+                }
+
+                if (!byCaller.TryGetValue(caller, out var spans))
+                {
+                    spans = ImmutableArray.CreateBuilder<TextSpan>();
+                    byCaller[caller] = spans;
+                    order.Add(caller);
+                }
+
+                spans.Add(reference.Span);
+            }
+
+            foreach (var caller in order)
+            {
+                results.Add((caller, script.Path, script.Tree, byCaller[caller].ToImmutable()));
+            }
+        }
+
+        return results.ToImmutable();
+    }
+
+    /// <summary>
     /// Declarations across every project whose name matches <paramref name="query"/> as a
     /// case-insensitive subsequence (`mvto` finds `MoveTo`), from syntax alone. Each script
     /// file is searched once even when several projects include it.

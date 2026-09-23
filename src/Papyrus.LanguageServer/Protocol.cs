@@ -122,6 +122,14 @@ internal sealed class ServerCapabilities
     public WorkspaceServerCapabilities? Workspace { get; set; }
 
     public bool? WorkspaceSymbolProvider { get; set; }
+
+    public bool? TypeDefinitionProvider { get; set; }
+
+    public bool? ImplementationProvider { get; set; }
+
+    public bool? CallHierarchyProvider { get; set; }
+
+    public bool? TypeHierarchyProvider { get; set; }
 }
 
 internal sealed class WorkspaceServerCapabilities
@@ -667,4 +675,51 @@ internal sealed class DocumentDiagnosticReport
     public string Kind { get; set; } = "full";
 
     public Diagnostic[] Items { get; set; } = [];
+}
+
+/// <summary>
+/// A call or type hierarchy item. <see cref="Data"/> is echoed back by the client, and
+/// locates the declaration's name so follow-up requests can re-resolve the symbol.
+/// </summary>
+internal sealed class HierarchyItem
+{
+    public string Name { get; set; } = "";
+
+    public int Kind { get; set; }
+
+    public string? Detail { get; set; }
+
+    public string Uri { get; set; } = "";
+
+    public Range Range { get; set; } = new();
+
+    public Range SelectionRange { get; set; } = new();
+
+    public HierarchyItemData? Data { get; set; }
+}
+
+internal sealed class HierarchyItemData
+{
+    public string Uri { get; set; } = "";
+
+    public int Offset { get; set; }
+}
+
+internal sealed class HierarchyItemParams
+{
+    public HierarchyItem? Item { get; set; }
+}
+
+internal sealed class CallHierarchyIncomingCall
+{
+    public HierarchyItem From { get; set; } = new();
+
+    public Range[] FromRanges { get; set; } = [];
+}
+
+internal sealed class CallHierarchyOutgoingCall
+{
+    public HierarchyItem To { get; set; } = new();
+
+    public Range[] FromRanges { get; set; } = [];
 }
