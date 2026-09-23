@@ -68,8 +68,34 @@
       {
         "command": "papyrus.showOutputChannel",
         "title": "Papyrus: Show Output Channel"
+      },
+      {
+        "command": "papyrus.viewAssembly",
+        "title": "Papyrus: View Assembly"
       }
     ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "papyrus.viewAssembly",
+          "when": "editorLangId == papyrus"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "papyrus.viewAssembly",
+          "group": "a_papyrus",
+          "when": "editorLangId == papyrus"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "papyrus.viewAssembly",
+          "group": "a_papyrus",
+          "when": "resourceLangId == papyrus"
+        }
+      ]
+    },
     "configuration": {
       "title": "Papyrus",
       "properties": {

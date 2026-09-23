@@ -36,6 +36,10 @@ export class RealLanguageClient implements IManagedLanguageClient {
         await this._client.start();
     }
 
+    sendRequest<R>(method: string, params: unknown): Promise<R> {
+        return this._client.sendRequest<R>(method, params);
+    }
+
     async stop(): Promise<void> {
         if (this._client.needsStop()) {
             await this._client.stop();

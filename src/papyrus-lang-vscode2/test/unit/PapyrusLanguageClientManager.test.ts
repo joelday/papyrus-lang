@@ -24,6 +24,10 @@ class FakeClient implements IManagedLanguageClient {
         this.stopCount++;
     }
 
+    sendRequest<R>(): Promise<R> {
+        return Promise.reject(new Error('Not supported by the fake.'));
+    }
+
     dispose(): void {
         // Nothing to dispose for the fake.
     }

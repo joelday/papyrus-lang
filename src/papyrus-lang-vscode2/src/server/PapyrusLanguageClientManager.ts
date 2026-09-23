@@ -42,6 +42,7 @@ export enum LanguageClientStatus {
 export interface IManagedLanguageClient extends Disposable {
     start(): Promise<void>;
     stop(): Promise<void>;
+    sendRequest<R>(method: string, params: unknown): Promise<R>;
 }
 
 export interface ILanguageClientFactory {
