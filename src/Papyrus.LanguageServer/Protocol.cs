@@ -17,6 +17,42 @@ internal sealed class InitializeParams
     public ClientCapabilities? Capabilities { get; set; }
 
     public string? Trace { get; set; }
+
+    public WorkspaceFolder[]? WorkspaceFolders { get; set; }
+}
+
+internal sealed class WorkspaceFolder
+{
+    public string? Uri { get; set; }
+
+    public string? Name { get; set; }
+}
+
+internal sealed class DidChangeWorkspaceFoldersParams
+{
+    public WorkspaceFoldersChangeEvent? Event { get; set; }
+}
+
+internal sealed class WorkspaceFoldersChangeEvent
+{
+    public WorkspaceFolder[]? Added { get; set; }
+
+    public WorkspaceFolder[]? Removed { get; set; }
+}
+
+internal sealed class LogMessageParams
+{
+    public MessageType Type { get; set; }
+
+    public string Message { get; set; } = "";
+}
+
+internal enum MessageType
+{
+    Error = 1,
+    Warning = 2,
+    Info = 3,
+    Log = 4,
 }
 
 internal sealed class ClientInfo
@@ -66,6 +102,20 @@ internal sealed class ServerCapabilities
     public bool? InlayHintProvider { get; set; }
 
     public DiagnosticOptions? DiagnosticProvider { get; set; }
+
+    public WorkspaceServerCapabilities? Workspace { get; set; }
+}
+
+internal sealed class WorkspaceServerCapabilities
+{
+    public WorkspaceFoldersServerCapabilities? WorkspaceFolders { get; set; }
+}
+
+internal sealed class WorkspaceFoldersServerCapabilities
+{
+    public bool Supported { get; set; }
+
+    public bool ChangeNotifications { get; set; }
 }
 
 internal sealed class DiagnosticOptions
@@ -542,7 +592,6 @@ internal sealed class DocumentAssemblyParams
 }
 
 internal sealed class SnapshotParams { }
-
 
 internal sealed class SnapshotResult
 {

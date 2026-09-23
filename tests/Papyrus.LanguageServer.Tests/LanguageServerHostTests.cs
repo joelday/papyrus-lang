@@ -1,5 +1,6 @@
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.IO.Pipelines;
@@ -161,6 +162,170 @@ public sealed class LanguageServerHostTests
     }
 
     [Fact]
+    public async Task Initialized_loads_ppj_from_workspace_folders_inferring_game_from_flags()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        var cancellationToken = timeout.Token;
+        var root = CreateTempDirectory();
+        try
+        {
+            // Mirrors the Fallout 4 test-scripts layout: no Game attribute, the
+            // flags file is the only thing identifying the game.
+            File.WriteAllText(
+                Path.Combine(root, "Fallout4.ppj"),
+                """
+                <PapyrusProject Flags="Institute_Papyrus_Flags.flg">
+                  <Folders>
+                    <Folder>.</Folder>
+                  </Folders>
+                </PapyrusProject>
+                """);
+            var scriptPath = Path.Combine(root, "StructUser.psc");
+            const string script = "ScriptName StructUser Native\nStruct Point\n  Int X\nEndStruct\nUnknownType Baz\n";
+            File.WriteAllText(scriptPath, script);
+            var scriptUri = JsonString(new Uri(scriptPath).AbsoluteUri);
+            var scriptText = JsonString(script);
+
+            await using var session = Session.Start(cancellationToken);
+            await session.RequestAsync(1, "initialize", InitializeWithFolders(root), cancellationToken);
+            await session.NotifyAsync("initialized", "{}", cancellationToken);
+
+            AssertNoError(
+                await session.RequestAsync(
+                    2,
+                    "textDocument/didOpen",
+                    $$$"""{"textDocument":{"uri":{{{scriptUri}}},"languageId":"papyrus","version":1,"text":{{{scriptText}}}}}""",
+                    cancellationToken));
+
+            var infos = await session.RequestAsync(3, "papyrus/projectInfos", "{}", cancellationToken);
+            using (var document = JsonDocument.Parse(infos))
+            {
+                var projects = document.RootElement.GetProperty("result").GetProperty("projects");
+                Assert.Equal(1, projects.GetArrayLength());
+                Assert.Equal("Fallout4", projects[0].GetProperty("name").GetString());
+            }
+
+            var diagnostics = await session.RequestAsync(
+                4,
+                "textDocument/diagnostic",
+                $$$"""{"textDocument":{"uri":{{{scriptUri}}}}}""",
+                cancellationToken);
+            using (var document = JsonDocument.Parse(diagnostics))
+            {
+                // Only the intentional unresolved type: that proves the document was
+                // analyzed as part of the project, and under the Skyrim fallback `Struct`
+                // would be an identifier and report a second, unresolved 'Struct' type.
+                var item = Assert.Single(
+                    document.RootElement.GetProperty("result").GetProperty("items").EnumerateArray());
+                Assert.Equal("PAP1003", item.GetProperty("code").GetString());
+                Assert.Contains("UnknownType", item.GetProperty("message").GetString(), StringComparison.Ordinal);
+            }
+
+            await session.ShutdownAndExitAsync(expectedCode: 0, cancellationToken);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task DidChangeWorkspaceFolders_loads_and_unloads_projects()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        var cancellationToken = timeout.Token;
+        var root = CreateTempDirectory();
+        try
+        {
+            var nested = Directory.CreateDirectory(Path.Combine(root, "mods", "demo")).FullName;
+            File.WriteAllText(Path.Combine(nested, "demo.ppj"), """<PapyrusProject Game="sse" />""");
+            var ignored = Directory.CreateDirectory(Path.Combine(root, "node_modules", "pkg")).FullName;
+            File.WriteAllText(Path.Combine(ignored, "ignored.ppj"), """<PapyrusProject Game="sse" />""");
+            var folder = $$"""{"uri":{{JsonString(new Uri(root).AbsoluteUri)}},"name":"root"}""";
+
+            await using var session = Session.Start(cancellationToken);
+            await session.RequestAsync(1, "initialize", """{"capabilities":{},"workspaceFolders":[]}""", cancellationToken);
+            await session.NotifyAsync("initialized", "{}", cancellationToken);
+            Assert.Equal(0, await CountProjectsAsync(session, 2, cancellationToken));
+
+            await session.NotifyAsync(
+                "workspace/didChangeWorkspaceFolders",
+                $$$"""{"event":{"added":[{{{folder}}}],"removed":[]}}""",
+                cancellationToken);
+            Assert.Equal(1, await CountProjectsAsync(session, 3, cancellationToken));
+
+            await session.NotifyAsync(
+                "workspace/didChangeWorkspaceFolders",
+                $$$"""{"event":{"added":[],"removed":[{{{folder}}}]}}""",
+                cancellationToken);
+            Assert.Equal(0, await CountProjectsAsync(session, 4, cancellationToken));
+
+            await session.ShutdownAndExitAsync(expectedCode: 0, cancellationToken);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Project_without_identifiable_game_logs_a_warning()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        var cancellationToken = timeout.Token;
+        var root = CreateTempDirectory();
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "mystery.ppj"), """<PapyrusProject Flags="Custom.flg" />""");
+
+            await using var session = Session.Start(cancellationToken);
+            await session.RequestAsync(1, "initialize", InitializeWithFolders(root), cancellationToken);
+            await session.NotifyAsync("initialized", "{}", cancellationToken);
+            Assert.Equal(1, await CountProjectsAsync(session, 2, cancellationToken));
+
+            Assert.Contains(
+                session.Notifications,
+                message =>
+                {
+                    using var document = JsonDocument.Parse(message);
+                    var element = document.RootElement;
+                    return element.GetProperty("method").GetString() == "window/logMessage"
+                        && element.GetProperty("params").GetProperty("type").GetInt32() == 2
+                        && element.GetProperty("params").GetProperty("message").GetString()!.Contains(
+                            "mystery.ppj",
+                            StringComparison.Ordinal);
+                });
+
+            await session.ShutdownAndExitAsync(expectedCode: 0, cancellationToken);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private static string JsonString(string value) => "\"" + JsonEncodedText.Encode(value) + "\"";
+
+    private static string CreateTempDirectory()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "papyrus-lsp-folders-" + Guid.NewGuid().ToString("N"));
+        return Directory.CreateDirectory(root).FullName;
+    }
+
+    private static string InitializeWithFolders(string root)
+    {
+        var uri = JsonString(new Uri(root).AbsoluteUri);
+        return $$"""{"capabilities":{},"workspaceFolders":[{"uri":{{uri}},"name":"root"}]}""";
+    }
+
+    private static async Task<int> CountProjectsAsync(Session session, int id, CancellationToken cancellationToken)
+    {
+        var response = await session.RequestAsync(id, "papyrus/projectInfos", "{}", cancellationToken);
+        using var document = JsonDocument.Parse(response);
+        return document.RootElement.GetProperty("result").GetProperty("projects").GetArrayLength();
+    }
+
+    [Fact]
     public async Task Initialize_advertises_full_text_document_sync()
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
@@ -231,8 +396,22 @@ public sealed class LanguageServerHostTests
                 ? $$"""{"jsonrpc":"2.0","id":{{id.ToString(CultureInfo.InvariantCulture)}},"method":"{{method}}"}"""
                 : $$"""{"jsonrpc":"2.0","id":{{id.ToString(CultureInfo.InvariantCulture)}},"method":"{{method}}","params":{{parameters}}}""";
             await WriteAsync(payload, cancellationToken).ConfigureAwait(false);
-            return await ReadAsync(cancellationToken).ConfigureAwait(false);
+            while (true)
+            {
+                var message = await ReadAsync(cancellationToken).ConfigureAwait(false);
+                using var document = JsonDocument.Parse(message);
+                if (document.RootElement.TryGetProperty("id", out _))
+                {
+                    return message;
+                }
+
+                // Server-initiated notifications (logMessage, publishDiagnostics) can
+                // arrive ahead of the response; keep them for tests to inspect.
+                Notifications.Add(message);
+            }
         }
+
+        internal List<string> Notifications { get; } = new();
 
         internal Task NotifyAsync(
             string method,

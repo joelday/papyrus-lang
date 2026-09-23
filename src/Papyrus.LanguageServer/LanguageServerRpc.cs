@@ -37,6 +37,8 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly DocumentScriptInfoHandler _scriptInfo;
     private readonly ProjectInfosHandler _projectInfos;
     private readonly DocumentAssemblyHandler _assembly;
+    private readonly WorkspaceFoldersHandler _workspaceFolders;
+    private WorkspaceFolderChange? _initialWorkspaceFolders;
 
     private int _shutdown;
     private int _disposed;
@@ -73,6 +75,7 @@ internal sealed class LanguageServerRpc : IDisposable
         _scriptInfo = new DocumentScriptInfoHandler();
         _projectInfos = new ProjectInfosHandler();
         _assembly = new DocumentAssemblyHandler();
+        _workspaceFolders = new WorkspaceFoldersHandler(scheduler.Workspace, () => Notifier);
         _scheduler.Workspace.WorkspaceChanged += OnWorkspaceChanged;
     }
 
@@ -157,6 +160,11 @@ internal sealed class LanguageServerRpc : IDisposable
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
+        // Projects load on `initialized`, once the client can receive log messages.
+        Volatile.Write(
+            ref _initialWorkspaceFolders,
+            WorkspaceFolderChange.FromInitialize(parameters)
+        );
         return Task.FromResult(
             new InitializeResult
             {
@@ -192,6 +200,14 @@ internal sealed class LanguageServerRpc : IDisposable
                         InterFileDependencies = false,
                         WorkspaceDiagnostics = false,
                     },
+                    Workspace = new WorkspaceServerCapabilities
+                    {
+                        WorkspaceFolders = new WorkspaceFoldersServerCapabilities
+                        {
+                            Supported = true,
+                            ChangeNotifications = true,
+                        },
+                    },
                 },
                 ServerInfo = new ServerInfo { Name = "Papyrus Language Server" },
             }
@@ -199,10 +215,36 @@ internal sealed class LanguageServerRpc : IDisposable
     }
 
     [JsonRpcMethod("initialized", UseSingleObjectParameterDeserialization = true)]
-    public Task InitializedAsync(InitializedParams? parameters, CancellationToken cancellationToken)
+    public async Task InitializedAsync(
+        InitializedParams? parameters,
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.CompletedTask;
+        if (Interlocked.Exchange(ref _initialWorkspaceFolders, null) is { } folders)
+        {
+            await _scheduler
+                .ExecuteAsync(_workspaceFolders, folders, cancellationToken)
+                .ConfigureAwait(false);
+        }
+    }
+
+    [JsonRpcMethod(
+        WorkspaceFoldersHandler.MethodName,
+        UseSingleObjectParameterDeserialization = true
+    )]
+    public async Task DidChangeWorkspaceFoldersAsync(
+        DidChangeWorkspaceFoldersParams? parameters,
+        CancellationToken cancellationToken
+    )
+    {
+        await _scheduler
+            .ExecuteAsync(
+                _workspaceFolders,
+                WorkspaceFolderChange.FromDidChange(parameters),
+                cancellationToken
+            )
+            .ConfigureAwait(false);
     }
 
     [JsonRpcMethod(DidOpenHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
@@ -403,10 +445,7 @@ internal sealed class LanguageServerRpc : IDisposable
         return _scheduler.ExecuteAsync(_rename, parameters, cancellationToken);
     }
 
-    [JsonRpcMethod(
-        PrepareRenameHandler.MethodName,
-        UseSingleObjectParameterDeserialization = true
-    )]
+    [JsonRpcMethod(PrepareRenameHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
     public Task<PrepareRenameResult?> PrepareRenameAsync(
         TextDocumentPositionParams? parameters,
         CancellationToken cancellationToken

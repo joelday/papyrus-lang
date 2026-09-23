@@ -149,6 +149,10 @@ public static class PpjParser
             }
         }
 
+        // Pyro compatibility: a project without a Game attribute takes its game from
+        // the Creation Kit flags file it names.
+        game ??= InferGameFromFlags(flags);
+
         return new PapyrusProject(
             game,
             imports.ToImmutable(),
@@ -289,6 +293,28 @@ public static class PpjParser
         {
             reader.ReadEndElement();
         }
+    }
+
+    private static GameId? InferGameFromFlags(string? flags)
+    {
+        if (string.IsNullOrWhiteSpace(flags))
+        {
+            return null;
+        }
+
+        var fileName = flags[(flags.LastIndexOfAny(['/', '\\']) + 1)..];
+        if (fileName.Equals("TESV_Papyrus_Flags.flg", StringComparison.OrdinalIgnoreCase))
+        {
+            // LE and SE share the flags file; SE is the default Skyrim dialect.
+            return GameId.SkyrimSpecialEdition;
+        }
+
+        if (fileName.Equals("Institute_Papyrus_Flags.flg", StringComparison.OrdinalIgnoreCase))
+        {
+            return GameId.Fallout4;
+        }
+
+        return null;
     }
 
     private static GameId? ParseGame(string value)

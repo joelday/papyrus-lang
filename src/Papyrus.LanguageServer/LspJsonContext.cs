@@ -86,4 +86,12 @@ namespace Papyrus.LanguageServer;
 [JsonSerializable(typeof(InlayHintParams))]
 [JsonSerializable(typeof(InlayHint))]
 [JsonSerializable(typeof(InlayHint[]))]
+[JsonSerializable(typeof(WorkspaceFolder))]
+[JsonSerializable(typeof(WorkspaceFolder[]))]
+[JsonSerializable(typeof(DidChangeWorkspaceFoldersParams))]
+[JsonSerializable(typeof(WorkspaceFoldersChangeEvent))]
+[JsonSerializable(typeof(WorkspaceServerCapabilities))]
+[JsonSerializable(typeof(WorkspaceFoldersServerCapabilities))]
+[JsonSerializable(typeof(LogMessageParams))]
+[JsonSerializable(typeof(MessageType))]
 internal sealed partial class LspJsonContext : JsonSerializerContext { }
