@@ -21,6 +21,22 @@ internal sealed class InitializeParams
     public WorkspaceFolder[]? WorkspaceFolders { get; set; }
 }
 
+internal sealed class WorkspaceSymbolParams
+{
+    public string? Query { get; set; }
+}
+
+internal sealed class SymbolInformation
+{
+    public string Name { get; set; } = "";
+
+    public int Kind { get; set; }
+
+    public Location Location { get; set; } = new();
+
+    public string? ContainerName { get; set; }
+}
+
 internal sealed class WorkspaceFolder
 {
     public string? Uri { get; set; }
@@ -104,6 +120,8 @@ internal sealed class ServerCapabilities
     public DiagnosticOptions? DiagnosticProvider { get; set; }
 
     public WorkspaceServerCapabilities? Workspace { get; set; }
+
+    public bool? WorkspaceSymbolProvider { get; set; }
 }
 
 internal sealed class WorkspaceServerCapabilities

@@ -312,10 +312,19 @@ public sealed class PapyrusSolution
         var state = GetState(projectId);
 
         var results = ImmutableArray.CreateBuilder<ScriptReferences>();
+        var declaringScript = (symbol as CodeAnalysis.Symbols.IScriptSymbol ?? symbol.ContainingScript)?.QualifiedName;
         foreach (var (name, path) in state.DiskResolver.GetScripts())
         {
             cancellationToken.ThrowIfCancellationRequested();
             var tree = state.Compilation.GetSyntaxTree(name);
+
+            // Binding is the expensive part: skip scripts that never mention the name.
+            if (!name.Equals(declaringScript)
+                && !CodeAnalysis.Structure.ScriptIndex.Get(tree).MentionsName(symbol.Name.Text))
+            {
+                continue;
+            }
+
             var model = state.Compilation.GetSemanticModel(tree);
             var spans = model.FindReferencesInTree(symbol, cancellationToken);
             if (!spans.IsEmpty)
@@ -344,6 +353,89 @@ public sealed class PapyrusSolution
     public bool TryGetScriptPath(ProjectId projectId, QualifiedName name, out string path)
     {
         return GetState(projectId).DiskResolver.TryGetSourcePath(name, out path);
+    }
+
+    /// <summary>
+    /// Declarations across every project whose name matches <paramref name="query"/> as a
+    /// case-insensitive subsequence (`mvto` finds `MoveTo`), from syntax alone. Each script
+    /// file is searched once even when several projects include it.
+    /// </summary>
+    public ImmutableArray<DeclarationMatch> FindDeclarations(
+        string query,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        // Rank before limiting, so a loose subsequence match never crowds out an exact one.
+        var ranked = new List<(int Rank, DeclarationMatch Match)>();
+        var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in _projects)
+        {
+            var state = pair.Value;
+            foreach (var (name, path) in state.DiskResolver.GetScripts())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!seenPaths.Add(path))
+                {
+                    continue;
+                }
+
+                var tree = state.Compilation.GetSyntaxTree(name);
+                foreach (var declaration in CodeAnalysis.Structure.ScriptIndex.Get(tree).Declarations)
+                {
+                    var rank = MatchRank(query, declaration.Name);
+                    if (rank >= 0)
+                    {
+                        ranked.Add((rank, new DeclarationMatch(path, tree, declaration)));
+                    }
+                }
+            }
+        }
+
+        ranked.Sort(static (a, b) => a.Rank != b.Rank
+            ? a.Rank.CompareTo(b.Rank)
+            : string.Compare(a.Match.Declaration.Name, b.Match.Declaration.Name, StringComparison.OrdinalIgnoreCase));
+        var results = ImmutableArray.CreateBuilder<DeclarationMatch>(Math.Min(limit, ranked.Count));
+        for (var i = 0; i < ranked.Count && i < limit; i++)
+        {
+            results.Add(ranked[i].Match);
+        }
+
+        return results.MoveToImmutable();
+    }
+
+    // 0 exact, 1 prefix, 2 substring, 3 subsequence, -1 no match (all case-insensitive).
+    private static int MatchRank(string query, string candidate)
+    {
+        if (candidate.Equals(query, StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        if (candidate.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+        {
+            return 1;
+        }
+
+        if (candidate.Contains(query, StringComparison.OrdinalIgnoreCase))
+        {
+            return 2;
+        }
+
+        return IsSubsequence(query, candidate) ? 3 : -1;
+    }
+
+    private static bool IsSubsequence(string query, string candidate)
+    {
+        var q = 0;
+        for (var c = 0; c < candidate.Length && q < query.Length; c++)
+        {
+            if (char.ToUpperInvariant(candidate[c]) == char.ToUpperInvariant(query[q]))
+            {
+                q++;
+            }
+        }
+
+        return q == query.Length;
     }
 
     public ImmutableArray<DocumentId> GetDocumentIdsForPath(string path)
@@ -521,6 +613,9 @@ public sealed class PapyrusSolution
 /// <summary>
 /// The set of reference locations found for a symbol within a single script.
 /// </summary>
+/// <summary>A declaration found by <see cref="PapyrusSolution.FindDeclarations"/>.</summary>
+public sealed record DeclarationMatch(string Path, SyntaxTree Tree, CodeAnalysis.Structure.IndexedDeclaration Declaration);
+
 public sealed class ScriptReferences
 {
     public ScriptReferences(string path, SyntaxTree tree, ImmutableArray<ReferenceLocation> spans)

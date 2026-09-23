@@ -36,6 +36,7 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly DiagnosticHandler _diagnostic;
     private readonly DocumentScriptInfoHandler _scriptInfo;
     private readonly ProjectInfosHandler _projectInfos;
+    private readonly WorkspaceSymbolHandler _workspaceSymbol = new();
     private readonly DocumentAssemblyHandler _assembly;
     private readonly WorkspaceFoldersHandler _workspaceFolders;
     private WorkspaceFolderChange? _initialWorkspaceFolders;
@@ -200,6 +201,7 @@ internal sealed class LanguageServerRpc : IDisposable
                         InterFileDependencies = false,
                         WorkspaceDiagnostics = false,
                     },
+                    WorkspaceSymbolProvider = true,
                     Workspace = new WorkspaceServerCapabilities
                     {
                         WorkspaceFolders = new WorkspaceFoldersServerCapabilities
@@ -494,6 +496,15 @@ internal sealed class LanguageServerRpc : IDisposable
     )
     {
         return _scheduler.ExecuteAsync(_scriptInfo, parameters, cancellationToken);
+    }
+
+    [JsonRpcMethod(WorkspaceSymbolHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<SymbolInformation[]> WorkspaceSymbolAsync(
+        WorkspaceSymbolParams? parameters,
+        CancellationToken cancellationToken
+    )
+    {
+        return _scheduler.ExecuteAsync(_workspaceSymbol, parameters, cancellationToken);
     }
 
     [JsonRpcMethod(ProjectInfosHandler.MethodName, UseSingleObjectParameterDeserialization = true)]

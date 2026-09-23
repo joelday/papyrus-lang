@@ -24,6 +24,25 @@ public sealed class StructureHandlerTests
         "EndFunction\n"; // 5
 
     [Fact]
+    public async Task Workspace_symbols_rank_exact_matches_first()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-workspace-symbol-");
+        var otherPath = fixture.WriteScript("Other", "ScriptName Other\nFunction MoveToward()\nEndFunction\nFunction MoveTo()\nEndFunction\n");
+
+        var symbols = await fixture.Scheduler.ExecuteAsync(
+            new WorkspaceSymbolHandler(),
+            new WorkspaceSymbolParams { Query = "moveto" },
+            timeout.Token);
+
+        Assert.Equal(["MoveTo", "MoveToward"], symbols.Select(static s => s.Name).ToArray());
+        Assert.Equal(new Uri(otherPath).AbsoluteUri, symbols[0].Location.Uri);
+        Assert.Equal(3, symbols[0].Location.Range.Start!.Line);
+        Assert.Equal("Other", symbols[0].ContainerName);
+        Assert.Empty(await fixture.Scheduler.ExecuteAsync(new WorkspaceSymbolHandler(), new WorkspaceSymbolParams { Query = "" }, timeout.Token));
+    }
+
+    [Fact]
     public async Task Completion_offers_what_fits_the_context()
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
