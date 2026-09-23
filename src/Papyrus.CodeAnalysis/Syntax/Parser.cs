@@ -1518,13 +1518,12 @@ internal sealed class Parser
             }
         }
 
-        if (PeekToken(index).Kind == SyntaxKind.OpenBracketToken)
+        // Only `[]` makes an array type; `Name[i]` is an element access, and stepping past
+        // its `[` made `Arr[i].Stop()` / `Arr[i] = x` look like a declaration of `i`.
+        if (PeekToken(index).Kind == SyntaxKind.OpenBracketToken
+            && PeekToken(index + 1).Kind == SyntaxKind.CloseBracketToken)
         {
-            index++;
-            if (PeekToken(index).Kind == SyntaxKind.CloseBracketToken)
-            {
-                index++;
-            }
+            index += 2;
         }
 
         return index;

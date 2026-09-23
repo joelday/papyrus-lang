@@ -165,6 +165,23 @@ public sealed class VanillaConstructTests
     }
 
     [Fact]
+    public void Statement_starting_with_an_element_access_is_not_a_declaration()
+    {
+        // AOAliasBailOutScript: `BailOut_Additional_Scenes_To_Stop[i].Stop()`. The `[` made the
+        // parser read a declaration of `i`, so the call (or assignment) was silently dropped.
+        var (compilation, diagnostics) = Compile(
+            ("Scene", "ScriptName Scene\nFunction Stop() native\n"),
+            ("Foo",
+                "ScriptName Foo\nScene[] Property Scenes Auto\nInt[] counts\nFunction Go(Int i)\n"
+                + "  Scenes[i].Stop()\n  counts[i] = 5\nEndFunction\n"));
+
+        Assert.Empty(diagnostics);
+        var instructions = Function(Emit(compilation, "Foo"), "Go").Instructions;
+        Assert.Contains(instructions, static i => i.OpCode == PexOpCode.CallMethod && i.Arguments[0].Text == "Stop");
+        Assert.Contains(instructions, static i => i.OpCode == PexOpCode.ArraySetElement);
+    }
+
+    [Fact]
     public void Unresolvable_call_is_an_error_instead_of_an_empty_call()
     {
         var (compilation, _) = Compile(("Foo", "ScriptName Foo\nFunction F()\n  Missing()\nEndFunction\n"));
