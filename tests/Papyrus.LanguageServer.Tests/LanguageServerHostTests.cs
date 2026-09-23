@@ -326,6 +326,32 @@ public sealed class LanguageServerHostTests
     }
 
     [Fact]
+    public async Task CancelRequest_releases_a_held_workspace_diagnostic_request()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        await using var session = Session.Start(timeout.Token);
+        AssertNoError(await session.RequestAsync(1, "initialize", "{}", timeout.Token));
+        AssertNoError(await session.RequestAsync(2, "workspace/diagnostic", """{"previousResultIds":[]}""", timeout.Token));
+
+        // Nothing has changed since that answer, so this one is held...
+        var held = session.RequestAsync(
+            3,
+            "workspace/diagnostic",
+            """{"previousResultIds":[{"uri":"file:///x.psc","value":"0:0"}]}""",
+            timeout.Token);
+        await Task.Delay(200, timeout.Token);
+        Assert.False(held.IsCompleted);
+
+        // ...until the client cancels it.
+        await session.NotifyAsync("$/cancelRequest", """{"id":3}""", timeout.Token);
+        var response = await held.WaitAsync(timeout.Token);
+        using var document = JsonDocument.Parse(response);
+        Assert.Equal(-32800, document.RootElement.GetProperty("error").GetProperty("code").GetInt32());
+
+        await session.ShutdownAndExitAsync(0, timeout.Token);
+    }
+
+    [Fact]
     public async Task Initialize_advertises_full_text_document_sync()
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));

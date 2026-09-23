@@ -64,6 +64,8 @@ namespace Papyrus.LanguageServer;
 [JsonSerializable(typeof(DocumentSyntaxTreeParams))]
 [JsonSerializable(typeof(DocumentSyntaxTree))]
 [JsonSerializable(typeof(DocumentFormattingParams))]
+[JsonSerializable(typeof(WorkspaceDiagnosticParams))]
+[JsonSerializable(typeof(WorkspaceDiagnosticReport))]
 [JsonSerializable(typeof(CodeLensParams))]
 [JsonSerializable(typeof(CodeLens))]
 [JsonSerializable(typeof(CodeLens[]))]

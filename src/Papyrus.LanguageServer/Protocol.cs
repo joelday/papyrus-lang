@@ -91,7 +91,33 @@ internal sealed class ClientInfo
     public string? Version { get; set; }
 }
 
-internal sealed class ClientCapabilities { }
+internal sealed class ClientCapabilities
+{
+    public TextDocumentClientCapabilities? TextDocument { get; set; }
+
+    public WorkspaceClientCapabilities? Workspace { get; set; }
+}
+
+internal sealed class TextDocumentClientCapabilities
+{
+    /// <summary>Present when the client pulls diagnostics (<c>textDocument/diagnostic</c>).</summary>
+    public DiagnosticClientCapabilities? Diagnostic { get; set; }
+}
+
+internal sealed class DiagnosticClientCapabilities
+{
+    public bool? DynamicRegistration { get; set; }
+}
+
+internal sealed class WorkspaceClientCapabilities
+{
+    public DiagnosticWorkspaceClientCapabilities? Diagnostics { get; set; }
+}
+
+internal sealed class DiagnosticWorkspaceClientCapabilities
+{
+    public bool? RefreshSupport { get; set; }
+}
 
 internal sealed class InitializeResult
 {
@@ -745,6 +771,37 @@ internal sealed class Diagnostic
     public string? Source { get; set; }
 
     public string? Message { get; set; }
+}
+
+internal sealed class WorkspaceDiagnosticParams
+{
+    public string? Identifier { get; set; }
+
+    public PreviousResultId[]? PreviousResultIds { get; set; }
+}
+
+internal sealed class PreviousResultId
+{
+    public string Uri { get; set; } = "";
+
+    public string Value { get; set; } = "";
+}
+
+internal sealed class WorkspaceDiagnosticReport
+{
+    public WorkspaceDocumentDiagnosticReport[] Items { get; set; } = [];
+}
+
+/// <summary>A document's report: <c>full</c> with its items, or <c>unchanged</c> since <see cref="ResultId"/>.</summary>
+internal sealed class WorkspaceDocumentDiagnosticReport
+{
+    public string Kind { get; set; } = "full";
+
+    public string? ResultId { get; set; }
+
+    public string Uri { get; set; } = "";
+
+    public Diagnostic[]? Items { get; set; }
 }
 
 internal sealed class DiagnosticParams

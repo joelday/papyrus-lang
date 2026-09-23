@@ -38,6 +38,10 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly DocumentHighlightHandler _documentHighlight;
     private readonly InlayHintHandler _inlayHint;
     private readonly DiagnosticHandler _diagnostic;
+    private readonly WorkspaceDiagnosticHandler _workspaceDiagnostic = new();
+    private readonly WorkspaceDiagnosticsPoller _workspaceDiagnostics = new(TimeSpan.FromSeconds(1));
+    private volatile bool _clientPullsDiagnostics;
+    private volatile bool _clientRefreshesDiagnostics;
     private readonly DocumentScriptInfoHandler _scriptInfo;
     private readonly ProjectInfosHandler _projectInfos;
     private readonly WorkspaceSymbolHandler _workspaceSymbol = new();
@@ -125,12 +129,46 @@ internal sealed class LanguageServerRpc : IDisposable
     // documents' diagnostics current regardless of what triggered the change.
     private void OnWorkspaceChanged(object? sender, WorkspaceChangeEventArgs e)
     {
+        _workspaceDiagnostics.NotifyChanged();
         if (Notifier is not { } notifier || Volatile.Read(ref _disposed) != 0)
         {
             return;
         }
 
-        _ = PublishDiagnosticsAsync(notifier, e.NewSolution);
+        if (!_clientPullsDiagnostics)
+        {
+            _ = PublishDiagnosticsAsync(notifier, e.NewSolution);
+        }
+        else if (_clientRefreshesDiagnostics && ChangedOutsideEditor(e.Changes))
+        {
+            // The client re-pulls on its own edits, but not on files changed on disk.
+            _ = RefreshDiagnosticsAsync(notifier);
+        }
+    }
+
+    private static bool ChangedOutsideEditor(System.Collections.Immutable.ImmutableArray<WorkspaceChange> changes)
+    {
+        foreach (var change in changes)
+        {
+            if (change is not (WorkspaceChange.OpenDocument or WorkspaceChange.ChangeDocument or WorkspaceChange.CloseDocument))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static async Task RefreshDiagnosticsAsync(ILspNotifier notifier)
+    {
+        try
+        {
+            await notifier.RequestAsync("workspace/diagnostic/refresh", CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // Best effort, like the push path.
+        }
     }
 
     private static async Task PublishDiagnosticsAsync(
@@ -176,6 +214,9 @@ internal sealed class LanguageServerRpc : IDisposable
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
+        _clientPullsDiagnostics = parameters?.Capabilities?.TextDocument?.Diagnostic is not null;
+        _clientRefreshesDiagnostics = parameters?.Capabilities?.Workspace?.Diagnostics?.RefreshSupport == true;
+
         // Projects load on `initialized`, once the client can receive log messages.
         Volatile.Write(
             ref _initialWorkspaceFolders,
@@ -219,8 +260,8 @@ internal sealed class LanguageServerRpc : IDisposable
                     InlayHintProvider = true,
                     DiagnosticProvider = new DiagnosticOptions
                     {
-                        InterFileDependencies = false,
-                        WorkspaceDiagnostics = false,
+                        InterFileDependencies = true,
+                        WorkspaceDiagnostics = true,
                     },
                     WorkspaceSymbolProvider = true,
                     TypeDefinitionProvider = true,
@@ -521,6 +562,17 @@ internal sealed class LanguageServerRpc : IDisposable
     {
         return _scheduler.ExecuteAsync(_inlayHint, parameters, cancellationToken);
     }
+
+    [JsonRpcMethod(WorkspaceDiagnosticHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<WorkspaceDiagnosticReport> WorkspaceDiagnosticAsync(
+        WorkspaceDiagnosticParams? parameters,
+        CancellationToken cancellationToken
+    ) =>
+        _workspaceDiagnostics.PollAsync(
+            parameters,
+            ct => _scheduler.ExecuteAsync(_workspaceDiagnostic, parameters, ct),
+            cancellationToken
+        );
 
     [JsonRpcMethod(DiagnosticHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
     public Task<DocumentDiagnosticReport> DiagnosticAsync(

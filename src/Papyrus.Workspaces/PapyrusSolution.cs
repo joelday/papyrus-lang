@@ -336,6 +336,71 @@ public sealed class PapyrusSolution
         return results.ToImmutable();
     }
 
+    /// <summary>
+    /// The project's own scripts: those its Folders and Scripts name, as the compiler
+    /// builds them, not the Imports it only compiles against.
+    /// </summary>
+    public ImmutableArray<DocumentId> GetSourceDocumentIds(ProjectId projectId)
+    {
+        var state = GetState(projectId);
+        var project = state.Project;
+        var directory = System.IO.Path.GetDirectoryName(project.Path) ?? "";
+        var folders = new List<(string Path, bool NoRecurse)>();
+        foreach (var folder in project.Folders)
+        {
+            if (!string.IsNullOrWhiteSpace(folder.Path))
+            {
+                folders.Add((WorkspacePaths.NormalizeFull(System.IO.Path.Combine(directory, folder.Path)).TrimEnd('/'), folder.NoRecurse));
+            }
+        }
+
+        var scripts = new List<string>();
+        foreach (var script in project.Scripts)
+        {
+            if (!string.IsNullOrWhiteSpace(script))
+            {
+                scripts.Add(script.Replace('\\', '/').TrimStart('/'));
+            }
+        }
+
+        var builder = ImmutableArray.CreateBuilder<DocumentId>();
+        foreach (var (_, path) in state.DiskResolver.GetScripts())
+        {
+            if (IsProjectSource(path, folders, scripts))
+            {
+                builder.Add(DocumentId.Create(projectId, path));
+            }
+        }
+
+        return builder.ToImmutable();
+    }
+
+    private static bool IsProjectSource(string path, List<(string Path, bool NoRecurse)> folders, List<string> scripts)
+    {
+        // Normalized paths use '/' on every platform.
+        var full = WorkspacePaths.NormalizeFull(path);
+        var parent = full[..Math.Max(0, full.LastIndexOf('/'))];
+        foreach (var (folder, noRecurse) in folders)
+        {
+            if (noRecurse
+                ? string.Equals(parent, folder, StringComparison.OrdinalIgnoreCase)
+                : full.StartsWith(folder + "/", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        foreach (var script in scripts)
+        {
+            if (full.EndsWith("/" + script, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>The name of every script in a project's search paths.</summary>
     public ImmutableArray<QualifiedName> GetScriptNames(ProjectId projectId)
     {
