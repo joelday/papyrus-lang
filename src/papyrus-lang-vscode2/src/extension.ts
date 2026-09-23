@@ -42,7 +42,12 @@ class PapyrusExtension implements Disposable {
 
         this._clientManager = new PapyrusLanguageClientManager(
             () => serverPathResolver.resolve(),
-            (serverPath) => new RealLanguageClient(serverPath, this._outputChannel),
+            (serverPath) => {
+                // Makes it obvious which build a dev host is running.
+                const built = fs.statSync(serverPath).mtime.toLocaleString();
+                this._outputChannel.appendLine(`Starting ${serverPath} (built ${built})`);
+                return new RealLanguageClient(serverPath, this._outputChannel);
+            },
             (work) => startQueue.enqueue(work)
         );
 

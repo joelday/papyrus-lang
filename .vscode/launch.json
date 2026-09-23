@@ -12,7 +12,7 @@
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
-      "preLaunchTask": "buildExtension2",
+      "preLaunchTask": "buildAll2",
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode2",
         // The installed Marketplace extension also claims .psc files.

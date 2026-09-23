@@ -30,19 +30,27 @@
         "--disable-extension=joelday.papyrus-lang-vscode",
         "--new-window"
       ],
-      "dependsOn": "buildExtension2",
+      "dependsOn": "buildAll2",
       "problemMatcher": []
     },
     {
       // Publishes the NativeAOT Papyrus.LanguageServer into
       // src/papyrus-lang-vscode2/bin/<rid>/, where the extension looks for
-      // it. Not part of the launch pre-tasks (the AOT link takes a while);
-      // rerun after changing the server.
+      // it. ~20s when nothing changed (the AOT link always reruns).
       "label": "buildServer2",
       "type": "npm",
       "script": "build-server",
       "path": "src/papyrus-lang-vscode2",
       "problemMatcher": ["$msCompile"]
+    },
+    {
+      // Everything the dev host runs: the extension bundle and the bundled
+      // language server. Every papyrus-lang-vscode2 launch runs this, so the
+      // dev host never picks up a stale build of either.
+      "label": "buildAll2",
+      "dependsOn": ["buildExtension2", "buildServer2"],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
     }
 
     // --- Legacy papyrus-lang-vscode (RxJS/inversify) build tasks below,
