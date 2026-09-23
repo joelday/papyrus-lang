@@ -138,6 +138,8 @@ internal sealed class ServerCapabilities
 
     public bool? DocumentRangeFormattingProvider { get; set; }
 
+    public CodeLensOptions? CodeLensProvider { get; set; }
+
     public DocumentOnTypeFormattingOptions? DocumentOnTypeFormattingProvider { get; set; }
 
     public bool? TypeDefinitionProvider { get; set; }
@@ -171,6 +173,45 @@ internal sealed class DiagnosticOptions
 internal sealed class RenameOptions
 {
     public bool PrepareProvider { get; set; }
+}
+
+internal sealed class CodeLensParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+}
+
+internal sealed class CodeLens
+{
+    public Range Range { get; set; } = new();
+
+    public Command? Command { get; set; }
+
+    public HierarchyItemData? Data { get; set; }
+}
+
+internal sealed class Command
+{
+    public string Title { get; set; } = "";
+
+    [System.Text.Json.Serialization.JsonPropertyName("command")]
+    public string CommandName { get; set; } = "";
+
+    public ShowReferencesArguments[]? Arguments { get; set; }
+}
+
+/// <summary>Arguments of the client's <c>papyrus.showReferences</c> command.</summary>
+internal sealed class ShowReferencesArguments
+{
+    public string Uri { get; set; } = "";
+
+    public Position? Position { get; set; }
+
+    public Location[] Locations { get; set; } = [];
+}
+
+internal sealed class CodeLensOptions
+{
+    public bool? ResolveProvider { get; set; }
 }
 
 internal sealed class CompletionOptions

@@ -24,6 +24,8 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly DocumentSyntaxTreeHandler _syntaxTree;
     private readonly FormattingHandler _formatting;
     private readonly RangeFormattingHandler _rangeFormatting = new();
+    private readonly CodeLensHandler _codeLens = new();
+    private readonly CodeLensResolveHandler _codeLensResolve = new();
     private readonly OnTypeFormattingHandler _onTypeFormatting = new();
     private readonly HoverHandler _hover;
     private readonly DefinitionHandler _definition;
@@ -195,6 +197,7 @@ internal sealed class LanguageServerRpc : IDisposable
                     DocumentSymbolProvider = true,
                     DocumentFormattingProvider = true,
                     DocumentRangeFormattingProvider = true,
+                    CodeLensProvider = new CodeLensOptions { ResolveProvider = true },
                     DocumentOnTypeFormattingProvider = new DocumentOnTypeFormattingOptions
                     {
                         FirstTriggerCharacter = OnTypeFormattingHandler.TriggerCharacters[0],
@@ -402,6 +405,14 @@ internal sealed class LanguageServerRpc : IDisposable
     {
         return _scheduler.ExecuteAsync(_formatting, parameters, cancellationToken);
     }
+
+    [JsonRpcMethod(CodeLensHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<CodeLens[]> CodeLensAsync(CodeLensParams? parameters, CancellationToken cancellationToken) =>
+        _scheduler.ExecuteAsync(_codeLens, parameters, cancellationToken);
+
+    [JsonRpcMethod(CodeLensResolveHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<CodeLens?> CodeLensResolveAsync(CodeLens? parameters, CancellationToken cancellationToken) =>
+        _scheduler.ExecuteAsync(_codeLensResolve, parameters, cancellationToken);
 
     [JsonRpcMethod(RangeFormattingHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
     public Task<TextEdit[]> RangeFormattingAsync(

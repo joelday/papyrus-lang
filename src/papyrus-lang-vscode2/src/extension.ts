@@ -4,6 +4,7 @@ import { AsyncSerialQueue } from './common/AsyncSerialQueue';
 import { ConfigurationWatcher } from './configuration/ConfigurationWatcher';
 import { AssemblyView } from './features/AssemblyView';
 import { LanguageClientStatusBarItem, showOutputChannelCommandId } from './features/LanguageClientStatusBarItem';
+import { registerShowReferencesCommand } from './features/ShowReferencesCommand';
 import { PapyrusLanguageClientManager } from './server/PapyrusLanguageClientManager';
 import { RealLanguageClient } from './server/RealLanguageClient';
 import { ServerPathResolver } from './server/ServerPathResolver';
@@ -30,6 +31,7 @@ class PapyrusExtension implements Disposable {
     private readonly _statusBarItem: LanguageClientStatusBarItem;
     private readonly _showOutputChannelCommand: Disposable;
     private readonly _assemblyView: AssemblyView;
+    private readonly _showReferencesCommand: Disposable;
 
     constructor(context: ExtensionContext) {
         this._outputChannel = window.createOutputChannel('Papyrus');
@@ -69,12 +71,14 @@ class PapyrusExtension implements Disposable {
         );
 
         this._assemblyView = new AssemblyView(() => this._clientManager.client);
+        this._showReferencesCommand = registerShowReferencesCommand();
 
         void this._clientManager.ensureStarted();
     }
 
     dispose() {
         this._assemblyView.dispose();
+        this._showReferencesCommand.dispose();
         this._showOutputChannelCommand.dispose();
         this._statusBarItem.dispose();
         this._configWatcher.dispose();
