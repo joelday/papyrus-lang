@@ -17,10 +17,12 @@ internal sealed class DidOpenHandler : ILspHandler<DidOpenTextDocumentParams, Ls
     internal const string MethodName = "textDocument/didOpen";
 
     private readonly PapyrusWorkspace _workspace;
+    private readonly OpenBuffers _buffers;
 
-    internal DidOpenHandler(PapyrusWorkspace workspace)
+    internal DidOpenHandler(PapyrusWorkspace workspace, OpenBuffers? buffers = null)
     {
         _workspace = workspace;
+        _buffers = buffers ?? new OpenBuffers();
     }
 
     public string Method => MethodName;
@@ -38,6 +40,7 @@ internal sealed class DidOpenHandler : ILspHandler<DidOpenTextDocumentParams, Ls
         if (document is not null && LspUris.TryGetFilePath(document.Uri, out var path))
         {
             var text = SourceText.From(document.Text ?? "");
+            _buffers.Set(path, text);
             TextDocumentSync.TryApply(
                 _workspace,
                 snapshot.Solution,
@@ -55,10 +58,12 @@ internal sealed class DidChangeHandler : ILspHandler<DidChangeTextDocumentParams
     internal const string MethodName = "textDocument/didChange";
 
     private readonly PapyrusWorkspace _workspace;
+    private readonly OpenBuffers _buffers;
 
-    internal DidChangeHandler(PapyrusWorkspace workspace)
+    internal DidChangeHandler(PapyrusWorkspace workspace, OpenBuffers? buffers = null)
     {
         _workspace = workspace;
+        _buffers = buffers ?? new OpenBuffers();
     }
 
     public string Method => MethodName;
@@ -78,6 +83,7 @@ internal sealed class DidChangeHandler : ILspHandler<DidChangeTextDocumentParams
         )
         {
             var text = SourceText.From(fullText);
+            _buffers.Set(path, text);
             TextDocumentSync.TryApply(
                 _workspace,
                 snapshot.Solution,
@@ -95,10 +101,12 @@ internal sealed class DidCloseHandler : ILspHandler<DidCloseTextDocumentParams, 
     internal const string MethodName = "textDocument/didClose";
 
     private readonly PapyrusWorkspace _workspace;
+    private readonly OpenBuffers _buffers;
 
-    internal DidCloseHandler(PapyrusWorkspace workspace)
+    internal DidCloseHandler(PapyrusWorkspace workspace, OpenBuffers? buffers = null)
     {
         _workspace = workspace;
+        _buffers = buffers ?? new OpenBuffers();
     }
 
     public string Method => MethodName;
@@ -114,6 +122,7 @@ internal sealed class DidCloseHandler : ILspHandler<DidCloseTextDocumentParams, 
         ct.ThrowIfCancellationRequested();
         if (LspUris.TryGetFilePath(p.TextDocument?.Uri, out var path))
         {
+            _buffers.Remove(path);
             TextDocumentSync.TryApply(
                 _workspace,
                 snapshot.Solution,

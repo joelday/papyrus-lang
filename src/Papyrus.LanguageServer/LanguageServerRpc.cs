@@ -47,6 +47,8 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly SubtypesHandler _subtypes = new();
     private readonly DocumentAssemblyHandler _assembly;
     private readonly WorkspaceFoldersHandler _workspaceFolders;
+    private readonly WatchedFilesHandler _watchedFiles;
+    private readonly OpenBuffers _openBuffers = new();
     private WorkspaceFolderChange? _initialWorkspaceFolders;
 
     private int _shutdown;
@@ -59,9 +61,9 @@ internal sealed class LanguageServerRpc : IDisposable
     {
         ArgumentNullException.ThrowIfNull(scheduler);
         _scheduler = scheduler;
-        _didOpen = new DidOpenHandler(scheduler.Workspace);
-        _didChange = new DidChangeHandler(scheduler.Workspace);
-        _didClose = new DidCloseHandler(scheduler.Workspace);
+        _didOpen = new DidOpenHandler(scheduler.Workspace, _openBuffers);
+        _didChange = new DidChangeHandler(scheduler.Workspace, _openBuffers);
+        _didClose = new DidCloseHandler(scheduler.Workspace, _openBuffers);
         _snapshot = new SnapshotHandler();
         _semanticTokensFull = new SemanticTokensFullHandler();
         _semanticTokensRange = new SemanticTokensRangeHandler();
@@ -84,7 +86,8 @@ internal sealed class LanguageServerRpc : IDisposable
         _scriptInfo = new DocumentScriptInfoHandler();
         _projectInfos = new ProjectInfosHandler();
         _assembly = new DocumentAssemblyHandler();
-        _workspaceFolders = new WorkspaceFoldersHandler(scheduler.Workspace, () => Notifier);
+        _workspaceFolders = new WorkspaceFoldersHandler(scheduler.Workspace, () => Notifier, _openBuffers);
+        _watchedFiles = new WatchedFilesHandler(scheduler.Workspace, () => Notifier, _openBuffers);
         _scheduler.Workspace.WorkspaceChanged += OnWorkspaceChanged;
     }
 
@@ -518,6 +521,10 @@ internal sealed class LanguageServerRpc : IDisposable
     {
         return _scheduler.ExecuteAsync(_workspaceSymbol, parameters, cancellationToken);
     }
+
+    [JsonRpcMethod(WatchedFilesHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task DidChangeWatchedFilesAsync(DidChangeWatchedFilesParams? parameters, CancellationToken cancellationToken) =>
+        _scheduler.ExecuteAsync(_watchedFiles, parameters, cancellationToken);
 
     [JsonRpcMethod(TypeDefinitionHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
     public Task<Location[]> TypeDefinitionAsync(DefinitionParams? parameters, CancellationToken cancellationToken) =>

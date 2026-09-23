@@ -89,6 +89,7 @@ namespace Papyrus.LanguageServer;
 [JsonSerializable(typeof(InlayHint[]))]
 [JsonSerializable(typeof(WorkspaceFolder))]
 [JsonSerializable(typeof(WorkspaceSymbolParams))]
+[JsonSerializable(typeof(DidChangeWatchedFilesParams))]
 [JsonSerializable(typeof(HierarchyItem))]
 [JsonSerializable(typeof(HierarchyItem[]))]
 [JsonSerializable(typeof(HierarchyItemData))]

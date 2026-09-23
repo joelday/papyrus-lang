@@ -1,4 +1,4 @@
-import { OutputChannel } from 'vscode';
+import { FileSystemWatcher, OutputChannel, workspace } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
 import { IManagedLanguageClient } from './PapyrusLanguageClientManager';
 
@@ -10,8 +10,10 @@ import { IManagedLanguageClient } from './PapyrusLanguageClientManager';
  */
 export class RealLanguageClient implements IManagedLanguageClient {
     private readonly _client: LanguageClient;
+    private readonly _projectWatcher: FileSystemWatcher;
 
     constructor(serverPath: string, outputChannel: OutputChannel) {
+        this._projectWatcher = workspace.createFileSystemWatcher('**/*.ppj');
         const serverOptions: ServerOptions = {
             command: serverPath,
             transport: TransportKind.stdio,
@@ -23,6 +25,8 @@ export class RealLanguageClient implements IManagedLanguageClient {
                 { scheme: 'file', language: 'papyrus-project' },
             ],
             outputChannel,
+            // Projects created after startup are loaded when their .ppj appears.
+            synchronize: { fileEvents: this._projectWatcher },
         };
 
         this._client = new LanguageClient('papyrus', 'Papyrus Language Server', serverOptions, clientOptions);
@@ -40,5 +44,6 @@ export class RealLanguageClient implements IManagedLanguageClient {
 
     dispose() {
         void this.stop();
+        this._projectWatcher.dispose();
     }
 }

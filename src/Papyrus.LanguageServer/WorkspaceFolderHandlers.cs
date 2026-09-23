@@ -5,6 +5,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
+using Papyrus.CodeAnalysis.Text;
 using Papyrus.Workspaces;
 
 namespace Papyrus.LanguageServer;
@@ -77,13 +78,19 @@ internal sealed class WorkspaceFoldersHandler : ILspHandler<WorkspaceFolderChang
 
     private readonly PapyrusWorkspace _workspace;
     private readonly Func<ILspNotifier?> _getNotifier;
+    private readonly OpenBuffers _buffers;
 
-    internal WorkspaceFoldersHandler(PapyrusWorkspace workspace, Func<ILspNotifier?> getNotifier)
+    internal WorkspaceFoldersHandler(
+        PapyrusWorkspace workspace,
+        Func<ILspNotifier?> getNotifier,
+        OpenBuffers? buffers = null
+    )
     {
         ArgumentNullException.ThrowIfNull(workspace);
         ArgumentNullException.ThrowIfNull(getNotifier);
         _workspace = workspace;
         _getNotifier = getNotifier;
+        _buffers = buffers ?? new OpenBuffers();
     }
 
     public string Method => MethodName;
@@ -111,19 +118,14 @@ internal sealed class WorkspaceFoldersHandler : ILspHandler<WorkspaceFolderChang
                 ct.ThrowIfCancellationRequested();
                 foreach (var ppj in ProjectDiscovery.FindProjectFiles(root))
                 {
-                    LoadProject(ppj, messages);
+                    ProjectLoading.Load(_workspace, ppj, messages);
                 }
             }
+
+            _buffers.AdoptInto(_workspace);
         }
 
-        if (messages.Count > 0 && _getNotifier() is { } notifier)
-        {
-            foreach (var message in messages)
-            {
-                await notifier.NotifyAsync("window/logMessage", message, ct).ConfigureAwait(false);
-            }
-        }
-
+        await ProjectLoading.LogAsync(_getNotifier(), messages, ct).ConfigureAwait(false);
         return LspVoid.Instance;
     }
 
@@ -149,13 +151,17 @@ internal sealed class WorkspaceFoldersHandler : ILspHandler<WorkspaceFolderChang
 
         _workspace.ApplyChanges(changes.ToImmutable());
     }
+}
 
-    private void LoadProject(string ppj, List<LogMessageParams> messages)
+/// <summary>Loads a <c>.ppj</c>, collecting what the client's log should say about it.</summary>
+internal static class ProjectLoading
+{
+    internal static void Load(PapyrusWorkspace workspace, string ppj, List<LogMessageParams> messages)
     {
         PapyrusProject project;
         try
         {
-            project = _workspace.LoadProject(ppj);
+            project = workspace.LoadProject(ppj);
         }
         catch (Exception ex)
             when (ex
@@ -197,5 +203,137 @@ internal sealed class WorkspaceFoldersHandler : ILspHandler<WorkspaceFolderChang
                 }
             );
         }
+    }
+
+    internal static async Task LogAsync(ILspNotifier? notifier, List<LogMessageParams> messages, CancellationToken ct)
+    {
+        if (notifier is null)
+        {
+            return;
+        }
+
+        foreach (var message in messages)
+        {
+            await notifier.NotifyAsync("window/logMessage", message, ct).ConfigureAwait(false);
+        }
+    }
+}
+
+/// <summary>
+/// The text of every document the client has open, whether or not a project owns it
+/// yet. A document opened before its project loads (a <c>.ppj</c> created later, or a
+/// folder added later) is adopted into the project once it does, since the client
+/// will not open it again.
+/// </summary>
+internal sealed class OpenBuffers
+{
+    private readonly Dictionary<string, SourceText> _buffers = new(StringComparer.OrdinalIgnoreCase);
+
+    internal void Set(string path, SourceText text)
+    {
+        lock (_buffers)
+        {
+            _buffers[path] = text;
+        }
+    }
+
+    internal void Remove(string path)
+    {
+        lock (_buffers)
+        {
+            _buffers.Remove(path);
+        }
+    }
+
+    /// <summary>Opens each buffer in every project that owns its path but has not opened it.</summary>
+    internal void AdoptInto(PapyrusWorkspace workspace)
+    {
+        var solution = workspace.CurrentSolution;
+        var changes = ImmutableArray.CreateBuilder<WorkspaceChange>();
+        lock (_buffers)
+        {
+            foreach (var (path, text) in _buffers)
+            {
+                foreach (var id in solution.GetDocumentIdsForPath(path))
+                {
+                    if (!solution.IsDocumentOpen(id))
+                    {
+                        changes.Add(new WorkspaceChange.OpenDocument(id, text));
+                    }
+                }
+            }
+        }
+
+        workspace.ApplyChanges(changes.ToImmutable());
+    }
+}
+
+/// <summary>
+/// <c>workspace/didChangeWatchedFiles</c> for <c>**/*.ppj</c>: loads projects created
+/// after startup, reloads changed ones, and unloads deleted ones. (Scripts inside loaded
+/// projects are watched by the workspace itself.)
+/// </summary>
+internal sealed class WatchedFilesHandler : ILspHandler<DidChangeWatchedFilesParams?, LspVoid>
+{
+    internal const string MethodName = "workspace/didChangeWatchedFiles";
+
+    private const int Created = 1;
+    private const int Deleted = 3;
+
+    private readonly PapyrusWorkspace _workspace;
+    private readonly Func<ILspNotifier?> _getNotifier;
+    private readonly OpenBuffers _buffers;
+
+    internal WatchedFilesHandler(PapyrusWorkspace workspace, Func<ILspNotifier?> getNotifier, OpenBuffers buffers)
+    {
+        _workspace = workspace;
+        _getNotifier = getNotifier;
+        _buffers = buffers;
+    }
+
+    public string Method => MethodName;
+
+    public bool MutatesSolution => true;
+
+    public async Task<LspVoid> HandleAsync(DidChangeWatchedFilesParams? p, LspSnapshot snapshot, CancellationToken ct)
+    {
+        var messages = new List<LogMessageParams>();
+        var loaded = false;
+        foreach (var change in p?.Changes ?? [])
+        {
+            if (!LspUris.TryGetFilePath(change?.Uri, out var path)
+                || !Path.GetExtension(path).Equals(".ppj", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var id = ProjectId.Create(Path.GetFullPath(path));
+            var isLoaded = _workspace.CurrentSolution.ContainsProject(id);
+            if (change!.Type == Deleted)
+            {
+                if (isLoaded)
+                {
+                    _workspace.ApplyChange(new WorkspaceChange.FileDeleted(path));
+                    messages.Add(new LogMessageParams { Type = MessageType.Log, Message = $"Unloaded Papyrus project '{path}'." });
+                }
+            }
+            else if (isLoaded && change.Type != Created)
+            {
+                _workspace.ApplyChange(new WorkspaceChange.ReloadProject(id));
+            }
+            else if (File.Exists(path))
+            {
+                ProjectLoading.Load(_workspace, path, messages);
+                loaded = true;
+            }
+        }
+
+        if (loaded)
+        {
+            _buffers.AdoptInto(_workspace);
+        }
+
+        await ProjectLoading.LogAsync(_getNotifier(), messages, ct).ConfigureAwait(false);
+        return LspVoid.Instance;
     }
 }

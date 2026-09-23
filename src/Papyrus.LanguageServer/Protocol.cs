@@ -37,6 +37,19 @@ internal sealed class SymbolInformation
     public string? ContainerName { get; set; }
 }
 
+internal sealed class DidChangeWatchedFilesParams
+{
+    public FileEvent[]? Changes { get; set; }
+}
+
+internal sealed class FileEvent
+{
+    public string? Uri { get; set; }
+
+    /// <summary>1 = created, 2 = changed, 3 = deleted.</summary>
+    public int Type { get; set; }
+}
+
 internal sealed class WorkspaceFolder
 {
     public string? Uri { get; set; }
