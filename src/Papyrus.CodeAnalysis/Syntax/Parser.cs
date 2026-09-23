@@ -13,6 +13,15 @@ internal sealed class Parser
     private readonly PapyrusDialect _dialect;
     private readonly CancellationToken _cancellationToken;
     private readonly List<SyntaxToken> _skipped = new();
+
+    // Parallel to _skipped: whether that skipped token starts a reported "unexpected" error.
+    private readonly List<bool> _skippedReported = new();
+
+    // One syntax error per line: the first mistake usually explains the rest of the line,
+    // and every later missing/skipped token on it would only repeat it.
+    private bool _errorOnLine;
+
+    internal bool ReportSyntaxErrors { get; init; } = true;
     private readonly List<SyntaxToken> _ahead = new();
     private SyntaxToken _current;
 
@@ -794,7 +803,8 @@ internal sealed class Parser
             equalsValue = SyntaxFactory.EqualsValueClause(equals, ParseLineExpression());
         }
 
-        return SyntaxFactory.DeclareStatement(typeName, name, equalsValue, EatEndOfLine());
+        var flags = ParseFlags();
+        return SyntaxFactory.DeclareStatement(typeName, name, equalsValue, SyntaxFactory.List(flags), EatEndOfLine());
     }
 
     private AssignmentStatementSyntax ParseAssignmentStatement()
@@ -1132,7 +1142,7 @@ internal sealed class Parser
         return SyntaxFactory.IdentifierName(Missing(SyntaxKind.IdentifierToken));
     }
 
-    private static ExpressionSyntax MissingExpression()
+    private ExpressionSyntax MissingExpression()
         => SyntaxFactory.LiteralExpression(Missing(SyntaxKind.IntegerLiteralToken));
 
     private static bool IsInvocable(ExpressionSyntax expression)
@@ -1299,6 +1309,11 @@ internal sealed class Parser
     private SyntaxToken Take()
     {
         var token = AttachSkipped(_current);
+        if (token.Kind == SyntaxKind.EndOfLineToken)
+        {
+            _errorOnLine = false;
+        }
+
         _current = NextToken();
         return token;
     }
@@ -1310,7 +1325,19 @@ internal sealed class Parser
             return;
         }
 
+        var kind = _current.Kind;
+        var unexpected = ReportSyntaxErrors && kind is not (SyntaxKind.EndOfLineToken or SyntaxKind.DocCommentToken);
         _skipped.Add(_current);
+        _skippedReported.Add(unexpected && !_errorOnLine);
+        if (unexpected)
+        {
+            _errorOnLine = true;
+        }
+        else if (kind == SyntaxKind.EndOfLineToken)
+        {
+            _errorOnLine = false;
+        }
+
         _current = NextToken();
     }
 
@@ -1549,15 +1576,50 @@ internal sealed class Parser
             return null;
         }
 
+        // One trivia per run, so an "unexpected" diagnostic covers the unexpected tokens
+        // (up to the end of their line) and not the blank lines around them.
+        var segments = new List<GreenNode>();
         var builder = new StringBuilder();
-        for (var i = 0; i < _skipped.Count; i++)
+        DiagnosticInfo? diagnostic = null;
+        void Flush()
         {
-            builder.Append(_skipped[i].ToFullString());
+            if (builder.Length > 0)
+            {
+                segments.Add(new GreenTrivia(
+                    SyntaxKind.SkippedTokensTrivia,
+                    builder.ToString(),
+                    diagnostic is null ? null : [diagnostic]));
+            }
+
+            builder.Clear();
+            diagnostic = null;
         }
 
+        for (var i = 0; i < _skipped.Count; i++)
+        {
+            var token = _skipped[i];
+            if (_skippedReported[i])
+            {
+                Flush();
+                diagnostic = new DiagnosticInfo(DiagnosticCatalog.UnexpectedToken, token.Text);
+            }
+            else if (diagnostic is not null && token.Kind == SyntaxKind.EndOfLineToken)
+            {
+                Flush();
+            }
+
+            builder.Append(token.ToFullString());
+        }
+
+        Flush();
         _skipped.Clear();
-        var text = builder.ToString();
-        return text.Length == 0 ? null : new GreenTrivia(SyntaxKind.SkippedTokensTrivia, text);
+        _skippedReported.Clear();
+        return segments.Count switch
+        {
+            0 => null,
+            1 => segments[0],
+            _ => GreenList.From(segments),
+        };
     }
 
     private static GreenNode ConcatTrivia(GreenNode extra, GreenNode? existing)
@@ -1593,7 +1655,42 @@ internal sealed class Parser
         items.Add(node);
     }
 
-    private static SyntaxToken Missing(SyntaxKind kind) => SyntaxFactory.MissingToken(kind);
+    private SyntaxToken Missing(SyntaxKind kind)
+    {
+        var token = SyntaxFactory.MissingToken(kind);
+
+        // A file may end without a final newline.
+        if (kind == SyntaxKind.EndOfLineToken && _current.Kind == SyntaxKind.EndOfFileToken)
+        {
+            return token;
+        }
+
+        if (!ReportSyntaxErrors || _errorOnLine || token.Node is not GreenToken green)
+        {
+            return token;
+        }
+
+        _errorOnLine = true;
+        var withError = green.WithDiagnostics([new DiagnosticInfo(DiagnosticCatalog.ExpectedToken, Describe(kind))]);
+        return new SyntaxToken(withError, token.Parent, token.Position);
+    }
+
+    private static string Describe(SyntaxKind kind)
+    {
+        var text = SyntaxFacts.GetText(kind);
+        if (!string.IsNullOrEmpty(text))
+        {
+            return "'" + text + "'";
+        }
+
+        return kind switch
+        {
+            SyntaxKind.IdentifierToken => "a name",
+            SyntaxKind.EndOfLineToken => "the end of the line",
+            SyntaxKind.IntegerLiteralToken => "an expression",
+            _ => kind.ToString(),
+        };
+    }
 
     private static bool HasFlag(List<FlagSyntax> flags, SyntaxKind kind)
     {

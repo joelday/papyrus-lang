@@ -502,7 +502,7 @@ public sealed class PapyrusCompilation
         if (Resolver.TryResolvePex(name.ToString(), out var metadata) && metadata is not null)
         {
             return CachedScript.FromPex(
-                SyntaxTree.Parse(SourceText.From(string.Empty), Dialect, _options),
+                SyntaxTree.CreatePlaceholder(Dialect, _options),
                 metadata);
         }
 
@@ -522,7 +522,7 @@ public sealed class PapyrusCompilation
 
     private SyntaxTree CreateUnresolvedTree(QualifiedName name)
     {
-        var tree = SyntaxTree.Parse(SourceText.From(string.Empty), Dialect, _options);
+        var tree = SyntaxTree.CreatePlaceholder(Dialect, _options);
         return tree.WithRootDiagnostics(
             new DiagnosticInfo(DiagnosticCatalog.UnresolvedScript, name));
     }

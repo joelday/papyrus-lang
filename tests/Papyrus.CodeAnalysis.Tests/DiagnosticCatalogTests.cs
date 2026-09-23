@@ -30,7 +30,11 @@ public sealed class DiagnosticCatalogTests
         Assert.Contains(DiagnosticCatalog.UserFlagBitIndexOutOfRangeId, ids);
         Assert.Contains(DiagnosticCatalog.TooManyNamedUserFlagsId, ids);
         Assert.Contains(DiagnosticCatalog.InvalidFlagsFileId, ids);
+        Assert.Contains(DiagnosticCatalog.ExpectedTokenId, ids);
+        Assert.Contains(DiagnosticCatalog.UnexpectedTokenId, ids);
         Assert.Contains(DiagnosticCatalog.UnresolvedFunctionId, ids);
+        Assert.Contains(DiagnosticCatalog.UndefinedNameId, ids);
+        Assert.Contains(DiagnosticCatalog.MemberNotFoundId, ids);
         Assert.Contains(DiagnosticCatalog.ArraySizeExceedsLimitId, ids);
         Assert.Contains(DiagnosticCatalog.TooManyFunctionsInEmptyStateId, ids);
         Assert.Contains(DiagnosticCatalog.TooManyFunctionsInNamedStateId, ids);
@@ -96,7 +100,7 @@ public sealed class DiagnosticCatalogTests
         Assert.Same(DiagnosticCatalog.UnresolvedScript, unresolved);
         Assert.True(DiagnosticCatalog.TryGet("PAP2002", out var arraySize));
         Assert.Same(DiagnosticCatalog.ArraySizeExceedsLimit, arraySize);
-        Assert.False(DiagnosticCatalog.TryGet("PAP0001", out _));
+        Assert.False(DiagnosticCatalog.TryGet("PAP0999", out _));
         Assert.False(DiagnosticCatalog.TryGet(null!, out _));
     }
 

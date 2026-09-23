@@ -7,6 +7,8 @@ public static class DiagnosticCatalog
 {
     // Reserved: PAP0001–PAP0999 syntax, PAP1000–PAP1999 binding/types,
     // PAP2000–PAP2999 emit/engine limits, PAP8000–PAP8999 workspace, PAP9999 internal.
+    public const string ExpectedTokenId = "PAP0001";
+    public const string UnexpectedTokenId = "PAP0002";
     public const string UnresolvedScriptId = "PAP1000";
     public const string UnresolvedBaseTypeId = "PAP1001";
     public const string CyclicBaseTypeId = "PAP1002";
@@ -20,6 +22,8 @@ public static class DiagnosticCatalog
     public const string UnsupportedNamespaceId = "PAP1010";
     public const string ReservedMemberNameId = "PAP1011";
     public const string UnresolvedFunctionId = "PAP1012";
+    public const string UndefinedNameId = "PAP1013";
+    public const string MemberNotFoundId = "PAP1014";
     public const string UserFlagBitIndexOutOfRangeId = "PAP2000";
     public const string TooManyNamedUserFlagsId = "PAP2001";
     public const string ArraySizeExceedsLimitId = "PAP2002";
@@ -35,11 +39,28 @@ public static class DiagnosticCatalog
     public const string InvalidFlagsFileId = "PAP8001";
     public const string InternalErrorId = "PAP9999";
 
+    public const string SyntaxCategory = "Syntax";
     public const string BindingCategory = "Binding";
     public const string TypeCategory = "Type";
     public const string EngineLimitCategory = "EngineLimit";
     public const string InternalCategory = "Internal";
     public const string WorkspaceCategory = "Workspace";
+
+    public static DiagnosticDescriptor ExpectedToken { get; } = new(
+        ExpectedTokenId,
+        "Expected token",
+        "Expected {0}.",
+        SyntaxCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor UnexpectedToken { get; } = new(
+        UnexpectedTokenId,
+        "Unexpected token",
+        "Unexpected '{0}'.",
+        SyntaxCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 
     public static DiagnosticDescriptor UnresolvedScript { get; } = new(
         UnresolvedScriptId,
@@ -153,6 +174,22 @@ public static class DiagnosticCatalog
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    public static DiagnosticDescriptor UndefinedName { get; } = new(
+        UndefinedNameId,
+        "Undefined name",
+        "The name '{0}' does not exist in the current context.",
+        BindingCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor MemberNotFound { get; } = new(
+        MemberNotFoundId,
+        "Member not found",
+        "'{0}' does not contain a member named '{1}'.",
+        BindingCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static DiagnosticDescriptor InvalidFlagsFile { get; } = new(
         InvalidFlagsFileId,
         "Invalid flags file",
@@ -259,6 +296,8 @@ public static class DiagnosticCatalog
 
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
+        ExpectedToken,
+        UnexpectedToken,
         UnresolvedScript,
         UnresolvedBaseType,
         CyclicBaseType,
@@ -272,6 +311,8 @@ public static class DiagnosticCatalog
         UnsupportedNamespace,
         ReservedMemberName,
         UnresolvedFunction,
+        UndefinedName,
+        MemberNotFound,
         UserFlagBitIndexOutOfRange,
         TooManyNamedUserFlags,
         ArraySizeExceedsLimit,

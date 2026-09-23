@@ -728,6 +728,45 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
             cancellationToken.ThrowIfCancellationRequested();
             BindMemberBody(members[i], cancellationToken);
         }
+
+        // With every body's locals bound, check references inside the bodies.
+        var model = _compilation.GetSemanticModel(_tree);
+        for (var i = 0; i < members.Length; i++)
+        {
+            CheckMemberBody(model, members[i], cancellationToken);
+        }
+    }
+
+    private void CheckMemberBody(SemanticModel model, ISymbol member, CancellationToken cancellationToken)
+    {
+        switch (member)
+        {
+            case FunctionSymbol { Declaration: { } syntax }:
+                AddDiagnostics(model.GetBodyDiagnostics(syntax, cancellationToken));
+                break;
+            case EventSymbol { Declaration: { } syntax }:
+                AddDiagnostics(model.GetBodyDiagnostics(syntax, cancellationToken));
+                break;
+            case PropertySymbol property:
+                if (property.GetMethod is { } getMethod)
+                {
+                    CheckMemberBody(model, getMethod, cancellationToken);
+                }
+
+                if (property.SetMethod is { } setMethod)
+                {
+                    CheckMemberBody(model, setMethod, cancellationToken);
+                }
+
+                break;
+            case StateSymbol state:
+                foreach (var stateMember in state.GetMembers())
+                {
+                    CheckMemberBody(model, stateMember, cancellationToken);
+                }
+
+                break;
+        }
     }
 
     private void BindMemberBody(ISymbol member, CancellationToken cancellationToken)
@@ -824,7 +863,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
                             container,
                             this,
                             BindType(declare.TypeName, declare.TypeName.Span),
-                            isConst: false)
+                            isConst: HasFlag(declare.Flags, SyntaxKind.ConstKeyword))
                         {
                             LocalDeclaration = declare,
                             _emittedName = UniqueLocalName(name.Text, builder),
@@ -863,7 +902,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
     {
         if (syntax.Name.IsMissing)
         {
-            AddDiagnostic(DiagnosticCatalog.UnresolvedType, span, string.Empty);
+            // The parser already reported the missing type (PAP0001); don't pile on.
             return CreateError(default);
         }
 
@@ -900,7 +939,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
 
         if (typeName.Name.Parts.IsDefaultOrEmpty)
         {
-            AddDiagnostic(DiagnosticCatalog.UnresolvedType, span, string.Empty);
+            // Missing syntax; the parser reported it.
             return CreateError(typeName.Name);
         }
 
@@ -1005,11 +1044,22 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
 
         if (baseName.Parts.IsDefaultOrEmpty)
         {
-            SetMissingBase(baseName, span);
+            // `Extends` with no name: the parser reported it.
+            _baseType = CreateError(baseName);
             return;
         }
 
-        var resolved = _compilation.GetScript(_compilation.ResolveScriptName(baseName, QualifiedName));
+        // Members-only completion, like any type reference: fully completing the base here
+        // would run its body checks, which can reach this script's still-binding base type.
+        var resolved = _compilation.GetScriptForType(baseName, QualifiedName);
+
+        // Walk the rest of the Extends chain (only the base-type part) so a cycle back to
+        // this script is detected here.
+        if (resolved is SourceScriptSymbol baseSource)
+        {
+            baseSource.ForceComplete(CompletionPart.BaseType, cancellationToken);
+        }
+
         if (_cyclicBase)
         {
             SetCyclicBase(baseName, span);

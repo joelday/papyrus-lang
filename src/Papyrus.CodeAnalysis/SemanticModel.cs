@@ -530,6 +530,110 @@ public sealed class SemanticModel
         return container is not null;
     }
 
+    /// <summary>
+    /// Reference errors in a function, event, or accessor body: names that resolve to
+    /// nothing (PAP1013), members missing from a known receiver type (PAP1014), and calls
+    /// that resolve to no function (PAP1012). Missing syntax is skipped (the parser already
+    /// reported it), and so is a member access whose receiver did not resolve, so one
+    /// mistake yields one diagnostic.
+    /// </summary>
+    internal ImmutableArray<Diagnostic> GetBodyDiagnostics(SyntaxNode body, CancellationToken cancellationToken = default)
+    {
+        var expressions = ImmutableArray.CreateBuilder<ExpressionSyntax>();
+        CollectNodes(body, expressions);
+
+        var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
+        foreach (var expression in expressions)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            switch (expression)
+            {
+                case NameExpressionSyntax { Name: IdentifierNameSyntax identifier } name:
+                    CheckName(name, identifier, diagnostics, cancellationToken);
+                    break;
+                case MemberAccessExpressionSyntax member:
+                    CheckMemberAccess(member, diagnostics, cancellationToken);
+                    break;
+            }
+        }
+
+        return diagnostics.ToImmutable();
+    }
+
+    private void CheckName(
+        NameExpressionSyntax name,
+        IdentifierNameSyntax identifier,
+        ImmutableArray<Diagnostic>.Builder diagnostics,
+        CancellationToken cancellationToken)
+    {
+        if (identifier.IsMissing || !TryGetName(identifier, out var text))
+        {
+            return;
+        }
+
+        // The VM's state variable, only meaningful (and bound) in GetState/GotoState.
+        if (text.Text.Equals("__state", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var symbol = GetSymbolInfo(identifier, cancellationToken);
+        var invoked = name.Parent is InvocationExpressionSyntax invocation && IsSameNode(invocation.Expression, name);
+        if (invoked && symbol is not IFunctionSymbol)
+        {
+            diagnostics.Add(new Diagnostic(
+                new DiagnosticInfo(DiagnosticCatalog.UnresolvedFunction, text.Text), identifier.Span, SyntaxTree));
+        }
+        else if (symbol is null)
+        {
+            diagnostics.Add(new Diagnostic(
+                new DiagnosticInfo(DiagnosticCatalog.UndefinedName, text.Text), identifier.Span, SyntaxTree));
+        }
+    }
+
+    private void CheckMemberAccess(
+        MemberAccessExpressionSyntax member,
+        ImmutableArray<Diagnostic>.Builder diagnostics,
+        CancellationToken cancellationToken)
+    {
+        if (member.Name.IsMissing || !TryGetName(member.Name, out var name))
+        {
+            return;
+        }
+
+        var container = ResolveContainerType(member.Expression, cancellationToken);
+        if (container is null or { TypeKind: TypeKind.Error })
+        {
+            return;
+        }
+
+        if (container.TypeKind == TypeKind.Array && name.Text.Equals("Length", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var invoked = member.Parent is InvocationExpressionSyntax invocation && IsSameNode(invocation.Expression, member);
+        if (invoked)
+        {
+            if (FindFunction(container, name) is null)
+            {
+                diagnostics.Add(new Diagnostic(
+                    new DiagnosticInfo(
+                        DiagnosticCatalog.UnresolvedFunction,
+                        SymbolDisplay.TypeText(container) + "." + name.Text),
+                    member.Name.Span,
+                    SyntaxTree));
+            }
+        }
+        else if (FindMember(container, name, includeBase: true) is null)
+        {
+            diagnostics.Add(new Diagnostic(
+                new DiagnosticInfo(DiagnosticCatalog.MemberNotFound, SymbolDisplay.TypeText(container), name.Text),
+                member.Name.Span,
+                SyntaxTree));
+        }
+    }
+
     private ITypeSymbol? ResolveContainerType(
         ExpressionSyntax expression,
         CancellationToken cancellationToken
@@ -571,7 +675,7 @@ public sealed class SemanticModel
         }
 
         // `x.Name(...)` calls a function even if a property or state shares the name.
-        if (member.Parent is InvocationExpressionSyntax invocation && invocation.Expression == member
+        if (member.Parent is InvocationExpressionSyntax invocation && IsSameNode(invocation.Expression, member)
             && FindFunction(container, name) is { } function)
         {
             return function;
@@ -604,10 +708,15 @@ public sealed class SemanticModel
         return current?.Parent as TypeNameSyntax;
     }
 
+    // Red nodes are not unique: a parent's child accessor and a walk over its slots can
+    // produce different instances for the same syntax, so compare by position and kind.
+    private static bool IsSameNode(SyntaxNode left, SyntaxNode right)
+        => left.Span == right.Span && left.Kind == right.Kind;
+
     private static bool IsInvokedName(IdentifierNameSyntax identifier)
         => identifier.Parent is NameExpressionSyntax name
             && name.Parent is InvocationExpressionSyntax invocation
-            && invocation.Expression == name;
+            && IsSameNode(invocation.Expression, name);
 
     // Calls resolve to functions only (as the compiler binds them): own and inherited
     // members, then imported scripts' globals.

@@ -57,6 +57,17 @@ public sealed class SyntaxTree
         return Create(root.Green, text, dialect, options);
     }
 
+    /// <summary>
+    /// The empty tree standing in for a script that has no source (PEX-backed or missing):
+    /// it has no text to be wrong about, so it reports no syntax errors.
+    /// </summary>
+    internal static SyntaxTree CreatePlaceholder(PapyrusDialect dialect, PapyrusParseOptions options)
+    {
+        var text = SourceText.From(string.Empty);
+        var root = new Parser(text, dialect, options, CancellationToken.None) { ReportSyntaxErrors = false }.ParseScript();
+        return Create(root.Green, text, dialect, options);
+    }
+
     public static SyntaxTree Create(SyntaxNode root, SourceText? text = null)
     {
         return Create(root.Green, text ?? SourceText.From(root.ToFullString()));

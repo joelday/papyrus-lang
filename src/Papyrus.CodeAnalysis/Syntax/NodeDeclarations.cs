@@ -310,6 +310,8 @@ internal sealed partial class DeclareStatementSyntax : StatementSyntax
     public partial TypeNameSyntax TypeName { get; }
     public partial IdentifierNameSyntax Name { get; }
     public partial EqualsValueClauseSyntax? EqualsValue { get; }
+    // `Int count = GetCount() Const` (RefCollectionAlias.psc).
+    public partial SyntaxList<FlagSyntax> Flags { get; }
     public SyntaxToken EndOfLineToken { get; }
 }
 
