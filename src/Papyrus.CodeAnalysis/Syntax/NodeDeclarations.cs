@@ -51,21 +51,23 @@ internal sealed partial class FlagSyntax : SyntaxNode
 [SyntaxNode]
 internal sealed partial class ImportDeclarationSyntax : MemberDeclarationSyntax
 {
-    public SyntaxToken DocComment { get; }
     public SyntaxToken ImportKeyword { get; }
     public partial TypeNameSyntax Name { get; }
     public SyntaxToken EndOfLineToken { get; }
+    // The CK documents a declaration with a `{...}` on the line(s) after its header.
+    public SyntaxToken DocComment { get; }
 }
 
 [SyntaxNode]
 internal sealed partial class ScriptDeclarationSyntax : SyntaxNode
 {
-    public SyntaxToken DocComment { get; }
     public SyntaxToken ScriptNameKeyword { get; }
     public partial NameSyntax Name { get; }
     public partial ExtendsClauseSyntax? ExtendsClause { get; }
     public partial SyntaxList<FlagSyntax> Flags { get; }
     public SyntaxToken EndOfLineToken { get; }
+    // The CK documents a declaration with a `{...}` on the line(s) after its header.
+    public SyntaxToken DocComment { get; }
     public partial SyntaxList<ImportDeclarationSyntax> Imports { get; }
     public partial SyntaxList<MemberDeclarationSyntax> Members { get; }
     public SyntaxToken EndOfFileToken { get; }
@@ -330,13 +332,14 @@ internal sealed partial class ExpressionStatementSyntax : StatementSyntax
 [SyntaxNode]
 internal sealed partial class FunctionDeclarationSyntax : MemberDeclarationSyntax
 {
-    public SyntaxToken DocComment { get; }
     public partial TypeNameSyntax? ReturnType { get; }
     public SyntaxToken FunctionKeyword { get; }
     public partial IdentifierNameSyntax Name { get; }
     public partial ParameterListSyntax ParameterList { get; }
     public partial SyntaxList<FlagSyntax> Flags { get; }
     public SyntaxToken EndOfLineToken { get; }
+    // The CK documents a declaration with a `{...}` on the line(s) after its header.
+    public SyntaxToken DocComment { get; }
     public partial SyntaxList<StatementSyntax> Statements { get; }
     public SyntaxToken EndFunctionKeyword { get; }
 
@@ -348,7 +351,6 @@ internal sealed partial class FunctionDeclarationSyntax : MemberDeclarationSynta
 [SyntaxNode]
 internal sealed partial class EventDeclarationSyntax : MemberDeclarationSyntax
 {
-    public SyntaxToken DocComment { get; }
     public SyntaxToken EventKeyword { get; }
     // FO4+ remote event handler: `Event <RemoteScript>.<Name>(...)` handles <Name> raised
     // by (or custom event <Name> sent from) scripts of type <RemoteScript>.
@@ -358,6 +360,8 @@ internal sealed partial class EventDeclarationSyntax : MemberDeclarationSyntax
     public partial ParameterListSyntax ParameterList { get; }
     public partial SyntaxList<FlagSyntax> Flags { get; }
     public SyntaxToken EndOfLineToken { get; }
+    // The CK documents a declaration with a `{...}` on the line(s) after its header.
+    public SyntaxToken DocComment { get; }
     public partial SyntaxList<StatementSyntax> Statements { get; }
     public SyntaxToken EndEventKeyword { get; }
 
@@ -367,13 +371,14 @@ internal sealed partial class EventDeclarationSyntax : MemberDeclarationSyntax
 [SyntaxNode]
 internal sealed partial class PropertyDeclarationSyntax : MemberDeclarationSyntax
 {
-    public SyntaxToken DocComment { get; }
     public partial TypeNameSyntax TypeName { get; }
     public SyntaxToken PropertyKeyword { get; }
     public partial IdentifierNameSyntax Name { get; }
     public partial EqualsValueClauseSyntax? EqualsValue { get; }
     public partial SyntaxList<FlagSyntax> Flags { get; }
     public SyntaxToken EndOfLineToken { get; }
+    // The CK documents a declaration with a `{...}` on the line(s) after its header.
+    public SyntaxToken DocComment { get; }
     public partial SyntaxList<FunctionDeclarationSyntax> Accessors { get; }
     public SyntaxToken EndPropertyKeyword { get; }
 
@@ -385,12 +390,13 @@ internal sealed partial class PropertyDeclarationSyntax : MemberDeclarationSynta
 [SyntaxNode]
 internal sealed partial class VariableDeclarationSyntax : MemberDeclarationSyntax
 {
-    public SyntaxToken DocComment { get; }
     public partial TypeNameSyntax TypeName { get; }
     public partial IdentifierNameSyntax Name { get; }
     public partial EqualsValueClauseSyntax? EqualsValue { get; }
     public partial SyntaxList<FlagSyntax> Flags { get; }
     public SyntaxToken EndOfLineToken { get; }
+    // The CK documents a declaration with a `{...}` on the line(s) after its header.
+    public SyntaxToken DocComment { get; }
 
     public SyntaxToken ConditionalKeyword => FlagToken(Flags, SyntaxKind.ConditionalKeyword);
 
@@ -400,11 +406,12 @@ internal sealed partial class VariableDeclarationSyntax : MemberDeclarationSynta
 [SyntaxNode]
 internal sealed partial class StateDeclarationSyntax : MemberDeclarationSyntax
 {
-    public SyntaxToken DocComment { get; }
     public SyntaxToken AutoKeyword { get; }
     public SyntaxToken StateKeyword { get; }
     public partial IdentifierNameSyntax Name { get; }
     public SyntaxToken EndOfLineToken { get; }
+    // The CK documents a declaration with a `{...}` on the line(s) after its header.
+    public SyntaxToken DocComment { get; }
     public partial SyntaxList<MemberDeclarationSyntax> Members { get; }
     public SyntaxToken EndStateKeyword { get; }
 }
@@ -412,10 +419,11 @@ internal sealed partial class StateDeclarationSyntax : MemberDeclarationSyntax
 [SyntaxNode]
 internal sealed partial class StructDeclarationSyntax : MemberDeclarationSyntax
 {
-    public SyntaxToken DocComment { get; }
     public SyntaxToken StructKeyword { get; }
     public partial IdentifierNameSyntax Name { get; }
     public SyntaxToken EndOfLineToken { get; }
+    // The CK documents a declaration with a `{...}` on the line(s) after its header.
+    public SyntaxToken DocComment { get; }
     public partial SyntaxList<VariableDeclarationSyntax> Members { get; }
     public SyntaxToken EndStructKeyword { get; }
 }
@@ -423,11 +431,12 @@ internal sealed partial class StructDeclarationSyntax : MemberDeclarationSyntax
 [SyntaxNode]
 internal sealed partial class GroupDeclarationSyntax : MemberDeclarationSyntax
 {
-    public SyntaxToken DocComment { get; }
     public SyntaxToken GroupKeyword { get; }
     public partial IdentifierNameSyntax Name { get; }
     public partial SyntaxList<FlagSyntax> Flags { get; }
     public SyntaxToken EndOfLineToken { get; }
+    // The CK documents a declaration with a `{...}` on the line(s) after its header.
+    public SyntaxToken DocComment { get; }
     public partial SyntaxList<PropertyDeclarationSyntax> Members { get; }
     public SyntaxToken EndGroupKeyword { get; }
 }
@@ -435,19 +444,21 @@ internal sealed partial class GroupDeclarationSyntax : MemberDeclarationSyntax
 [SyntaxNode]
 internal sealed partial class CustomEventDeclarationSyntax : MemberDeclarationSyntax
 {
-    public SyntaxToken DocComment { get; }
     public SyntaxToken CustomEventKeyword { get; }
     public partial IdentifierNameSyntax Name { get; }
     public SyntaxToken EndOfLineToken { get; }
+    // The CK documents a declaration with a `{...}` on the line(s) after its header.
+    public SyntaxToken DocComment { get; }
 }
 
 [SyntaxNode]
 internal sealed partial class GuardDeclarationSyntax : MemberDeclarationSyntax
 {
-    public SyntaxToken DocComment { get; }
     public SyntaxToken GuardKeyword { get; }
     public partial IdentifierNameSyntax Name { get; }
     public SyntaxToken EndOfLineToken { get; }
+    // The CK documents a declaration with a `{...}` on the line(s) after its header.
+    public SyntaxToken DocComment { get; }
 }
 
 [SyntaxNode]

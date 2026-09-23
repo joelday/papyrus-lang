@@ -33,10 +33,10 @@ internal sealed class Parser
     {
         SkipEndOfLines();
 
-        var docComment = default(SyntaxToken);
+        // A doc comment documents the declaration above it; one before the header has none.
         if (_current.Kind == SyntaxKind.DocCommentToken)
         {
-            docComment = Take();
+            Skip();
             SkipEndOfLines();
         }
 
@@ -52,17 +52,18 @@ internal sealed class Parser
 
         var flags = ParseFlags();
         var endOfLineToken = EatEndOfLine();
+        var docComment = ParseTrailingDocComment();
         var imports = ParseImports();
         var members = ParseMembers(SyntaxKind.EndOfFileToken);
         var endOfFileToken = EatRemainder();
 
         return SyntaxFactory.ScriptDeclaration(
-            docComment,
             scriptNameKeyword,
             name,
             extendsClause,
             SyntaxFactory.List(flags),
             endOfLineToken,
+            docComment,
             SyntaxFactory.List(imports),
             SyntaxFactory.List(members),
             endOfFileToken);
@@ -136,18 +137,19 @@ internal sealed class Parser
                 break;
             }
 
-            imports.Add(ParseImport(docComment: default));
+            imports.Add(ParseImport());
         }
 
         return imports;
     }
 
-    private ImportDeclarationSyntax ParseImport(SyntaxToken docComment)
+    private ImportDeclarationSyntax ParseImport()
     {
         var keyword = Take();
         var name = ParseTypeName();
         var endOfLine = EatEndOfLine();
-        return SyntaxFactory.ImportDeclaration(docComment, keyword, name, endOfLine);
+        var docComment = ParseTrailingDocComment();
+        return SyntaxFactory.ImportDeclaration(keyword, name, endOfLine, docComment);
     }
 
     private List<MemberDeclarationSyntax> ParseMembers(SyntaxKind terminator)
@@ -163,10 +165,10 @@ internal sealed class Parser
                 break;
             }
 
-            if (_current.Kind == SyntaxKind.DocCommentToken && !DocCommentPrecedesMember())
+            if (_current.Kind == SyntaxKind.DocCommentToken)
             {
-                // The CK puts a doc comment on the line after the declaration it documents,
-                // so one followed by EndGroup/EndState/end of file starts no member.
+                // Declarations take the doc comment that follows their header, so one
+                // reaching here documents nothing; keep it as trivia.
                 Skip();
                 continue;
             }
@@ -183,116 +185,118 @@ internal sealed class Parser
         return members;
     }
 
-    private bool DocCommentPrecedesMember()
+    // The CK puts a declaration's doc comment on the line after its header (blank lines
+    // allowed), so it is a trailing part of the declaration (Caprica's maybeConsumeDocStringRef).
+    private SyntaxToken ParseTrailingDocComment()
     {
-        for (var distance = 1; ; distance++)
+        var distance = 0;
+        while (PeekToken(distance).Kind == SyntaxKind.EndOfLineToken)
         {
-            var kind = PeekToken(distance).Kind;
-            if (kind != SyntaxKind.EndOfLineToken)
-            {
-                return kind != SyntaxKind.DocCommentToken && IsMemberStart(kind);
-            }
+            distance++;
         }
+
+        if (PeekToken(distance).Kind != SyntaxKind.DocCommentToken)
+        {
+            return default;
+        }
+
+        SkipEndOfLines();
+        return Take();
     }
 
     private MemberDeclarationSyntax ParseMember()
     {
-        var docComment = default(SyntaxToken);
-        if (_current.Kind == SyntaxKind.DocCommentToken)
-        {
-            docComment = Take();
-            SkipEndOfLines();
-        }
-
         if (_current.Kind == SyntaxKind.ImportKeyword)
         {
-            return ParseImport(docComment);
+            return ParseImport();
         }
 
         if (_current.Kind is SyntaxKind.AutoKeyword or SyntaxKind.StateKeyword)
         {
-            return ParseState(docComment);
+            return ParseState();
         }
 
         if (_dialect.SupportsStructs && _current.Kind == SyntaxKind.StructKeyword)
         {
-            return ParseStruct(docComment);
+            return ParseStruct();
         }
 
         if (_dialect.SupportsGroups && _current.Kind == SyntaxKind.GroupKeyword)
         {
-            return ParseGroup(docComment);
+            return ParseGroup();
         }
 
         if (_dialect.SupportsCustomEvents && _current.Kind == SyntaxKind.CustomEventKeyword)
         {
-            return ParseCustomEvent(docComment);
+            return ParseCustomEvent();
         }
 
         if (_dialect.SupportsGuards && _current.Kind == SyntaxKind.GuardKeyword)
         {
-            return ParseGuard(docComment);
+            return ParseGuard();
         }
 
         if (_current.Kind == SyntaxKind.FunctionKeyword)
         {
-            return ParseFunction(docComment, returnType: null);
+            return ParseFunction(returnType: null);
         }
 
         if (_current.Kind == SyntaxKind.EventKeyword)
         {
-            return ParseEvent(docComment);
+            return ParseEvent();
         }
 
         if (_current.Kind == SyntaxKind.PropertyKeyword)
         {
-            return ParseProperty(docComment, MissingTypeName());
+            return ParseProperty(MissingTypeName());
         }
 
         var typeName = ParseTypeName();
         if (_current.Kind == SyntaxKind.FunctionKeyword)
         {
-            return ParseFunction(docComment, typeName);
+            return ParseFunction(typeName);
         }
 
         if (_current.Kind == SyntaxKind.PropertyKeyword)
         {
-            return ParseProperty(docComment, typeName);
+            return ParseProperty(typeName);
         }
 
-        return ParseVariable(docComment, typeName);
+        return ParseVariable(typeName);
     }
 
-    private StateDeclarationSyntax ParseState(SyntaxToken docComment)
+    private StateDeclarationSyntax ParseState()
     {
         var autoKeyword = _current.Kind == SyntaxKind.AutoKeyword ? Take() : default;
         var stateKeyword = Eat(SyntaxKind.StateKeyword);
         var name = ParseIdentifierName();
         var endOfLine = EatEndOfLine();
+        var docComment = ParseTrailingDocComment();
         var members = ParseMembers(SyntaxKind.EndStateKeyword);
         var endState = Eat(SyntaxKind.EndStateKeyword);
         return SyntaxFactory.StateDeclaration(
-            docComment,
             autoKeyword,
             stateKeyword,
             name,
             endOfLine,
+            docComment,
             SyntaxFactory.List(members),
             endState);
     }
 
-    private StructDeclarationSyntax ParseStruct(SyntaxToken docComment)
+    private StructDeclarationSyntax ParseStruct()
     {
         var structKeyword = Eat(SyntaxKind.StructKeyword);
         var name = ParseIdentifierName();
         var endOfLine = EatEndOfLine();
+        var docComment = ParseTrailingDocComment();
         var members = ParseStructMembers();
         var endStruct = Eat(SyntaxKind.EndStructKeyword);
         return SyntaxFactory.StructDeclaration(
-            docComment,
             structKeyword,
             name,
             endOfLine,
+            docComment,
             SyntaxFactory.List(members),
             endStruct);
     }
@@ -315,14 +319,8 @@ internal sealed class Parser
 
             if (_current.Kind == SyntaxKind.DocCommentToken)
             {
-                if (!LooksLikeVariableDeclarationAt(SkipDocCommentLookahead(0)))
-                {
-                    break;
-                }
-
-                var docComment = Take();
-                SkipEndOfLines();
-                members.Add(ParseVariable(docComment, ParseTypeName()));
+                // Member declarations take their own trailing doc comment; this one documents nothing.
+                Skip();
                 continue;
             }
 
@@ -333,7 +331,7 @@ internal sealed class Parser
 
             if (IsTypeStart(_current.Kind))
             {
-                members.Add(ParseVariable(docComment: default, ParseTypeName()));
+                members.Add(ParseVariable(ParseTypeName()));
                 continue;
             }
 
@@ -343,20 +341,21 @@ internal sealed class Parser
         return members;
     }
 
-    private GroupDeclarationSyntax ParseGroup(SyntaxToken docComment)
+    private GroupDeclarationSyntax ParseGroup()
     {
         var groupKeyword = Eat(SyntaxKind.GroupKeyword);
         var name = ParseIdentifierName();
         var flags = ParseFlags();
         var endOfLine = EatEndOfLine();
+        var docComment = ParseTrailingDocComment();
         var members = ParseGroupMembers();
         var endGroup = Eat(SyntaxKind.EndGroupKeyword);
         return SyntaxFactory.GroupDeclaration(
-            docComment,
             groupKeyword,
             name,
             SyntaxFactory.List(flags),
             endOfLine,
+            docComment,
             SyntaxFactory.List(members),
             endGroup);
     }
@@ -379,14 +378,8 @@ internal sealed class Parser
 
             if (_current.Kind == SyntaxKind.DocCommentToken)
             {
-                if (!LooksLikePropertyDeclarationAt(SkipDocCommentLookahead(0)))
-                {
-                    break;
-                }
-
-                var docComment = Take();
-                SkipEndOfLines();
-                members.Add(ParseProperty(docComment, TryParsePropertyType()));
+                // Member declarations take their own trailing doc comment; this one documents nothing.
+                Skip();
                 continue;
             }
 
@@ -397,7 +390,7 @@ internal sealed class Parser
 
             if (_current.Kind == SyntaxKind.PropertyKeyword || IsTypeStart(_current.Kind))
             {
-                members.Add(ParseProperty(docComment: default, TryParsePropertyType()));
+                members.Add(ParseProperty(TryParsePropertyType()));
                 continue;
             }
 
@@ -407,32 +400,35 @@ internal sealed class Parser
         return members;
     }
 
-    private CustomEventDeclarationSyntax ParseCustomEvent(SyntaxToken docComment)
+    private CustomEventDeclarationSyntax ParseCustomEvent()
     {
         var customEventKeyword = Eat(SyntaxKind.CustomEventKeyword);
         var name = ParseIdentifierName();
         var endOfLine = EatEndOfLine();
-        return SyntaxFactory.CustomEventDeclaration(docComment, customEventKeyword, name, endOfLine);
+        var docComment = ParseTrailingDocComment();
+        return SyntaxFactory.CustomEventDeclaration(customEventKeyword, name, endOfLine, docComment);
     }
 
-    private GuardDeclarationSyntax ParseGuard(SyntaxToken docComment)
+    private GuardDeclarationSyntax ParseGuard()
     {
         var guardKeyword = Eat(SyntaxKind.GuardKeyword);
         var name = ParseIdentifierName();
         var endOfLine = EatEndOfLine();
-        return SyntaxFactory.GuardDeclaration(docComment, guardKeyword, name, endOfLine);
+        var docComment = ParseTrailingDocComment();
+        return SyntaxFactory.GuardDeclaration(guardKeyword, name, endOfLine, docComment);
     }
 
     private TypeNameSyntax TryParsePropertyType()
         => _current.Kind == SyntaxKind.PropertyKeyword ? MissingTypeName() : ParseTypeName();
 
-    private FunctionDeclarationSyntax ParseFunction(SyntaxToken docComment, TypeNameSyntax? returnType)
+    private FunctionDeclarationSyntax ParseFunction(TypeNameSyntax? returnType)
     {
         var functionKeyword = Eat(SyntaxKind.FunctionKeyword);
         var name = ParseIdentifierName();
         var parameterList = ParseParameterList();
         var flags = ParseFlags();
         var endOfLine = EatEndOfLine();
+        var docComment = ParseTrailingDocComment();
 
         var statements = default(SyntaxList<StatementSyntax>);
         var endFunction = default(SyntaxToken);
@@ -450,18 +446,18 @@ internal sealed class Parser
         }
 
         return SyntaxFactory.FunctionDeclaration(
-            docComment,
             returnType,
             functionKeyword,
             name,
             parameterList,
             SyntaxFactory.List(flags),
             endOfLine,
+            docComment,
             statements,
             endFunction);
     }
 
-    private EventDeclarationSyntax ParseEvent(SyntaxToken docComment)
+    private EventDeclarationSyntax ParseEvent()
     {
         var eventKeyword = Eat(SyntaxKind.EventKeyword);
         NameSyntax? remoteScript = null;
@@ -476,6 +472,7 @@ internal sealed class Parser
         var parameterList = ParseParameterList();
         var flags = ParseFlags();
         var endOfLine = EatEndOfLine();
+        var docComment = ParseTrailingDocComment();
 
         var statements = default(SyntaxList<StatementSyntax>);
         var endEvent = default(SyntaxToken);
@@ -493,7 +490,6 @@ internal sealed class Parser
         }
 
         return SyntaxFactory.EventDeclaration(
-            docComment,
             eventKeyword,
             remoteScript,
             dotToken,
@@ -501,17 +497,19 @@ internal sealed class Parser
             parameterList,
             SyntaxFactory.List(flags),
             endOfLine,
+            docComment,
             statements,
             endEvent);
     }
 
-    private PropertyDeclarationSyntax ParseProperty(SyntaxToken docComment, TypeNameSyntax typeName)
+    private PropertyDeclarationSyntax ParseProperty(TypeNameSyntax typeName)
     {
         var propertyKeyword = Eat(SyntaxKind.PropertyKeyword);
         var name = ParseIdentifierName();
         var equalsValue = TryParseEqualsValue();
         var flags = ParseFlags();
         var endOfLine = EatEndOfLine();
+        var docComment = ParseTrailingDocComment();
 
         var accessors = default(SyntaxList<FunctionDeclarationSyntax>);
         var endProperty = default(SyntaxToken);
@@ -529,13 +527,13 @@ internal sealed class Parser
         }
 
         return SyntaxFactory.PropertyDeclaration(
-            docComment,
             typeName,
             propertyKeyword,
             name,
             equalsValue,
             SyntaxFactory.List(flags),
             endOfLine,
+            docComment,
             accessors,
             endProperty);
     }
@@ -561,14 +559,8 @@ internal sealed class Parser
 
             if (_current.Kind == SyntaxKind.DocCommentToken)
             {
-                if (!LooksLikeFunctionDeclarationAt(SkipDocCommentLookahead(0)))
-                {
-                    break;
-                }
-
-                var docComment = Take();
-                SkipEndOfLines();
-                accessors.Add(ParseFunction(docComment, TryParseFunctionReturnType()));
+                // Member declarations take their own trailing doc comment; this one documents nothing.
+                Skip();
                 continue;
             }
 
@@ -579,7 +571,7 @@ internal sealed class Parser
 
             if (_current.Kind == SyntaxKind.FunctionKeyword || IsTypeStart(_current.Kind))
             {
-                accessors.Add(ParseFunction(docComment: default, TryParseFunctionReturnType()));
+                accessors.Add(ParseFunction(TryParseFunctionReturnType()));
                 continue;
             }
 
@@ -589,20 +581,21 @@ internal sealed class Parser
         return accessors;
     }
 
-    private VariableDeclarationSyntax ParseVariable(SyntaxToken docComment, TypeNameSyntax typeName)
+    private VariableDeclarationSyntax ParseVariable(TypeNameSyntax typeName)
     {
         var name = ParseIdentifierName();
         var equalsValue = TryParseEqualsValue();
         SkipUntilFlagOrLineEnd();
         var flags = ParseFlags();
         var endOfLine = EatEndOfLine();
+        var docComment = ParseTrailingDocComment();
         return SyntaxFactory.VariableDeclaration(
-            docComment,
             typeName,
             name,
             equalsValue,
             SyntaxFactory.List(flags),
-            endOfLine);
+            endOfLine,
+            docComment);
     }
 
     private ParameterListSyntax ParseParameterList()
@@ -1441,22 +1434,6 @@ internal sealed class Parser
         }
 
         return PeekToken(SkipTypeLookahead(index)).Kind == SyntaxKind.FunctionKeyword;
-    }
-
-    private int SkipDocCommentLookahead(int index)
-    {
-        if (PeekToken(index).Kind != SyntaxKind.DocCommentToken)
-        {
-            return index;
-        }
-
-        index++;
-        while (PeekToken(index).Kind == SyntaxKind.EndOfLineToken)
-        {
-            index++;
-        }
-
-        return index;
     }
 
     private bool LooksLikeTypedDeclaration()

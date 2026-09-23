@@ -63,12 +63,12 @@ internal static partial class SyntaxFactory
         SyntaxToken endOfLineToken)
     {
         return ScriptDeclaration(
-            docComment,
             scriptNameKeyword,
             name,
             extendsClause,
             Flags(nativeKeyword, hiddenKeyword, conditionalKeyword),
             endOfLineToken,
+            docComment,
             imports: default,
             members: default,
             endOfFileToken: default);

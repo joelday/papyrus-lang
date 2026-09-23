@@ -97,16 +97,16 @@ public sealed class GreenRedTreeTests
     {
         var declaration = CreateMinimalScript("Hello");
 
+        Assert.Null(declaration.GetCachedSlot(1));
         Assert.Null(declaration.GetCachedSlot(2));
-        Assert.Null(declaration.GetCachedSlot(3));
 
         var name = declaration.Name;
 
         Assert.NotNull(name);
-        Assert.Same(name, declaration.GetCachedSlot(2));
+        Assert.Same(name, declaration.GetCachedSlot(1));
         Assert.Equal("Hello", ((IdentifierNameSyntax)name).Identifier.Text);
         Assert.Null(declaration.ExtendsClause);
-        Assert.Null(declaration.GetCachedSlot(3));
+        Assert.Null(declaration.GetCachedSlot(2));
     }
 
     [Fact]

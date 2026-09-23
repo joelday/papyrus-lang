@@ -36,6 +36,7 @@ public static class SyntaxFormatter
         var lines = text.Lines;
         var edits = ImmutableArray.CreateBuilder<IndentationEdit>();
         var depth = 0;
+        var afterOpener = false;
         for (var line = 0; line < lines.LineCount; line++)
         {
             var start = lines.GetLineStart(line);
@@ -49,7 +50,9 @@ public static class SyntaxFormatter
 
             var code = content[first..];
             var dedent = IsDedent(code);
-            var lineDepth = Math.Max(0, depth - (dedent ? 1 : 0));
+            // A declaration's doc comment follows its header line and stays level with it.
+            var headerDoc = afterOpener && code.StartsWith('{');
+            var lineDepth = Math.Max(0, depth - (dedent || headerDoc ? 1 : 0));
             var expected = useTabs
                 ? new string('\t', lineDepth)
                 : new string(' ', lineDepth * indentSize);
@@ -63,7 +66,8 @@ public static class SyntaxFormatter
                 depth = lineDepth;
             }
 
-            if (IsOpener(code))
+            afterOpener = IsOpener(code);
+            if (afterOpener)
             {
                 depth++;
             }

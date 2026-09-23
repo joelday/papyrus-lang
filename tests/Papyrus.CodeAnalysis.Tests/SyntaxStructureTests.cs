@@ -223,6 +223,38 @@ public sealed class SyntaxStructureTests
     }
 
     [Fact]
+    public void Indentation_keeps_doc_comments_level_with_the_header_they_document()
+    {
+        const string source =
+            "ScriptName Foo\n"
+            + "Function Go()\n"
+            + "{Does the thing}\n"
+            + "x = 1\n"
+            + "EndFunction\n"
+            + "Group Settings\n"
+            + "  {The settings}\n"
+            + "Int Property A Auto\n"
+            + "{A}\n"
+            + "EndGroup\n";
+
+        var formatted = SyntaxFormatter.ApplyIndentation(SyntaxTree.Parse(source, PapyrusDialect.Fallout4));
+
+        Assert.Equal(
+            "ScriptName Foo\n"
+                + "Function Go()\n"
+                + "{Does the thing}\n"
+                + "    x = 1\n"
+                + "EndFunction\n"
+                + "Group Settings\n"
+                + "{The settings}\n"
+                + "    Int Property A Auto\n"
+                + "    {A}\n"
+                + "EndGroup\n",
+            formatted
+        );
+    }
+
+    [Fact]
     public void Indentation_handles_typed_function_and_property_declarations()
     {
         const string source =

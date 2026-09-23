@@ -78,15 +78,39 @@ public sealed class ParserTests
     }
 
     [Fact]
-    public void Doc_comment_attaches_to_script_declaration()
+    public void Doc_comment_after_header_attaches_to_script_declaration()
     {
-        const string source = "{A script}\nScriptName Foo\n";
+        const string source = "ScriptName Foo\n\n{A script}\nInt x\n";
         var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
 
         Assert.Equal(source, tree.GetRoot().ToFullString());
         Assert.True(tree.TryGetRoot(out var root));
         Assert.Equal(SyntaxKind.DocCommentToken, root.DocComment.Kind);
         Assert.Equal("{A script}", root.DocComment.Text);
+    }
+
+    [Fact]
+    public void Doc_comment_before_script_header_documents_nothing()
+    {
+        const string source = "{Stray}\nScriptName Foo\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        Assert.Equal(SyntaxKind.None, root.DocComment.Kind);
+    }
+
+    [Fact]
+    public void Doc_comment_documents_the_declaration_above_it()
+    {
+        // The CK convention: the doc line follows the declaration it documents.
+        const string source = "ScriptName Foo\nInt Property A Auto\n{doc for A}\nInt Property B Auto\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        Assert.True(tree.TryGetRoot(out var root));
+        Assert.Equal("{doc for A}", Assert.IsType<PropertyDeclarationSyntax>(root.Members.Get(0)).DocComment.Text);
+        Assert.Equal(SyntaxKind.None, Assert.IsType<PropertyDeclarationSyntax>(root.Members.Get(1)).DocComment.Kind);
     }
 
     [Fact]
@@ -631,7 +655,7 @@ public sealed class ParserTests
     [Fact]
     public void Parse_full_property_doc_comment_stays_on_typed_getter()
     {
-        const string source = "ScriptName Foo\nInt Property Value\n{getter}\nInt Function Get()\nEndFunction\nEndProperty\n";
+        const string source = "ScriptName Foo\nInt Property Value\nInt Function Get()\n{getter}\nEndFunction\nEndProperty\n";
         var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
 
         Assert.Equal(source, tree.GetRoot().ToFullString());
@@ -647,7 +671,7 @@ public sealed class ParserTests
     [Fact]
     public void Parse_full_property_doc_comment_stays_on_untyped_getter()
     {
-        const string source = "ScriptName Foo\nInt Property Value\n{getter}\nFunction Get()\nEndFunction\nEndProperty\n";
+        const string source = "ScriptName Foo\nInt Property Value\nFunction Get()\n{getter}\nEndFunction\nEndProperty\n";
         var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
 
         Assert.Equal(source, tree.GetRoot().ToFullString());
@@ -712,7 +736,7 @@ public sealed class ParserTests
     [Fact]
     public void Parse_doc_comment_attaches_to_function()
     {
-        const string source = "ScriptName Foo\n{A function}\nFunction Bar()\nEndFunction\n";
+        const string source = "ScriptName Foo\nFunction Bar()\n{A function}\nEndFunction\n";
         var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
 
         Assert.Equal(source, tree.GetRoot().ToFullString());
@@ -809,7 +833,7 @@ public sealed class ParserTests
     [Fact]
     public void Parse_struct_doc_comment_and_member_docs_round_trip()
     {
-        const string source = "ScriptName Foo\n{A point}\nStruct Point\n{x}\nFloat X\nEndStruct\n";
+        const string source = "ScriptName Foo\nStruct Point\n{A point}\nFloat X\n{x}\nEndStruct\n";
         var tree = SyntaxTree.Parse(source, PapyrusDialect.Fallout4);
 
         Assert.Equal(source, tree.GetRoot().ToFullString());
@@ -872,7 +896,7 @@ public sealed class ParserTests
     [Fact]
     public void Parse_group_property_doc_comment_round_trips()
     {
-        const string source = "ScriptName Foo\nGroup Stats\n{hp}\nInt Property Health Auto\nEndGroup\n";
+        const string source = "ScriptName Foo\nGroup Stats\nInt Property Health Auto\n{hp}\nEndGroup\n";
         var tree = SyntaxTree.Parse(source, PapyrusDialect.Fallout4);
 
         Assert.Equal(source, tree.GetRoot().ToFullString());
@@ -912,7 +936,7 @@ public sealed class ParserTests
     [Fact]
     public void Parse_custom_event_doc_comment_round_trips()
     {
-        const string source = "ScriptName Foo\n{Fired when X}\nCustomEvent OnSomething\n";
+        const string source = "ScriptName Foo\nCustomEvent OnSomething\n{Fired when X}\n";
         var tree = SyntaxTree.Parse(source, PapyrusDialect.Fallout4);
 
         Assert.Equal(source, tree.GetRoot().ToFullString());
@@ -980,7 +1004,7 @@ public sealed class ParserTests
     [Fact]
     public void Parse_guard_declaration_doc_comment_round_trips()
     {
-        const string source = "ScriptName Foo\n{A lock}\nGuard Mutex\n";
+        const string source = "ScriptName Foo\nGuard Mutex\n{A lock}\n";
         var tree = SyntaxTree.Parse(source, PapyrusDialect.Starfield);
 
         Assert.Equal(source, tree.GetRoot().ToFullString());
