@@ -34,6 +34,58 @@ public static class TypeConversions
         return CannotConvert(source, destination);
     }
 
+    /// <summary>
+    /// Whether the CK compiler accepts <paramref name="source"/> where <paramref name="destination"/>
+    /// is expected without an explicit cast (Caprica's <c>canImplicitlyCoerce</c>). Broader than
+    /// <see cref="ClassifyImplicit"/> in the places Papyrus converts silently: any non-None value
+    /// becomes a Bool or String, Int becomes Float, a script becomes any script it extends, and
+    /// anything but an array becomes Var. Used for diagnostics only; code generation keeps
+    /// its own conversion rules.
+    /// </summary>
+    public static bool CanImplicitlyCoerce(ITypeSymbol source, ITypeSymbol destination, bool sourceIsNoneLiteral)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(destination);
+        if (source.TypeKind == TypeKind.Error || destination.TypeKind == TypeKind.Error)
+        {
+            return true;
+        }
+
+        if (TypeAssignability.Classify(source, destination) == ConversionKind.Identity)
+        {
+            return true;
+        }
+
+        if (sourceIsNoneLiteral || IsNone(source))
+        {
+            return destination.TypeKind is TypeKind.Script or TypeKind.Struct or TypeKind.Array or TypeKind.Var
+                || IsNamed(destination, "Bool")
+                || IsNamed(destination, "String");
+        }
+
+        if (IsNamed(destination, "Bool") || IsNamed(destination, "String")
+            || IntrinsicTypeNames.IsEventName(destination, out _))
+        {
+            return true;
+        }
+
+        if (IsNamed(destination, "Float"))
+        {
+            return IsNamed(source, "Int");
+        }
+
+        return destination.TypeKind switch
+        {
+            TypeKind.Var => source.TypeKind != TypeKind.Array,
+            TypeKind.Script => source.TypeKind == TypeKind.Script
+                && TypeAssignability.Classify(source, destination) == ConversionKind.Implicit,
+            _ => false,
+        };
+    }
+
+    private static bool IsNamed(ITypeSymbol type, string name)
+        => type.TypeKind == TypeKind.Intrinsic && type.Name.Text.Equals(name, StringComparison.OrdinalIgnoreCase);
+
     public static Conversion ClassifyAs(ITypeSymbol source, ITypeSymbol destination, NameTable names)
     {
         ArgumentNullException.ThrowIfNull(source);

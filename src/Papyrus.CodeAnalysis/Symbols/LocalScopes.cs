@@ -70,7 +70,7 @@ internal static class LocalScopes
         return null;
     }
 
-    private static bool InScope(DeclareStatementSyntax declaration, int position)
+    internal static bool InScope(DeclareStatementSyntax declaration, int position)
     {
         if (declaration.Parent is not { } block)
         {

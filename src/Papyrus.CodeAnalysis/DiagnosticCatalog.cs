@@ -24,6 +24,12 @@ public static class DiagnosticCatalog
     public const string UnresolvedFunctionId = "PAP1012";
     public const string UndefinedNameId = "PAP1013";
     public const string MemberNotFoundId = "PAP1014";
+    public const string TooManyArgumentsId = "PAP1015";
+    public const string MissingArgumentId = "PAP1016";
+    public const string UnknownNamedArgumentId = "PAP1017";
+    public const string ReadOnlyAssignmentId = "PAP1018";
+    public const string DuplicateDeclarationId = "PAP1019";
+    public const string NotAllPathsReturnId = "PAP1020";
     public const string UserFlagBitIndexOutOfRangeId = "PAP2000";
     public const string TooManyNamedUserFlagsId = "PAP2001";
     public const string ArraySizeExceedsLimitId = "PAP2002";
@@ -190,6 +196,54 @@ public static class DiagnosticCatalog
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    public static DiagnosticDescriptor TooManyArguments { get; } = new(
+        TooManyArgumentsId,
+        "Too many arguments",
+        "'{0}' takes {1} argument(s) but {2} were given.",
+        BindingCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor MissingArgument { get; } = new(
+        MissingArgumentId,
+        "Missing argument",
+        "No value given for parameter '{0}' of '{1}'.",
+        BindingCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor UnknownNamedArgument { get; } = new(
+        UnknownNamedArgumentId,
+        "Unknown named argument",
+        "'{0}' has no parameter named '{1}'.",
+        BindingCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor ReadOnlyAssignment { get; } = new(
+        ReadOnlyAssignmentId,
+        "Assignment to read-only",
+        "'{0}' is read-only and cannot be assigned.",
+        BindingCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor DuplicateDeclaration { get; } = new(
+        DuplicateDeclarationId,
+        "Duplicate declaration",
+        "'{0}' is already declared in this {1}.",
+        BindingCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor NotAllPathsReturn { get; } = new(
+        NotAllPathsReturnId,
+        "Not all code paths return a value",
+        "Not all code paths of '{0}' return a value.",
+        BindingCategory,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
     public static DiagnosticDescriptor InvalidFlagsFile { get; } = new(
         InvalidFlagsFileId,
         "Invalid flags file",
@@ -313,6 +367,12 @@ public static class DiagnosticCatalog
         UnresolvedFunction,
         UndefinedName,
         MemberNotFound,
+        TooManyArguments,
+        MissingArgument,
+        UnknownNamedArgument,
+        ReadOnlyAssignment,
+        DuplicateDeclaration,
+        NotAllPathsReturn,
         UserFlagBitIndexOutOfRange,
         TooManyNamedUserFlags,
         ArraySizeExceedsLimit,

@@ -35,6 +35,12 @@ public sealed class DiagnosticCatalogTests
         Assert.Contains(DiagnosticCatalog.UnresolvedFunctionId, ids);
         Assert.Contains(DiagnosticCatalog.UndefinedNameId, ids);
         Assert.Contains(DiagnosticCatalog.MemberNotFoundId, ids);
+        Assert.Contains(DiagnosticCatalog.TooManyArgumentsId, ids);
+        Assert.Contains(DiagnosticCatalog.MissingArgumentId, ids);
+        Assert.Contains(DiagnosticCatalog.UnknownNamedArgumentId, ids);
+        Assert.Contains(DiagnosticCatalog.ReadOnlyAssignmentId, ids);
+        Assert.Contains(DiagnosticCatalog.DuplicateDeclarationId, ids);
+        Assert.Contains(DiagnosticCatalog.NotAllPathsReturnId, ids);
         Assert.Contains(DiagnosticCatalog.ArraySizeExceedsLimitId, ids);
         Assert.Contains(DiagnosticCatalog.TooManyFunctionsInEmptyStateId, ids);
         Assert.Contains(DiagnosticCatalog.TooManyFunctionsInNamedStateId, ids);

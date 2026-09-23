@@ -66,6 +66,64 @@ public sealed class DiagnosticQualityTests
         Assert.Contains("'Missing'", diagnostic.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("  Int x = \"text\"\n", DiagnosticCatalog.CannotConvertId, "'String' to 'Int'")]
+    [InlineData("  Other o = 5\n", DiagnosticCatalog.CannotConvertId, "'Int' to 'Other'")]
+    [InlineData("  Take(1.5)\n", DiagnosticCatalog.CannotConvertId, "'Float' to 'Int'")]
+    [InlineData("  Take(1, 2)\n", DiagnosticCatalog.TooManyArgumentsId, "takes 1 argument(s) but 2")]
+    [InlineData("  Take()\n", DiagnosticCatalog.MissingArgumentId, "parameter 'a'")]
+    [InlineData("  Take(b = 1)\n", DiagnosticCatalog.UnknownNamedArgumentId, "no parameter named 'b'")]
+    [InlineData("  Limit = 2\n", DiagnosticCatalog.ReadOnlyAssignmentId, "'Limit' is read-only")]
+    [InlineData("  Max = 2\n", DiagnosticCatalog.ReadOnlyAssignmentId, "'Max' is read-only")]
+    [InlineData("  Int y = 1\n  If true\n    Int y = 2\n  EndIf\n", DiagnosticCatalog.DuplicateDeclarationId, "'y' is already declared")]
+    public void Type_argument_readonly_and_duplicate_errors_in_bodies(string body, string id, string message)
+    {
+        var diagnostic = Assert.Single(Diagnostics(
+            "Int Property Limit = 1 AutoReadOnly\nInt Max = 3 Const\nFunction Take(Int a)\nEndFunction\n"
+            + "Function Go()\n" + body + "EndFunction\n"));
+        Assert.Equal(id, diagnostic.Id);
+        Assert.Contains(message, diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Coercions_the_CK_accepts_are_not_errors()
+    {
+        Assert.Empty(Diagnostics(
+            "Function Go(Other o)\n"
+            + "  String s = 5\n"          // anything but None becomes a String
+            + "  Bool b = o\n"            // ...or a Bool
+            + "  Float f = 1\n"           // Int becomes Float
+            + "  Var v = o\n"             // anything but an array becomes Var
+            + "  Other n = None\n"
+            + "  Int y = 1\n  If b\n    Int z = 2\n  Else\n    Int z = 3\n  EndIf\n" // sibling blocks
+            + "EndFunction\n"));
+    }
+
+    [Fact]
+    public void Duplicate_members_are_reported_once_per_extra_declaration()
+    {
+        var diagnostic = Assert.Single(Diagnostics("Int Property A Auto\nInt A\nFunction F()\nEndFunction\n"));
+        Assert.Equal(DiagnosticCatalog.DuplicateDeclarationId, diagnostic.Id);
+    }
+
+    [Fact]
+    public void Function_that_can_fall_off_its_end_gets_a_warning()
+    {
+        var diagnostic = Assert.Single(Diagnostics("Int Function F(Bool b)\n  If b\n    Return 1\n  EndIf\nEndFunction\n"));
+        Assert.Equal(DiagnosticCatalog.NotAllPathsReturnId, diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.Empty(Diagnostics("Int Function F(Bool b)\n  If b\n    Return 1\n  EndIf\n  Return 0\nEndFunction\n"));
+    }
+
+    [Fact]
+    public void Non_call_use_of_a_name_shared_by_a_property_and_a_function_is_the_property()
+    {
+        // MS13Script: `Function DivideSpoils(...)` and `Bool Property DivideSpoils`.
+        Assert.Empty(Diagnostics(
+            "Function DivideSpoils(Float cut = 0.5)\nEndFunction\nBool Property DivideSpoils = true Auto\n"
+            + "Function Go(Foo q)\n  q.DivideSpoils = false\n  DivideSpoils = true\n  q.DivideSpoils(0.1)\nEndFunction\n"));
+    }
+
     [Fact]
     public void Valid_code_has_no_diagnostics()
     {

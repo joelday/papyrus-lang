@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 using System.Collections.Immutable;
 using System.Globalization;
@@ -23,6 +24,31 @@ internal sealed class BoundTreeBuilder
         _script = containingScript;
         _function = function;
         _types = new ExpressionTypeBinder(compilation, containingScript);
+    }
+
+    private List<Diagnostic>? _diagnostics;
+
+    /// <summary>
+    /// When true, binding records type, argument, and read-only errors (see
+    /// <see cref="Diagnostics"/>). Off for emit, which binds already-checked code.
+    /// </summary>
+    internal bool ReportDiagnostics
+    {
+        get => _diagnostics is not null;
+        init => _diagnostics = value ? new List<Diagnostic>() : null;
+    }
+
+    internal ImmutableArray<Diagnostic> Diagnostics => _diagnostics is null ? ImmutableArray<Diagnostic>.Empty : [.. _diagnostics];
+
+    // Nothing is reported on syntax that already has errors: the parser reported those.
+    private void Report(DiagnosticDescriptor descriptor, SyntaxNode? node, params object?[] arguments)
+    {
+        if (_diagnostics is null || node is null || node.ContainsDiagnostics)
+        {
+            return;
+        }
+
+        _diagnostics.Add(new Diagnostic(new DiagnosticInfo(descriptor, arguments), node.Span, node.SyntaxTree));
     }
 
     public BoundScript BindScript(IScriptSymbol script)
@@ -70,7 +96,22 @@ internal sealed class BoundTreeBuilder
 
         var bound = BindExpressionCore(expression);
         bound.Syntax ??= expression;
-        return expectedType is null ? bound : Convert(bound, expectedType);
+        if (expectedType is null)
+        {
+            return bound;
+        }
+
+        if (_diagnostics is not null
+            && !TypeConversions.CanImplicitlyCoerce(bound.Type, expectedType, bound is BoundLiteral { Value: null }))
+        {
+            Report(
+                DiagnosticCatalog.CannotConvert,
+                expression,
+                SymbolDisplay.TypeText(bound.Type),
+                SymbolDisplay.TypeText(expectedType));
+        }
+
+        return Convert(bound, expectedType);
     }
 
     private void AddFunctions(ImmutableArray<ISymbol> members, ImmutableArray<BoundFunction>.Builder builder)
@@ -164,9 +205,41 @@ internal sealed class BoundTreeBuilder
     private BoundAssignment BindAssignment(AssignmentStatementSyntax assignment)
     {
         var left = BindExpression(assignment.Left);
+        if (ReadOnlyTarget(left) is { } readOnly)
+        {
+            Report(DiagnosticCatalog.ReadOnlyAssignment, assignment.Left, readOnly.Name.Text);
+        }
+
         var expected = assignment.OperatorToken.Kind == SyntaxKind.EqualsToken ? left.Type : null;
         var right = BindExpression(assignment.Right, expected);
         return Attach(new BoundAssignment(left, assignment.OperatorToken.Kind, right), assignment);
+    }
+
+    private static ISymbol? ReadOnlyTarget(BoundExpression target)
+    {
+        return target switch
+        {
+            BoundLocal { Local: { IsConst: true } local } => local,
+            BoundField { Field: { IsConst: true } field } => field,
+            BoundProperty { Property: PropertySymbol property } when IsReadOnly(property) => property,
+            _ => null,
+        };
+    }
+
+    private static bool IsReadOnly(PropertySymbol property)
+    {
+        if (property.Declaration is { } declaration)
+        {
+            for (var i = 0; i < declaration.Flags.Count; i++)
+            {
+                if (declaration.Flags.Get(i).FlagToken.Kind is SyntaxKind.AutoReadOnlyKeyword or SyntaxKind.ConstKeyword)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return !property.IsAuto && property.SetMethod is null;
     }
 
     private BoundReturn BindReturn(ReturnStatementSyntax statement)
@@ -509,6 +582,11 @@ internal sealed class BoundTreeBuilder
         IFunctionSymbol? method,
         BoundExpression? receiver)
     {
+        if (method is not null)
+        {
+            CheckArguments(list, method);
+        }
+
         var arguments = list.Arguments;
         var count = arguments.Count;
         if (count == 0)
@@ -518,6 +596,7 @@ internal sealed class BoundTreeBuilder
 
         var builder = ImmutableArray.CreateBuilder<BoundExpression>(count);
         var parameters = method?.Parameters ?? ImmutableArray<IParameterSymbol>.Empty;
+
         for (var i = 0; i < count; i++)
         {
             var argument = arguments.Get(i);
@@ -570,6 +649,74 @@ internal sealed class BoundTreeBuilder
         }
 
         return expression;
+    }
+
+    // Argument counts and names against the resolved function's parameters.
+    private void CheckArguments(ArgumentListSyntax list, IFunctionSymbol method)
+    {
+        if (_diagnostics is null)
+        {
+            return;
+        }
+
+        var parameters = method.Parameters;
+        var supplied = new bool[parameters.Length];
+        var positional = 0;
+        var unknownName = false;
+        for (var i = 0; i < list.Arguments.Count; i++)
+        {
+            var argument = list.Arguments.Get(i);
+            if (argument.Name is { } name && TryGetSimpleName(name, out var argumentName))
+            {
+                var index = -1;
+                for (var p = 0; p < parameters.Length; p++)
+                {
+                    if (parameters[p].Name.Equals(argumentName))
+                    {
+                        index = p;
+                        break;
+                    }
+                }
+
+                if (index < 0)
+                {
+                    Report(DiagnosticCatalog.UnknownNamedArgument, name, method.Name.Text, argumentName.Text);
+                    unknownName = true;
+                }
+                else
+                {
+                    supplied[index] = true;
+                }
+
+                continue;
+            }
+
+            if (positional < parameters.Length)
+            {
+                supplied[positional] = true;
+            }
+            else if (positional == parameters.Length)
+            {
+                Report(
+                    DiagnosticCatalog.TooManyArguments,
+                    argument,
+                    method.Name.Text,
+                    parameters.Length,
+                    list.Arguments.Count);
+            }
+
+            positional++;
+        }
+
+        // A misspelled parameter name already explains the missing value.
+        for (var p = 0; !unknownName && p < parameters.Length; p++)
+        {
+            if (!supplied[p] && !parameters[p].HasDefaultValue)
+            {
+                Report(DiagnosticCatalog.MissingArgument, list, parameters[p].Name.Text, method.Name.Text);
+                break;
+            }
+        }
     }
 
     private BoundExpression QualifyCustomEventName(BoundExpression argument, ITypeSymbol? owner)
@@ -725,25 +872,7 @@ internal sealed class BoundTreeBuilder
     }
 
     private static ISymbol? FindMember(ITypeSymbol? type, PapyrusName name)
-    {
-        if (type is null)
-        {
-            return null;
-        }
-
-        var members = type.GetMembers(name);
-        if (!members.IsEmpty)
-        {
-            return members[0];
-        }
-
-        if (type is IScriptSymbol script && script.BaseType is { TypeKind: not TypeKind.Error } baseType)
-        {
-            return FindMember(baseType, name);
-        }
-
-        return null;
-    }
+        => ScriptHierarchy.FindMember(type, name);
 
     private bool TryGetSimpleName(NameSyntax syntax, out PapyrusName name)
     {

@@ -1224,24 +1224,7 @@ public sealed class SemanticModel
     }
 
     private static ISymbol? FindMember(ITypeSymbol type, PapyrusName name, bool includeBase)
-    {
-        var members = type.GetMembers(name);
-        if (!members.IsEmpty)
-        {
-            return members[0];
-        }
-
-        if (
-            includeBase
-            && type is IScriptSymbol script
-            && script.BaseType is { TypeKind: not TypeKind.Error } baseType
-        )
-        {
-            return FindMember(baseType, name, includeBase: true);
-        }
-
-        return null;
-    }
+        => ScriptHierarchy.FindMember(type, name, includeBase);
 
     private static ITypeSymbol? TypeOf(ISymbol? symbol)
     {

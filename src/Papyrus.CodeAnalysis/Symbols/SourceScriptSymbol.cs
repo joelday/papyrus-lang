@@ -306,7 +306,54 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
 
     private void ComputeMembers(CancellationToken cancellationToken)
     {
-        SetMembers(BindMembers(cancellationToken));
+        var members = BindMembers(cancellationToken);
+        SetMembers(members);
+        CheckDuplicates(members, "script");
+        foreach (var member in members)
+        {
+            if (member is StateSymbol or StructSymbol)
+            {
+                CheckDuplicates(member.GetMembers(), member is StateSymbol ? "state" : "struct");
+            }
+        }
+    }
+
+    // Functions/events share one name space, properties/variables another; structs,
+    // states, and custom events each their own.
+    private void CheckDuplicates(ImmutableArray<ISymbol> members, string container)
+    {
+        var seen = new HashSet<(string, string)>();
+        foreach (var member in members)
+        {
+            var group = member switch
+            {
+                IFunctionSymbol => "function",
+                IPropertySymbol or IVariableSymbol => "variable",
+                IStructSymbol => "struct",
+                IStateSymbol => "state",
+                ICustomEventSymbol => "custom event",
+                _ => null,
+            };
+            if (group is not null
+                && !seen.Add((member.Name.Text.ToUpperInvariant(), group))
+                && NameSpan(member) is { } span)
+            {
+                AddDiagnostic(DiagnosticCatalog.DuplicateDeclaration, span, member.Name.Text, container);
+            }
+        }
+    }
+
+    private static TextSpan? NameSpan(ISymbol symbol)
+    {
+        return symbol switch
+        {
+            FunctionSymbol { Declaration: { } syntax } => syntax.Name.Span,
+            EventSymbol { Declaration: { } syntax } => syntax.Name.Span,
+            PropertySymbol { Declaration: { } syntax } => syntax.Name.Span,
+            VariableSymbol { Declaration: { } syntax } => syntax.Name.Span,
+            StateSymbol { Declaration: { } syntax } => syntax.Name.Span,
+            _ => symbol.DeclaringSyntaxReferences.IsDefaultOrEmpty ? null : symbol.DeclaringSyntaxReferences[0].Span,
+        };
     }
 
     private void ComputeBaseType(CancellationToken cancellationToken)
@@ -741,11 +788,13 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
     {
         switch (member)
         {
-            case FunctionSymbol { Declaration: { } syntax }:
+            case FunctionSymbol { Declaration: { } syntax } function:
                 AddDiagnostics(model.GetBodyDiagnostics(syntax, cancellationToken));
+                CheckBoundBody(function, syntax.Name);
                 break;
-            case EventSymbol { Declaration: { } syntax }:
+            case EventSymbol { Declaration: { } syntax } ev:
                 AddDiagnostics(model.GetBodyDiagnostics(syntax, cancellationToken));
+                CheckBoundBody(ev, syntax.Name);
                 break;
             case PropertySymbol property:
                 if (property.GetMethod is { } getMethod)
@@ -801,6 +850,75 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
 
                 break;
         }
+    }
+
+    // Type, argument, and read-only errors come from binding the body; a function with a
+    // return type whose end is reachable gets a warning.
+    private void CheckBoundBody(IFunctionSymbol function, IdentifierNameSyntax name)
+    {
+        if (function.IsNative)
+        {
+            return;
+        }
+
+        // A local redeclared while an earlier one of that name is still in scope.
+        var locals = function.Locals;
+        for (var i = 0; i < locals.Length; i++)
+        {
+            if (locals[i] is not VariableSymbol { LocalDeclaration: { } declaration })
+            {
+                continue;
+            }
+
+            for (var j = 0; j < i; j++)
+            {
+                if (locals[j] is VariableSymbol { LocalDeclaration: { } earlier }
+                    && locals[j].Name.Equals(locals[i].Name)
+                    && LocalScopes.InScope(earlier, declaration.Span.Start))
+                {
+                    AddDiagnostic(DiagnosticCatalog.DuplicateDeclaration, declaration.Name.Span, locals[i].Name.Text, "scope");
+                    break;
+                }
+            }
+        }
+
+        var builder = new Binding.BoundTreeBuilder(_compilation, this, function) { ReportDiagnostics = true };
+        var bound = builder.BindFunction(function);
+        AddDiagnostics(builder.Diagnostics);
+
+        if (function.ReturnType is { TypeKind: not TypeKind.Error } returnType
+            && !(returnType.TypeKind == TypeKind.Intrinsic && returnType.Name.Text.Equals("None", StringComparison.OrdinalIgnoreCase))
+            && EndIsReachable(Emit.ControlFlowGraph.Build(bound)))
+        {
+            AddDiagnostic(DiagnosticCatalog.NotAllPathsReturn, name.Span, function.Name.Text);
+        }
+    }
+
+    private static bool EndIsReachable(Emit.ControlFlowGraph graph)
+    {
+        var visited = new HashSet<Emit.BasicBlock>();
+        var pending = new Stack<Emit.BasicBlock>();
+        pending.Push(graph.Entry);
+        while (pending.Count > 0)
+        {
+            var block = pending.Pop();
+            if (!visited.Add(block))
+            {
+                continue;
+            }
+
+            if (block.Terminator.Kind == Emit.ControlFlowTerminatorKind.FallThrough)
+            {
+                return true;
+            }
+
+            foreach (var successor in block.Terminator.Successors)
+            {
+                pending.Push(successor);
+            }
+        }
+
+        return false;
     }
 
     private ImmutableArray<IVariableSymbol> BindLocals(

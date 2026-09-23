@@ -86,6 +86,36 @@ internal static class ScriptHierarchy
         return true;
     }
 
+    /// <summary>
+    /// The member a non-call use of <paramref name="name"/> refers to: a property, variable,
+    /// or other non-function member if the type or a base declares one, else a function.
+    /// (MS13Script has both `Function DivideSpoils()` and `Bool Property DivideSpoils`;
+    /// `kmyQuest.DivideSpoils = false` means the property.)
+    /// </summary>
+    public static ISymbol? FindMember(ITypeSymbol? type, PapyrusName name, bool includeBase = true)
+    {
+        ISymbol? function = null;
+        var visited = new HashSet<ITypeSymbol>(ReferenceEqualityComparer.Instance);
+        for (var current = type; current is not null && current.TypeKind != TypeKind.Error && visited.Add(current);)
+        {
+            foreach (var member in current.GetMembers(name))
+            {
+                if (member is IFunctionSymbol)
+                {
+                    function ??= member;
+                }
+                else
+                {
+                    return member;
+                }
+            }
+
+            current = includeBase && current is IScriptSymbol script ? script.BaseType : null;
+        }
+
+        return function;
+    }
+
     public static ICustomEventSymbol? FindCustomEvent(IScriptSymbol script, PapyrusName name)
     {
         return Find<ICustomEventSymbol>(script, name, static s => s.GetMembers());
