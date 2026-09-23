@@ -16,6 +16,21 @@
         "isDefault": true
       },
       "problemMatcher": ["$tsc"]
+    },
+    {
+      // Builds papyrus-lang-vscode2, then opens an Extension Development
+      // Host with the extension host inspector on 127.0.0.1:9333 (without
+      // pausing). Used by the "attach workaround" config in launch.json.
+      "label": "launchDevHost2",
+      "type": "process",
+      "command": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode2",
+        "--inspect-extensions=9333",
+        "--new-window"
+      ],
+      "dependsOn": "buildExtension2",
+      "problemMatcher": []
     }
 
     // --- Legacy papyrus-lang-vscode (RxJS/inversify) build tasks below,
