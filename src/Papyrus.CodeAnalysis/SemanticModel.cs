@@ -173,10 +173,18 @@ public sealed class SemanticModel
         CollectIdentifierNames(root, identifiers);
 
         var locations = ImmutableArray.CreateBuilder<ReferenceLocation>();
+        var name = symbol.Name.Text;
         for (var i = 0; i < identifiers.Count; i++)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var identifier = identifiers[i];
+
+            // A reference spells the symbol's name; binding anything else is wasted work.
+            if (!identifier.Identifier.Text.Equals(name, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             var declared = GetDeclaredSymbol(identifier, cancellationToken);
             if (declared is not null)
             {
