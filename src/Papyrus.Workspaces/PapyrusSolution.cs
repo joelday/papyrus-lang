@@ -223,7 +223,7 @@ public sealed class PapyrusSolution
             }
 
             var script = state.Compilation.GetScript(name);
-            var emitter = new CodeAnalysis.Emit.PexEmitter();
+            var emitter = new CodeAnalysis.Emit.PexEmitter(state.Flags);
             var pex = emitter.EmitFile(script, cancellationToken);
             return HasError(emitter.Diagnostics)
                 ? null
@@ -778,6 +778,49 @@ internal sealed class ProjectState
         Project = project;
         DiskResolver = diskResolver;
         Compilation = compilation;
+        _flags = new Lazy<CodeAnalysis.FlagsFile?>(() => LoadFlags(project, diskResolver));
+    }
+
+    private readonly Lazy<CodeAnalysis.FlagsFile?> _flags;
+
+    /// <summary>
+    /// The project's flags file, which gives user flags (Hidden, Conditional, ...) their
+    /// bits when emitting. Found like the compiler finds it: relative to the project, else
+    /// by file name in the import directories. Null when unset or unreadable.
+    /// </summary>
+    public CodeAnalysis.FlagsFile? Flags => _flags.Value;
+
+    private static CodeAnalysis.FlagsFile? LoadFlags(PapyrusProject project, FileSystemScriptResolver diskResolver)
+    {
+        if (string.IsNullOrWhiteSpace(project.Flags) || Path.GetDirectoryName(project.Path) is not { } directory)
+        {
+            return null;
+        }
+
+        try
+        {
+            var path = Path.GetFullPath(Path.Combine(directory, project.Flags));
+            if (!File.Exists(path))
+            {
+                var fileName = Path.GetFileName(project.Flags);
+                path = "";
+                foreach (var include in diskResolver.IncludeDirectories)
+                {
+                    var candidate = Path.Combine(include, fileName);
+                    if (File.Exists(candidate))
+                    {
+                        path = candidate;
+                        break;
+                    }
+                }
+            }
+
+            return path.Length == 0 ? null : CodeAnalysis.FlagsFile.Parse(File.ReadAllText(path));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return null;
+        }
     }
 
     public ProjectId Id { get; }

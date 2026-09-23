@@ -505,6 +505,36 @@ public sealed class PapyrusWorkspaceTests : IDisposable
     }
 
     [Fact]
+    public void GetAssembly_uses_the_project_flags_file_found_in_an_import()
+    {
+        var scripts = CreateScriptsDirectory("scripts");
+        var fooPath = Path.Combine(scripts, "Foo.psc");
+        File.WriteAllText(fooPath, "ScriptName Foo Hidden\n");
+        File.WriteAllText(Path.Combine(scripts, "Game_Flags.flg"), "Flag Hidden 0\nFlag Conditional 1\n");
+        var ppj = Path.Combine(_root, "game.ppj");
+        File.WriteAllText(
+            ppj,
+            """
+            <PapyrusProject Game="sse" Flags="Game_Flags.flg">
+              <Imports>
+                <Import>scripts</Import>
+              </Imports>
+            </PapyrusProject>
+            """);
+
+        using var workspace = CreateWorkspace();
+        var project = workspace.LoadProject(ppj);
+
+        var assembly = workspace.CurrentSolution.GetAssembly(
+            DocumentId.Create(project.Id, fooPath),
+            TestContext.Current.CancellationToken);
+
+        Assert.NotNull(assembly);
+        Assert.Contains("hidden 0", assembly, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(".userFlags 1", assembly);
+    }
+
+    [Fact]
     public void GetAssembly_returns_null_for_a_script_with_binding_errors()
     {
         var scripts = CreateScriptsDirectory("scripts");
