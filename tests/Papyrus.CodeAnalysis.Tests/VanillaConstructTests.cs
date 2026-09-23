@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Papyrus.CodeAnalysis;
 using Papyrus.CodeAnalysis.Emit;
+using Papyrus.CodeAnalysis.Structure;
 using Papyrus.CodeAnalysis.Syntax;
 using Papyrus.CodeAnalysis.Text;
 using Papyrus.Pex;
@@ -135,6 +136,32 @@ public sealed class VanillaConstructTests
         var file = Emit(compilation, "ScriptObject");
         Assert.Contains(Function(file, "GetState").Instructions, static i => i.Arguments.Any(static a => a.Text == "::State"));
         Assert.Contains(Function(file, "GotoState").Instructions, static i => i.Arguments.Any(static a => a.Text == "::State"));
+    }
+
+    [Fact]
+    public void Doc_comment_after_the_last_member_of_a_block_is_not_a_member()
+    {
+        // AOAliasBailOutScript: a property's `{doc}` line is directly followed by EndGroup.
+        // It used to parse as a nameless variable, and the outline request then failed.
+        const string source =
+            "ScriptName Foo\nGroup Settings\nBool Property Bail = true const auto\n{Default: true}\n\nEndGroup\n{trailing}\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.Fallout4);
+
+        Assert.Equal(source, tree.GetRoot().ToFullString());
+        var group = Assert.Single(SyntaxStructure.GetDocumentSymbols(tree, TestContext.Current.CancellationToken)
+            .Single().Children);
+        Assert.Equal("Bail", Assert.Single(group.Children).Name);
+    }
+
+    [Fact]
+    public void Outline_omits_a_declaration_that_has_no_name_yet()
+    {
+        var tree = SyntaxTree.Parse("ScriptName Foo\nInt\nInt x\n", PapyrusDialect.Fallout4);
+
+        var members = SyntaxStructure.GetDocumentSymbols(tree, TestContext.Current.CancellationToken).Single().Children;
+
+        Assert.All(members, static m => Assert.NotEqual("", m.Name));
+        Assert.Contains(members, static m => m.Name == "x");
     }
 
     [Fact]

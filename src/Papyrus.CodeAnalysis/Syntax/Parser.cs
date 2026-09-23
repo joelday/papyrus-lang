@@ -163,6 +163,14 @@ internal sealed class Parser
                 break;
             }
 
+            if (_current.Kind == SyntaxKind.DocCommentToken && !DocCommentPrecedesMember())
+            {
+                // The CK puts a doc comment on the line after the declaration it documents,
+                // so one followed by EndGroup/EndState/end of file starts no member.
+                Skip();
+                continue;
+            }
+
             if (IsMemberStart(_current.Kind))
             {
                 members.Add(ParseMember());
@@ -173,6 +181,18 @@ internal sealed class Parser
         }
 
         return members;
+    }
+
+    private bool DocCommentPrecedesMember()
+    {
+        for (var distance = 1; ; distance++)
+        {
+            var kind = PeekToken(distance).Kind;
+            if (kind != SyntaxKind.EndOfLineToken)
+            {
+                return kind != SyntaxKind.DocCommentToken && IsMemberStart(kind);
+            }
+        }
     }
 
     private MemberDeclarationSyntax ParseMember()

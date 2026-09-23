@@ -294,7 +294,13 @@ public static class SyntaxStructure
                 continue;
             }
 
-            builder.Add(CreateDocumentSymbol(nodes.Get(i), cancellationToken));
+            // LSP rejects a nameless symbol (and with it the whole outline); a declaration
+            // still being typed can have no name yet.
+            var symbol = CreateDocumentSymbol(nodes.Get(i), cancellationToken);
+            if (symbol.Name.Length > 0)
+            {
+                builder.Add(symbol);
+            }
         }
 
         return builder.ToImmutable();
