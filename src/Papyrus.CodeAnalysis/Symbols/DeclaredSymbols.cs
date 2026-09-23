@@ -13,8 +13,15 @@ internal sealed class ScriptSymbol : MemberOwnerSymbol, IScriptSymbol
         QualifiedName qualifiedName,
         TypeName typeName,
         ImmutableArray<SyntaxReference> declaringSyntaxReferences = default,
-        bool isError = false)
-        : base(name, SymbolKind.Script, containingSymbol: null, containingScript: null, isNative: false)
+        bool isError = false
+    )
+        : base(
+            name,
+            SymbolKind.Script,
+            containingSymbol: null,
+            containingScript: null,
+            isNative: false
+        )
     {
         QualifiedName = qualifiedName;
         TypeName = typeName;
@@ -26,7 +33,8 @@ internal sealed class ScriptSymbol : MemberOwnerSymbol, IScriptSymbol
 
     public override IScriptSymbol? ContainingScript => this;
 
-    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => _declaringSyntaxReferences;
+    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences =>
+        _declaringSyntaxReferences;
 
     public QualifiedName QualifiedName { get; }
 
@@ -62,7 +70,8 @@ internal sealed class StateSymbol : MemberOwnerSymbol, IStateSymbol
         PapyrusName name,
         IScriptSymbol containingScript,
         bool isAuto,
-        StateDeclarationSyntax? declaration = null)
+        StateDeclarationSyntax? declaration = null
+    )
         : base(name, SymbolKind.State, containingScript, containingScript, isNative: false)
     {
         IsAuto = isAuto;
@@ -79,7 +88,8 @@ internal sealed class GuardSymbol : Symbol, IGuardSymbol
     public GuardSymbol(
         PapyrusName name,
         IScriptSymbol containingScript,
-        GuardDeclarationSyntax? declaration = null)
+        GuardDeclarationSyntax? declaration = null
+    )
         : base(name, SymbolKind.Guard, containingScript, containingScript, isNative: false)
     {
         Declaration = declaration;
@@ -101,7 +111,8 @@ internal sealed class FunctionSymbol : Symbol, IFunctionSymbol
         ITypeSymbol returnType,
         bool isGlobal,
         bool isNative,
-        FunctionDeclarationSyntax? declaration = null)
+        FunctionDeclarationSyntax? declaration = null
+    )
         : base(name, SymbolKind.Function, containingSymbol, containingScript, isNative)
     {
         _returnType = returnType;
@@ -112,6 +123,11 @@ internal sealed class FunctionSymbol : Symbol, IFunctionSymbol
     }
 
     internal FunctionDeclarationSyntax? Declaration { get; }
+
+    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences =>
+        Declaration is null
+            ? ImmutableArray<SyntaxReference>.Empty
+            : [new SyntaxReference(Declaration.SyntaxTree, Declaration.Span)];
 
     public ITypeSymbol ReturnType
     {
@@ -166,7 +182,8 @@ internal sealed class EventSymbol : Symbol, IEventSymbol
         IScriptSymbol? containingScript,
         ITypeSymbol returnType,
         bool isNative,
-        EventDeclarationSyntax? declaration = null)
+        EventDeclarationSyntax? declaration = null
+    )
         : base(name, SymbolKind.Event, containingSymbol, containingScript, isNative)
     {
         _returnType = returnType;
@@ -176,6 +193,11 @@ internal sealed class EventSymbol : Symbol, IEventSymbol
     }
 
     internal EventDeclarationSyntax? Declaration { get; }
+
+    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences =>
+        Declaration is null
+            ? ImmutableArray<SyntaxReference>.Empty
+            : [new SyntaxReference(Declaration.SyntaxTree, Declaration.Span)];
 
     public ITypeSymbol ReturnType
     {
@@ -222,8 +244,7 @@ internal sealed class CustomEventSymbol : Symbol, ICustomEventSymbol
 {
     public CustomEventSymbol(PapyrusName name, IScriptSymbol containingScript)
         : base(name, SymbolKind.CustomEvent, containingScript, containingScript, isNative: false)
-    {
-    }
+    { }
 }
 
 internal sealed class PropertySymbol : Symbol, IPropertySymbol
@@ -238,7 +259,8 @@ internal sealed class PropertySymbol : Symbol, IPropertySymbol
         IScriptSymbol? containingScript,
         ITypeSymbol type,
         bool isAuto,
-        PropertyDeclarationSyntax? declaration = null)
+        PropertyDeclarationSyntax? declaration = null
+    )
         : base(name, SymbolKind.Property, containingSymbol, containingScript, isNative: false)
     {
         _type = type;
@@ -247,6 +269,11 @@ internal sealed class PropertySymbol : Symbol, IPropertySymbol
     }
 
     internal PropertyDeclarationSyntax? Declaration { get; }
+
+    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences =>
+        Declaration is null
+            ? ImmutableArray<SyntaxReference>.Empty
+            : [new SyntaxReference(Declaration.SyntaxTree, Declaration.Span)];
 
     public ITypeSymbol Type
     {
@@ -291,7 +318,8 @@ internal sealed class VariableSymbol : Symbol, IVariableSymbol
         IScriptSymbol? containingScript,
         ITypeSymbol type,
         bool isConst,
-        VariableDeclarationSyntax? declaration = null)
+        VariableDeclarationSyntax? declaration = null
+    )
         : base(name, SymbolKind.Variable, containingSymbol, containingScript, isNative: false)
     {
         _type = type;
@@ -300,6 +328,11 @@ internal sealed class VariableSymbol : Symbol, IVariableSymbol
     }
 
     internal VariableDeclarationSyntax? Declaration { get; }
+
+    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences =>
+        Declaration is null
+            ? ImmutableArray<SyntaxReference>.Empty
+            : [new SyntaxReference(Declaration.SyntaxTree, Declaration.Span)];
 
     public ITypeSymbol Type
     {
@@ -321,7 +354,8 @@ internal sealed class ParameterSymbol : Symbol, IParameterSymbol
         ISymbol containingSymbol,
         IScriptSymbol? containingScript,
         ITypeSymbol type,
-        bool hasDefaultValue)
+        bool hasDefaultValue
+    )
         : base(name, SymbolKind.Parameter, containingSymbol, containingScript, isNative: false)
     {
         Type = type;

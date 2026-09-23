@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Papyrus.CodeAnalysis;
@@ -370,12 +371,171 @@ public sealed class PapyrusWorkspaceTests : IDisposable
     }
 
     [Fact]
+    public void FindReferences_finds_matches_across_scripts_in_project()
+    {
+        var scripts = CreateScriptsDirectory("scripts");
+        File.WriteAllText(
+            Path.Combine(scripts, "Base.psc"),
+            "ScriptName Base\nFunction Greet()\nEndFunction\n");
+        File.WriteAllText(
+            Path.Combine(scripts, "Foo.psc"),
+            "ScriptName Foo Extends Base\nFunction Bar()\n  Greet()\nEndFunction\n");
+        var ppj = WriteProject("game.ppj", "scripts");
+
+        using var workspace = CreateWorkspace();
+        var project = workspace.LoadProject(ppj);
+        var solution = workspace.CurrentSolution;
+        var compilation = solution.GetCompilation(project.Id);
+
+        var baseTree = compilation.GetSyntaxTree(QualifiedName.Parse("Base"));
+        var baseModel = compilation.GetSemanticModel(baseTree);
+        var offset = baseTree.GetText().ToString().IndexOf("Greet", StringComparison.Ordinal);
+        var symbol = baseModel.GetSymbolInfo(offset, TestContext.Current.CancellationToken)!;
+
+        var results = solution.FindReferences(
+            project.Id,
+            symbol,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, results.Length);
+        var byPath = results.ToDictionary(
+            r => Path.GetFileName(r.Path),
+            r => r.Spans.Length);
+        Assert.Equal(1, byPath["Base.psc"]);
+        Assert.Equal(1, byPath["Foo.psc"]);
+    }
+
+    [Fact]
     public void LoadProject_null_path_throws()
     {
         using var workspace = CreateWorkspace();
         Assert.Throws<ArgumentNullException>(() => workspace.LoadProject(null!));
         Assert.Throws<ArgumentException>(() => workspace.LoadProject("   "));
         Assert.Throws<ArgumentNullException>(() => workspace.ApplyChange(null!));
+    }
+
+    [Fact]
+    public void GetProjectInfos_describes_imports_and_their_scripts()
+    {
+        var scripts = CreateScriptsDirectory("scripts");
+        File.WriteAllText(Path.Combine(scripts, "Foo.psc"), "ScriptName Foo\n");
+        var ppj = WriteProject("game.ppj", "scripts");
+
+        using var workspace = CreateWorkspace();
+        var project = workspace.LoadProject(ppj);
+
+        var infos = workspace.CurrentSolution.GetProjectInfos();
+
+        var info = Assert.Single(infos);
+        Assert.Equal("game", info.Name);
+        var include = Assert.Single(info.SourceIncludes);
+        Assert.Equal("scripts", include.Name);
+        Assert.True(include.IsImport);
+        Assert.Equal(Path.GetFullPath(scripts), include.FullPath);
+        var script = Assert.Single(include.Scripts);
+        Assert.Equal("Foo", script.Identifier.ToString());
+        Assert.Equal(Path.Combine(scripts, "Foo.psc"), script.FilePath);
+    }
+
+    [Fact]
+    public void GetScriptInfo_reports_candidate_identifier_and_search_paths()
+    {
+        var scripts = CreateScriptsDirectory("scripts");
+        var fooPath = Path.Combine(scripts, "Foo.psc");
+        File.WriteAllText(fooPath, "ScriptName Foo\n");
+        var ppj = WriteProject("game.ppj", "scripts");
+
+        using var workspace = CreateWorkspace();
+        workspace.LoadProject(ppj);
+
+        var info = workspace.CurrentSolution.GetScriptInfo(fooPath);
+
+        Assert.Equal(["Foo"], info.Identifiers.Select(n => n.ToString()));
+        Assert.Contains(Path.GetFullPath(scripts), info.SearchPaths);
+        var identifierFiles = Assert.Single(info.IdentifierFiles);
+        Assert.Equal("Foo", identifierFiles.Identifier.ToString());
+        Assert.Equal([fooPath], identifierFiles.Files);
+    }
+
+    [Fact]
+    public void GetScriptInfo_detects_shadowing_across_two_import_folders()
+    {
+        var first = CreateScriptsDirectory("first");
+        var second = CreateScriptsDirectory("second");
+        File.WriteAllText(Path.Combine(first, "Foo.psc"), "ScriptName Foo\n");
+        File.WriteAllText(Path.Combine(second, "Foo.psc"), "ScriptName Foo\n");
+        var ppj = Path.Combine(_root, "game.ppj");
+        File.WriteAllText(
+            ppj,
+            """
+            <PapyrusProject Game="sse">
+              <Imports>
+                <Import>first</Import>
+                <Import>second</Import>
+              </Imports>
+            </PapyrusProject>
+            """);
+
+        using var workspace = CreateWorkspace();
+        workspace.LoadProject(ppj);
+
+        var info = workspace.CurrentSolution.GetScriptInfo(Path.Combine(first, "Foo.psc"));
+
+        var identifierFiles = Assert.Single(info.IdentifierFiles);
+        Assert.Equal(2, identifierFiles.Files.Length);
+    }
+
+    [Fact]
+    public void GetAssembly_disassembles_the_compiled_script()
+    {
+        var scripts = CreateScriptsDirectory("scripts");
+        var fooPath = Path.Combine(scripts, "Foo.psc");
+        File.WriteAllText(fooPath, "ScriptName Foo\n");
+        var ppj = WriteProject("game.ppj", "scripts");
+
+        using var workspace = CreateWorkspace();
+        var project = workspace.LoadProject(ppj);
+
+        var assembly = workspace.CurrentSolution.GetAssembly(
+            DocumentId.Create(project.Id, fooPath),
+            TestContext.Current.CancellationToken);
+
+        Assert.NotNull(assembly);
+        Assert.Contains(".object Foo", assembly);
+    }
+
+    [Fact]
+    public void GetAssembly_returns_null_for_a_script_with_binding_errors()
+    {
+        var scripts = CreateScriptsDirectory("scripts");
+        var fooPath = Path.Combine(scripts, "Foo.psc");
+        File.WriteAllText(fooPath, "ScriptName Foo\nUnknownType Baz\n");
+        var ppj = WriteProject("game.ppj", "scripts");
+
+        using var workspace = CreateWorkspace();
+        var project = workspace.LoadProject(ppj);
+
+        var assembly = workspace.CurrentSolution.GetAssembly(
+            DocumentId.Create(project.Id, fooPath),
+            TestContext.Current.CancellationToken);
+
+        Assert.Null(assembly);
+    }
+
+    [Fact]
+    public void GetAssembly_returns_null_for_an_unresolvable_document()
+    {
+        var scripts = CreateScriptsDirectory("scripts");
+        var ppj = WriteProject("game.ppj", "scripts");
+
+        using var workspace = CreateWorkspace();
+        var project = workspace.LoadProject(ppj);
+
+        var assembly = workspace.CurrentSolution.GetAssembly(
+            DocumentId.Create(project.Id, Path.Combine(scripts, "Missing.psc")),
+            TestContext.Current.CancellationToken);
+
+        Assert.Null(assembly);
     }
 
     private PapyrusWorkspace CreateWorkspace(TimeProvider? timeProvider = null)

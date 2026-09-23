@@ -25,5 +25,5 @@ export interface ProjectInfos {
 }
 
 export const projectInfosRequestType = {
-    type: new RequestType<ProjectInfosParams, ProjectInfos | null, void, void>('papyrus/projectInfos'),
+    type: new RequestType<ProjectInfosParams, ProjectInfos | null, void>('papyrus/projectInfos'),
 };

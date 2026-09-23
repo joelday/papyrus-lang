@@ -1,4 +1,4 @@
-import { RequestType, TextDocumentIdentifier, TextDocumentRegistrationOptions, Range } from 'vscode-languageclient';
+import { RequestType, TextDocumentIdentifier, Range } from 'vscode-languageclient';
 
 export interface DocumentSyntaxTreeParams {
     textDocument: TextDocumentIdentifier;
@@ -16,7 +16,5 @@ export interface DocumentSyntaxTreeNode {
 }
 
 export const documentSyntaxTreeRequestType = {
-    type: new RequestType<DocumentSyntaxTreeParams, DocumentSyntaxTree | null, void, TextDocumentRegistrationOptions>(
-        'textDocument/syntaxTree'
-    ),
+    type: new RequestType<DocumentSyntaxTreeParams, DocumentSyntaxTree | null, void>('textDocument/syntaxTree'),
 };

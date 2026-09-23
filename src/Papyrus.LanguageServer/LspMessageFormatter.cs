@@ -11,12 +11,12 @@ namespace Papyrus.LanguageServer;
 /// Drops top-level <c>"params": null</c> before STJ JSON-RPC deserialize.
 /// StreamJsonRpc treats a JSON null params token as present and throws.
 /// </summary>
-internal sealed class LspMessageFormatter :
-    IJsonRpcMessageFormatter,
-    IJsonRpcMessageTextFormatter,
-    IJsonRpcInstanceContainer,
-    IJsonRpcMessageFactory,
-    IJsonRpcFormatterTracingCallbacks
+internal sealed class LspMessageFormatter
+    : IJsonRpcMessageFormatter,
+        IJsonRpcMessageTextFormatter,
+        IJsonRpcInstanceContainer,
+        IJsonRpcMessageFactory,
+        IJsonRpcFormatterTracingCallbacks
 {
     private readonly SystemTextJsonFormatter _inner;
 
@@ -72,9 +72,13 @@ internal sealed class LspMessageFormatter :
 
     void IJsonRpcFormatterTracingCallbacks.OnSerializationComplete(
         JsonRpcMessage message,
-        ReadOnlySequence<byte> encodedMessage)
+        ReadOnlySequence<byte> encodedMessage
+    )
     {
-        ((IJsonRpcFormatterTracingCallbacks)_inner).OnSerializationComplete(message, encodedMessage);
+        ((IJsonRpcFormatterTracingCallbacks)_inner).OnSerializationComplete(
+            message,
+            encodedMessage
+        );
     }
 
     private static ReadOnlySequence<byte> OmitNullParams(ReadOnlySequence<byte> buffer)

@@ -112,6 +112,36 @@ public sealed class PapyrusCompilationTests
     }
 
     [Fact]
+    public void GetDiagnostics_by_name_scopes_to_the_requested_script()
+    {
+        var compilation = PapyrusCompilation.Create(
+            PapyrusDialect.SkyrimSe,
+            new TestScriptResolver(
+                new Dictionary<QualifiedName, SourceText>
+                {
+                    [QualifiedName.Parse("Foo")] = SourceText.From(
+                        "ScriptName Foo\nInt Property Bar Auto\nUnknownType Baz\n"
+                    ),
+                    [QualifiedName.Parse("Other")] = SourceText.From("ScriptName Other\n"),
+                }
+            )
+        );
+
+        var diagnostics = compilation.GetDiagnostics(
+            QualifiedName.Parse("Foo"),
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.NotEmpty(diagnostics);
+        Assert.All(diagnostics, d => Assert.Same(compilation.GetSyntaxTree(QualifiedName.Parse("Foo")), d.Tree));
+
+        // Scoping to "Foo" must not force-complete or report anything for "Other".
+        Assert.Empty(
+            compilation.GetDiagnostics(QualifiedName.Parse("Other"), TestContext.Current.CancellationToken)
+        );
+    }
+
+    [Fact]
     public void WithScriptText_returns_new_snapshot_and_leaves_original()
     {
         var name = QualifiedName.Parse("Foo");

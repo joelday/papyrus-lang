@@ -5,47 +5,88 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch (Full build)",
+      // The new RxJS/inversify-free extension (P4.06a/b rewrite). This is
+      // the one to use for day-to-day trying-out; it builds via esbuild
+      // (fast) and requires no .NET build of the old extension's bin/ tree.
+      "name": "Launch papyrus-lang-vscode2",
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
-      "preLaunchTask": "build",
+      "preLaunchTask": "buildExtension2",
       "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode2"
       ],
-      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode2/dist/**/*.js"]
     },
     {
-      "name": "Launch (Build and copy binaries only)",
-      "type": "extensionHost",
-      "request": "launch",
-      "runtimeExecutable": "${execPath}",
-      "preLaunchTask": "updateBin",
-      "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
-      ],
-      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
-    },
-    {
-      "name": "Launch (Build extension only)",
-      "type": "extensionHost",
-      "request": "launch",
-      "runtimeExecutable": "${execPath}",
-      "preLaunchTask": "buildExtension",
-      "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
-      ],
-      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
-    },
-    {
-      "name": "Launch (No build)",
-      "type": "extensionHost",
-      "request": "launch",
-      "runtimeExecutable": "${execPath}",
-      "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
-      ],
-      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
+      // Workaround for https://github.com/microsoft/vscode/issues/336270:
+      // the extensionHost launch above pauses the dev host's extension host
+      // (--inspect-brk on 127.0.0.1) and js-debug then fails to attach via
+      // ::1, so the dev host hangs. Instead, launchDevHost2 opens the dev
+      // host with a non-breaking inspector, and this attaches to it over
+      // IPv4 explicitly. Breakpoints hit during early activation may be
+      // missed.
+      "name": "Launch papyrus-lang-vscode2 (attach workaround)",
+      "type": "node",
+      "request": "attach",
+      "preLaunchTask": "launchDevHost2",
+      "address": "127.0.0.1",
+      "port": 9333,
+      "timeout": 30000,
+      "restart": true,
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode2/dist/**/*.js"]
     }
+
+    // --- Legacy papyrus-lang-vscode (RxJS/inversify) configs below,
+    // --- disabled while papyrus-lang-vscode2 is under active development.
+    // --- Re-enable (uncomment each block below and restore the leading
+    // --- comma) if you need to debug the old extension that is still what
+    // --- ships.
+    //
+    // ,{
+    //   "name": "Launch (Full build)",
+    //   "type": "extensionHost",
+    //   "request": "launch",
+    //   "runtimeExecutable": "${execPath}",
+    //   "preLaunchTask": "build",
+    //   "args": [
+    //     "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+    //   ],
+    //   "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
+    // },
+    // {
+    //   "name": "Launch (Build and copy binaries only)",
+    //   "type": "extensionHost",
+    //   "request": "launch",
+    //   "runtimeExecutable": "${execPath}",
+    //   "preLaunchTask": "updateBin",
+    //   "args": [
+    //     "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+    //   ],
+    //   "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
+    // },
+    // {
+    //   "name": "Launch (Build extension only)",
+    //   "type": "extensionHost",
+    //   "request": "launch",
+    //   "runtimeExecutable": "${execPath}",
+    //   "preLaunchTask": "buildExtension",
+    //   "args": [
+    //     "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+    //   ],
+    //   "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
+    // },
+    // {
+    //   "name": "Launch (No build)",
+    //   "type": "extensionHost",
+    //   "request": "launch",
+    //   "runtimeExecutable": "${execPath}",
+    //   "args": [
+    //     "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+    //   ],
+    //   "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
+    // }
   ]
 }
+

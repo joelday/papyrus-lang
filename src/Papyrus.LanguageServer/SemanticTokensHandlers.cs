@@ -32,16 +32,17 @@ internal static class LspSemanticTokens
 
     internal static readonly string[] TokenModifiers = ["declaration"];
 
-    internal static SemanticTokensOptions CapabilityOptions() => new()
-    {
-        Legend = new SemanticTokensLegend
+    internal static SemanticTokensOptions CapabilityOptions() =>
+        new()
         {
-            TokenTypes = TokenTypes,
-            TokenModifiers = TokenModifiers,
-        },
-        Full = true,
-        Range = true,
-    };
+            Legend = new SemanticTokensLegend
+            {
+                TokenTypes = TokenTypes,
+                TokenModifiers = TokenModifiers,
+            },
+            Full = true,
+            Range = true,
+        };
 
     internal static int MapKind(ClassificationKind kind) => (int)kind;
 
@@ -94,7 +95,8 @@ internal static class LspSemanticTokens
         LspSnapshot snapshot,
         TextDocumentIdentifier? document,
         Range? range,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         if (!LspDocuments.TryGetTree(snapshot, document, out var tree))
         {
@@ -127,14 +129,18 @@ internal sealed class SemanticTokensFullHandler : ILspHandler<SemanticTokensPara
     public Task<SemanticTokens> HandleAsync(
         SemanticTokensParams? p,
         LspSnapshot snapshot,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ct.ThrowIfCancellationRequested();
-        return Task.FromResult(LspSemanticTokens.Handle(snapshot, p?.TextDocument, range: null, ct));
+        return Task.FromResult(
+            LspSemanticTokens.Handle(snapshot, p?.TextDocument, range: null, ct)
+        );
     }
 }
 
-internal sealed class SemanticTokensRangeHandler : ILspHandler<SemanticTokensRangeParams?, SemanticTokens>
+internal sealed class SemanticTokensRangeHandler
+    : ILspHandler<SemanticTokensRangeParams?, SemanticTokens>
 {
     internal const string MethodName = "textDocument/semanticTokens/range";
 
@@ -145,7 +151,8 @@ internal sealed class SemanticTokensRangeHandler : ILspHandler<SemanticTokensRan
     public Task<SemanticTokens> HandleAsync(
         SemanticTokensRangeParams? p,
         LspSnapshot snapshot,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ct.ThrowIfCancellationRequested();
         return Task.FromResult(LspSemanticTokens.Handle(snapshot, p?.TextDocument, p?.Range, ct));

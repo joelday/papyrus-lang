@@ -30,19 +30,20 @@ internal sealed class DidOpenHandler : ILspHandler<DidOpenTextDocumentParams, Ls
     public Task<LspVoid> HandleAsync(
         DidOpenTextDocumentParams p,
         LspSnapshot snapshot,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ct.ThrowIfCancellationRequested();
         var document = p.TextDocument;
-        if (document is not null
-            && LspUris.TryGetFilePath(document.Uri, out var path))
+        if (document is not null && LspUris.TryGetFilePath(document.Uri, out var path))
         {
             var text = SourceText.From(document.Text ?? "");
             TextDocumentSync.TryApply(
                 _workspace,
                 snapshot.Solution,
                 path,
-                id => new WorkspaceChange.OpenDocument(id, text));
+                id => new WorkspaceChange.OpenDocument(id, text)
+            );
         }
 
         return Task.FromResult(LspVoid.Instance);
@@ -67,18 +68,22 @@ internal sealed class DidChangeHandler : ILspHandler<DidChangeTextDocumentParams
     public Task<LspVoid> HandleAsync(
         DidChangeTextDocumentParams p,
         LspSnapshot snapshot,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ct.ThrowIfCancellationRequested();
-        if (LspUris.TryGetFilePath(p.TextDocument?.Uri, out var path)
-            && TextDocumentSync.TryGetFullText(p, out var fullText))
+        if (
+            LspUris.TryGetFilePath(p.TextDocument?.Uri, out var path)
+            && TextDocumentSync.TryGetFullText(p, out var fullText)
+        )
         {
             var text = SourceText.From(fullText);
             TextDocumentSync.TryApply(
                 _workspace,
                 snapshot.Solution,
                 path,
-                id => new WorkspaceChange.ChangeDocument(id, text));
+                id => new WorkspaceChange.ChangeDocument(id, text)
+            );
         }
 
         return Task.FromResult(LspVoid.Instance);
@@ -103,7 +108,8 @@ internal sealed class DidCloseHandler : ILspHandler<DidCloseTextDocumentParams, 
     public Task<LspVoid> HandleAsync(
         DidCloseTextDocumentParams p,
         LspSnapshot snapshot,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ct.ThrowIfCancellationRequested();
         if (LspUris.TryGetFilePath(p.TextDocument?.Uri, out var path))
@@ -112,7 +118,8 @@ internal sealed class DidCloseHandler : ILspHandler<DidCloseTextDocumentParams, 
                 _workspace,
                 snapshot.Solution,
                 path,
-                id => new WorkspaceChange.CloseDocument(id));
+                id => new WorkspaceChange.CloseDocument(id)
+            );
         }
 
         return Task.FromResult(LspVoid.Instance);
@@ -130,7 +137,8 @@ internal sealed class SnapshotHandler : ILspHandler<SnapshotParams?, SnapshotRes
     public Task<SnapshotResult> HandleAsync(
         SnapshotParams? p,
         LspSnapshot snapshot,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ct.ThrowIfCancellationRequested();
         return Task.FromResult(
@@ -139,7 +147,8 @@ internal sealed class SnapshotHandler : ILspHandler<SnapshotParams?, SnapshotRes
                 Generation = snapshot.Generation,
                 OpenDocumentCount = snapshot.Solution.OpenDocumentIds.Length,
                 ProjectCount = snapshot.Solution.ProjectIds.Length,
-            });
+            }
+        );
     }
 }
 
@@ -161,10 +170,50 @@ internal static class LspUris
         path = parsed.LocalPath;
         return !string.IsNullOrWhiteSpace(path);
     }
+
+    internal static string ToUri(string path) => new Uri(path).AbsoluteUri;
 }
 
 internal static class LspDocuments
 {
+    internal static bool TryGetSemanticModel(
+        LspSnapshot snapshot,
+        TextDocumentIdentifier? document,
+        out Papyrus.CodeAnalysis.SemanticModel model,
+        out Papyrus.CodeAnalysis.Syntax.SyntaxTree tree,
+        out string path
+    )
+    {
+        return TryGetSemanticModel(snapshot, document, out model, out tree, out path, out _);
+    }
+
+    internal static bool TryGetSemanticModel(
+        LspSnapshot snapshot,
+        TextDocumentIdentifier? document,
+        out Papyrus.CodeAnalysis.SemanticModel model,
+        out Papyrus.CodeAnalysis.Syntax.SyntaxTree tree,
+        out string path,
+        out ProjectId projectId
+    )
+    {
+        model = null!;
+        tree = null!;
+        path = "";
+        projectId = null!;
+        if (
+            !LspUris.TryGetFilePath(document?.Uri, out path)
+            || !TryGetDocumentId(snapshot, document, out var documentId)
+            || !snapshot.Solution.TryGetSyntaxTree(documentId, out tree)
+        )
+        {
+            return false;
+        }
+
+        projectId = documentId.ProjectId;
+        model = snapshot.Solution.GetCompilation(projectId).GetSemanticModel(tree);
+        return true;
+    }
+
     /// <summary>
     /// Resolves a request's document to a syntax tree. When the path belongs
     /// to several projects, the open document (whose buffer overlays every
@@ -174,9 +223,21 @@ internal static class LspDocuments
     internal static bool TryGetTree(
         LspSnapshot snapshot,
         TextDocumentIdentifier? document,
-        out Papyrus.CodeAnalysis.Syntax.SyntaxTree tree)
+        out Papyrus.CodeAnalysis.Syntax.SyntaxTree tree
+    )
     {
         tree = null!;
+        return TryGetDocumentId(snapshot, document, out var documentId)
+            && snapshot.Solution.TryGetSyntaxTree(documentId, out tree);
+    }
+
+    internal static bool TryGetDocumentId(
+        LspSnapshot snapshot,
+        TextDocumentIdentifier? document,
+        out DocumentId documentId
+    )
+    {
+        documentId = null!;
         if (!LspUris.TryGetFilePath(document?.Uri, out var path))
         {
             return false;
@@ -203,7 +264,8 @@ internal static class LspDocuments
             }
         }
 
-        return snapshot.Solution.TryGetSyntaxTree(selected, out tree);
+        documentId = selected;
+        return true;
     }
 }
 
@@ -213,7 +275,8 @@ internal static class TextDocumentSync
         PapyrusWorkspace workspace,
         PapyrusSolution solution,
         string path,
-        Func<DocumentId, WorkspaceChange> create)
+        Func<DocumentId, WorkspaceChange> create
+    )
     {
         var ids = solution.GetDocumentIdsForPath(path);
         if (ids.IsDefaultOrEmpty)

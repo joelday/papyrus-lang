@@ -17,9 +17,9 @@ internal sealed class LspRequestScheduler : IDisposable
     private bool _disposed;
 
     internal LspRequestScheduler()
-        : this(new PapyrusWorkspace(TimeProvider.System, enableFileWatching: false))
-    {
-    }
+        // enableFileWatching stays on so external edits (git checkout, other tools) are
+        // picked up in the real server; only tests construct a workspace directly to opt out.
+        : this(new PapyrusWorkspace(TimeProvider.System)) { }
 
     internal LspRequestScheduler(PapyrusWorkspace workspace)
     {
@@ -40,17 +40,20 @@ internal sealed class LspRequestScheduler : IDisposable
     internal async Task<TResult> ExecuteAsync<TParams, TResult>(
         ILspHandler<TParams, TResult> handler,
         TParams parameters,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(handler);
         ThrowIfDisposed();
 
         if (handler.MutatesSolution)
         {
-            return await ExecuteMutatingAsync(handler, parameters, cancellationToken).ConfigureAwait(false);
+            return await ExecuteMutatingAsync(handler, parameters, cancellationToken)
+                .ConfigureAwait(false);
         }
 
-        return await ExecuteNonMutatingAsync(handler, parameters, cancellationToken).ConfigureAwait(false);
+        return await ExecuteNonMutatingAsync(handler, parameters, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     public void Dispose()
@@ -76,7 +79,8 @@ internal sealed class LspRequestScheduler : IDisposable
     private async Task<TResult> ExecuteMutatingAsync<TParams, TResult>(
         ILspHandler<TParams, TResult> handler,
         TParams parameters,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         // Cancel the live read epoch without rotating so a reader that starts
         // before we own _mutate still observes a cancelled token.
@@ -105,7 +109,9 @@ internal sealed class LspRequestScheduler : IDisposable
             RotateNonMutatingEpoch();
             ThrowIfDisposed();
             var snapshot = CaptureSnapshot();
-            var result = await handler.HandleAsync(parameters, snapshot, cancellationToken).ConfigureAwait(false);
+            var result = await handler
+                .HandleAsync(parameters, snapshot, cancellationToken)
+                .ConfigureAwait(false);
             Interlocked.Increment(ref _generation);
             return result;
         }
@@ -121,7 +127,8 @@ internal sealed class LspRequestScheduler : IDisposable
     private async Task<TResult> ExecuteNonMutatingAsync<TParams, TResult>(
         ILspHandler<TParams, TResult> handler,
         TParams parameters,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         CancellationToken nonMutatingToken;
         lock (_gate)
@@ -130,7 +137,10 @@ internal sealed class LspRequestScheduler : IDisposable
             nonMutatingToken = _nonMutatingCts.Token;
         }
 
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, nonMutatingToken);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            nonMutatingToken
+        );
 
         // Wait only long enough to observe a stable snapshot; run the handler
         // without holding the mutate lock so reads can overlap.

@@ -16,17 +16,20 @@ internal static class LanguageServerHost
         // Leave stdio open: disposing Console streams on some hosts closes the process handles.
         var input = PipeReader.Create(
             Console.OpenStandardInput(),
-            new StreamPipeReaderOptions(leaveOpen: true));
+            new StreamPipeReaderOptions(leaveOpen: true)
+        );
         var output = PipeWriter.Create(
             Console.OpenStandardOutput(),
-            new StreamPipeWriterOptions(leaveOpen: true));
+            new StreamPipeWriterOptions(leaveOpen: true)
+        );
         return RunAsync(input, output, cancellationToken);
     }
 
     internal static async Task<int> RunAsync(
         PipeReader input,
         PipeWriter output,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(output);
@@ -36,18 +39,30 @@ internal static class LanguageServerHost
         var handler = new HeaderDelimitedMessageHandler(output, input, formatter);
         using var jsonRpc = new JsonRpc(handler);
         AddRpcTarget(jsonRpc, target);
+        target.Notifier = new JsonRpcNotifier(jsonRpc);
         jsonRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed = true;
         jsonRpc.Disconnected += (_, _) => target.NotifyDisconnected();
         jsonRpc.StartListening();
 
         using (cancellationToken.Register(static state => ((JsonRpc)state!).Dispose(), jsonRpc))
         {
-            return await target.WaitForExitAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
+            return await target
+                .WaitForExitAsync()
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
-    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "RPC methods are registered from LanguageServerRpc.")]
-    [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "RPC methods are registered from LanguageServerRpc.")]
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2026",
+        Justification = "RPC methods are registered from LanguageServerRpc."
+    )]
+    [UnconditionalSuppressMessage(
+        "AOT",
+        "IL3050",
+        Justification = "RPC methods are registered from LanguageServerRpc."
+    )]
     private static void AddRpcTarget(JsonRpc jsonRpc, LanguageServerRpc target)
     {
         jsonRpc.AddLocalRpcTarget(
@@ -56,11 +71,20 @@ internal static class LanguageServerHost
             {
                 NotifyClientOfEvents = false,
                 UseSingleObjectParameterDeserialization = true,
-            });
+            }
+        );
     }
 
-    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "User payloads go through LspJsonContext.")]
-    [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "User payloads go through LspJsonContext.")]
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2026",
+        Justification = "User payloads go through LspJsonContext."
+    )]
+    [UnconditionalSuppressMessage(
+        "AOT",
+        "IL3050",
+        Justification = "User payloads go through LspJsonContext."
+    )]
     private static IJsonRpcMessageFormatter CreateFormatter()
     {
         var inner = new SystemTextJsonFormatter

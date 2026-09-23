@@ -4,7 +4,8 @@ namespace Papyrus.LanguageServer;
 
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+)]
 [JsonSerializable(typeof(InitializeParams))]
 [JsonSerializable(typeof(InitializeResult))]
 [JsonSerializable(typeof(InitializedParams))]
@@ -38,6 +39,23 @@ namespace Papyrus.LanguageServer;
 [JsonSerializable(typeof(Position[]))]
 [JsonSerializable(typeof(SnapshotParams))]
 [JsonSerializable(typeof(SnapshotResult))]
-internal sealed partial class LspJsonContext : JsonSerializerContext
-{
-}
+[JsonSerializable(typeof(PublishDiagnosticsParams))]
+[JsonSerializable(typeof(Diagnostic))]
+[JsonSerializable(typeof(Diagnostic[]))]
+[JsonSerializable(typeof(DiagnosticParams))]
+[JsonSerializable(typeof(DocumentDiagnosticReport))]
+[JsonSerializable(typeof(DocumentScriptInfo))]
+[JsonSerializable(typeof(IdentifierFiles))]
+[JsonSerializable(typeof(IdentifierFiles[]))]
+[JsonSerializable(typeof(DocumentScriptInfoParams))]
+[JsonSerializable(typeof(ProjectInfos))]
+[JsonSerializable(typeof(ProjectInfo))]
+[JsonSerializable(typeof(ProjectInfo[]))]
+[JsonSerializable(typeof(ProjectInfoSourceInclude))]
+[JsonSerializable(typeof(ProjectInfoSourceInclude[]))]
+[JsonSerializable(typeof(ProjectInfoScript))]
+[JsonSerializable(typeof(ProjectInfoScript[]))]
+[JsonSerializable(typeof(ProjectInfosParams))]
+[JsonSerializable(typeof(DocumentAssembly))]
+[JsonSerializable(typeof(DocumentAssemblyParams))]
+internal sealed partial class LspJsonContext : JsonSerializerContext { }

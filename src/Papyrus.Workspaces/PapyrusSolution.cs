@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Threading;
 using Papyrus.CodeAnalysis;
 using Papyrus.CodeAnalysis.Syntax;
 using Papyrus.CodeAnalysis.Text;
@@ -56,6 +57,199 @@ public sealed class PapyrusSolution
         }
     }
 
+    /// <summary>
+    /// Describes every loaded project's name and source layout (each import/folder
+    /// entry plus the scripts found under it). Mirrors the legacy
+    /// <c>papyrus/projectInfos</c> shape.
+    /// </summary>
+    public ImmutableArray<ProjectInfo> GetProjectInfos()
+    {
+        var builder = ImmutableArray.CreateBuilder<ProjectInfo>(_projects.Count);
+        foreach (var pair in _projects)
+        {
+            builder.Add(DescribeProject(pair.Value));
+        }
+
+        return builder.MoveToImmutable();
+    }
+
+    private static ProjectInfo DescribeProject(ProjectState state)
+    {
+        var project = state.Project;
+        var resolver = state.DiskResolver;
+        var name = project.Path is null
+            ? project.Game?.ToString() ?? "Unknown"
+            : Path.GetFileNameWithoutExtension(project.Path);
+
+        // IncludeDirectories is built import-then-folder (see
+        // FileSystemScriptResolver(PapyrusProject, string)), so the same index maps
+        // each resolved directory back to the import/folder entry that produced it.
+        var includes = ImmutableArray.CreateBuilder<ProjectInfoSourceInclude>(
+            resolver.IncludeDirectories.Length);
+        for (var i = 0; i < resolver.IncludeDirectories.Length; i++)
+        {
+            var isImport = i < project.Imports.Length;
+            var declared = isImport
+                ? project.Imports[i]
+                : project.Folders[i - project.Imports.Length].Path;
+            includes.Add(
+                new ProjectInfoSourceInclude(
+                    declared,
+                    resolver.IncludeDirectories[i],
+                    isImport,
+                    ScriptsUnder(resolver.IncludeDirectories[i], resolver)));
+        }
+
+        return new ProjectInfo(name, includes.MoveToImmutable());
+    }
+
+    private static ImmutableArray<ProjectInfoScript> ScriptsUnder(
+        string directory,
+        FileSystemScriptResolver resolver)
+    {
+        if (!Directory.Exists(directory))
+        {
+            return ImmutableArray<ProjectInfoScript>.Empty;
+        }
+
+        var builder = ImmutableArray.CreateBuilder<ProjectInfoScript>();
+        foreach (var path in Directory.EnumerateFiles(directory, "*.psc", SearchOption.AllDirectories))
+        {
+            if (resolver.TryGetNameFromPath(path, out var name))
+            {
+                builder.Add(new ProjectInfoScript(name, path));
+            }
+        }
+
+        return builder.ToImmutable();
+    }
+
+    /// <summary>
+    /// Resolves a file path against every loaded project's search paths, returning
+    /// every qualified name the path could represent plus, per candidate name, every
+    /// file (across every project) that shares it -- more than one file for a name
+    /// usually means it is shadowed across import folders. Mirrors the legacy
+    /// <c>textDocument/scriptInfo</c> shape.
+    /// </summary>
+    public ScriptInfo GetScriptInfo(string filePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        var full = Path.GetFullPath(filePath);
+
+        var searchPaths = ImmutableArray.CreateBuilder<string>();
+        var seenSearchPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in _projects)
+        {
+            foreach (var directory in pair.Value.DiskResolver.IncludeDirectories)
+            {
+                if (seenSearchPaths.Add(directory))
+                {
+                    searchPaths.Add(directory);
+                }
+            }
+        }
+
+        var identifiers = ImmutableArray.CreateBuilder<CodeAnalysis.QualifiedName>();
+        var seenIdentifiers = new HashSet<CodeAnalysis.QualifiedName>();
+        foreach (var pair in _projects)
+        {
+            if (pair.Value.DiskResolver.TryGetNameFromPath(full, out var name)
+                && seenIdentifiers.Add(name))
+            {
+                identifiers.Add(name);
+            }
+        }
+
+        var identifierFiles = ImmutableArray.CreateBuilder<ScriptIdentifierFiles>(identifiers.Count);
+        foreach (var identifier in identifiers)
+        {
+            identifierFiles.Add(new ScriptIdentifierFiles(identifier, FilesForIdentifier(identifier)));
+        }
+
+        return new ScriptInfo(
+            identifiers.ToImmutable(),
+            identifierFiles.MoveToImmutable(),
+            searchPaths.ToImmutable());
+    }
+
+    private ImmutableArray<string> FilesForIdentifier(CodeAnalysis.QualifiedName identifier)
+    {
+        var files = ImmutableArray.CreateBuilder<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in _projects)
+        {
+            foreach (var candidate in pair.Value.DiskResolver.CandidateSourcePaths(identifier))
+            {
+                if (File.Exists(candidate) && seen.Add(candidate))
+                {
+                    files.Add(candidate);
+                }
+            }
+        }
+
+        return files.ToImmutable();
+    }
+
+    /// <summary>
+    /// Disassembles a document's compiled script into Caprica/CK-flavor Papyrus
+    /// assembly (.pas) text, forcing that script to be emitted so the result
+    /// reflects the current buffer. Returns null for documents that cannot be
+    /// resolved, or that fail to bind/emit (diagnostics should already explain why
+    /// via <see cref="GetDiagnostics(DocumentId, CancellationToken)"/>). Flags files
+    /// are not consulted here -- this is a read-only diagnostic view of the script,
+    /// not a build artifact, so user-flag names in the output may differ slightly
+    /// from a real build's PEX.
+    /// </summary>
+    public string? GetAssembly(DocumentId documentId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(documentId);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!_projects.TryGetValue(documentId.ProjectId, out var state)
+            || !state.DiskResolver.TryGetNameFromPath(documentId.Path, out var name))
+        {
+            return null;
+        }
+
+        try
+        {
+            // Emit diagnostics alone miss binding errors (e.g. an unresolved type):
+            // the emitter can still walk a partially-bound tree without complaint.
+            // Check the script's own binding diagnostics first, same as the
+            // compiler CLI does before writing a PEX.
+            var diagnostics = state.Compilation.GetDiagnostics(name, cancellationToken);
+            if (HasError(diagnostics))
+            {
+                return null;
+            }
+
+            var script = state.Compilation.GetScript(name);
+            var emitter = new CodeAnalysis.Emit.PexEmitter();
+            var pex = emitter.EmitFile(script, cancellationToken);
+            return HasError(emitter.Diagnostics)
+                ? null
+                : global::Papyrus.Pex.PasDisassembler.Disassemble(pex);
+        }
+        catch (Exception ex)
+            when (ex is InvalidOperationException or NotSupportedException
+                or global::Papyrus.Pex.PexFormatException)
+        {
+            return null;
+        }
+    }
+
+    private static bool HasError(ImmutableArray<Diagnostic> diagnostics)
+    {
+        foreach (var diagnostic in diagnostics)
+        {
+            if (diagnostic.Severity == DiagnosticSeverity.Error)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public PapyrusCompilation? Compilation
     {
         get
@@ -98,6 +292,41 @@ public sealed class PapyrusSolution
         return GetState(projectId).Compilation;
     }
 
+    /// <summary>
+    /// Finds every reference to <paramref name="symbol"/> across every script in
+    /// the given project, including scripts that have not been opened as
+    /// documents. Open-document edits are already reflected in the project's
+    /// <see cref="PapyrusCompilation"/>, so this picks them up automatically;
+    /// only new, unsaved files with no path on disk are not covered. Symbols
+    /// are compared by reference and are only meaningful within the
+    /// compilation they were resolved from, so searching is scoped to a
+    /// single project.
+    /// </summary>
+    public ImmutableArray<ScriptReferences> FindReferences(
+        ProjectId projectId,
+        CodeAnalysis.Symbols.ISymbol symbol,
+        CancellationToken cancellationToken = default
+    )
+    {
+        ArgumentNullException.ThrowIfNull(symbol);
+        var state = GetState(projectId);
+
+        var results = ImmutableArray.CreateBuilder<ScriptReferences>();
+        foreach (var (name, path) in state.DiskResolver.EnumerateScripts())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var tree = state.Compilation.GetSyntaxTree(name);
+            var model = state.Compilation.GetSemanticModel(tree);
+            var spans = model.FindReferencesInTree(symbol, cancellationToken);
+            if (!spans.IsEmpty)
+            {
+                results.Add(new ScriptReferences(path, tree, spans));
+            }
+        }
+
+        return results.ToImmutable();
+    }
+
     public ImmutableArray<DocumentId> GetDocumentIdsForPath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -137,6 +366,26 @@ public sealed class PapyrusSolution
 
         tree = state.Compilation.GetSyntaxTree(name);
         return true;
+    }
+
+    /// <summary>
+    /// Computes diagnostics for a single document, forcing that script's binding to
+    /// complete so results are up to date even if nothing else has touched it yet.
+    /// Returns an empty array for documents that cannot be resolved (e.g. neither
+    /// open nor present on disk).
+    /// </summary>
+    public ImmutableArray<Diagnostic> GetDiagnostics(
+        DocumentId documentId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(documentId);
+        if (!_projects.TryGetValue(documentId.ProjectId, out var state)
+            || !state.DiskResolver.TryGetNameFromPath(documentId.Path, out var name))
+        {
+            return ImmutableArray<Diagnostic>.Empty;
+        }
+
+        return state.Compilation.GetDiagnostics(name, cancellationToken);
     }
 
     public bool IsDocumentOpen(DocumentId documentId)
@@ -248,6 +497,27 @@ public sealed class PapyrusSolution
 
         return new PapyrusSolution(_projects.Remove(projectId), openDocuments);
     }
+}
+
+/// <summary>
+/// The set of reference locations found for a symbol within a single script.
+/// </summary>
+public sealed class ScriptReferences
+{
+    public ScriptReferences(string path, SyntaxTree tree, ImmutableArray<ReferenceLocation> spans)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(tree);
+        Path = path;
+        Tree = tree;
+        Spans = spans;
+    }
+
+    public string Path { get; }
+
+    public SyntaxTree Tree { get; }
+
+    public ImmutableArray<ReferenceLocation> Spans { get; }
 }
 
 internal sealed class ProjectState

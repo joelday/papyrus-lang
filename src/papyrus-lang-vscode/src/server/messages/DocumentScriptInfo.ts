@@ -1,4 +1,4 @@
-import { RequestType, TextDocumentIdentifier, TextDocumentRegistrationOptions } from 'vscode-languageclient';
+import { RequestType, TextDocumentIdentifier } from 'vscode-languageclient';
 
 export interface DocumentScriptInfoParams {
     textDocument: TextDocumentIdentifier;
@@ -16,7 +16,5 @@ export interface DocumentScriptInfo {
 }
 
 export const documentScriptInfoRequestType = {
-    type: new RequestType<DocumentScriptInfoParams, DocumentScriptInfo | null, void, TextDocumentRegistrationOptions>(
-        'textDocument/scriptInfo'
-    ),
+    type: new RequestType<DocumentScriptInfoParams, DocumentScriptInfo | null, void>('textDocument/scriptInfo'),
 };

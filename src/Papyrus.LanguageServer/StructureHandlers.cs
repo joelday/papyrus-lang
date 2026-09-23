@@ -18,7 +18,8 @@ internal sealed class FoldingRangeHandler : ILspHandler<FoldingRangeParams?, Fol
     public Task<FoldingRange[]> HandleAsync(
         FoldingRangeParams? p,
         LspSnapshot snapshot,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ct.ThrowIfCancellationRequested();
         if (!LspDocuments.TryGetTree(snapshot, p?.TextDocument, out var tree))
@@ -35,17 +36,19 @@ internal sealed class FoldingRangeHandler : ILspHandler<FoldingRangeParams?, Fol
             var (endLine, _) = lineMap.GetPosition(folding.Span.End - 1);
             if (endLine > startLine)
             {
-                result.Add(new FoldingRange
-                {
-                    StartLine = startLine,
-                    EndLine = endLine,
-                    Kind = folding.Kind switch
+                result.Add(
+                    new FoldingRange
                     {
-                        FoldingSpanKind.Comment => "comment",
-                        FoldingSpanKind.Imports => "imports",
-                        _ => null,
-                    },
-                });
+                        StartLine = startLine,
+                        EndLine = endLine,
+                        Kind = folding.Kind switch
+                        {
+                            FoldingSpanKind.Comment => "comment",
+                            FoldingSpanKind.Imports => "imports",
+                            _ => null,
+                        },
+                    }
+                );
             }
         }
 
@@ -64,13 +67,16 @@ internal sealed class SelectionRangeHandler : ILspHandler<SelectionRangeParams?,
     public Task<SelectionRange[]> HandleAsync(
         SelectionRangeParams? p,
         LspSnapshot snapshot,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ct.ThrowIfCancellationRequested();
         var positions = p?.Positions;
-        if (positions is null
+        if (
+            positions is null
             || positions.Length == 0
-            || !LspDocuments.TryGetTree(snapshot, p?.TextDocument, out var tree))
+            || !LspDocuments.TryGetTree(snapshot, p?.TextDocument, out var tree)
+        )
         {
             return Task.FromResult(Array.Empty<SelectionRange>());
         }
@@ -94,14 +100,20 @@ internal sealed class SelectionRangeHandler : ILspHandler<SelectionRangeParams?,
                 };
             }
 
-            result[i] = current ?? new SelectionRange
-            {
-                Range = new Range
+            result[i] =
+                current
+                ?? new SelectionRange
                 {
-                    Start = new Position { Line = position.Line, Character = position.Character },
-                    End = new Position { Line = position.Line, Character = position.Character },
-                },
-            };
+                    Range = new Range
+                    {
+                        Start = new Position
+                        {
+                            Line = position.Line,
+                            Character = position.Character,
+                        },
+                        End = new Position { Line = position.Line, Character = position.Character },
+                    },
+                };
         }
 
         return Task.FromResult(result);

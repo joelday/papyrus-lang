@@ -242,6 +242,34 @@ public sealed class PapyrusCompilation
         return builder.ToImmutable();
     }
 
+    /// <summary>
+    /// Diagnostics scoped to a single script. Unlike the whole-compilation overload
+    /// (which only reports binding diagnostics for scripts some earlier caller already
+    /// forced complete), this forces completion of <paramref name="name"/> itself, so a
+    /// caller that only cares about one file gets up-to-date diagnostics for it without
+    /// paying the cost of walking every other script in the compilation.
+    /// </summary>
+    public ImmutableArray<Diagnostic> GetDiagnostics(
+        QualifiedName name,
+        CancellationToken cancellationToken = default
+    )
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        name = Intern(name);
+
+        var builder = ImmutableArray.CreateBuilder<Diagnostic>();
+        builder.AddRange(GetOrAddCached(name).Tree.GetDiagnostics(cancellationToken));
+
+        if (GetScript(name) is SourceScriptSymbol source)
+        {
+            var binding = source.GetBindingDiagnostics();
+            builder.AddRange(binding);
+            PapyrusEventSource.Log.AddDiagnostics(binding);
+        }
+
+        return builder.ToImmutable();
+    }
+
     private PapyrusCompilation ReplaceTree(QualifiedName name, SyntaxTree? tree)
     {
         var invalidated = CollectInvalidated(name);

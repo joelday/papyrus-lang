@@ -14,15 +14,14 @@ public sealed class SemanticModel
     private IScriptSymbol? _script;
 
     internal SemanticModel(PapyrusCompilation compilation, SyntaxTree tree)
-        : this(compilation, tree, speculative: null, position: 0)
-    {
-    }
+        : this(compilation, tree, speculative: null, position: 0) { }
 
     private SemanticModel(
         PapyrusCompilation compilation,
         SyntaxTree tree,
         SyntaxNode? speculative,
-        int position)
+        int position
+    )
     {
         Compilation = compilation;
         SyntaxTree = tree;
@@ -34,7 +33,221 @@ public sealed class SemanticModel
 
     public SyntaxTree SyntaxTree { get; }
 
-    public ISymbol? GetDeclaredSymbol(SyntaxNode node, CancellationToken cancellationToken = default)
+    public ISymbol? GetSymbolInfo(int position, CancellationToken cancellationToken = default)
+    {
+        var node = FindNode(position, cancellationToken);
+        return node is null ? null : GetSymbolInfo(node, cancellationToken);
+    }
+
+    /// <summary>
+    /// Resolves the identifier at <paramref name="position"/> for a rename
+    /// request. Returns <see langword="false"/> when there is no identifier
+    /// there, or the bound symbol cannot be renamed: script (type) symbols
+    /// need cross-file import/extends updates plus a physical file rename
+    /// (out of scope for now), and native symbols are backed by engine code
+    /// the workspace cannot edit (**#75**).
+    /// </summary>
+    public bool TryGetRenameInfo(
+        int position,
+        CancellationToken cancellationToken,
+        out TextSpan span,
+        out ISymbol symbol
+    )
+    {
+        span = default;
+        symbol = null!;
+        if (FindNode(position, cancellationToken) is not IdentifierNameSyntax identifier)
+        {
+            return false;
+        }
+
+        var candidate = GetSymbolInfo(identifier, cancellationToken);
+        if (candidate is null || candidate.Kind == SymbolKind.Script || candidate.IsNative)
+        {
+            return false;
+        }
+
+        span = identifier.Span;
+        symbol = candidate;
+        return true;
+    }
+
+    /// <summary>
+    /// Finds the narrowest syntax node whose span contains <paramref name="position"/>,
+    /// stopping descent at the first token slot reached (mirroring Roslyn's
+    /// <c>SyntaxNode.FindNode</c>). Returns <see langword="null"/> when the position
+    /// falls outside the tree.
+    /// </summary>
+    public SyntaxNode? FindNode(int position, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var root = SyntaxTree.GetRoot();
+        if (position < root.FullSpan.Start || position >= root.FullSpan.End)
+        {
+            return null;
+        }
+
+        return FindNode(root, position);
+    }
+
+    private static SyntaxNode? FindNode(SyntaxNode node, int position)
+    {
+        var offset = node.Position;
+        for (var i = 0; i < node.Green.SlotCount; i++)
+        {
+            var slot = node.Green.GetSlot(i);
+            if (slot is null || position < offset || position >= offset + slot.FullWidth)
+            {
+                offset += slot?.FullWidth ?? 0;
+                continue;
+            }
+
+            if (slot.Kind == SyntaxKind.List)
+            {
+                var listOffset = offset;
+                for (var j = 0; j < slot.SlotCount; j++)
+                {
+                    var item = slot.GetSlot(j);
+                    if (
+                        item is not null
+                        && position >= listOffset
+                        && position < listOffset + item.FullWidth
+                    )
+                    {
+                        return item is Papyrus.CodeAnalysis.Syntax.InternalSyntax.GreenToken
+                            ? node
+                            : FindNode(item.CreateRed(node, listOffset), position) ?? node;
+                    }
+
+                    listOffset += item?.FullWidth ?? 0;
+                }
+            }
+            else if (slot is not Papyrus.CodeAnalysis.Syntax.InternalSyntax.GreenToken)
+            {
+                return FindNode(slot.CreateRed(node, offset), position) ?? node;
+            }
+
+            return node;
+        }
+
+        return node;
+    }
+
+    /// <summary>
+    /// Finds every reference to <paramref name="symbol"/> within this model's own
+    /// tree, including its declaration. Because <see cref="GetSymbolInfo(SyntaxNode,
+    /// CancellationToken)"/> resolves an identifier at a declaration site to the
+    /// same declared symbol as at a use site, this only needs to walk every
+    /// <see cref="IdentifierNameSyntax"/> in the tree and keep the ones that bind to
+    /// <paramref name="symbol"/>. Symbols are compared by reference since members are
+    /// cached per <see cref="PapyrusCompilation"/>; searching across a different
+    /// compilation (e.g. another project) is not supported.
+    /// </summary>
+    public ImmutableArray<ReferenceLocation> FindReferencesInTree(
+        ISymbol symbol,
+        CancellationToken cancellationToken = default
+    )
+    {
+        ArgumentNullException.ThrowIfNull(symbol);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!SyntaxTree.TryGetRoot(out var root))
+        {
+            return ImmutableArray<ReferenceLocation>.Empty;
+        }
+
+        var identifiers = ImmutableArray.CreateBuilder<IdentifierNameSyntax>();
+        CollectIdentifierNames(root, identifiers);
+
+        var locations = ImmutableArray.CreateBuilder<ReferenceLocation>();
+        for (var i = 0; i < identifiers.Count; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var identifier = identifiers[i];
+            var declared = GetDeclaredSymbol(identifier, cancellationToken);
+            if (declared is not null)
+            {
+                if (SymbolsRefer(declared, symbol))
+                {
+                    locations.Add(new ReferenceLocation(identifier.Span, IsDeclaration: true));
+                }
+
+                continue;
+            }
+
+            if (SymbolsRefer(GetSymbolInfo(identifier, cancellationToken), symbol))
+            {
+                locations.Add(new ReferenceLocation(identifier.Span, IsDeclaration: false));
+            }
+        }
+
+        return locations.ToImmutable();
+    }
+
+    private static bool SymbolsRefer(ISymbol? candidate, ISymbol target)
+    {
+        return candidate is not null
+            && (
+                ReferenceEquals(candidate, target)
+                || (
+                    candidate.Kind == target.Kind
+                    && candidate.Name.Equals(target.Name)
+                    && ReferenceEquals(candidate.ContainingSymbol, target.ContainingSymbol)
+                )
+            );
+    }
+
+    private static void CollectIdentifierNames(
+        SyntaxNode node,
+        ImmutableArray<IdentifierNameSyntax>.Builder builder
+    )
+    {
+        CollectNodes(node, builder);
+    }
+
+    private static void CollectNodes<T>(SyntaxNode node, ImmutableArray<T>.Builder builder)
+        where T : SyntaxNode
+    {
+        if (node is T match)
+        {
+            builder.Add(match);
+        }
+
+        var offset = node.Position;
+        for (var i = 0; i < node.Green.SlotCount; i++)
+        {
+            var slot = node.Green.GetSlot(i);
+            if (slot is null)
+            {
+                continue;
+            }
+
+            if (slot.Kind == SyntaxKind.List)
+            {
+                var listOffset = offset;
+                for (var j = 0; j < slot.SlotCount; j++)
+                {
+                    var item = slot.GetSlot(j);
+                    if (item is not null and not Papyrus.CodeAnalysis.Syntax.InternalSyntax.GreenToken)
+                    {
+                        CollectNodes(item.CreateRed(node, listOffset), builder);
+                    }
+
+                    listOffset += item?.FullWidth ?? 0;
+                }
+            }
+            else if (slot is not Papyrus.CodeAnalysis.Syntax.InternalSyntax.GreenToken)
+            {
+                CollectNodes(slot.CreateRed(node, offset), builder);
+            }
+
+            offset += slot.FullWidth;
+        }
+    }
+
+    public ISymbol? GetDeclaredSymbol(
+        SyntaxNode node,
+        CancellationToken cancellationToken = default
+    )
     {
         ArgumentNullException.ThrowIfNull(node);
         cancellationToken.ThrowIfCancellationRequested();
@@ -92,7 +305,8 @@ public sealed class SemanticModel
                 return GetSymbolInfo(invocation.Expression, cancellationToken);
             case MemberAccessExpressionSyntax member:
                 return BindMemberAccess(member, cancellationToken);
-            case IdentifierNameSyntax identifier when node.Parent is MemberAccessExpressionSyntax member:
+            case IdentifierNameSyntax identifier
+                when node.Parent is MemberAccessExpressionSyntax member:
                 return BindMemberAccess(member, cancellationToken);
             case IdentifierNameSyntax identifier when IsExtendsName(identifier):
                 return GetScript()?.BaseType;
@@ -112,29 +326,149 @@ public sealed class SemanticModel
 
         if (node is ExpressionSyntax expression)
         {
-            var type = new ExpressionTypeBinder(Compilation, GetScript()).Bind(expression).ResultType;
+            var type = new ExpressionTypeBinder(Compilation, GetScript())
+                .Bind(expression)
+                .ResultType;
             if (type.TypeKind != TypeKind.Error)
             {
                 return type;
             }
         }
 
-        return TypeOf(GetSymbolInfo(node, cancellationToken) ?? GetDeclaredSymbol(node, cancellationToken));
+        return TypeOf(
+            GetSymbolInfo(node, cancellationToken) ?? GetDeclaredSymbol(node, cancellationToken)
+        );
     }
 
+    /// <summary>
+    /// Looks up the symbols reachable at <paramref name="position"/>. When
+    /// <paramref name="container"/> is given, this returns its members plus any inherited
+    /// members walked up its base-type chain (member-access lookup, e.g. after
+    /// <c>expr.</c>). Otherwise it returns the locals and parameters visible in the
+    /// enclosing function plus the containing script's own and inherited members
+    /// (unqualified lookup).
+    /// </summary>
     public ImmutableArray<ISymbol> LookupSymbols(int position, ITypeSymbol? container = null)
     {
+        var builder = ImmutableArray.CreateBuilder<ISymbol>();
         if (container is not null)
         {
-            return container.GetMembers();
+            AddMembersWithBaseTypes(container, builder);
+            return builder.ToImmutable();
+        }
+
+        var function = FindContainingFunction(position);
+        if (function is not null)
+        {
+            builder.AddRange(function.Parameters);
+            builder.AddRange(function.Locals);
         }
 
         var script = GetScript();
-        return script is null ? ImmutableArray<ISymbol>.Empty : script.GetMembers();
+        if (script is not null)
+        {
+            AddMembersWithBaseTypes(script, builder);
+        }
+
+        return builder.ToImmutable();
+    }
+
+    /// <summary>
+    /// True when this script directly declares a member named <paramref name="name"/>
+    /// of the given <paramref name="kind"/> (as opposed to only inheriting one). Used
+    /// by completion to tell an already-overridden event apart from one only offered
+    /// by the base type chain, so the latter can be completed as a full override
+    /// skeleton built from the symbol's own shape rather than a static snippet.
+    /// </summary>
+    public bool DeclaresMemberDirectly(PapyrusName name, SymbolKind kind)
+    {
+        var script = GetScript();
+        if (script is null)
+        {
+            return false;
+        }
+
+        foreach (var member in script.GetMembers(name))
+        {
+            if (member.Kind == kind)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void AddMembersWithBaseTypes(
+        ITypeSymbol container,
+        ImmutableArray<ISymbol>.Builder builder
+    )
+    {
+        for (ITypeSymbol? current = container; current is not null; )
+        {
+            builder.AddRange(current.GetMembers());
+            current = current is IScriptSymbol script ? script.BaseType : null;
+        }
+    }
+
+    /// <summary>
+    /// Resolves the innermost invocation whose argument list encloses
+    /// <paramref name="position"/>, along with the zero-based index of the parameter
+    /// being written (the number of argument-list commas that precede the position).
+    /// </summary>
+    public bool TryGetInvocationContext(
+        int position,
+        out IFunctionSymbol? function,
+        out int activeParameterIndex,
+        CancellationToken cancellationToken = default
+    )
+    {
+        function = null;
+        activeParameterIndex = 0;
+
+        for (
+            var current = FindNode(position, cancellationToken);
+            current is not null;
+            current = current.Parent
+        )
+        {
+            if (
+                current is InvocationExpressionSyntax invocation
+                && Contains(invocation.ArgumentList, position)
+            )
+            {
+                function =
+                    GetSymbolInfo(invocation.Expression, cancellationToken) as IFunctionSymbol;
+                activeParameterIndex = CountPrecedingCommas(invocation.ArgumentList, position);
+                return function is not null;
+            }
+        }
+
+        return false;
+    }
+
+    private static int CountPrecedingCommas(ArgumentListSyntax argumentList, int position)
+    {
+        var arguments = argumentList.Arguments;
+        var count = 0;
+        for (var i = 0; i < arguments.Count; i++)
+        {
+            var comma = arguments.Get(i).CommaToken;
+            if (comma.Kind == SyntaxKind.CommaToken && comma.Span.End <= position)
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     // Speculative bind must not replace or reparse SyntaxTree.
-    public bool TryGetSpeculativeSemanticModel(int position, SyntaxNode speculative, out SemanticModel model)
+    public bool TryGetSpeculativeSemanticModel(
+        int position,
+        SyntaxNode speculative,
+        out SemanticModel model
+    )
     {
         if (speculative is null)
         {
@@ -146,19 +480,60 @@ public sealed class SemanticModel
         return true;
     }
 
-    private ISymbol? BindMemberAccess(MemberAccessExpressionSyntax member, CancellationToken cancellationToken)
+    /// <summary>
+    /// Resolves the container type for a member access at <paramref name="position"/>,
+    /// i.e. the type of <c>expr</c> in <c>expr.name</c>, whether <c>name</c> is
+    /// missing (cursor right after the dot) or partially typed. Returns
+    /// <see langword="false"/> when the position is not within a member access.
+    /// </summary>
+    public bool TryGetMemberAccessContainer(
+        int position,
+        out ITypeSymbol? container,
+        CancellationToken cancellationToken = default
+    )
     {
-        var left = GetSymbolInfo(member.Expression, cancellationToken);
-        var container = TypeOf(left);
-        if (container is null && member.Expression is ExpressionSyntax expression)
+        var node = FindNode(position, cancellationToken);
+        var member =
+            node as MemberAccessExpressionSyntax
+            ?? (
+                node is IdentifierNameSyntax identifier
+                && identifier.Parent is MemberAccessExpressionSyntax parentMember
+                && ReferenceEquals(parentMember.Name, identifier)
+                    ? parentMember
+                    : null
+            );
+
+        if (member is null)
         {
-            container = new ExpressionTypeBinder(Compilation, GetScript()).Bind(expression).ResultType;
-            if (container.TypeKind == TypeKind.Error)
-            {
-                container = null;
-            }
+            container = null;
+            return false;
         }
 
+        container = ResolveContainerType(member.Expression, cancellationToken);
+        return container is not null;
+    }
+
+    private ITypeSymbol? ResolveContainerType(
+        ExpressionSyntax expression,
+        CancellationToken cancellationToken
+    )
+    {
+        var container = TypeOf(GetSymbolInfo(expression, cancellationToken));
+        if (container is not null)
+        {
+            return container;
+        }
+
+        var bound = new ExpressionTypeBinder(Compilation, GetScript()).Bind(expression).ResultType;
+        return bound.TypeKind == TypeKind.Error ? null : bound;
+    }
+
+    private ISymbol? BindMemberAccess(
+        MemberAccessExpressionSyntax member,
+        CancellationToken cancellationToken
+    )
+    {
+        var container = ResolveContainerType(member.Expression, cancellationToken);
         if (container is null || !TryGetName(member.Name, out var name))
         {
             return null;
@@ -309,7 +684,10 @@ public sealed class SemanticModel
         return FindContainingFunction(root.Members, position);
     }
 
-    private IFunctionSymbol? FindContainingFunction(SyntaxList<MemberDeclarationSyntax> members, int position)
+    private IFunctionSymbol? FindContainingFunction(
+        SyntaxList<MemberDeclarationSyntax> members,
+        int position
+    )
     {
         var count = members.Count;
         for (var i = 0; i < count; i++)
@@ -344,7 +722,8 @@ public sealed class SemanticModel
 
     private IFunctionSymbol? FindContainingAccessor(
         SyntaxList<FunctionDeclarationSyntax> accessors,
-        int position)
+        int position
+    )
     {
         var count = accessors.Count;
         for (var i = 0; i < count; i++)
@@ -424,7 +803,11 @@ public sealed class SemanticModel
             return members[0];
         }
 
-        if (includeBase && type is IScriptSymbol script && script.BaseType is { TypeKind: not TypeKind.Error } baseType)
+        if (
+            includeBase
+            && type is IScriptSymbol script
+            && script.BaseType is { TypeKind: not TypeKind.Error } baseType
+        )
         {
             return FindMember(baseType, name, includeBase: true);
         }
@@ -484,4 +867,101 @@ public sealed class SemanticModel
         var span = node.FullSpan;
         return position >= span.Start && position <= span.End;
     }
+
+    /// <summary>
+    /// Finds every occurrence of the symbol at <paramref name="position"/> within
+    /// this model's own tree (declaration and every use site), for
+    /// <c>textDocument/documentHighlight</c>. Unlike <see cref="FindReferencesInTree"/>
+    /// this resolves the symbol from a position rather than accepting one, since the
+    /// LSP request only carries a position.
+    /// </summary>
+    public ImmutableArray<ReferenceLocation> GetDocumentHighlights(
+        int position,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var node = FindNode(position, cancellationToken);
+        var identifier =
+            node as IdentifierNameSyntax
+            ?? (node?.Parent as IdentifierNameSyntax);
+        if (identifier is null)
+        {
+            return ImmutableArray<ReferenceLocation>.Empty;
+        }
+
+        var symbol =
+            GetDeclaredSymbol(identifier, cancellationToken)
+            ?? GetSymbolInfo(identifier, cancellationToken);
+        return symbol is null
+            ? ImmutableArray<ReferenceLocation>.Empty
+            : FindReferencesInTree(symbol, cancellationToken);
+    }
+
+    /// <summary>
+    /// Reports a parameter-name inlay hint for every positional call argument within
+    /// <paramref name="span"/> (named arguments already show the name in source, so
+    /// they are skipped). Hints are derived from the symbol graph, not a static list.
+    /// </summary>
+    public ImmutableArray<InlayHint> GetInlayHints(
+        TextSpan span,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (!SyntaxTree.TryGetRoot(out var root))
+        {
+            return ImmutableArray<InlayHint>.Empty;
+        }
+
+        var invocations = ImmutableArray.CreateBuilder<InvocationExpressionSyntax>();
+        CollectNodes(root, invocations);
+
+        var hints = ImmutableArray.CreateBuilder<InlayHint>();
+        for (var i = 0; i < invocations.Count; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var invocation = invocations[i];
+            if (invocation.Span.End < span.Start || invocation.Span.Start > span.End)
+            {
+                continue;
+            }
+
+            if (
+                GetSymbolInfo(invocation.Expression, cancellationToken)
+                is not IFunctionSymbol function
+            )
+            {
+                continue;
+            }
+
+            var arguments = invocation.ArgumentList.Arguments;
+            for (var a = 0; a < arguments.Count && a < function.Parameters.Length; a++)
+            {
+                var argument = arguments.Get(a);
+                if (argument.Name is not null)
+                {
+                    continue;
+                }
+
+                hints.Add(
+                    new InlayHint(argument.Expression.Span.Start, function.Parameters[a].Name)
+                );
+            }
+        }
+
+        return hints.ToImmutable();
+    }
 }
+
+/// <summary>
+/// A parameter-name inlay hint at <paramref name="Position"/> (the start of the
+/// argument expression it labels), from <see
+/// cref="SemanticModel.GetInlayHints(TextSpan, CancellationToken)"/>.
+/// </summary>
+public readonly record struct InlayHint(int Position, PapyrusName ParameterName);
+
+/// <summary>
+/// A single reference to a symbol found by <see
+/// cref="SemanticModel.FindReferencesInTree(ISymbol, CancellationToken)"/>.
+/// </summary>
+public readonly record struct ReferenceLocation(TextSpan Span, bool IsDeclaration);
+
