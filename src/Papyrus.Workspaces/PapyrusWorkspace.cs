@@ -380,6 +380,8 @@ public sealed class PapyrusWorkspace : IDisposable
                 continue;
             }
 
+            // A script appeared or disappeared (or changed): the cached script list may be stale.
+            state.DiskResolver.InvalidateScripts();
             mapped = true;
             if (TryGetOpenDocumentText(next, projectId, path, out var openText))
             {

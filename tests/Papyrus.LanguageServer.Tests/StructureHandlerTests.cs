@@ -24,6 +24,49 @@ public sealed class StructureHandlerTests
         "EndFunction\n"; // 5
 
     [Fact]
+    public async Task Completion_offers_what_fits_the_context()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-completion-context-");
+        fixture.WriteScript("Util", "ScriptName Util\nFunction Wait(Float a) Global Native\n");
+        fixture.WriteScript("Other", "ScriptName Other\n");
+        await fixture.OpenAsync(
+            "ScriptName Foo\nimport Util\nFunction Go(Int count)\n  \n  Other o = new \nEndFunction\n\n",
+            timeout.Token);
+
+        async Task<string[]> LabelsAt(int line, int character)
+        {
+            var items = await fixture.Scheduler.ExecuteAsync(
+                new CompletionHandler(),
+                new CompletionParams
+                {
+                    TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                    Position = new Position { Line = line, Character = character },
+                },
+                timeout.Token);
+            return items.Select(static item => item.Label).ToArray();
+        }
+
+        var statement = await LabelsAt(3, 2);
+        Assert.Contains("count", statement);
+        Assert.Contains("Wait", statement);       // imported global
+        Assert.Contains("Other", statement);      // script type
+        Assert.Contains("If", statement);         // statement keyword
+        Assert.DoesNotContain("EndFunction", statement);
+
+        var type = await LabelsAt(4, 16);
+        Assert.Contains("Other", type);
+        Assert.Contains("Int", type);
+        Assert.DoesNotContain("count", type);
+        Assert.DoesNotContain("If", type);
+
+        var declaration = await LabelsAt(6, 0);
+        Assert.Contains("Function", declaration);
+        Assert.Contains("Other", declaration);
+        Assert.DoesNotContain("count", declaration);
+    }
+
+    [Fact]
     public async Task Hover_and_definition_resolve_other_scripts_and_ignore_keywords()
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));

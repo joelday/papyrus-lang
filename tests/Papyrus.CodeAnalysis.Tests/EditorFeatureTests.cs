@@ -74,6 +74,39 @@ public sealed class EditorFeatureTests
         Assert.Equal(1, active);
     }
 
+    [Theory]
+    [InlineData("  ; a comment |", CompletionContextKind.None)]
+    [InlineData("  x = \"in a string|\"", CompletionContextKind.None)]
+    [InlineData("  Missing.|", CompletionContextKind.None)]
+    [InlineData("  Other.|", CompletionContextKind.Member)]
+    [InlineData("  Other.Mo|", CompletionContextKind.Member)]
+    [InlineData("  |", CompletionContextKind.Statement)]
+    [InlineData("  Wa|", CompletionContextKind.Statement)]
+    [InlineData("  Target t = new |", CompletionContextKind.Type)]
+    [InlineData("  Target t = Other as Ta|", CompletionContextKind.Type)]
+    public void Completion_context_in_a_body(string line, CompletionContextKind expected)
+    {
+        var source = "ScriptName Foo\nTarget Property Other Auto\nFunction Go()\n" + line.Replace("|", "") + "\nEndFunction\n";
+        var model = Model(source);
+        var position = source.IndexOf("Function Go()", StringComparison.Ordinal) + "Function Go()\n".Length + line.IndexOf('|');
+
+        Assert.Equal(expected, model.GetCompletionContext(position, out _, TestContext.Current.CancellationToken));
+    }
+
+    [Theory]
+    [InlineData("|", CompletionContextKind.Declaration)]
+    [InlineData("Fun|", CompletionContextKind.Declaration)]
+    [InlineData("Function Go(|", CompletionContextKind.Type)]
+    [InlineData("Function Go(Int a, |", CompletionContextKind.Type)]
+    public void Completion_context_at_script_level(string line, CompletionContextKind expected)
+    {
+        var source = "ScriptName Foo\n" + line.Replace("|", "") + "\n";
+        var model = Model(source);
+        var position = "ScriptName Foo\n".Length + line.IndexOf('|');
+
+        Assert.Equal(expected, model.GetCompletionContext(position, out _, TestContext.Current.CancellationToken));
+    }
+
     private static PapyrusCompilation Compile(string foo)
     {
         var sources = new Dictionary<QualifiedName, SourceText>

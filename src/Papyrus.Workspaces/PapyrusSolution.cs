@@ -312,7 +312,7 @@ public sealed class PapyrusSolution
         var state = GetState(projectId);
 
         var results = ImmutableArray.CreateBuilder<ScriptReferences>();
-        foreach (var (name, path) in state.DiskResolver.EnumerateScripts())
+        foreach (var (name, path) in state.DiskResolver.GetScripts())
         {
             cancellationToken.ThrowIfCancellationRequested();
             var tree = state.Compilation.GetSyntaxTree(name);
@@ -325,6 +325,19 @@ public sealed class PapyrusSolution
         }
 
         return results.ToImmutable();
+    }
+
+    /// <summary>The name of every script in a project's search paths.</summary>
+    public ImmutableArray<QualifiedName> GetScriptNames(ProjectId projectId)
+    {
+        var scripts = GetState(projectId).DiskResolver.GetScripts();
+        var builder = ImmutableArray.CreateBuilder<QualifiedName>(scripts.Length);
+        foreach (var (name, _) in scripts)
+        {
+            builder.Add(name);
+        }
+
+        return builder.MoveToImmutable();
     }
 
     /// <summary>The source file of script <paramref name="name"/> in a project's search paths.</summary>

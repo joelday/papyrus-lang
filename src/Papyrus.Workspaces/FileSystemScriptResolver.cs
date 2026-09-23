@@ -147,6 +147,27 @@ public sealed class FileSystemScriptResolver : ScriptResolver
     /// same qualified name exists under more than one include directory, only the
     /// first one encountered is returned.
     /// </summary>
+    private ImmutableArray<(QualifiedName Name, string Path)> _scripts;
+
+    /// <summary>
+    /// Every script in the search paths (first match per name wins, like resolution),
+    /// cached: completion and references ask for it constantly. The workspace calls
+    /// <see cref="InvalidateScripts"/> when a .psc file is created or deleted.
+    /// </summary>
+    internal ImmutableArray<(QualifiedName Name, string Path)> GetScripts()
+    {
+        var scripts = _scripts;
+        if (scripts.IsDefault)
+        {
+            scripts = [.. EnumerateScripts()];
+            _scripts = scripts;
+        }
+
+        return scripts;
+    }
+
+    internal void InvalidateScripts() => _scripts = default;
+
     internal IEnumerable<(QualifiedName Name, string Path)> EnumerateScripts()
     {
         var seen = new HashSet<QualifiedName>();

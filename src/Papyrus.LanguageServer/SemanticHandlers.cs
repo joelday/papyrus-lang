@@ -161,7 +161,8 @@ internal sealed class CompletionHandler : ILspHandler<CompletionParams?, Complet
                 p.TextDocument,
                 out var model,
                 out var tree,
-                out _
+                out _,
+                out var projectId
             )
         )
         {
@@ -169,20 +170,126 @@ internal sealed class CompletionHandler : ILspHandler<CompletionParams?, Complet
         }
 
         var offset = tree.GetText().Lines.GetOffset(p.Position.Line, p.Position.Character);
-        var container = model.TryGetMemberAccessContainer(offset, out var containerType, ct)
-            ? containerType
-            : null;
-        var symbols = model.LookupSymbols(offset, container);
         var uri = p.TextDocument?.Uri ?? "";
-
-        var items = new CompletionItem[symbols.Length];
-        for (var i = 0; i < symbols.Length; i++)
+        var dialect = model.Compilation.Dialect;
+        var context = model.GetCompletionContext(offset, out var container, ct);
+        var items = new List<CompletionItem>();
+        void AddSymbols(IEnumerable<ISymbol> symbols, Func<ISymbol, bool>? filter = null)
         {
-            items[i] = ToCompletionItem(symbols[i], uri, offset);
+            foreach (var symbol in symbols)
+            {
+                if (filter is null || filter(symbol))
+                {
+                    items.Add(ToCompletionItem(symbol, uri, offset));
+                }
+            }
         }
 
-        return Task.FromResult(items);
+        switch (context)
+        {
+            case CompletionContextKind.Member:
+                AddSymbols(model.LookupSymbols(offset, container));
+                break;
+            case CompletionContextKind.Type:
+                AddTypes(items, snapshot, projectId, model, offset, dialect);
+                break;
+            case CompletionContextKind.Statement:
+                AddSymbols(model.LookupSymbols(offset), static s => s is not IStructSymbol);
+                AddSymbols(model.LookupImportedSymbols(), static s => s is not IStructSymbol);
+                AddTypes(items, snapshot, projectId, model, offset, dialect);
+                AddKeywords(items, StatementKeywords);
+                break;
+            case CompletionContextKind.Declaration:
+                // Inherited events and functions (completed as override skeletons on resolve).
+                AddSymbols(model.LookupSymbols(offset), static s => s is IFunctionSymbol);
+                AddTypes(items, snapshot, projectId, model, offset, dialect);
+                AddKeywords(items, DeclarationKeywords);
+                if (dialect.SupportsStructs)
+                {
+                    AddKeywords(items, Fallout4DeclarationKeywords);
+                }
+
+                if (dialect.SupportsGuards)
+                {
+                    AddKeywords(items, ["Guard"]);
+                }
+
+                break;
+        }
+
+        if (context == CompletionContextKind.Statement && dialect.SupportsGuards)
+        {
+            AddKeywords(items, ["Guard", "EndGuard", "TryGuard"]);
+        }
+
+        return Task.FromResult(items.ToArray());
     }
+
+    // Script names (qualified), the structs in scope, and the intrinsic types.
+    private static void AddTypes(
+        List<CompletionItem> items,
+        LspSnapshot snapshot,
+        ProjectId projectId,
+        Papyrus.CodeAnalysis.SemanticModel model,
+        int offset,
+        PapyrusDialect dialect)
+    {
+        foreach (var name in snapshot.Solution.GetScriptNames(projectId))
+        {
+            items.Add(new CompletionItem { Label = name.ToString(), Kind = 7 });
+        }
+
+        var structs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var symbol in model.LookupSymbols(offset))
+        {
+            if (symbol is IStructSymbol && structs.Add(symbol.Name.Text))
+            {
+                items.Add(new CompletionItem { Label = symbol.Name.Text, Kind = 22, Detail = SymbolDisplay.TypeText((ITypeSymbol)symbol) });
+            }
+        }
+
+        foreach (var symbol in model.LookupImportedSymbols())
+        {
+            if (symbol is IStructSymbol && structs.Add(symbol.Name.Text))
+            {
+                items.Add(new CompletionItem { Label = symbol.Name.Text, Kind = 22, Detail = SymbolDisplay.TypeText((ITypeSymbol)symbol) });
+            }
+        }
+
+        AddKeywords(items, IntrinsicTypes);
+        if (dialect.SupportsStructs)
+        {
+            AddKeywords(items, ["Var"]);
+        }
+    }
+
+    private static void AddKeywords(List<CompletionItem> items, string[] keywords)
+    {
+        foreach (var keyword in keywords)
+        {
+            items.Add(new CompletionItem { Label = keyword, Kind = 14 });
+        }
+    }
+
+    private static readonly string[] IntrinsicTypes = ["Int", "Float", "String", "Bool"];
+
+    private static readonly string[] StatementKeywords =
+    [
+        "If", "ElseIf", "Else", "EndIf", "While", "EndWhile", "Return", "New", "As",
+        "Self", "Parent", "None", "True", "False",
+    ];
+
+    private static readonly string[] DeclarationKeywords =
+    [
+        "Function", "EndFunction", "Event", "EndEvent", "Property", "EndProperty", "State",
+        "EndState", "Auto", "AutoReadOnly", "Import", "Global", "Native", "Hidden",
+        "Conditional",
+    ];
+
+    private static readonly string[] Fallout4DeclarationKeywords =
+    [
+        "Struct", "EndStruct", "Group", "EndGroup", "CustomEvent", "Const", "Mandatory",
+    ];
 
     private static CompletionItem ToCompletionItem(ISymbol symbol, string uri, int offset)
     {
@@ -269,7 +376,9 @@ internal sealed class CompletionResolveHandler : ILspHandler<CompletionItem?, Co
 
         var kind = (SymbolKind)data.Kind;
         ISymbol? symbol = null;
-        foreach (var candidate in model.LookupSymbols(data.Offset, container))
+        foreach (var candidate in container is null
+            ? model.LookupSymbols(data.Offset).AddRange(model.LookupImportedSymbols())
+            : model.LookupSymbols(data.Offset, container))
         {
             if (candidate.Kind == kind && candidate.Name.Text == data.Name)
             {

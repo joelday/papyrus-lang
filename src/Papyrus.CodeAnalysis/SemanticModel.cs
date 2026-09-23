@@ -8,6 +8,16 @@ using Papyrus.CodeAnalysis.Text;
 
 namespace Papyrus.CodeAnalysis;
 
+/// <summary>What <see cref="SemanticModel.GetCompletionContext"/> found at a position.</summary>
+public enum CompletionContextKind
+{
+    None,
+    Member,
+    Type,
+    Statement,
+    Declaration,
+}
+
 public sealed class SemanticModel
 {
     private readonly SyntaxNode? _speculative;
@@ -438,6 +448,160 @@ public sealed class SemanticModel
             current = current is IScriptSymbol script ? script.BaseType : null;
         }
     }
+
+    /// <summary>
+    /// What kind of completion fits at <paramref name="position"/>: nothing (inside a
+    /// comment or string, or after a `.` whose receiver is unknown), the members of
+    /// <paramref name="container"/>, a type name, a statement in a function body, or a
+    /// script-level declaration.
+    /// </summary>
+    public CompletionContextKind GetCompletionContext(
+        int position,
+        out ITypeSymbol? container,
+        CancellationToken cancellationToken = default)
+    {
+        container = null;
+        if (IsInCommentOrString(position, cancellationToken))
+        {
+            return CompletionContextKind.None;
+        }
+
+        if (TryGetMemberAccessContainer(position, out container, cancellationToken))
+        {
+            return CompletionContextKind.Member;
+        }
+
+        var text = SyntaxTree.GetText();
+        var wordStart = position;
+        while (wordStart > 0 && IsWordChar(text.GetChar(wordStart - 1)))
+        {
+            wordStart--;
+        }
+
+        var before = PreviousSignificantPosition(wordStart);
+        if (before >= 0 && text.GetChar(before) == '.')
+        {
+            // A member access whose receiver did not resolve: no sensible suggestions.
+            return CompletionContextKind.None;
+        }
+
+        if (before >= 0)
+        {
+            var end = before + 1;
+            var start = end;
+            while (start > 0 && IsWordChar(text.GetChar(start - 1)))
+            {
+                start--;
+            }
+
+            var previousWord = text.ToString(new TextSpan(start, end - start));
+            if (previousWord.Equals("new", StringComparison.OrdinalIgnoreCase)
+                || previousWord.Equals("as", StringComparison.OrdinalIgnoreCase)
+                || previousWord.Equals("is", StringComparison.OrdinalIgnoreCase))
+            {
+                return CompletionContextKind.Type;
+            }
+
+            if (text.GetChar(before) is '(' or ',' && IsInDeclarationParameterList(before, cancellationToken))
+            {
+                return CompletionContextKind.Type;
+            }
+        }
+
+        // A word at the start of a line may be a keyword or a type; both contexts offer both.
+        return InFunctionBody(position) ? CompletionContextKind.Statement : CompletionContextKind.Declaration;
+    }
+
+    /// <summary>
+    /// What this script's <c>Import</c>s put in scope unqualified: their global functions
+    /// and their structs.
+    /// </summary>
+    public ImmutableArray<ISymbol> LookupImportedSymbols()
+    {
+        if (GetScript() is not SourceScriptSymbol script)
+        {
+            return ImmutableArray<ISymbol>.Empty;
+        }
+
+        var builder = ImmutableArray.CreateBuilder<ISymbol>();
+        foreach (var import in script.Imports)
+        {
+            foreach (var member in import.GetMembers())
+            {
+                if (member is IFunctionSymbol { IsGlobal: true } or IStructSymbol)
+                {
+                    builder.Add(member);
+                }
+            }
+        }
+
+        return builder.ToImmutable();
+    }
+
+    private bool InFunctionBody(int position)
+    {
+        var function = FindContainingFunction(position);
+        if (function is null)
+        {
+            return false;
+        }
+
+        // Past the header line (the body starts after the header's end of line).
+        foreach (var reference in function.DeclaringSyntaxReferences)
+        {
+            var headerEnd = SyntaxTree.GetText().Lines.GetLineEnd(
+                SyntaxTree.GetText().Lines.GetPosition(reference.Span.Start).Line);
+            return position > headerEnd;
+        }
+
+        return false;
+    }
+
+    private bool IsInDeclarationParameterList(int position, CancellationToken cancellationToken)
+    {
+        for (var node = FindNode(position, cancellationToken); node is not null; node = node.Parent)
+        {
+            if (node is ParameterListSyntax)
+            {
+                return true;
+            }
+
+            if (node is ArgumentListSyntax or StatementSyntax)
+            {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    private bool IsInCommentOrString(int position, CancellationToken cancellationToken)
+    {
+        var probe = Math.Max(0, position - 1);
+        var spans = Papyrus.CodeAnalysis.Classification.SyntacticClassifier.Classify(
+            SyntaxTree,
+            new TextSpan(probe, Math.Min(2, Math.Max(1, SyntaxTree.GetText().Length - probe))),
+            cancellationToken);
+        foreach (var span in spans)
+        {
+            var inside = span.Kind switch
+            {
+                Papyrus.CodeAnalysis.Classification.ClassificationKind.Comment
+                    => span.Span.Start < position && position <= span.Span.End,
+                Papyrus.CodeAnalysis.Classification.ClassificationKind.String
+                    => span.Span.Start < position && position < span.Span.End,
+                _ => false,
+            };
+            if (inside)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsWordChar(char c) => char.IsAsciiLetterOrDigit(c) || c is '_' or ':';
 
     /// <summary>
     /// Resolves the innermost invocation whose argument list encloses
