@@ -68,6 +68,7 @@ namespace Papyrus.LanguageServer;
 [JsonSerializable(typeof(TextEdit[]))]
 [JsonSerializable(typeof(TextDocumentPositionParams))]
 [JsonSerializable(typeof(Hover))]
+[JsonSerializable(typeof(MarkupContent))]
 [JsonSerializable(typeof(DefinitionParams))]
 [JsonSerializable(typeof(Location))]
 [JsonSerializable(typeof(Location[]))]

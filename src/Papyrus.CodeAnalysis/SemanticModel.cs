@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using Papyrus.CodeAnalysis.Symbols;
@@ -35,8 +36,11 @@ public sealed class SemanticModel
 
     public ISymbol? GetSymbolInfo(int position, CancellationToken cancellationToken = default)
     {
+        // Only a name refers to a symbol: on a declaration's keywords (`Property`,
+        // `Function`, ...) the innermost node is the declaration itself, which is not a
+        // reference to it.
         var node = FindNode(position, cancellationToken);
-        return node is null ? null : GetSymbolInfo(node, cancellationToken);
+        return node is NameSyntax ? GetSymbolInfo(node, cancellationToken) : null;
     }
 
     /// <summary>
@@ -310,6 +314,10 @@ public sealed class SemanticModel
                 return BindMemberAccess(member, cancellationToken);
             case IdentifierNameSyntax identifier when IsExtendsName(identifier):
                 return GetScript()?.BaseType;
+            case IdentifierNameSyntax identifier when EnclosingTypeName(identifier) is { } typeName:
+                return BindTypeSymbol(typeName);
+            case IdentifierNameSyntax identifier when IsInvokedName(identifier):
+                return LookupFunction(identifier) ?? LookupName(identifier, ScopePosition(node));
             case IdentifierNameSyntax identifier:
                 return LookupName(identifier, ScopePosition(node));
             case NameSyntax when IsExtendsName(node):
@@ -539,7 +547,75 @@ public sealed class SemanticModel
             return null;
         }
 
+        // `x.Name(...)` calls a function even if a property or state shares the name.
+        if (member.Parent is InvocationExpressionSyntax invocation && invocation.Expression == member
+            && FindFunction(container, name) is { } function)
+        {
+            return function;
+        }
+
         return FindMember(container, name, includeBase: true);
+    }
+
+    // The type named by a type position (`Base Property P`, `Base local`, `A:B[]`): its
+    // script or struct. Intrinsic types have no declaration to show or go to.
+    private ITypeSymbol? BindTypeSymbol(TypeNameSyntax typeName)
+    {
+        ITypeSymbol? type = new ExpressionTypeBinder(Compilation, GetScript()).BindTypeName(typeName);
+        while (type is { TypeKind: TypeKind.Array })
+        {
+            type = type.GetArrayElementType();
+        }
+
+        return type is { TypeKind: TypeKind.Script or TypeKind.Struct } ? type : null;
+    }
+
+    private static TypeNameSyntax? EnclosingTypeName(IdentifierNameSyntax identifier)
+    {
+        SyntaxNode? current = identifier;
+        while (current?.Parent is QualifiedNameSyntax)
+        {
+            current = current.Parent;
+        }
+
+        return current?.Parent as TypeNameSyntax;
+    }
+
+    private static bool IsInvokedName(IdentifierNameSyntax identifier)
+        => identifier.Parent is NameExpressionSyntax name
+            && name.Parent is InvocationExpressionSyntax invocation
+            && invocation.Expression == name;
+
+    // Calls resolve to functions only (as the compiler binds them): own and inherited
+    // members, then imported scripts' globals.
+    private IFunctionSymbol? LookupFunction(IdentifierNameSyntax identifier)
+    {
+        var script = GetScript();
+        if (script is null || !TryGetName(identifier, out var name))
+        {
+            return null;
+        }
+
+        return FindFunction(script, name) ?? SourceScriptSymbol.FindImportedGlobalFunction(script, name);
+    }
+
+    private static IFunctionSymbol? FindFunction(ITypeSymbol type, PapyrusName name)
+    {
+        var visited = new HashSet<ITypeSymbol>(ReferenceEqualityComparer.Instance);
+        for (ITypeSymbol? current = type; current is not null && current.TypeKind != TypeKind.Error && visited.Add(current);)
+        {
+            foreach (var member in current.GetMembers(name))
+            {
+                if (member is IFunctionSymbol function)
+                {
+                    return function;
+                }
+            }
+
+            current = current is IScriptSymbol script ? script.BaseType : null;
+        }
+
+        return null;
     }
 
     private ISymbol? LookupName(IdentifierNameSyntax identifier, int position)
@@ -568,7 +644,21 @@ public sealed class SemanticModel
         }
 
         var script = GetScript();
-        return script is null ? null : FindMember(script, name, includeBase: true);
+        if (script is null)
+        {
+            return null;
+        }
+
+        // Then a script named like this (`Base.Twice(...)`, `Game.GetPlayer()`), resolved
+        // relative to this script's namespace like any type name.
+        return FindMember(script, name, includeBase: true)
+            ?? ScriptNamed(new QualifiedName(name), script);
+    }
+
+    private IScriptSymbol? ScriptNamed(QualifiedName name, IScriptSymbol context)
+    {
+        var script = Compilation.GetScriptForType(name, context.QualifiedName);
+        return script.TypeKind == TypeKind.Error ? null : script;
     }
 
     private ISymbol? FindByDeclaration(ISymbol container, SyntaxNode node)

@@ -360,9 +360,16 @@ internal sealed class TextDocumentPositionParams
 
 internal sealed class Hover
 {
-    public string[] Contents { get; set; } = [];
+    public MarkupContent Contents { get; set; } = new();
 
     public Range? Range { get; set; }
+}
+
+internal sealed class MarkupContent
+{
+    public string Kind { get; set; } = "markdown";
+
+    public string Value { get; set; } = "";
 }
 
 internal sealed class DefinitionParams

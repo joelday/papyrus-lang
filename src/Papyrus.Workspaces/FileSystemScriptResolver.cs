@@ -75,6 +75,31 @@ public sealed class FileSystemScriptResolver : ScriptResolver
         return false;
     }
 
+    /// <summary>
+    /// The source file <see cref="TryResolve"/> would read for <paramref name="name"/>,
+    /// without reading it.
+    /// </summary>
+    public bool TryGetSourcePath(QualifiedName name, out string path)
+    {
+        path = string.Empty;
+        if (!TryGetRelativeSourcePath(name, out var relativePath))
+        {
+            return false;
+        }
+
+        for (var i = 0; i < IncludeDirectories.Length; i++)
+        {
+            var candidate = Path.Combine(IncludeDirectories[i], relativePath);
+            if (File.Exists(candidate))
+            {
+                path = candidate;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public override bool TryResolvePex(string colonName, out PexScriptMetadata metadata)
     {
         metadata = null!;

@@ -327,6 +327,12 @@ public sealed class PapyrusSolution
         return results.ToImmutable();
     }
 
+    /// <summary>The source file of script <paramref name="name"/> in a project's search paths.</summary>
+    public bool TryGetScriptPath(ProjectId projectId, QualifiedName name, out string path)
+    {
+        return GetState(projectId).DiskResolver.TryGetSourcePath(name, out path);
+    }
+
     public ImmutableArray<DocumentId> GetDocumentIdsForPath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))

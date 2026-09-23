@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Papyrus.CodeAnalysis;
 using Papyrus.CodeAnalysis.Symbols;
 using Papyrus.CodeAnalysis.Text;
 using Papyrus.Workspaces;
@@ -36,35 +37,32 @@ internal sealed class HoverHandler : ILspHandler<TextDocumentPositionParams?, Ho
             return Task.FromResult<Hover?>(null);
         }
 
-        var offset = tree.GetText().Lines.GetOffset(p.Position.Line, p.Position.Character);
+        var lineMap = tree.GetText().Lines;
+        var offset = lineMap.GetOffset(p.Position.Line, p.Position.Character);
         var symbol = model.GetSymbolInfo(offset, ct);
         if (symbol is null)
         {
             return Task.FromResult<Hover?>(null);
         }
 
-        return Task.FromResult<Hover?>(new Hover { Contents = [FormatSymbol(symbol)] });
+        return Task.FromResult<Hover?>(
+            new Hover
+            {
+                Contents = new MarkupContent { Value = Markdown(symbol) },
+                Range = model.FindNode(offset, ct) is { } name
+                    ? DocumentSymbolHandler.ToRange(lineMap, name.Span)
+                    : null,
+            }
+        );
     }
 
-    private static string FormatSymbol(ISymbol symbol)
+    // The declaration as a highlighted Papyrus code block, then its doc comment.
+    internal static string Markdown(ISymbol symbol)
     {
-        return symbol switch
-        {
-            IFunctionSymbol function =>
-                $"{function.Name.Text}({string.Join(", ", Parameters(function))}) -> {function.ReturnType.Name.Text}",
-            IPropertySymbol property => $"{property.Type.Name.Text} {property.Name.Text}",
-            IVariableSymbol variable => $"{variable.Type.Name.Text} {variable.Name.Text}",
-            IParameterSymbol parameter => $"{parameter.Type.Name.Text} {parameter.Name.Text}",
-            _ => $"{symbol.Kind} {symbol.Name.Text}",
-        };
-    }
-
-    private static IEnumerable<string> Parameters(IFunctionSymbol function)
-    {
-        foreach (var parameter in function.Parameters)
-        {
-            yield return $"{parameter.Type.Name.Text} {parameter.Name.Text}";
-        }
+        var markdown = "```papyrus\n" + SymbolDisplay.ToDeclarationString(symbol) + "\n```";
+        return SymbolDisplay.GetDocumentation(symbol) is { } documentation
+            ? markdown + "\n\n" + documentation
+            : markdown;
     }
 }
 
@@ -88,7 +86,8 @@ internal sealed class DefinitionHandler : ILspHandler<DefinitionParams?, Locatio
                 p.TextDocument,
                 out var model,
                 out var tree,
-                out var path
+                out var path,
+                out var projectId
             )
         )
         {
@@ -102,20 +101,40 @@ internal sealed class DefinitionHandler : ILspHandler<DefinitionParams?, Locatio
             return Task.FromResult(Array.Empty<Location>());
         }
 
-        var lineMap = tree.GetText().Lines;
+        // A declaration in another script is found through the script that owns it.
+        var owner = symbol as IScriptSymbol ?? symbol.ContainingScript;
         var locations = new List<Location>();
         foreach (var reference in symbol.DeclaringSyntaxReferences)
         {
-            if (reference.SyntaxTree == tree)
+            if (reference.SyntaxTree is not { } declaringTree)
             {
-                locations.Add(
-                    new Location
-                    {
-                        Uri = p.TextDocument?.Uri ?? LspUris.ToUri(path),
-                        Range = DocumentSymbolHandler.ToRange(lineMap, reference.Span),
-                    }
-                );
+                continue;
             }
+
+            string uri;
+            if (declaringTree == tree)
+            {
+                uri = p.TextDocument?.Uri ?? LspUris.ToUri(path);
+            }
+            else if (
+                owner is not null
+                && snapshot.Solution.TryGetScriptPath(projectId, owner.QualifiedName, out var ownerPath)
+            )
+            {
+                uri = LspUris.ToUri(ownerPath);
+            }
+            else
+            {
+                continue;
+            }
+
+            locations.Add(
+                new Location
+                {
+                    Uri = uri,
+                    Range = DocumentSymbolHandler.ToRange(declaringTree.GetText().Lines, reference.Span),
+                }
+            );
         }
 
         return Task.FromResult(locations.ToArray());
@@ -171,14 +190,7 @@ internal sealed class CompletionHandler : ILspHandler<CompletionParams?, Complet
         {
             Label = symbol.Name.Text,
             Kind = ToLspKind(symbol),
-            Detail = symbol switch
-            {
-                IFunctionSymbol function => $"{function.ReturnType.Name.Text}",
-                IPropertySymbol property => property.Type.Name.Text,
-                IVariableSymbol variable => variable.Type.Name.Text,
-                IParameterSymbol parameter => parameter.Type.Name.Text,
-                _ => null,
-            },
+            Detail = SymbolDisplay.ToDeclarationString(symbol),
             CommitCharacters = symbol.Kind is SymbolKind.Function or SymbolKind.Event
                 ? CommitCharactersOpenParen
                 : null,
@@ -598,7 +610,7 @@ internal sealed class SignatureHelpHandler : ILspHandler<SignatureHelpParams?, S
             var parameter = function.Parameters[i];
             parameters[i] = new ParameterInformation
             {
-                Label = $"{parameter.Type.Name.Text} {parameter.Name.Text}",
+                Label = SymbolDisplay.ToParameterString(parameter),
             };
         }
 
@@ -609,8 +621,7 @@ internal sealed class SignatureHelpHandler : ILspHandler<SignatureHelpParams?, S
                 [
                     new SignatureInformation
                     {
-                        Label =
-                            $"{function.Name.Text}({string.Join(", ", parameters.Select(x => x.Label))})",
+                        Label = SymbolDisplay.ToDeclarationString(function),
                         Parameters = parameters,
                     },
                 ],

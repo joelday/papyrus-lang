@@ -24,6 +24,51 @@ public sealed class StructureHandlerTests
         "EndFunction\n"; // 5
 
     [Fact]
+    public async Task Hover_and_definition_resolve_other_scripts_and_ignore_keywords()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-xref-");
+        var otherPath = fixture.WriteScript("Other", "ScriptName Other\nFunction Ping()\n{Pings}\nEndFunction\n");
+        await fixture.OpenAsync(
+            "ScriptName Foo\nOther Property P Auto\nFunction F()\n  P.Ping()\nEndFunction\n",
+            timeout.Token);
+
+        async Task<Hover?> HoverAt(int line, int character) =>
+            await fixture.Scheduler.ExecuteAsync(
+                new HoverHandler(),
+                new TextDocumentPositionParams
+                {
+                    TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                    Position = new Position { Line = line, Character = character },
+                },
+                timeout.Token);
+
+        // A type position names the other script.
+        var typeHover = await HoverAt(1, 2);
+        Assert.Contains("ScriptName Other", typeHover!.Contents.Value, StringComparison.Ordinal);
+
+        // A member of the other script shows its declaration and doc comment...
+        var callHover = await HoverAt(3, 5);
+        Assert.Equal("```papyrus\nFunction Ping()\n```\n\nPings", callHover!.Contents.Value);
+
+        // ...and its definition is in the other file.
+        var definition = await fixture.Scheduler.ExecuteAsync(
+            new DefinitionHandler(),
+            new DefinitionParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                Position = new Position { Line = 3, Character = 5 },
+            },
+            timeout.Token);
+        var location = Assert.Single(definition);
+        Assert.Equal(new Uri(otherPath).AbsoluteUri, location.Uri);
+        Assert.Equal(1, location.Range.Start!.Line);
+
+        // A declaration keyword is not a reference to the declaration.
+        Assert.Null(await HoverAt(1, 8));
+    }
+
+    [Fact]
     public async Task Folding_returns_line_ranges_for_blocks()
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
@@ -220,10 +265,10 @@ public sealed class StructureHandlerTests
             timeout.Token
         );
 
-        Assert.Contains(
-            hover?.Contents ?? [],
-            content => content.Contains("Bar", StringComparison.Ordinal)
-        );
+        Assert.NotNull(hover);
+        Assert.Equal("markdown", hover.Contents.Kind);
+        Assert.StartsWith("```papyrus\n", hover.Contents.Value, StringComparison.Ordinal);
+        Assert.Contains("Function Bar", hover.Contents.Value, StringComparison.Ordinal);
         var location = Assert.Single(definition);
         Assert.Equal(fixture.ScriptUri, location.Uri);
         Assert.Equal(1, location.Range.Start!.Line);
@@ -395,7 +440,7 @@ public sealed class StructureHandlerTests
         );
 
         var signature = Assert.Single(help?.Signatures ?? []);
-        Assert.Equal("Bar(Int a, Int b)", signature.Label);
+        Assert.Equal("Function Bar(Int a, Int b)", signature.Label);
         Assert.Equal(1, help!.ActiveParameter);
     }
 
