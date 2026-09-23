@@ -41,23 +41,118 @@ public static class SymbolDisplay
     }
 
     /// <summary>
-    /// The text of the symbol's doc comment (the <c>{...}</c> after its declaration), without
-    /// braces and with common indentation removed, or null when it has none.
+    /// The symbol's documentation: its doc comment (the <c>{...}</c> after its declaration),
+    /// or else the comment block directly above the declaration -- how the engine scripts
+    /// document their native functions (<c>; Moves this object to ...</c>). Null when it
+    /// has neither.
     /// </summary>
     public static string? GetDocumentation(ISymbol symbol)
     {
         ArgumentNullException.ThrowIfNull(symbol);
-        var docComment = symbol switch
+        SyntaxNode? declaration = symbol switch
         {
-            FunctionSymbol { Declaration: { } syntax } => syntax.DocComment,
-            EventSymbol { Declaration: { } syntax } => syntax.DocComment,
-            PropertySymbol { Declaration: { } syntax } => syntax.DocComment,
-            VariableSymbol { Declaration: { } syntax } => syntax.DocComment,
-            IScriptSymbol script => ScriptDocComment(script),
-            _ => default,
+            FunctionSymbol { Declaration: { } syntax } => syntax,
+            EventSymbol { Declaration: { } syntax } => syntax,
+            PropertySymbol { Declaration: { } syntax } => syntax,
+            VariableSymbol { Declaration: { } syntax } => syntax,
+            _ => null,
+        };
+        var docComment = declaration switch
+        {
+            FunctionDeclarationSyntax syntax => syntax.DocComment,
+            EventDeclarationSyntax syntax => syntax.DocComment,
+            PropertyDeclarationSyntax syntax => syntax.DocComment,
+            VariableDeclarationSyntax syntax => syntax.DocComment,
+            _ => symbol is IScriptSymbol script ? ScriptDocComment(script) : default,
         };
 
-        return docComment.Kind == SyntaxKind.DocCommentToken ? CleanDocComment(docComment.Text) : null;
+        if (docComment.Kind == SyntaxKind.DocCommentToken)
+        {
+            return CleanDocComment(docComment.Text);
+        }
+
+        return declaration is null ? null : CommentAbove(declaration);
+    }
+
+    // The contiguous `;` comment lines (or one `;/ ... /;` block) ending on the line just
+    // above the declaration, with separator lines (`;-----`) dropped.
+    private static string? CommentAbove(SyntaxNode declaration)
+    {
+        var full = declaration.FullSpan;
+        var leading = declaration.SyntaxTree.GetText().ToString(
+            new Papyrus.CodeAnalysis.Text.TextSpan(full.Start, declaration.Span.Start - full.Start));
+        var lines = leading.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+
+        // The last element is the declaration line's own indentation.
+        var end = lines.Length - 1;
+        if (end < 1)
+        {
+            return null;
+        }
+
+        var collected = new List<string>();
+        var index = end - 1;
+        var last = lines[index].Trim();
+        if (last.EndsWith("/;", StringComparison.Ordinal))
+        {
+            // A block comment: take it whole.
+            for (; index >= 0; index--)
+            {
+                var line = lines[index].Trim();
+                var start = line.IndexOf(";/", StringComparison.Ordinal);
+                collected.Insert(0, start >= 0 ? line[(start + 2)..] : line);
+                if (start >= 0)
+                {
+                    break;
+                }
+            }
+
+            if (collected.Count > 0)
+            {
+                collected[^1] = collected[^1].EndsWith("/;", StringComparison.Ordinal) ? collected[^1][..^2] : collected[^1];
+            }
+        }
+        else
+        {
+            for (; index >= 0; index--)
+            {
+                var line = lines[index].Trim();
+                if (!line.StartsWith(';') || line.StartsWith(";/", StringComparison.Ordinal))
+                {
+                    break;
+                }
+
+                collected.Insert(0, line.TrimStart(';').Trim());
+            }
+        }
+
+        var text = new StringBuilder();
+        foreach (var line in collected)
+        {
+            var content = line.Trim();
+            if (content.Length > 0 && IsSeparator(content))
+            {
+                continue;
+            }
+
+            text.Append(content).Append('\n');
+        }
+
+        var result = text.ToString().Trim();
+        return result.Length == 0 ? null : result;
+    }
+
+    private static bool IsSeparator(string line)
+    {
+        foreach (var c in line)
+        {
+            if (char.IsLetterOrDigit(c))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>

@@ -278,6 +278,11 @@ internal sealed class CompletionResolveHandler : ILspHandler<CompletionItem?, Co
             }
         }
 
+        if (symbol is not null && SymbolDisplay.GetDocumentation(symbol) is { } documentation)
+        {
+            p.Documentation = new MarkupContent { Value = documentation };
+        }
+
         if (
             symbol is IEventSymbol eventSymbol
             && !model.DeclaresMemberDirectly(eventSymbol.Name, SymbolKind.Event)
@@ -295,7 +300,7 @@ internal sealed class CompletionResolveHandler : ILspHandler<CompletionItem?, Co
         var parameters = string.Join(
             ", ",
             eventSymbol.Parameters.Select(parameter =>
-                $"{parameter.Type.Name.Text} {parameter.Name.Text}"
+                $"{SymbolDisplay.TypeText(parameter.Type)} {parameter.Name.Text}"
             )
         );
 
@@ -622,6 +627,9 @@ internal sealed class SignatureHelpHandler : ILspHandler<SignatureHelpParams?, S
                     new SignatureInformation
                     {
                         Label = SymbolDisplay.ToDeclarationString(function),
+                        Documentation = SymbolDisplay.GetDocumentation(function) is { } documentation
+                            ? new MarkupContent { Value = documentation }
+                            : null,
                         Parameters = parameters,
                     },
                 ],

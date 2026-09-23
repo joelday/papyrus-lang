@@ -421,9 +421,20 @@ public sealed class SemanticModel
         ImmutableArray<ISymbol>.Builder builder
     )
     {
-        for (ITypeSymbol? current = container; current is not null; )
+        // The most-derived declaration of a name wins (an override hides the base's), states
+        // are not referable members, and an Extends cycle is not followed around.
+        var seen = new HashSet<(string, SymbolKind)>();
+        var visited = new HashSet<ITypeSymbol>(ReferenceEqualityComparer.Instance);
+        for (ITypeSymbol? current = container; current is not null && visited.Add(current); )
         {
-            builder.AddRange(current.GetMembers());
+            foreach (var member in current.GetMembers())
+            {
+                if (member is not IStateSymbol && seen.Add((member.Name.Text.ToUpperInvariant(), member.Kind)))
+                {
+                    builder.Add(member);
+                }
+            }
+
             current = current is IScriptSymbol script ? script.BaseType : null;
         }
     }
@@ -443,25 +454,46 @@ public sealed class SemanticModel
         function = null;
         activeParameterIndex = 0;
 
-        for (
-            var current = FindNode(position, cancellationToken);
-            current is not null;
-            current = current.Parent
-        )
+        // In an unterminated call (`Wait(` at the end of the line) the node at the cursor is
+        // the end of the line, outside the call; the character before it is inside.
+        var previous = PreviousSignificantPosition(position);
+        var invocation = InvocationAround(FindNode(position, cancellationToken), position)
+            ?? (previous >= 0 ? InvocationAround(FindNode(previous, cancellationToken), previous) : null);
+        if (invocation is null)
         {
-            if (
-                current is InvocationExpressionSyntax invocation
-                && Contains(invocation.ArgumentList, position)
-            )
+            return false;
+        }
+
+        function = GetSymbolInfo(invocation.Expression, cancellationToken) as IFunctionSymbol;
+        activeParameterIndex = CountPrecedingCommas(invocation.ArgumentList, position);
+        return function is not null;
+    }
+
+    // The last non-blank character before the cursor on its line: trailing blanks attach to
+    // the end-of-line token, outside the call or member access being typed.
+    private int PreviousSignificantPosition(int position)
+    {
+        var text = SyntaxTree.GetText();
+        var probe = Math.Min(position, text.Length) - 1;
+        while (probe >= 0 && text.GetChar(probe) is ' ' or '\t')
+        {
+            probe--;
+        }
+
+        return probe >= 0 && text.GetChar(probe) is '\n' or '\r' ? -1 : probe;
+    }
+
+    private static InvocationExpressionSyntax? InvocationAround(SyntaxNode? node, int position)
+    {
+        for (var current = node; current is not null; current = current.Parent)
+        {
+            if (current is InvocationExpressionSyntax invocation && Contains(invocation.ArgumentList, position))
             {
-                function =
-                    GetSymbolInfo(invocation.Expression, cancellationToken) as IFunctionSymbol;
-                activeParameterIndex = CountPrecedingCommas(invocation.ArgumentList, position);
-                return function is not null;
+                return invocation;
             }
         }
 
-        return false;
+        return null;
     }
 
     private static int CountPrecedingCommas(ArgumentListSyntax argumentList, int position)
@@ -509,16 +541,12 @@ public sealed class SemanticModel
         CancellationToken cancellationToken = default
     )
     {
-        var node = FindNode(position, cancellationToken);
-        var member =
-            node as MemberAccessExpressionSyntax
-            ?? (
-                node is IdentifierNameSyntax identifier
-                && identifier.Parent is MemberAccessExpressionSyntax parentMember
-                && ReferenceEquals(parentMember.Name, identifier)
-                    ? parentMember
-                    : null
-            );
+        // Right after the `.` the name is missing (zero width), so the node at the cursor is
+        // whatever follows; the character before the cursor (the `.` or the partly typed
+        // name) belongs to the member access.
+        var previous = PreviousSignificantPosition(position);
+        var member = MemberAccessAt(FindNode(position, cancellationToken))
+            ?? (previous >= 0 ? MemberAccessAt(FindNode(previous, cancellationToken)) : null);
 
         if (member is null)
         {
@@ -528,6 +556,18 @@ public sealed class SemanticModel
 
         container = ResolveContainerType(member.Expression, cancellationToken);
         return container is not null;
+    }
+
+    private static MemberAccessExpressionSyntax? MemberAccessAt(SyntaxNode? node)
+    {
+        return node switch
+        {
+            MemberAccessExpressionSyntax member => member,
+            IdentifierNameSyntax identifier
+                when identifier.Parent is MemberAccessExpressionSyntax parent && IsSameNode(parent.Name, identifier)
+                => parent,
+            _ => null,
+        };
     }
 
     /// <summary>

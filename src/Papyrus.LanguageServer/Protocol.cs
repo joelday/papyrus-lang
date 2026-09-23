@@ -401,6 +401,8 @@ internal sealed class CompletionItem
 
     public string? Detail { get; set; }
 
+    public MarkupContent? Documentation { get; set; }
+
     public string[]? CommitCharacters { get; set; }
 
     public string? InsertText { get; set; }
@@ -446,6 +448,8 @@ internal sealed class SignatureHelp
 internal sealed class SignatureInformation
 {
     public string Label { get; set; } = "";
+
+    public MarkupContent? Documentation { get; set; }
 
     public ParameterInformation[] Parameters { get; set; } = [];
 }
