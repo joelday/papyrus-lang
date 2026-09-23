@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
 using StreamJsonRpc;
@@ -91,7 +92,7 @@ internal static class LanguageServerHost
         {
             JsonSerializerOptions =
             {
-                TypeInfoResolver = LspJsonContext.Default,
+                TypeInfoResolver = JsonTypeInfoResolver.Combine(LspJsonContext.Default, new RequestIdTypeInfoResolver()),
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             },
