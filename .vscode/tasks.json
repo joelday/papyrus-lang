@@ -27,10 +27,22 @@
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode2",
         "--inspect-extensions=9333",
+        "--disable-extension=joelday.papyrus-lang-vscode",
         "--new-window"
       ],
       "dependsOn": "buildExtension2",
       "problemMatcher": []
+    },
+    {
+      // Publishes the NativeAOT Papyrus.LanguageServer into
+      // src/papyrus-lang-vscode2/bin/<rid>/, where the extension looks for
+      // it. Not part of the launch pre-tasks (the AOT link takes a while);
+      // rerun after changing the server.
+      "label": "buildServer2",
+      "type": "npm",
+      "script": "build-server",
+      "path": "src/papyrus-lang-vscode2",
+      "problemMatcher": ["$msCompile"]
     }
 
     // --- Legacy papyrus-lang-vscode (RxJS/inversify) build tasks below,

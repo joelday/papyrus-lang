@@ -14,7 +14,9 @@
       "runtimeExecutable": "${execPath}",
       "preLaunchTask": "buildExtension2",
       "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode2"
+        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode2",
+        // The installed Marketplace extension also claims .psc files.
+        "--disable-extension=joelday.papyrus-lang-vscode"
       ],
       "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode2/dist/**/*.js"]
     },

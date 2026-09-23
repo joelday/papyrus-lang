@@ -16,6 +16,54 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "languages": [
+      {
+        "aliases": [
+          "Papyrus"
+        ],
+        "configuration": "./syntaxes/papyrus/papyrus-language-configuration.json",
+        "extensions": [
+          ".psc"
+        ],
+        "id": "papyrus"
+      },
+      {
+        "aliases": [
+          "Papyrus Assembly"
+        ],
+        "extensions": [
+          ".disassemble.pas"
+        ],
+        "id": "papyrus-assembly"
+      },
+      {
+        "aliases": [
+          "Papyrus Project"
+        ],
+        "configuration": "./syntaxes/papyrus-project/papyrus-project-language-configuration.json",
+        "extensions": [
+          ".ppj"
+        ],
+        "id": "papyrus-project"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "papyrus",
+        "path": "./syntaxes/papyrus/papyrus.tmLanguage",
+        "scopeName": "source.papyrus"
+      },
+      {
+        "language": "papyrus-assembly",
+        "path": "./syntaxes/papyrus-assembly/papyrus-assembly.tmLanguage",
+        "scopeName": "source.papyrus assembly"
+      },
+      {
+        "language": "papyrus-project",
+        "path": "./syntaxes/papyrus-project/papyrus-project.json",
+        "scopeName": "text.xml.papyrus-project"
+      }
+    ],
     "commands": [
       {
         "command": "papyrus.showOutputChannel",
@@ -26,9 +74,9 @@
       "title": "Papyrus",
       "properties": {
         "papyrus.server.path": {
-            "type": "string",
-            "default": "",
-            "description": "Overrides the path to the Papyrus.LanguageServer executable. Leave empty to use the version bundled with this extension."
+          "type": "string",
+          "default": "",
+          "description": "Overrides the path to the Papyrus.LanguageServer executable. Leave empty to use the version bundled with this extension."
         }
       }
     }
@@ -36,6 +84,7 @@
   "scripts": {
     "vscode:prepublish": "npm run package",
     "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "build-server": "node scripts/build-server.js",
     "watch": "npm-run-all -p watch:*",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
