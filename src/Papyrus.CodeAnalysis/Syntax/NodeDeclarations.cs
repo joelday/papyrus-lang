@@ -45,9 +45,13 @@ internal sealed partial class FlagSyntax : SyntaxNode
     public SyntaxToken FlagToken { get; }
 }
 
+// Imports directly after the header are ScriptDeclarationSyntax.Imports; an import
+// anywhere later at script level (legal in the CK compiler and Caprica) is a member,
+// so the tree keeps source order.
 [SyntaxNode]
-internal sealed partial class ImportDeclarationSyntax : SyntaxNode
+internal sealed partial class ImportDeclarationSyntax : MemberDeclarationSyntax
 {
+    public SyntaxToken DocComment { get; }
     public SyntaxToken ImportKeyword { get; }
     public partial TypeNameSyntax Name { get; }
     public SyntaxToken EndOfLineToken { get; }
@@ -346,6 +350,10 @@ internal sealed partial class EventDeclarationSyntax : MemberDeclarationSyntax
 {
     public SyntaxToken DocComment { get; }
     public SyntaxToken EventKeyword { get; }
+    // FO4+ remote event handler: `Event <RemoteScript>.<Name>(...)` handles <Name> raised
+    // by (or custom event <Name> sent from) scripts of type <RemoteScript>.
+    public partial NameSyntax? RemoteScript { get; }
+    public SyntaxToken DotToken { get; }
     public partial IdentifierNameSyntax Name { get; }
     public partial ParameterListSyntax ParameterList { get; }
     public partial SyntaxList<FlagSyntax> Flags { get; }

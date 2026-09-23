@@ -115,6 +115,7 @@ public sealed class PpjParserTests
     [Theory]
     [InlineData("Institute_Papyrus_Flags.flg", GameId.Fallout4)]
     [InlineData("TESV_Papyrus_Flags.flg", GameId.SkyrimSpecialEdition)]
+    [InlineData("Starfield_Papyrus_Flags.flg", GameId.Starfield)]
     [InlineData(@"C:\Games\Fallout 4\Data\Scripts\Source\Base\institute_papyrus_flags.flg", GameId.Fallout4)]
     [InlineData("../flags/TESV_Papyrus_Flags.flg", GameId.SkyrimSpecialEdition)]
     public void Infers_game_from_flags_when_game_attribute_is_absent(string flags, GameId expected)

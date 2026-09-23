@@ -314,6 +314,11 @@ public static class PpjParser
             return GameId.Fallout4;
         }
 
+        if (fileName.Equals("Starfield_Papyrus_Flags.flg", StringComparison.OrdinalIgnoreCase))
+        {
+            return GameId.Starfield;
+        }
+
         return null;
     }
 

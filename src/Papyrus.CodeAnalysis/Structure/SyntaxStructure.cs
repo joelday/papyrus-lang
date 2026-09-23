@@ -288,10 +288,16 @@ public static class SyntaxStructure
         var builder = ImmutableArray.CreateBuilder<DocumentSymbol>(nodes.Count);
         for (var i = 0; i < nodes.Count; i++)
         {
+            // Script-level imports after the header are members but not outline entries.
+            if (nodes.Get(i) is ImportDeclarationSyntax)
+            {
+                continue;
+            }
+
             builder.Add(CreateDocumentSymbol(nodes.Get(i), cancellationToken));
         }
 
-        return builder.MoveToImmutable();
+        return builder.ToImmutable();
     }
 
     private static SyntaxTreeNode CreateSyntaxTreeNode(SyntaxNode node)

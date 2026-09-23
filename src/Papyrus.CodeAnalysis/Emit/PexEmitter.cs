@@ -183,7 +183,7 @@ public sealed class PexEmitter
             ParentClassName = parent,
             DocumentationString = Documentation(declaration?.DocComment ?? default),
             IsConst = declaration is not null && HasFlag(declaration.Flags, SyntaxKind.ConstKeyword),
-            UserFlags = declaration is null ? 0 : UserFlags(declaration.Flags),
+            UserFlags = declaration is null ? 0 : UserFlags(declaration.Flags, UserFlagLocations.Script),
             AutoStateName = autoStateName,
             Structs = structs.ToImmutable(),
             Variables = variables.ToImmutable(),
@@ -226,7 +226,7 @@ public sealed class PexEmitter
             {
                 Name = variable.Name.Text,
                 TypeName = PexEmitType.NameOf(variable.Type),
-                UserFlags = UserFlags(variable),
+                UserFlags = UserFlags(variable, UserFlagLocations.StructVar),
                 DefaultValue = DefaultValue(variable),
                 IsConst = variable.IsConst,
                 DocumentationString = Documentation(variable is VariableSymbol { Declaration: { } syntax }
@@ -252,7 +252,7 @@ public sealed class PexEmitter
             Name = property.Name.Text,
             TypeName = PexEmitType.NameOf(property.Type),
             DocumentationString = Documentation(syntax?.DocComment ?? default),
-            UserFlags = UserFlags(property),
+            UserFlags = UserFlags(property, UserFlagLocations.Property),
             IsAuto = isAuto,
             IsReadable = isAuto || property.GetMethod is not null,
             IsWritable = isAuto ? !autoReadOnly : property.SetMethod is not null,
@@ -303,7 +303,7 @@ public sealed class PexEmitter
         {
             Name = variable.Name.Text,
             TypeName = PexEmitType.NameOf(variable.Type),
-            UserFlags = UserFlags(variable),
+            UserFlags = UserFlags(variable, UserFlagLocations.Variable),
             DefaultValue = DefaultValue(variable),
             IsConst = variable.IsConst,
         };
@@ -335,7 +335,7 @@ public sealed class PexEmitter
             Name = function.Name.Text,
             ReturnTypeName = PexEmitType.NameOf(function.ReturnType),
             DocumentationString = Documentation(functionSyntax?.DocComment ?? eventSyntax?.DocComment ?? default),
-            UserFlags = UserFlags(function),
+            UserFlags = UserFlags(function, UserFlagLocations.Function),
             IsNative = function.IsNative,
             IsGlobal = function.IsGlobal,
             Parameters = parameterBuilder.ToImmutable(),
@@ -372,19 +372,21 @@ public sealed class PexEmitter
         return emitted;
     }
 
-    private uint UserFlags(ISymbol symbol)
+    private uint UserFlags(ISymbol symbol, UserFlagLocations location)
     {
         return symbol switch
         {
-            FunctionSymbol { Declaration: { } syntax } => UserFlags(syntax.Flags),
-            EventSymbol { Declaration: { } syntax } => UserFlags(syntax.Flags),
-            PropertySymbol { Declaration: { } syntax } => UserFlags(syntax.Flags),
-            VariableSymbol { Declaration: { } syntax } => UserFlags(syntax.Flags),
+            FunctionSymbol { Declaration: { } syntax } => UserFlags(syntax.Flags, location),
+            EventSymbol { Declaration: { } syntax } => UserFlags(syntax.Flags, location),
+            PropertySymbol { Declaration: { } syntax } => UserFlags(syntax.Flags, location),
+            VariableSymbol { Declaration: { } syntax } => UserFlags(syntax.Flags, location),
             _ => 0,
         };
     }
 
-    private uint UserFlags(SyntaxList<FlagSyntax> flags)
+    // A flag contributes its mask (a composite flag, its children's bits) only where the
+    // flags file allows it; elsewhere it is ignored, as Caprica's PapyrusUserFlags::buildPex does.
+    private uint UserFlags(SyntaxList<FlagSyntax> flags, UserFlagLocations location)
     {
         if (_flagsFile is null || _flagsFile.Flags.IsDefaultOrEmpty)
         {
@@ -401,20 +403,9 @@ public sealed class PexEmitter
                 continue;
             }
 
-            var declared = _flagsFile.Flags;
-            for (var f = 0; f < declared.Length; f++)
+            if (_flagsFile.Find(token.Text) is { } flag && (flag.Locations & location) != 0)
             {
-                var flag = declared[f];
-                if (flag.BitIndex is < 0 or > 31)
-                {
-                    continue;
-                }
-
-                if (string.Equals(flag.Name, token.Text, StringComparison.OrdinalIgnoreCase))
-                {
-                    mask |= 1u << flag.BitIndex;
-                    break;
-                }
+                mask |= flag.Mask;
             }
         }
 
@@ -527,6 +518,8 @@ public sealed class PexEmitter
         return false;
     }
 
+    // Mandatory is lexed as a keyword but is a user flag (bit 5 of Institute_Papyrus_Flags.flg),
+    // so it is resolved through the flags file like Hidden and Conditional.
     private static bool IsLanguageFlag(SyntaxKind kind)
         => kind is SyntaxKind.NativeKeyword
             or SyntaxKind.GlobalKeyword
@@ -534,8 +527,7 @@ public sealed class PexEmitter
             or SyntaxKind.AutoReadOnlyKeyword
             or SyntaxKind.ConstKeyword
             or SyntaxKind.DebugOnlyKeyword
-            or SyntaxKind.BetaOnlyKeyword
-            or SyntaxKind.MandatoryKeyword;
+            or SyntaxKind.BetaOnlyKeyword;
 
     private void CheckEngineLimits(PexObject obj, IScriptSymbol script)
     {
@@ -567,16 +559,32 @@ public sealed class PexEmitter
             ? DiagnosticSeverity.Warning
             : DiagnosticSeverity.Error;
 
-    private void ReportInternal(string message)
+    private void ReportInternal(string message, TextSpan span = default)
     {
         _diagnostics.Add(new Diagnostic(
             new DiagnosticInfo(DiagnosticCatalog.InternalError, message),
-            new TextSpan(0, 0),
+            span,
             _tree));
     }
 
-    private void ReportUnsupported(BoundKind kind)
-        => ReportInternal("Unsupported bound node '" + kind + "'.");
+    private void ReportUnresolvedCall(BoundCall call)
+    {
+        var target = call.Syntax is InvocationExpressionSyntax { Expression: var callee } ? callee : call.Syntax;
+        var name = target switch
+        {
+            NameExpressionSyntax { Name: IdentifierNameSyntax identifier } => identifier.Identifier.Text,
+            MemberAccessExpressionSyntax member => member.Name.Identifier.Text,
+            _ => "?",
+        };
+
+        _diagnostics.Add(new Diagnostic(
+            new DiagnosticInfo(DiagnosticCatalog.UnresolvedFunction, name),
+            target?.Span ?? default,
+            _tree));
+    }
+
+    private void ReportUnsupported(BoundNode node)
+        => ReportInternal("Unsupported bound node '" + node.Kind + "'.", node.Syntax?.Span ?? default);
 
     private bool CanEmit(PexOpCode op) => (byte)op <= (byte)_maxOpCode;
 
@@ -757,7 +765,7 @@ public sealed class PexEmitter
             var locals = _function.Locals;
             for (var i = 0; i < locals.Length; i++)
             {
-                _builder.AddUserLocal(locals[i].Name.Text, PexEmitType.NameOf(locals[i].Type));
+                _builder.AddUserLocal(LocalName(locals[i]), PexEmitType.NameOf(locals[i].Type));
             }
 
             var blocks = graph.Blocks;
@@ -810,16 +818,19 @@ public sealed class PexEmitter
             return result;
         }
 
+        private static string LocalName(IVariableSymbol local)
+            => local is VariableSymbol variable ? variable.EmittedName : local.Name.Text;
+
         private void EmitStatement(BoundStatement statement)
         {
             Use(statement);
             switch (statement)
             {
                 case BoundLocalDeclaration declaration:
-                    _builder.AddUserLocal(declaration.Local.Name.Text, PexEmitType.NameOf(declaration.Local.Type));
+                    _builder.AddUserLocal(LocalName(declaration.Local), PexEmitType.NameOf(declaration.Local.Type));
                     if (declaration.Initializer is { } initializer)
                     {
-                        Release(EmitChild(initializer, declaration.Local.Name.Text));
+                        Release(EmitChild(initializer, LocalName(declaration.Local)));
                     }
 
                     break;
@@ -830,7 +841,7 @@ public sealed class PexEmitter
                     Release(EmitChild(expression.Expression));
                     break;
                 default:
-                    _parent.ReportUnsupported(statement.Kind);
+                    _parent.ReportUnsupported(statement);
                     break;
             }
         }
@@ -840,7 +851,7 @@ public sealed class PexEmitter
             switch (assignment.Left)
             {
                 case BoundLocal local:
-                    Release(EmitChild(assignment.Right, local.Local.Name.Text));
+                    Release(EmitChild(assignment.Right, LocalName(local.Local)));
                     break;
                 case BoundParameter parameter:
                     Release(EmitChild(assignment.Right, parameter.Parameter.Name.Text));
@@ -880,7 +891,7 @@ public sealed class PexEmitter
                     Release(right);
                     break;
                 default:
-                    _parent.ReportUnsupported(assignment.Left.Kind);
+                    _parent.ReportUnsupported(assignment.Left);
                     Release(EmitChild(assignment.Right));
                     break;
             }
@@ -950,7 +961,7 @@ public sealed class PexEmitter
                 case BoundLiteral literal:
                     return EmitLeaf(Literal(literal), destName);
                 case BoundLocal local:
-                    return EmitLeaf(PexFunctionBuilder.Identifier(local.Local.Name.Text), destName);
+                    return EmitLeaf(PexFunctionBuilder.Identifier(LocalName(local.Local)), destName);
                 case BoundParameter parameter:
                     return EmitLeaf(PexFunctionBuilder.Identifier(parameter.Parameter.Name.Text), destName);
                 case BoundField field:
@@ -986,7 +997,7 @@ public sealed class PexEmitter
                 case BoundMemberAccess member:
                     return EmitMemberAccess(member, destName);
                 default:
-                    _parent.ReportUnsupported(expression.Kind);
+                    _parent.ReportUnsupported(expression);
                     return EmitLeaf(PexValue.None, destName);
             }
         }
@@ -1021,7 +1032,7 @@ public sealed class PexEmitter
             }
             else
             {
-                _parent.ReportUnsupported(binary.Kind);
+                _parent.ReportUnsupported(binary);
                 TryEmit(PexOpCode.Assign, dest, left.Value);
             }
 
@@ -1074,7 +1085,7 @@ public sealed class PexEmitter
                     op = PexEmitType.IsNamed(unary.Type, "Float") ? PexOpCode.FNeg : PexOpCode.INeg;
                     break;
                 default:
-                    _parent.ReportUnsupported(unary.Kind);
+                    _parent.ReportUnsupported(unary);
                     Release(operand);
                     return new Rvalue(operand.Value, allocated);
             }
@@ -1120,6 +1131,13 @@ public sealed class PexEmitter
                 }
 
                 return result;
+            }
+
+            if (call.Method is null)
+            {
+                // Without a target the call would be emitted with an empty name; fail the
+                // compile instead of producing a script that misbehaves in-engine.
+                _parent.ReportUnresolvedCall(call);
             }
 
             var dest = AcquireDest(call.Type, destName, out var allocated);
@@ -1235,7 +1253,7 @@ public sealed class PexEmitter
                 return Rvalue.Immediate(PexValue.None);
             }
 
-            _parent.ReportUnsupported(call.Kind);
+            _parent.ReportUnsupported(call);
             return EmitLeaf(PexValue.None, destName);
         }
 
@@ -1348,7 +1366,7 @@ public sealed class PexEmitter
             }
             else
             {
-                _parent.ReportUnsupported(member.Kind);
+                _parent.ReportUnsupported(member);
                 TryEmit(PexOpCode.Assign, dest, PexValue.None);
             }
 

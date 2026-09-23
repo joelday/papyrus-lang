@@ -18,6 +18,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
 
     private readonly PapyrusCompilation _compilation;
     private readonly SyntaxTree _tree;
+    private ImmutableArray<IScriptSymbol> _imports;
     private readonly ImmutableArray<SyntaxReference> _declaringSyntaxReferences;
     private readonly ITypeSymbol _unboundType;
     private readonly CompletionSlot _members = new();
@@ -84,6 +85,109 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
     }
 
     internal ImmutableArray<Diagnostic> GetBindingDiagnostics() => _bindingDiagnostics;
+
+    /// <summary>
+    /// The scripts named by this script's <c>Import</c> statements, in order. Their
+    /// structs and global functions are in scope unqualified (after this script's own
+    /// members and its parents'), as in Caprica's <c>importedNodes</c> lookups.
+    /// Unresolvable imports are skipped.
+    /// </summary>
+    internal ImmutableArray<IScriptSymbol> Imports
+    {
+        get
+        {
+            if (_imports.IsDefault)
+            {
+                ImmutableInterlocked.InterlockedInitialize(ref _imports, BindImports());
+            }
+
+            return _imports;
+        }
+    }
+
+    private ImmutableArray<IScriptSymbol> BindImports()
+    {
+        if (!_tree.TryGetRoot(out var root))
+        {
+            return ImmutableArray<IScriptSymbol>.Empty;
+        }
+
+        var builder = ImmutableArray.CreateBuilder<IScriptSymbol>();
+        for (var i = 0; i < root.Imports.Count; i++)
+        {
+            AddImport(root.Imports.Get(i), builder);
+        }
+
+        // Imports after the header parse as members, in source order.
+        for (var i = 0; i < root.Members.Count; i++)
+        {
+            if (root.Members.Get(i) is ImportDeclarationSyntax import)
+            {
+                AddImport(import, builder);
+            }
+        }
+
+        return builder.ToImmutable();
+    }
+
+    private void AddImport(ImportDeclarationSyntax import, ImmutableArray<IScriptSymbol>.Builder builder)
+    {
+        if (import.Name.Name.IsMissing)
+        {
+            return;
+        }
+
+        var name = _compilation.GetInternedTypeName(import.Name).Name;
+        var script = _compilation.GetScriptForType(name, QualifiedName);
+        if (script.TypeKind != TypeKind.Error)
+        {
+            builder.Add(script);
+        }
+    }
+
+    /// <summary>A struct declared directly in one of <paramref name="script"/>'s imports.</summary>
+    internal static IStructSymbol? FindImportedStruct(IScriptSymbol? script, PapyrusName name)
+    {
+        if (script is not SourceScriptSymbol source)
+        {
+            return null;
+        }
+
+        foreach (var import in source.Imports)
+        {
+            foreach (var member in import.GetMembers())
+            {
+                if (member is IStructSymbol struc && struc.Name.Equals(name))
+                {
+                    return struc;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>A global function declared directly in one of <paramref name="script"/>'s imports.</summary>
+    internal static IFunctionSymbol? FindImportedGlobalFunction(IScriptSymbol? script, PapyrusName name)
+    {
+        if (script is not SourceScriptSymbol source)
+        {
+            return null;
+        }
+
+        foreach (var import in source.Imports)
+        {
+            foreach (var member in import.GetMembers(name))
+            {
+                if (member is IFunctionSymbol { IsGlobal: true } function)
+                {
+                    return function;
+                }
+            }
+        }
+
+        return null;
+    }
 
     internal void ForceComplete(CompletionPart part, CancellationToken cancellationToken)
     {
@@ -317,7 +421,18 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
             return;
         }
 
-        CheckReservedMemberName(name, syntax.Name.Span);
+        if (syntax.RemoteScript is { IsMissing: false } remoteScript)
+        {
+            // Remote and custom event handlers compile to `::remote_<Script>_<Event>`
+            // (Caprica's PapyrusParser::parseFunction), with the script name as written.
+            var script = _compilation.GetInternedQualifiedName(remoteScript);
+            name = _compilation.Names.Get("::remote_" + script + "_" + name.Text);
+        }
+        else
+        {
+            CheckReservedMemberName(name, syntax.Name.Span);
+        }
+
         builder.Add(new EventSymbol(
             name,
             container,
@@ -659,6 +774,36 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
         return builder.ToImmutable();
     }
 
+    private static string? UniqueLocalName(string name, ImmutableArray<IVariableSymbol>.Builder earlier)
+    {
+        bool Taken(string candidate)
+        {
+            foreach (var local in earlier)
+            {
+                if (string.Equals(((VariableSymbol)local).EmittedName, candidate, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if (!Taken(name))
+        {
+            return null;
+        }
+
+        for (var i = 0; ; i++)
+        {
+            var candidate = "::mangled_" + name + "_" + i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (!Taken(candidate))
+            {
+                return candidate;
+            }
+        }
+    }
+
     private void CollectLocals(
         ISymbol container,
         SyntaxList<StatementSyntax> statements,
@@ -679,7 +824,11 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
                             container,
                             this,
                             BindType(declare.TypeName, declare.TypeName.Span),
-                            isConst: false));
+                            isConst: false)
+                        {
+                            LocalDeclaration = declare,
+                            _emittedName = UniqueLocalName(name.Text, builder),
+                        });
                     }
 
                     break;
@@ -741,7 +890,8 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
 
         if (typeName.Name.Parts.Length == 1)
         {
-            var localStruct = FindStruct(this, typeName.Name.Parts[0]);
+            var localStruct = FindStruct(this, typeName.Name.Parts[0])
+                ?? FindImportedStruct(this, typeName.Name.Parts[0]);
             if (localStruct is not null)
             {
                 return localStruct;
@@ -756,7 +906,18 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
 
         var script = typeName.Name.Equals(QualifiedName)
             ? this
-            : _compilation.GetScriptForType(typeName.Name);
+            : _compilation.GetScriptForType(typeName.Name, QualifiedName);
+        if (script.TypeKind == TypeKind.Error
+            && ScriptHierarchy.TrySplitStructName(typeName.Name, out var owner, out var ownerStruct))
+        {
+            // `Script:Struct` when no script is named `Script:Struct` (Caprica's tryFindType).
+            var ownerScript = owner.Equals(QualifiedName) ? this : _compilation.GetScriptForType(owner, QualifiedName);
+            if (ownerScript.TypeKind != TypeKind.Error && FindStruct(ownerScript, ownerStruct) is { } qualified)
+            {
+                return qualified;
+            }
+        }
+
         if (script.TypeKind == TypeKind.Error)
         {
             AddDiagnostic(DiagnosticCatalog.UnresolvedType, span, typeName);
@@ -775,7 +936,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
         }
         else
         {
-            script = _compilation.GetScriptForType(scriptName);
+            script = _compilation.GetScriptForType(scriptName, QualifiedName);
         }
 
         if (script.TypeKind != TypeKind.Error)
@@ -796,16 +957,12 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
 
     private IStructSymbol? FindStruct(IScriptSymbol script, PapyrusName structName)
     {
-        var members = ReferenceEquals(script, this) ? GetDeclaredMembers() : script.GetMembers();
-        for (var i = 0; i < members.Length; i++)
-        {
-            if (members[i] is IStructSymbol struc && struc.Name.Equals(structName))
-            {
-                return struc;
-            }
-        }
-
-        return null;
+        // Structs declared in a parent script are in scope in the child, unqualified
+        // or qualified by the child's name (Caprica's tryResolveStruct).
+        return ScriptHierarchy.FindStruct(
+            script,
+            structName,
+            s => ReferenceEquals(s, this) ? GetDeclaredMembers() : s.GetMembers());
     }
 
     private ImmutableArray<ISymbol> GetDeclaredMembers() => base.GetMembers();
@@ -819,23 +976,13 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
         }
 
         var text = typeName.Name.Parts[0].Text;
-        if (!IsIntrinsicName(text))
+        if (!IntrinsicTypeNames.IsIntrinsic(text, _compilation.Dialect))
         {
             return false;
         }
 
         intrinsic = IntrinsicTypeSymbol.Create(_compilation.Names, text);
         return true;
-    }
-
-    private static bool IsIntrinsicName(string text)
-    {
-        return text.Equals("Int", StringComparison.OrdinalIgnoreCase)
-            || text.Equals("Float", StringComparison.OrdinalIgnoreCase)
-            || text.Equals("String", StringComparison.OrdinalIgnoreCase)
-            || text.Equals("Bool", StringComparison.OrdinalIgnoreCase)
-            || text.Equals("None", StringComparison.OrdinalIgnoreCase)
-            || text.Equals("Var", StringComparison.OrdinalIgnoreCase);
     }
 
     private void BindBaseType(CancellationToken cancellationToken)
@@ -862,7 +1009,7 @@ internal sealed class SourceScriptSymbol : MemberOwnerSymbol, IScriptSymbol
             return;
         }
 
-        var resolved = _compilation.GetScript(baseName);
+        var resolved = _compilation.GetScript(_compilation.ResolveScriptName(baseName, QualifiedName));
         if (_cyclicBase)
         {
             SetCyclicBase(baseName, span);

@@ -306,7 +306,7 @@ public sealed class VerifyCompileTests
         var withoutFlags = CompileHashHarness.HashScript(TinyScript);
         File.WriteAllText(
             Path.Combine(root.Path, "TESV_Papyrus_Flags.flg"),
-            "Hidden {0}\nConditional {1}\n");
+            "Flag Hidden 0\nFlag Conditional 1\n");
         var withFlags = Assert.Single(
             CompileHashHarness.CompilePath(root.Path, Papyrus.CodeAnalysis.PapyrusDialect.SkyrimSe));
         Assert.True(withFlags.Succeeded);

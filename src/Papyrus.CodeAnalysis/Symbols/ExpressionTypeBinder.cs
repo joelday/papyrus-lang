@@ -238,7 +238,8 @@ internal sealed class ExpressionTypeBinder
 
         if (typeName.Name.Parts.Length == 1 && _containingScript is not null)
         {
-            var local = FindStruct(_containingScript, typeName.Name.Parts[0]);
+            var local = FindStruct(_containingScript, typeName.Name.Parts[0])
+                ?? SourceScriptSymbol.FindImportedStruct(_containingScript, typeName.Name.Parts[0]);
             if (local is not null)
             {
                 return local;
@@ -250,7 +251,19 @@ internal sealed class ExpressionTypeBinder
             return ErrorType();
         }
 
-        return _compilation.GetScriptForType(typeName.Name);
+        var script = _compilation.GetScriptForType(typeName.Name, _containingScript?.QualifiedName);
+        if (script.TypeKind == TypeKind.Error
+            && ScriptHierarchy.TrySplitStructName(typeName.Name, out var owner, out var ownerStruct))
+        {
+            // `Script:Struct` when no script is named `Script:Struct` (Caprica's tryFindType).
+            var resolved = ResolveStruct(owner, ownerStruct);
+            if (resolved.TypeKind != TypeKind.Error)
+            {
+                return resolved;
+            }
+        }
+
+        return script;
     }
 
     private ITypeSymbol ResolveStruct(QualifiedName scriptName, PapyrusName structName)
@@ -263,7 +276,7 @@ internal sealed class ExpressionTypeBinder
         }
         else
         {
-            script = _compilation.GetScriptForType(scriptName);
+            script = _compilation.GetScriptForType(scriptName, _containingScript?.QualifiedName);
         }
 
         if (script is not null && script.TypeKind != TypeKind.Error)
@@ -280,19 +293,10 @@ internal sealed class ExpressionTypeBinder
 
     private static IStructSymbol? FindStruct(IScriptSymbol script, PapyrusName structName)
     {
-        var members = script.GetMembers();
-        for (var i = 0; i < members.Length; i++)
-        {
-            if (members[i] is IStructSymbol struc && struc.Name.Equals(structName))
-            {
-                return struc;
-            }
-        }
-
-        return null;
+        return ScriptHierarchy.FindStruct(script, structName, static s => s.GetMembers());
     }
 
-    private static bool TryGetIntrinsic(TypeName typeName, NameTable names, out ITypeSymbol intrinsic)
+    private bool TryGetIntrinsic(TypeName typeName, NameTable names, out ITypeSymbol intrinsic)
     {
         intrinsic = null!;
         if (typeName.IsArray || typeName.StructName is not null || typeName.Name.Parts.Length != 1)
@@ -301,23 +305,13 @@ internal sealed class ExpressionTypeBinder
         }
 
         var text = typeName.Name.Parts[0].Text;
-        if (!IsIntrinsicName(text))
+        if (!IntrinsicTypeNames.IsIntrinsic(text, _compilation.Dialect))
         {
             return false;
         }
 
         intrinsic = IntrinsicTypeSymbol.Create(names, text);
         return true;
-    }
-
-    private static bool IsIntrinsicName(string text)
-    {
-        return text.Equals("Int", StringComparison.OrdinalIgnoreCase)
-            || text.Equals("Float", StringComparison.OrdinalIgnoreCase)
-            || text.Equals("String", StringComparison.OrdinalIgnoreCase)
-            || text.Equals("Bool", StringComparison.OrdinalIgnoreCase)
-            || text.Equals("None", StringComparison.OrdinalIgnoreCase)
-            || text.Equals("Var", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsNoneLiteral(ExpressionSyntax expression)

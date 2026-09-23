@@ -19,6 +19,7 @@ public static class DiagnosticCatalog
     public const string UnsupportedGuardId = "PAP1009";
     public const string UnsupportedNamespaceId = "PAP1010";
     public const string ReservedMemberNameId = "PAP1011";
+    public const string UnresolvedFunctionId = "PAP1012";
     public const string UserFlagBitIndexOutOfRangeId = "PAP2000";
     public const string TooManyNamedUserFlagsId = "PAP2001";
     public const string ArraySizeExceedsLimitId = "PAP2002";
@@ -31,12 +32,14 @@ public static class DiagnosticCatalog
     public const string TooManyParametersId = "PAP2009";
     public const string TooManyUserFlagsId = "PAP2010";
     public const string TooManyGuardsId = "PAP2011";
+    public const string InvalidFlagsFileId = "PAP8001";
     public const string InternalErrorId = "PAP9999";
 
     public const string BindingCategory = "Binding";
     public const string TypeCategory = "Type";
     public const string EngineLimitCategory = "EngineLimit";
     public const string InternalCategory = "Internal";
+    public const string WorkspaceCategory = "Workspace";
 
     public static DiagnosticDescriptor UnresolvedScript { get; } = new(
         UnresolvedScriptId,
@@ -139,6 +142,22 @@ public static class DiagnosticCatalog
         "User flag bit index out of range",
         "User flag '{0}' bit index {1} is outside the 32-bit mask (0-31).",
         EngineLimitCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor UnresolvedFunction { get; } = new(
+        UnresolvedFunctionId,
+        "Unresolved function",
+        "Function '{0}' could not be resolved.",
+        BindingCategory,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor InvalidFlagsFile { get; } = new(
+        InvalidFlagsFileId,
+        "Invalid flags file",
+        "Flags file error at line {0}: {1}",
+        WorkspaceCategory,
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
@@ -252,6 +271,7 @@ public static class DiagnosticCatalog
         UnsupportedGuard,
         UnsupportedNamespace,
         ReservedMemberName,
+        UnresolvedFunction,
         UserFlagBitIndexOutOfRange,
         TooManyNamedUserFlags,
         ArraySizeExceedsLimit,
@@ -264,6 +284,7 @@ public static class DiagnosticCatalog
         TooManyParameters,
         TooManyUserFlags,
         TooManyGuards,
+        InvalidFlagsFile,
         InternalError,
     ];
 

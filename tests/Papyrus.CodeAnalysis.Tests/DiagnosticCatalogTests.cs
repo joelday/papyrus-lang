@@ -29,6 +29,8 @@ public sealed class DiagnosticCatalogTests
         Assert.Contains(DiagnosticCatalog.InternalErrorId, ids);
         Assert.Contains(DiagnosticCatalog.UserFlagBitIndexOutOfRangeId, ids);
         Assert.Contains(DiagnosticCatalog.TooManyNamedUserFlagsId, ids);
+        Assert.Contains(DiagnosticCatalog.InvalidFlagsFileId, ids);
+        Assert.Contains(DiagnosticCatalog.UnresolvedFunctionId, ids);
         Assert.Contains(DiagnosticCatalog.ArraySizeExceedsLimitId, ids);
         Assert.Contains(DiagnosticCatalog.TooManyFunctionsInEmptyStateId, ids);
         Assert.Contains(DiagnosticCatalog.TooManyFunctionsInNamedStateId, ids);

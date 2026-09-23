@@ -132,7 +132,7 @@ public sealed class EngineLimitTests
     [Fact]
     public void Too_many_user_flags_is_pap2010()
     {
-        var flags = FlagsFile.Parse("Hidden\nConditional\n");
+        var flags = FlagsFile.Parse("Flag Hidden 0\nFlag Conditional 1\n");
         var diagnostic = AssertLimit(
             "ScriptName Foo\nFunction Bar()\nEndFunction\n",
             limits => limits with { MaxUserFlags = 1 },
@@ -145,7 +145,7 @@ public sealed class EngineLimitTests
     [Fact]
     public void User_flag_bit_out_of_range_is_reported_on_emit_and_ignore_downgrades()
     {
-        var flags = FlagsFile.Parse("Hidden {32}\n");
+        var flags = FlagsFile.Parse("Flag Hidden 32\n");
         var (_, errors) = Emit(
             "ScriptName Foo\nFunction Bar()\nEndFunction\n",
             flags: flags);
@@ -167,10 +167,10 @@ public sealed class EngineLimitTests
         var text = new StringBuilder();
         for (var i = 0; i < 31; i++)
         {
-            text.Append('F').Append(i).Append(" {").Append(i).Append('}').AppendLine();
+            text.Append("Flag F").Append(i).Append(' ').Append(i).AppendLine();
         }
 
-        text.Append("Bad {32}\n");
+        text.Append("Flag Bad 32\n");
         var flags = FlagsFile.Parse(text.ToString());
         var (_, diagnostics) = Emit(
             "ScriptName Foo\nFunction Bar()\nEndFunction\n",

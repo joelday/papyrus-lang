@@ -552,13 +552,9 @@ public sealed class SemanticModel
         var function = FindContainingFunction(position);
         if (function is not null)
         {
-            var locals = function.Locals;
-            for (var i = 0; i < locals.Length; i++)
+            if (LocalScopes.Find(function.Locals, name, position) is { } local)
             {
-                if (locals[i].Name.Equals(name))
-                {
-                    return locals[i];
-                }
+                return local;
             }
 
             var parameters = function.Parameters;
@@ -643,16 +639,8 @@ public sealed class SemanticModel
             return null;
         }
 
-        var locals = function.Locals;
-        for (var i = 0; i < locals.Length; i++)
-        {
-            if (locals[i].Name.Equals(name))
-            {
-                return locals[i];
-            }
-        }
-
-        return null;
+        return LocalScopes.FindDeclared(function.Locals, declare)
+            ?? LocalScopes.Find(function.Locals, name, declare.Span.Start);
     }
 
     private ISymbol? FindNamed(ISymbol container, IdentifierNameSyntax syntax, SymbolKind kind)

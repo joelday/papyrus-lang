@@ -329,6 +329,18 @@ internal sealed class VariableSymbol : Symbol, IVariableSymbol
 
     internal VariableDeclarationSyntax? Declaration { get; }
 
+    /// <summary>For a function local, the statement that declares it.</summary>
+    internal DeclareStatementSyntax? LocalDeclaration { get; init; }
+
+    /// <summary>
+    /// The name written to PEX. Locals declared again with the same name in another block
+    /// get <c>::mangled_&lt;name&gt;_&lt;n&gt;</c> so each keeps its own slot (Caprica's
+    /// CheckLocalNamesStatementVisitor).
+    /// </summary>
+    internal string EmittedName => _emittedName ?? Name.Text;
+
+    internal string? _emittedName { get; init; }
+
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences =>
         Declaration is null
             ? ImmutableArray<SyntaxReference>.Empty

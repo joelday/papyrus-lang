@@ -202,6 +202,12 @@ internal static class PexEmitType
             return "None";
         }
 
+        // CustomEventName / ScriptEventName are strings in PEX (Caprica's getTypeStringAsRef).
+        if (IntrinsicTypeNames.IsEventName(type, out _))
+        {
+            return "String";
+        }
+
         var name = type.TypeName.ToString();
         return name.Length == 0 ? "None" : name;
     }

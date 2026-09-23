@@ -123,6 +123,57 @@ public sealed class PapyrusCompilation
         return CompleteScript(name, script, CompletionPart.Members);
     }
 
+    /// <summary>
+    /// <see cref="GetScriptForType(QualifiedName)"/> for a name written inside <paramref name="context"/>.
+    /// </summary>
+    internal IScriptSymbol GetScriptForType(QualifiedName name, QualifiedName? context)
+        => GetScriptForType(ResolveScriptName(name, context));
+
+    /// <summary>
+    /// Maps a script name as written inside <paramref name="context"/> to the script it
+    /// refers to. With namespaces (FO4+), <c>B</c> inside <c>A:X</c> means <c>A:B</c> when that
+    /// exists, then <c>B</c>: the context's namespace is searched first, then each parent up to
+    /// the root (Caprica's <c>PapyrusCompilationContext::tryFindType</c>). Returns
+    /// <paramref name="name"/> unchanged when no namespaced candidate exists.
+    /// </summary>
+    internal QualifiedName ResolveScriptName(QualifiedName name, QualifiedName? context)
+    {
+        if (!Dialect.SupportsNamespaces
+            || context is not { Parts: { IsDefaultOrEmpty: false } contextParts }
+            || contextParts.Length < 2
+            || name.Parts.IsDefaultOrEmpty)
+        {
+            return name;
+        }
+
+        for (var depth = contextParts.Length - 1; depth >= 1; depth--)
+        {
+            var candidate = Intern(new QualifiedName(contextParts.RemoveRange(depth, contextParts.Length - depth).AddRange(name.Parts)));
+            if (Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return name;
+    }
+
+    // Unlike CanResolve, a previously-requested missing script does not count.
+    private bool Exists(QualifiedName name)
+    {
+        if (_scripts.TryGetValue(name, out var script))
+        {
+            return script.TypeKind != TypeKind.Error;
+        }
+
+        if (_cache.TryGetValue(name, out var cached))
+        {
+            return cached.Kind != ScriptKind.Missing;
+        }
+
+        return CanResolve(name);
+    }
+
     public IReadOnlyCollection<QualifiedName> GetDependents(QualifiedName name)
     {
         name = Intern(name);
@@ -302,15 +353,10 @@ public sealed class PapyrusCompilation
             scripts.TryAdd(pair.Key, pair.Value);
         }
 
-        if (tree is not null)
-        {
-            scripts[name] = CreateSourceScript(name, tree);
-        }
-
         var versions = new ConcurrentDictionary<QualifiedName, int>(_versions);
         versions.AddOrUpdate(name, 1, static (_, version) => version + 1);
 
-        return new PapyrusCompilation(
+        var result = new PapyrusCompilation(
             Dialect,
             Resolver,
             Names,
@@ -321,6 +367,16 @@ public sealed class PapyrusCompilation
             CopyDependents(invalidated),
             versions,
             _logger);
+
+        // The replacement symbol must belong to the new compilation: binding (and every
+        // semantic model it creates) goes through the symbol's compilation, and this one
+        // is the only one that sees the override.
+        if (tree is not null)
+        {
+            scripts[name] = result.CreateSourceScript(name, tree);
+        }
+
+        return result;
     }
 
     private IScriptSymbol CompleteScript(QualifiedName name, IScriptSymbol script, CompletionPart part)

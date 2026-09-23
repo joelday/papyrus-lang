@@ -136,18 +136,18 @@ internal sealed class Parser
                 break;
             }
 
-            imports.Add(ParseImport());
+            imports.Add(ParseImport(docComment: default));
         }
 
         return imports;
     }
 
-    private ImportDeclarationSyntax ParseImport()
+    private ImportDeclarationSyntax ParseImport(SyntaxToken docComment)
     {
         var keyword = Take();
         var name = ParseTypeName();
         var endOfLine = EatEndOfLine();
-        return SyntaxFactory.ImportDeclaration(keyword, name, endOfLine);
+        return SyntaxFactory.ImportDeclaration(docComment, keyword, name, endOfLine);
     }
 
     private List<MemberDeclarationSyntax> ParseMembers(SyntaxKind terminator)
@@ -182,6 +182,11 @@ internal sealed class Parser
         {
             docComment = Take();
             SkipEndOfLines();
+        }
+
+        if (_current.Kind == SyntaxKind.ImportKeyword)
+        {
+            return ParseImport(docComment);
         }
 
         if (_current.Kind is SyntaxKind.AutoKeyword or SyntaxKind.StateKeyword)
@@ -439,6 +444,14 @@ internal sealed class Parser
     private EventDeclarationSyntax ParseEvent(SyntaxToken docComment)
     {
         var eventKeyword = Eat(SyntaxKind.EventKeyword);
+        NameSyntax? remoteScript = null;
+        var dotToken = default(SyntaxToken);
+        if (LooksLikeRemoteEventName())
+        {
+            remoteScript = ParseName();
+            dotToken = Eat(SyntaxKind.DotToken);
+        }
+
         var name = ParseIdentifierName();
         var parameterList = ParseParameterList();
         var flags = ParseFlags();
@@ -462,6 +475,8 @@ internal sealed class Parser
         return SyntaxFactory.EventDeclaration(
             docComment,
             eventKeyword,
+            remoteScript,
+            dotToken,
             name,
             parameterList,
             SyntaxFactory.List(flags),
@@ -1153,6 +1168,29 @@ internal sealed class Parser
             default,
             default);
 
+    // `Script.Event` or `Name:Space:Script.Event` before the parameter list.
+    private bool LooksLikeRemoteEventName()
+    {
+        var distance = 0;
+        while (IsNameToken(PeekToken(distance).Kind))
+        {
+            var next = PeekToken(distance + 1).Kind;
+            if (next == SyntaxKind.DotToken)
+            {
+                return true;
+            }
+
+            if (next != SyntaxKind.ColonToken)
+            {
+                return false;
+            }
+
+            distance += 2;
+        }
+
+        return false;
+    }
+
     private NameSyntax ParseName()
     {
         NameSyntax left = ParseIdentifierName();
@@ -1576,6 +1614,7 @@ internal sealed class Parser
 
     private bool IsMemberStart(SyntaxKind kind)
         => kind is SyntaxKind.DocCommentToken
+            or SyntaxKind.ImportKeyword
             or SyntaxKind.AutoKeyword
             or SyntaxKind.StateKeyword
             or SyntaxKind.FunctionKeyword

@@ -297,15 +297,9 @@ public static class PexSymbolAdapter
             return true;
         }
 
-        private static bool IsIntrinsicName(string text)
-        {
-            return text.Equals("Int", StringComparison.OrdinalIgnoreCase)
-                || text.Equals("Float", StringComparison.OrdinalIgnoreCase)
-                || text.Equals("String", StringComparison.OrdinalIgnoreCase)
-                || text.Equals("Bool", StringComparison.OrdinalIgnoreCase)
-                || text.Equals("None", StringComparison.OrdinalIgnoreCase)
-                || text.Equals("Var", StringComparison.OrdinalIgnoreCase);
-        }
+        // PEX records CustomEventName/ScriptEventName parameters as String, so the
+        // dialect-only event-name types never appear here.
+        private static bool IsIntrinsicName(string text) => IntrinsicTypeNames.IsIntrinsic(text, dialect: null);
 
         private PapyrusName SimpleName(QualifiedName qualified)
         {

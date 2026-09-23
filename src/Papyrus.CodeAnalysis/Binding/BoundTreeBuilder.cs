@@ -278,6 +278,13 @@ internal sealed class BoundTreeBuilder
                 var parent = _script?.BaseType;
                 return new BoundParent(parent is { TypeKind: not TypeKind.Error } ? parent : ErrorType());
             }
+
+            if (IsBuiltinStateField(name))
+            {
+                return new BoundField(
+                    new VariableSymbol(_compilation.Names.Get("::State"), _script!, _script, StringType(), isConst: false),
+                    receiver: null);
+            }
         }
 
         var symbol = ModelOf(syntax).GetSymbolInfo(syntax) ?? Lookup(syntax);
@@ -289,7 +296,7 @@ internal sealed class BoundTreeBuilder
 
         if (TryGetQualifiedName(syntax.Name, out var qualified))
         {
-            var script = _compilation.GetScriptForType(qualified);
+            var script = _compilation.GetScriptForType(qualified, _script?.QualifiedName);
             if (script.TypeKind != TypeKind.Error)
             {
                 return new BoundTypeExpression(script);
@@ -451,7 +458,9 @@ internal sealed class BoundTreeBuilder
         switch (syntax.Expression)
         {
             case NameExpressionSyntax name:
-                method = (ModelOf(name).GetSymbolInfo(name) ?? Lookup(name)) as IFunctionSymbol;
+                // A call names a function even when a local, property, or state shares the
+                // name (Caprica's tryResolveFunctionIdentifier only considers functions).
+                method = ModelOf(name).GetSymbolInfo(name) as IFunctionSymbol ?? LookupFunction(name);
                 if (method is { IsGlobal: false } && _script is not null)
                 {
                     receiver = new BoundSelf(_script);
@@ -461,7 +470,9 @@ internal sealed class BoundTreeBuilder
 
             case MemberAccessExpressionSyntax member:
                 receiver = BindExpression(member.Expression);
-                method = FindMember(receiver.Type, member.Name) as IFunctionSymbol;
+                method = TryGetSimpleName(member.Name, out var memberName)
+                    ? FindFunction(receiver.Type, memberName)
+                    : null;
                 break;
 
             default:
@@ -469,7 +480,7 @@ internal sealed class BoundTreeBuilder
                 break;
         }
 
-        var arguments = BindArguments(syntax.ArgumentList, method);
+        var arguments = BindArguments(syntax.ArgumentList, method, receiver);
         var type = method?.ReturnType ?? ErrorType();
         return new BoundCall(receiver, method, arguments, type);
     }
@@ -493,7 +504,10 @@ internal sealed class BoundTreeBuilder
         return bound;
     }
 
-    private ImmutableArray<BoundExpression> BindArguments(ArgumentListSyntax list, IFunctionSymbol? method)
+    private ImmutableArray<BoundExpression> BindArguments(
+        ArgumentListSyntax list,
+        IFunctionSymbol? method,
+        BoundExpression? receiver)
     {
         var arguments = list.Arguments;
         var count = arguments.Count;
@@ -524,10 +538,58 @@ internal sealed class BoundTreeBuilder
                 expected = parameters[i].Type;
             }
 
+            if (IntrinsicTypeNames.IsEventName(expected, out var isCustomEvent))
+            {
+                // Event names are strings in PEX. Custom events are addressed by the
+                // declaring script: the event is looked up on the receiver (argument 0)
+                // or the preceding argument's type, and the literal becomes
+                // "DeclaringScript_EventName" (Caprica's PapyrusFunctionCallExpression).
+                var bound = BindExpression(argument.Expression, StringType());
+                if (isCustomEvent)
+                {
+                    var owner = i == 0 ? receiver?.Type ?? _script : Unconverted(builder[i - 1]).Type;
+                    bound = QualifyCustomEventName(bound, owner);
+                }
+
+                builder.Add(bound);
+                continue;
+            }
+
             builder.Add(BindExpression(argument.Expression, expected));
         }
 
         return builder.MoveToImmutable();
+    }
+
+    // The type an argument had before implicit conversion to its parameter type.
+    private static BoundExpression Unconverted(BoundExpression expression)
+    {
+        while (expression is BoundConversion { ConversionKind: ConversionKind.Implicit } conversion)
+        {
+            expression = conversion.Operand;
+        }
+
+        return expression;
+    }
+
+    private BoundExpression QualifyCustomEventName(BoundExpression argument, ITypeSymbol? owner)
+    {
+        if (argument is not BoundLiteral { Value: string eventName }
+            || owner is not IScriptSymbol script
+            || string.IsNullOrEmpty(eventName))
+        {
+            return argument;
+        }
+
+        var customEvent = ScriptHierarchy.FindCustomEvent(script, _compilation.Names.Get(eventName));
+        if (customEvent?.ContainingScript is not { } declaringScript)
+        {
+            return argument;
+        }
+
+        return Attach(
+            new BoundLiteral(declaringScript.QualifiedName + "_" + eventName, argument.Type),
+            argument.Syntax);
     }
 
     private BoundExpression Convert(BoundExpression expression, ITypeSymbol destination)
@@ -554,6 +616,17 @@ internal sealed class BoundTreeBuilder
             expression.Syntax);
     }
 
+    // `__state` is the VM's current-state variable, `::State`. ScriptObject's GetState and
+    // GotoState are the only functions that may name it (Caprica's BuiltinStateField).
+    private bool IsBuiltinStateField(PapyrusName name)
+    {
+        return _script is not null
+            && _function is not null
+            && name.Text.Equals("__state", StringComparison.OrdinalIgnoreCase)
+            && (_function.Name.Text.Equals("GetState", StringComparison.OrdinalIgnoreCase)
+                || _function.Name.Text.Equals("GotoState", StringComparison.OrdinalIgnoreCase));
+    }
+
     private ISymbol? Lookup(NameExpressionSyntax syntax)
     {
         if (!TryGetSimpleName(syntax.Name, out var name))
@@ -563,13 +636,9 @@ internal sealed class BoundTreeBuilder
 
         if (_function is not null)
         {
-            var locals = _function.Locals;
-            for (var i = 0; i < locals.Length; i++)
+            if (LocalScopes.Find(_function.Locals, name, syntax.Span.Start) is { } local)
             {
-                if (locals[i].Name.Equals(name))
-                {
-                    return locals[i];
-                }
+                return local;
             }
 
             var parameters = _function.Parameters;
@@ -582,7 +651,13 @@ internal sealed class BoundTreeBuilder
             }
         }
 
-        return _script is null ? null : FindMember(_script, name);
+        if (_script is null)
+        {
+            return null;
+        }
+
+        // Own and inherited members first, then imported scripts' globals.
+        return FindMember(_script, name) ?? SourceScriptSymbol.FindImportedGlobalFunction(_script, name);
     }
 
     private IVariableSymbol? FindLocal(DeclareStatementSyntax declare)
@@ -597,16 +672,8 @@ internal sealed class BoundTreeBuilder
             return null;
         }
 
-        var locals = _function.Locals;
-        for (var i = 0; i < locals.Length; i++)
-        {
-            if (locals[i].Name.Equals(name))
-            {
-                return locals[i];
-            }
-        }
-
-        return null;
+        return LocalScopes.FindDeclared(_function.Locals, declare)
+            ?? LocalScopes.Find(_function.Locals, name, declare.Span.Start);
     }
 
     private SemanticModel ModelOf(SyntaxNode node) => _compilation.GetSemanticModel(node.SyntaxTree);
@@ -620,6 +687,36 @@ internal sealed class BoundTreeBuilder
             _script,
             _types.BindTypeName(declare.TypeName),
             isConst: false);
+    }
+
+    private IFunctionSymbol? LookupFunction(NameExpressionSyntax syntax)
+    {
+        if (_script is null || !TryGetSimpleName(syntax.Name, out var name))
+        {
+            return null;
+        }
+
+        return FindFunction(_script, name) ?? SourceScriptSymbol.FindImportedGlobalFunction(_script, name);
+    }
+
+    private static IFunctionSymbol? FindFunction(ITypeSymbol? type, PapyrusName name)
+    {
+        // Extends cycles are reported (PAP1002) elsewhere; just don't loop on them.
+        var visited = new System.Collections.Generic.HashSet<ITypeSymbol>(System.Collections.Generic.ReferenceEqualityComparer.Instance);
+        for (var current = type; current is not null && current.TypeKind != TypeKind.Error && visited.Add(current);)
+        {
+            foreach (var member in current.GetMembers(name))
+            {
+                if (member is IFunctionSymbol function)
+                {
+                    return function;
+                }
+            }
+
+            current = current is IScriptSymbol script ? script.BaseType : null;
+        }
+
+        return null;
     }
 
     private ISymbol? FindMember(ITypeSymbol? type, IdentifierNameSyntax syntax)
