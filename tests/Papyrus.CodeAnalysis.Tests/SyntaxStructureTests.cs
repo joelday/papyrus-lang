@@ -273,6 +273,101 @@ public sealed class SyntaxStructureTests
         Assert.Contains("    EndFunction\n", formatted);
     }
 
+    [Fact]
+    public void Indentation_ignores_keywords_in_comments_strings_and_bodiless_declarations()
+    {
+        const string source =
+            "ScriptName Foo\n"
+            + "Int Property Count Auto\n"
+            + "Function Native() Native\n"
+            + "; this function does nothing\n"
+            + "Auto State Ready\n"
+            + "Event OnInit()\n"
+            + "Debug.Trace(\"my event fired\")\n"
+            + "if(Count)\n"
+            + "Count = 1\n"
+            + "endif\n"
+            + "EndEvent\n"
+            + "EndState\n";
+
+        var formatted = SyntaxFormatter.ApplyIndentation(SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe));
+
+        Assert.Equal(
+            "ScriptName Foo\n"
+                + "Int Property Count Auto\n"
+                + "Function Native() Native\n"
+                + "; this function does nothing\n"
+                + "Auto State Ready\n"
+                + "    Event OnInit()\n"
+                + "        Debug.Trace(\"my event fired\")\n"
+                + "        if(Count)\n"
+                + "            Count = 1\n"
+                + "        endif\n"
+                + "    EndEvent\n"
+                + "EndState\n",
+            formatted
+        );
+    }
+
+    [Fact]
+    public void Indentation_indents_comments_on_their_own_lines_and_keeps_inner_lines_of_block_comments()
+    {
+        const string source =
+            "ScriptName Foo\n"
+            + "Function Go(Int a, \\\n"
+            + "            Int b)\n"
+            + "\n"
+            + ";first\n"
+            + ";/ block\n"
+            + "   stays put /;\n"
+            + "a = b\n"
+            + ";last\n"
+            + "EndFunction\n";
+
+        var formatted = SyntaxFormatter.ApplyIndentation(SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe));
+
+        Assert.Equal(
+            "ScriptName Foo\n"
+                + "Function Go(Int a, \\\n"
+                + "            Int b)\n"
+                + "\n"
+                + "    ;first\n"
+                + "    ;/ block\n"
+                + "   stays put /;\n"
+                + "    a = b\n"
+                + "    ;last\n"
+                + "EndFunction\n",
+            formatted
+        );
+    }
+
+    [Fact]
+    public void Indentation_edits_can_be_limited_to_a_span()
+    {
+        const string source = "ScriptName Foo\nFunction Go()\nInt a\nInt b\nEndFunction\n";
+        var tree = SyntaxTree.Parse(source, PapyrusDialect.SkyrimSe);
+
+        var edits = SyntaxFormatter.GetIndentationEdits(tree, new TextSpan(source.IndexOf("Int b", System.StringComparison.Ordinal), 0));
+
+        var edit = Assert.Single(edits);
+        Assert.Equal(source.IndexOf("Int b", System.StringComparison.Ordinal), edit.Span.Start);
+        Assert.Equal("    ", edit.NewText);
+    }
+
+    [Theory]
+    [InlineData("    EndIf", true)]
+    [InlineData("Else", true)]
+    [InlineData("ElseIf x", true)]
+    [InlineData("EndFunction ; done", true)]
+    [InlineData("Elsewhere = 1", false)]
+    [InlineData("If x", false)]
+    public void Block_keyword_lines_are_detected(string line, bool expected)
+    {
+        var tree = SyntaxTree.Parse("ScriptName Foo\n" + line + "\n", PapyrusDialect.SkyrimSe);
+
+        Assert.Equal(expected, SyntaxFormatter.StartsWithBlockKeyword(tree, 1));
+    }
+
     private static void AssertContains(
         string source,
         ImmutableArray<FoldingSpan> spans,

@@ -273,6 +273,65 @@ public sealed class StructureHandlerTests
     }
 
     [Fact]
+    public async Task Range_formatting_only_edits_lines_in_the_range()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        await fixture.OpenAsync("ScriptName Foo\nFunction Go()\nx = 1\ny = 2\nEndFunction\n", timeout.Token);
+
+        var result = await fixture.Scheduler.ExecuteAsync(
+            new RangeFormattingHandler(),
+            new DocumentRangeFormattingParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                Range = new Range
+                {
+                    Start = new Position { Line = 3, Character = 0 },
+                    End = new Position { Line = 4, Character = 0 },
+                },
+                Options = new FormattingOptions { TabSize = 4, InsertSpaces = false },
+            },
+            timeout.Token
+        );
+
+        var edit = Assert.Single(result);
+        Assert.Equal(3, edit.Range.Start!.Line);
+        Assert.Equal("\t", edit.NewText);
+    }
+
+    [Theory]
+    [InlineData("    EndIf", 1)]
+    [InlineData("    x = 2", 0)]
+    public async Task On_type_formatting_snaps_block_keywords_back_to_their_opener(string typedLine, int expectedEdits)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var fixture = LspTestWorkspace.Create("papyrus-lsp-structure-");
+        await fixture.OpenAsync(
+            "ScriptName Foo\nFunction Go()\n    If x\n        x = 1\n    " + typedLine + "\n\nEndFunction\n",
+            timeout.Token
+        );
+
+        var result = await fixture.Scheduler.ExecuteAsync(
+            new OnTypeFormattingHandler(),
+            new DocumentOnTypeFormattingParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fixture.ScriptUri },
+                Position = new Position { Line = 5, Character = 0 },
+                Ch = "\n",
+                Options = new FormattingOptions { TabSize = 4, InsertSpaces = true },
+            },
+            timeout.Token
+        );
+
+        Assert.Equal(expectedEdits, result.Length);
+        if (expectedEdits == 1)
+        {
+            Assert.Equal(4, result[0].Range.Start!.Line);
+            Assert.Equal("    ", result[0].NewText);
+        }
+    }
+
+    [Fact]
     public async Task Formatting_returns_leading_indentation_edits()
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));

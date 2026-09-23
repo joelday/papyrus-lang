@@ -23,6 +23,8 @@ internal sealed class LanguageServerRpc : IDisposable
     private readonly DocumentSymbolHandler _documentSymbol;
     private readonly DocumentSyntaxTreeHandler _syntaxTree;
     private readonly FormattingHandler _formatting;
+    private readonly RangeFormattingHandler _rangeFormatting = new();
+    private readonly OnTypeFormattingHandler _onTypeFormatting = new();
     private readonly HoverHandler _hover;
     private readonly DefinitionHandler _definition;
     private readonly CompletionHandler _completion;
@@ -192,6 +194,11 @@ internal sealed class LanguageServerRpc : IDisposable
                     SelectionRangeProvider = true,
                     DocumentSymbolProvider = true,
                     DocumentFormattingProvider = true,
+                    DocumentRangeFormattingProvider = true,
+                    DocumentOnTypeFormattingProvider = new DocumentOnTypeFormattingOptions
+                    {
+                        FirstTriggerCharacter = OnTypeFormattingHandler.TriggerCharacters[0],
+                    },
                     HoverProvider = true,
                     DefinitionProvider = true,
                     CompletionProvider = new CompletionOptions
@@ -395,6 +402,18 @@ internal sealed class LanguageServerRpc : IDisposable
     {
         return _scheduler.ExecuteAsync(_formatting, parameters, cancellationToken);
     }
+
+    [JsonRpcMethod(RangeFormattingHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<TextEdit[]> RangeFormattingAsync(
+        DocumentRangeFormattingParams? parameters,
+        CancellationToken cancellationToken
+    ) => _scheduler.ExecuteAsync(_rangeFormatting, parameters, cancellationToken);
+
+    [JsonRpcMethod(OnTypeFormattingHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
+    public Task<TextEdit[]> OnTypeFormattingAsync(
+        DocumentOnTypeFormattingParams? parameters,
+        CancellationToken cancellationToken
+    ) => _scheduler.ExecuteAsync(_onTypeFormatting, parameters, cancellationToken);
 
     [JsonRpcMethod(HoverHandler.MethodName, UseSingleObjectParameterDeserialization = true)]
     public Task<Hover?> HoverAsync(

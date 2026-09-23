@@ -10,5 +10,15 @@
         ["(", ")"],
         { "open": "\"", "close": "\"", "notIn": ["string", "comment"] }
     ],
-    "surroundingPairs": [["{", "}"], ["[", "]"], ["(", ")"], ["\"", "\""]]
+    "surroundingPairs": [["{", "}"], ["[", "]"], ["(", ")"], ["\"", "\""]],
+    "indentationRules": {
+        "increaseIndentPattern": {
+            "pattern": "^\\s*(((\\w+(\\[\\])?\\s+)?(function|event)\\b(?!.*\\bnative\\b))|((\\w+(\\[\\])?\\s+)?property\\b(?!.*\\b(auto|autoreadonly)\\b)(?!.*=))|((auto\\s+)?state\\b)|struct\\b|group\\b|if\\b|elseif\\b|else\\b|while\\b|guard\\b|tryguard\\b)",
+            "flags": "i"
+        },
+        "decreaseIndentPattern": {
+            "pattern": "^\\s*(end\\w+|else|elseif)\\b",
+            "flags": "i"
+        }
+    }
 }

@@ -136,6 +136,10 @@ internal sealed class ServerCapabilities
 
     public bool? WorkspaceSymbolProvider { get; set; }
 
+    public bool? DocumentRangeFormattingProvider { get; set; }
+
+    public DocumentOnTypeFormattingOptions? DocumentOnTypeFormattingProvider { get; set; }
+
     public bool? TypeDefinitionProvider { get; set; }
 
     public bool? ImplementationProvider { get; set; }
@@ -242,6 +246,33 @@ internal sealed class DocumentFormattingParams
     public TextDocumentIdentifier? TextDocument { get; set; }
 
     public FormattingOptions? Options { get; set; }
+}
+
+internal sealed class DocumentRangeFormattingParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+
+    public Range? Range { get; set; }
+
+    public FormattingOptions? Options { get; set; }
+}
+
+internal sealed class DocumentOnTypeFormattingParams
+{
+    public TextDocumentIdentifier? TextDocument { get; set; }
+
+    public Position? Position { get; set; }
+
+    public string? Ch { get; set; }
+
+    public FormattingOptions? Options { get; set; }
+}
+
+internal sealed class DocumentOnTypeFormattingOptions
+{
+    public string FirstTriggerCharacter { get; set; } = "";
+
+    public string[]? MoreTriggerCharacter { get; set; }
 }
 
 internal sealed class FormattingOptions
