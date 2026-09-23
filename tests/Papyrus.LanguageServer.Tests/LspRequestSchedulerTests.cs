@@ -164,6 +164,45 @@ public sealed class LspRequestSchedulerTests
     }
 
     [Fact]
+    public async Task Read_issued_while_an_edit_is_queued_sees_the_edit_instead_of_being_cancelled()
+    {
+        // e.g. didOpen queued behind project loading, then a hover: the hover must answer
+        // from the opened document rather than fail with RequestCancelled.
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var scheduler = new LspRequestScheduler();
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var slowMutate = new DelegateHandler<int, int>(
+            "test/slow",
+            mutatesSolution: true,
+            async (_, _, cancellationToken) =>
+            {
+                entered.TrySetResult();
+                await release.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                return 1;
+            });
+        var mutate = new DelegateHandler<int, int>(
+            "test/mutate",
+            mutatesSolution: true,
+            (_, _, _) => Task.FromResult(2));
+        var read = new DelegateHandler<int, int>(
+            "test/read",
+            mutatesSolution: false,
+            (_, snapshot, _) => Task.FromResult(snapshot.Generation));
+
+        var first = scheduler.ExecuteAsync(slowMutate, 1, timeout.Token);
+        await entered.Task.WaitAsync(timeout.Token);
+        var second = scheduler.ExecuteAsync(mutate, 2, timeout.Token);
+        var readTask = scheduler.ExecuteAsync(read, 0, timeout.Token);
+
+        release.TrySetResult();
+        await first.WaitAsync(timeout.Token);
+        await second.WaitAsync(timeout.Token);
+        Assert.Equal(2, await readTask.WaitAsync(timeout.Token));
+    }
+
+    [Fact]
     public async Task Read_succeeds_after_mutating_wait_is_cancelled()
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));

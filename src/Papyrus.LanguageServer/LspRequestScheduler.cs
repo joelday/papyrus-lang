@@ -13,6 +13,11 @@ internal sealed class LspRequestScheduler : IDisposable
 
     private CancellationTokenSource _nonMutatingCts = new();
     private CancellationTokenSource? _retiredNonMutating;
+
+    // Mutations announced (read epoch cancelled) but not finished. Reads wait for this to
+    // drain so they never overtake an edit that arrived before them.
+    private int _pendingMutations;
+    private TaskCompletionSource _noPendingMutations = CompletedSignal();
     private int _generation;
     private bool _disposed;
 
@@ -66,6 +71,8 @@ internal sealed class LspRequestScheduler : IDisposable
             }
 
             _disposed = true;
+            // Readers waiting out pending mutations wake up and observe the disposal.
+            _noPendingMutations.TrySetResult();
             _nonMutatingCts.Cancel();
             _nonMutatingCts.Dispose();
             _retiredNonMutating?.Dispose();
@@ -85,6 +92,7 @@ internal sealed class LspRequestScheduler : IDisposable
         // Cancel the live read epoch without rotating so a reader that starts
         // before we own _mutate still observes a cancelled token.
         CancelNonMutatingEpoch();
+        BeginPendingMutation();
         try
         {
             if (BeforeMutateWait is { } beforeWait)
@@ -98,6 +106,7 @@ internal sealed class LspRequestScheduler : IDisposable
         {
             // Prompt-cancel already ran; without a rotate, later reads would
             // copy the cancelled epoch until some other mutator finished.
+            EndPendingMutation();
             RestoreReadEpochIfLockFree();
             throw;
         }
@@ -120,6 +129,7 @@ internal sealed class LspRequestScheduler : IDisposable
             // A queued mutator may have prompt-cancelled our epoch and then
             // backed out of WaitAsync. Revive before dropping the lock.
             EnsureLiveReadEpoch();
+            EndPendingMutation();
             _mutate.Release();
         }
     }
@@ -130,33 +140,80 @@ internal sealed class LspRequestScheduler : IDisposable
         CancellationToken cancellationToken
     )
     {
+        // Wait out every mutation announced before this read: it must see the edited
+        // solution rather than be cancelled because that edit was still queued. Then run
+        // without holding the mutate lock so reads can overlap.
+        LspSnapshot snapshot;
         CancellationToken nonMutatingToken;
-        lock (_gate)
+        while (true)
         {
-            ThrowIfDisposed_NoLock();
-            nonMutatingToken = _nonMutatingCts.Token;
+            Task noPending;
+            lock (_gate)
+            {
+                ThrowIfDisposed_NoLock();
+                noPending = _noPendingMutations.Task;
+            }
+
+            await noPending.WaitAsync(cancellationToken).ConfigureAwait(false);
+            await _mutate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                lock (_gate)
+                {
+                    ThrowIfDisposed_NoLock();
+                    if (_pendingMutations > 0)
+                    {
+                        // Another edit was announced while we queued; wait for it too.
+                        continue;
+                    }
+
+                    nonMutatingToken = _nonMutatingCts.Token;
+                }
+
+                snapshot = CaptureSnapshot();
+                break;
+            }
+            finally
+            {
+                _mutate.Release();
+            }
         }
 
+        // A mutation that arrives while the handler runs makes its result stale.
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken,
             nonMutatingToken
         );
-
-        // Wait only long enough to observe a stable snapshot; run the handler
-        // without holding the mutate lock so reads can overlap.
-        await _mutate.WaitAsync(linked.Token).ConfigureAwait(false);
-        LspSnapshot snapshot;
-        try
-        {
-            ThrowIfDisposed();
-            snapshot = CaptureSnapshot();
-        }
-        finally
-        {
-            _mutate.Release();
-        }
-
         return await handler.HandleAsync(parameters, snapshot, linked.Token).ConfigureAwait(false);
+    }
+
+    private void BeginPendingMutation()
+    {
+        lock (_gate)
+        {
+            if (_pendingMutations++ == 0)
+            {
+                _noPendingMutations = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+        }
+    }
+
+    private void EndPendingMutation()
+    {
+        lock (_gate)
+        {
+            if (--_pendingMutations == 0)
+            {
+                _noPendingMutations.TrySetResult();
+            }
+        }
+    }
+
+    private static TaskCompletionSource CompletedSignal()
+    {
+        var signal = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        signal.SetResult();
+        return signal;
     }
 
     private LspSnapshot CaptureSnapshot()
