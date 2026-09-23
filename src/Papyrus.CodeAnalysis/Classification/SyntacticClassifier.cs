@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Threading;
+using Papyrus.CodeAnalysis.Symbols;
 using Papyrus.CodeAnalysis.Syntax;
 using Papyrus.CodeAnalysis.Text;
 using GreenToken = Papyrus.CodeAnalysis.Syntax.InternalSyntax.GreenToken;
@@ -21,15 +22,25 @@ public static class SyntacticClassifier
         CancellationToken cancellationToken = default)
     {
         System.ArgumentNullException.ThrowIfNull(tree);
+        return ClassifyCore(tree, model: null, span, cancellationToken);
+    }
+
+    internal static ImmutableArray<ClassifiedSpan> ClassifyCore(
+        SyntaxTree tree,
+        SemanticModel? model,
+        TextSpan? span,
+        CancellationToken cancellationToken)
+    {
         var root = tree.GetRoot();
         var filter = span ?? new TextSpan(0, root.FullSpan.Length);
         var builder = ImmutableArray.CreateBuilder<ClassifiedSpan>();
-        VisitNode(root, filter, builder, cancellationToken);
+        VisitNode(root, model, filter, builder, cancellationToken);
         return builder.ToImmutable();
     }
 
     private static void VisitNode(
         SyntaxNode node,
+        SemanticModel? model,
         TextSpan filter,
         ImmutableArray<ClassifiedSpan>.Builder builder,
         CancellationToken cancellationToken)
@@ -47,7 +58,7 @@ public static class SyntacticClassifier
 
             if (Intersects(filter, offset, slot.FullWidth))
             {
-                VisitSlot(node, slot, offset, i, filter, builder, cancellationToken);
+                VisitSlot(node, slot, offset, i, model, filter, builder, cancellationToken);
             }
 
             offset += slot.FullWidth;
@@ -59,13 +70,14 @@ public static class SyntacticClassifier
         GreenNode slot,
         int position,
         int slotIndex,
+        SemanticModel? model,
         TextSpan filter,
         ImmutableArray<ClassifiedSpan>.Builder builder,
         CancellationToken cancellationToken)
     {
         if (slot is GreenToken)
         {
-            ClassifyToken(new SyntaxToken(slot, parent, position), filter, builder);
+            ClassifyToken(new SyntaxToken(slot, parent, position), model, filter, builder, cancellationToken);
             return;
         }
 
@@ -81,7 +93,7 @@ public static class SyntacticClassifier
                     {
                         // List elements are not direct slots of the parent, so
                         // pass -1 to create their red nodes positionally.
-                        VisitSlot(parent, element, elementOffset, -1, filter, builder, cancellationToken);
+                        VisitSlot(parent, element, elementOffset, -1, model, filter, builder, cancellationToken);
                     }
 
                     elementOffset += element.FullWidth;
@@ -96,14 +108,16 @@ public static class SyntacticClassifier
             : slot.CreateRed(parent, position);
         if (child is not null)
         {
-            VisitNode(child, filter, builder, cancellationToken);
+            VisitNode(child, model, filter, builder, cancellationToken);
         }
     }
 
     private static void ClassifyToken(
         SyntaxToken token,
+        SemanticModel? model,
         TextSpan filter,
-        ImmutableArray<ClassifiedSpan>.Builder builder)
+        ImmutableArray<ClassifiedSpan>.Builder builder,
+        CancellationToken cancellationToken)
     {
         ClassifyTrivia(token.LeadingTrivia, token.Position, filter, builder);
 
@@ -111,9 +125,9 @@ public static class SyntacticClassifier
         if (!token.IsMissing
             && span.Length > 0
             && Intersects(filter, span.Start, span.Length)
-            && TryClassifyTokenKind(token, out var kind, out var isDeclaration))
+            && TryClassifyTokenKind(token, model, out var kind, out var modifiers, cancellationToken))
         {
-            builder.Add(new ClassifiedSpan(span, kind, isDeclaration));
+            builder.Add(new ClassifiedSpan(span, kind, modifiers));
         }
 
         ClassifyTrivia(token.TrailingTrivia, span.End, filter, builder);
@@ -176,10 +190,12 @@ public static class SyntacticClassifier
 
     private static bool TryClassifyTokenKind(
         SyntaxToken token,
+        SemanticModel? model,
         out ClassificationKind kind,
-        out bool isDeclaration)
+        out ClassificationModifiers modifiers,
+        CancellationToken cancellationToken)
     {
-        isDeclaration = false;
+        modifiers = ClassificationModifiers.None;
         switch (token.Kind)
         {
             case SyntaxKind.IntegerLiteralToken:
@@ -192,9 +208,17 @@ public static class SyntacticClassifier
                 return true;
             case SyntaxKind.DocCommentToken:
                 kind = ClassificationKind.Comment;
+                modifiers = ClassificationModifiers.Documentation;
                 return true;
             case SyntaxKind.IdentifierToken:
-                return TryClassifyIdentifier(token, out kind, out isDeclaration);
+                if (!TryClassifyIdentifier(token, model, out kind, out var isDeclaration, out var symbol, cancellationToken))
+                {
+                    return false;
+                }
+
+                modifiers = (isDeclaration ? ClassificationModifiers.Declaration : ClassificationModifiers.None)
+                    | SymbolModifiers(symbol);
+                return true;
             default:
                 if (SyntaxFacts.IsOperator(token.Kind))
                 {
@@ -215,11 +239,15 @@ public static class SyntacticClassifier
 
     private static bool TryClassifyIdentifier(
         SyntaxToken token,
+        SemanticModel? model,
         out ClassificationKind kind,
-        out bool isDeclaration)
+        out bool isDeclaration,
+        out ISymbol? symbol,
+        CancellationToken cancellationToken)
     {
         kind = default;
         isDeclaration = false;
+        symbol = null;
         var parent = token.Parent;
         if (parent is TypeNameSyntax)
         {
@@ -248,10 +276,36 @@ public static class SyntacticClassifier
             container = container.Parent;
         }
 
+        // `__state` is the VM's built-in state variable (ScriptObject.GetState/GotoState).
+        if (container is NameExpressionSyntax && token.Text.Equals("__state", System.StringComparison.OrdinalIgnoreCase))
+        {
+            kind = ClassificationKind.VariableName;
+            return true;
+        }
+
+        // `Self` and `Parent` read like `this`/`base`.
+        if (container is NameExpressionSyntax
+            && (token.Text.Equals("Self", System.StringComparison.OrdinalIgnoreCase)
+                || token.Text.Equals("Parent", System.StringComparison.OrdinalIgnoreCase)))
+        {
+            kind = ClassificationKind.Keyword;
+            return true;
+        }
+
+        if (model is not null)
+        {
+            // Declarations keep their syntactic kind but pick up modifiers (Global, Const);
+            // references and type names take the kind of what they resolve to.
+            symbol = container is TypeNameSyntax or ExtendsClauseSyntax
+                ? model.GetSymbolInfo(name, cancellationToken)
+                : model.GetDeclaredSymbol(container ?? name, cancellationToken)
+                    ?? model.GetSymbolInfo(name, cancellationToken);
+        }
+
         switch (container)
         {
             case TypeNameSyntax or ExtendsClauseSyntax:
-                kind = ClassificationKind.TypeName;
+                kind = symbol is IStructSymbol ? ClassificationKind.StructName : ClassificationKind.TypeName;
                 return true;
             case ScriptDeclarationSyntax:
                 kind = ClassificationKind.TypeName;
@@ -296,8 +350,66 @@ public static class SyntacticClassifier
                 kind = ClassificationKind.ParameterName;
                 return true;
             default:
+                return symbol is not null && TryClassifySymbol(symbol, out kind);
+        }
+    }
+
+    private static bool TryClassifySymbol(ISymbol symbol, out ClassificationKind kind)
+    {
+        switch (symbol)
+        {
+            case IEventSymbol or ICustomEventSymbol:
+                kind = ClassificationKind.EventName;
+                return true;
+            case IFunctionSymbol:
+                kind = ClassificationKind.FunctionName;
+                return true;
+            case IPropertySymbol:
+                kind = ClassificationKind.PropertyName;
+                return true;
+            case IParameterSymbol:
+                kind = ClassificationKind.ParameterName;
+                return true;
+            case IVariableSymbol or IGuardSymbol:
+                kind = ClassificationKind.VariableName;
+                return true;
+            case IStructSymbol:
+                kind = ClassificationKind.StructName;
+                return true;
+            case IScriptSymbol:
+                kind = ClassificationKind.TypeName;
+                return true;
+            case IStateSymbol:
+                kind = ClassificationKind.StateName;
+                return true;
+            default:
+                kind = default;
                 return false;
         }
+    }
+
+    private static ClassificationModifiers SymbolModifiers(ISymbol? symbol)
+    {
+        return symbol switch
+        {
+            IFunctionSymbol { IsGlobal: true } => ClassificationModifiers.Static,
+            IVariableSymbol { IsConst: true } => ClassificationModifiers.ReadOnly,
+            PropertySymbol { Declaration: { } declaration } when IsReadOnly(declaration) => ClassificationModifiers.ReadOnly,
+            _ => ClassificationModifiers.None,
+        };
+    }
+
+    private static bool IsReadOnly(PropertyDeclarationSyntax declaration)
+    {
+        for (var i = 0; i < declaration.Flags.Count; i++)
+        {
+            if (declaration.Flags.Get(i).FlagToken.Kind is SyntaxKind.AutoReadOnlyKeyword or SyntaxKind.ConstKeyword)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool Intersects(TextSpan filter, int start, int width)

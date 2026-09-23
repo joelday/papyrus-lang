@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
+using Papyrus.CodeAnalysis;
 using Papyrus.CodeAnalysis.Classification;
+using Papyrus.CodeAnalysis.Syntax;
 using Papyrus.CodeAnalysis.Text;
 
 namespace Papyrus.LanguageServer;
@@ -30,7 +32,8 @@ internal static class LspSemanticTokens
         "namespace",
     ];
 
-    internal static readonly string[] TokenModifiers = ["declaration"];
+    // Bit i is ClassificationModifiers bit i (asserted by SemanticTokensHandlerTests).
+    internal static readonly string[] TokenModifiers = ["declaration", "readonly", "static", "documentation"];
 
     internal static SemanticTokensOptions CapabilityOptions() =>
         new()
@@ -55,7 +58,7 @@ internal static class LspSemanticTokens
         foreach (var classified in spans)
         {
             var typeIndex = MapKind(classified.Kind);
-            var modifiers = classified.IsDeclaration ? 1 : 0;
+            var modifiers = (int)classified.Modifiers;
 
             // Clients are not required to support multi-line tokens, so a span
             // that crosses a line break (block comments) is emitted per line.
@@ -98,7 +101,16 @@ internal static class LspSemanticTokens
         CancellationToken ct
     )
     {
-        if (!LspDocuments.TryGetTree(snapshot, document, out var tree))
+        // With a project, names are classified by what they resolve to; a file outside any
+        // project still gets syntax-only tokens.
+        SyntaxTree tree;
+        SemanticModel? model = null;
+        if (LspDocuments.TryGetSemanticModel(snapshot, document, out var semanticModel, out var semanticTree, out _))
+        {
+            model = semanticModel;
+            tree = semanticTree;
+        }
+        else if (!LspDocuments.TryGetTree(snapshot, document, out tree))
         {
             return new SemanticTokens();
         }
@@ -113,7 +125,9 @@ internal static class LspSemanticTokens
             filter = new TextSpan(startOffset, endOffset - startOffset);
         }
 
-        var spans = SyntacticClassifier.Classify(tree, filter, ct);
+        var spans = model is null
+            ? SyntacticClassifier.Classify(tree, filter, ct)
+            : SemanticClassifier.Classify(model, filter, ct);
         return Encode(text, spans);
     }
 }

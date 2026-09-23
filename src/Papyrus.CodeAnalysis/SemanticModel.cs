@@ -314,6 +314,15 @@ public sealed class SemanticModel
                 return BindMemberAccess(member, cancellationToken);
             case IdentifierNameSyntax identifier when IsExtendsName(identifier):
                 return GetScript()?.BaseType;
+            case IdentifierNameSyntax identifier
+                when identifier.Parent is QualifiedNameSyntax qualified
+                    && ReferenceEquals(qualified.Left, identifier)
+                    && EnclosingTypeName(identifier) is not null:
+                // `Other` in `Other:Point`: the script named by the prefix (null for a
+                // namespace that is not itself a script).
+                return GetScript() is { } context
+                    ? ScriptNamed(Compilation.GetInternedQualifiedName(identifier), context)
+                    : null;
             case IdentifierNameSyntax identifier when EnclosingTypeName(identifier) is { } typeName:
                 return BindTypeSymbol(typeName);
             case IdentifierNameSyntax identifier when IsInvokedName(identifier):
@@ -526,6 +535,20 @@ public sealed class SemanticModel
         CancellationToken cancellationToken
     )
     {
+        switch (expression)
+        {
+            case ParenthesizedExpressionSyntax parenthesized:
+                return ResolveContainerType(parenthesized.Expression, cancellationToken);
+            case ElementAccessExpressionSyntax elementAccess:
+                // `arr[i].Member`: the member of the array's element type.
+                return ResolveContainerType(elementAccess.Expression, cancellationToken)?.GetArrayElementType();
+            case CastExpressionSyntax { OperatorToken.Kind: SyntaxKind.AsKeyword } cast:
+                return new ExpressionTypeBinder(Compilation, GetScript()).BindTypeName(cast.Type) is
+                    { TypeKind: not TypeKind.Error } castType
+                    ? castType
+                    : null;
+        }
+
         var container = TypeOf(GetSymbolInfo(expression, cancellationToken));
         if (container is not null)
         {
@@ -623,6 +646,20 @@ public sealed class SemanticModel
         if (!TryGetName(identifier, out var name))
         {
             return null;
+        }
+
+        // `Self` is this script and `Parent` its base script (`Self.GetStageDone()`).
+        if (identifier.Parent is NameExpressionSyntax)
+        {
+            if (name.Text.Equals("Self", StringComparison.OrdinalIgnoreCase))
+            {
+                return GetScript();
+            }
+
+            if (name.Text.Equals("Parent", StringComparison.OrdinalIgnoreCase))
+            {
+                return GetScript()?.BaseType is { TypeKind: not TypeKind.Error } baseType ? baseType : null;
+            }
         }
 
         var function = FindContainingFunction(position);

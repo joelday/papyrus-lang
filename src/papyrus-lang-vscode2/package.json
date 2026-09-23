@@ -50,7 +50,7 @@
     "grammars": [
       {
         "language": "papyrus",
-        "path": "./syntaxes/papyrus/papyrus.tmLanguage",
+        "path": "./syntaxes/papyrus/papyrus.tmLanguage.json",
         "scopeName": "source.papyrus"
       },
       {
@@ -78,6 +78,11 @@
           "default": "",
           "description": "Overrides the path to the Papyrus.LanguageServer executable. Leave empty to use the version bundled with this extension."
         }
+      }
+    },
+    "configurationDefaults": {
+      "[papyrus]": {
+        "editor.semanticHighlighting.enabled": true
       }
     }
   },

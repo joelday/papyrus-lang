@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,6 +12,21 @@ namespace Papyrus.LanguageServer.Tests;
 
 public sealed class SemanticTokensHandlerTests
 {
+    [Fact]
+    public void Token_modifier_legend_matches_classification_modifier_bits()
+    {
+        var modifiers = System.Enum.GetValues<Papyrus.CodeAnalysis.Classification.ClassificationModifiers>()
+            .Where(static m => m != Papyrus.CodeAnalysis.Classification.ClassificationModifiers.None)
+            .ToArray();
+
+        Assert.Equal(modifiers.Length, LspSemanticTokens.TokenModifiers.Length);
+        for (var i = 0; i < modifiers.Length; i++)
+        {
+            Assert.Equal(1 << i, (int)modifiers[i]);
+            Assert.Equal(modifiers[i].ToString(), LspSemanticTokens.TokenModifiers[i], ignoreCase: true);
+        }
+    }
+
     [Fact]
     public async Task Full_returns_delta_encoded_tokens_for_open_document()
     {

@@ -1,0 +1,145 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Papyrus",
+  "scopeName": "source.papyrus",
+  "comment": "Lexical baseline only: comments, strings, numbers, keywords, operators. Names (declarations and references) are classified by the language server's semantic tokens, which know what each name resolves to. Rules are few and single-line (except comments/doc comments) because TextMate cost scales with the number of rules tried at each position; declaration rules alone made tokenizing the vanilla Fallout 4 scripts ~2x slower.",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#continuation"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.block.papyrus",
+          "begin": ";/",
+          "end": "/;",
+          "captures": {
+            "0": {
+              "name": "punctuation.definition.comment.papyrus"
+            }
+          }
+        },
+        {
+          "name": "comment.line.semicolon.papyrus",
+          "match": ";.*$"
+        },
+        {
+          "name": "comment.block.documentation.papyrus",
+          "begin": "\\{",
+          "end": "\\}",
+          "captures": {
+            "0": {
+              "name": "punctuation.definition.comment.papyrus"
+            }
+          }
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.papyrus",
+      "begin": "\"",
+      "end": "\"|$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.papyrus"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.papyrus"
+        }
+      },
+      "patterns": [
+        {
+          "name": "constant.character.escape.papyrus",
+          "match": "\\\\[nt\\\\\"]"
+        }
+      ]
+    },
+    "numbers": {
+      "match": "(?i)\\b(0x[0-9a-f]+)\\b|((?:\\b\\d+\\.\\d*|\\B\\.\\d+)(?:e[+-]?\\d+)?)\\b|\\b(\\d+)\\b",
+      "captures": {
+        "1": {
+          "name": "constant.numeric.hex.papyrus"
+        },
+        "2": {
+          "name": "constant.numeric.float.papyrus"
+        },
+        "3": {
+          "name": "constant.numeric.integer.papyrus"
+        }
+      }
+    },
+    "keywords": {
+      "comment": "One regex for every keyword category; the capture group picks the scope.",
+      "match": "(?i)\\b(?:(if|elseif|else|endif|while|endwhile|return|tryguard|endguard)|(scriptname|extends|import|function|endfunction|event|endevent|property|endproperty|state|endstate|struct|endstruct|group|endgroup|customevent|guard|new|length)|(as|is)|(auto|autoreadonly|global|native|hidden|conditional|const|mandatory|betaonly|debugonly|default|collapsed|collapsedonref|collapsedonbase)|(int|float|string|bool|var|customeventname|scripteventname)|(true|false|none)|(self|parent))\\b",
+      "captures": {
+        "1": {
+          "name": "keyword.control.papyrus"
+        },
+        "2": {
+          "name": "keyword.other.papyrus"
+        },
+        "3": {
+          "name": "keyword.operator.cast.papyrus"
+        },
+        "4": {
+          "name": "storage.modifier.papyrus"
+        },
+        "5": {
+          "name": "storage.type.papyrus"
+        },
+        "6": {
+          "name": "constant.language.papyrus"
+        },
+        "7": {
+          "name": "variable.language.papyrus"
+        }
+      }
+    },
+    "operators": {
+      "match": "(&&|\\|\\||!(?!=))|(==|!=|<=|>=|<|>)|([+\\-*/%]?=)|([+\\-*/%])|(\\.)|([,:])",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.logical.papyrus"
+        },
+        "2": {
+          "name": "keyword.operator.comparison.papyrus"
+        },
+        "3": {
+          "name": "keyword.operator.assignment.papyrus"
+        },
+        "4": {
+          "name": "keyword.operator.arithmetic.papyrus"
+        },
+        "5": {
+          "name": "punctuation.accessor.papyrus"
+        },
+        "6": {
+          "name": "punctuation.separator.papyrus"
+        }
+      }
+    },
+    "continuation": {
+      "name": "punctuation.separator.continuation.papyrus",
+      "match": "\\\\(?=\\s*(?:;.*)?$)"
+    }
+  }
+}
