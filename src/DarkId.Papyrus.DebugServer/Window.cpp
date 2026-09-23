@@ -1,4 +1,5 @@
 #include "Window.h"
+#include "ConfigHooks.h"
 #include <Windows.h>
 
 struct handle_data {
@@ -39,7 +40,7 @@ static BOOL is_main_window(HWND handle)
 #if SKYRIM
 	 auto window = RE::BSGraphics::UTIL::GetCurrentRenderWindow();
 #else
-	 REL::Relocation<uintptr_t> pCurrentRenderWindow(REL::ID(91810));
+	 REL::Relocation<uintptr_t> pCurrentRenderWindow(DarkId::Papyrus::DebugServer::Game_Offset::pCurrentRenderWindow());
 	 auto window = *(RE::BSGraphics::RendererWindow**)pCurrentRenderWindow.address();
 #endif
 	 return stl::unrestricted_cast<HWND>(window->hwnd);

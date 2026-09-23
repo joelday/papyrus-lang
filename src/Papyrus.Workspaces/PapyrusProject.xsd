@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema
+    elementFormDefault="qualified"
+    id="PapyrusProject"
+    version="1"
+    targetNamespace="PapyrusProject.xsd"
+    xmlns="PapyrusProject.xsd"
+    xmlns:ppj="PapyrusProject.xsd"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:annotation>
+    <xs:documentation>
+      Version 1 Papyrus project schema. Compatible with existing Pyro .ppj documents.
+      Game accepts sse|fo4|tesv|starfield (tes5 and sf1 are aliases).
+      Import values are strings and may be filesystem paths or HTTPS remotes.
+      ${ENV} and @Name tokens are stored as written; expansion is later.
+    </xs:documentation>
+  </xs:annotation>
+
+  <xs:element name="PapyrusProject">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="Variables" type="ppj:variableList"/>
+        <xs:element name="Imports" type="ppj:importList"/>
+        <xs:element name="Folders" type="ppj:folderList"/>
+        <xs:element name="Scripts" type="ppj:scriptList"/>
+        <xs:element name="PreBuild" type="ppj:commandList"/>
+        <xs:element name="PostBuild" type="ppj:commandList"/>
+      </xs:choice>
+      <xs:attribute name="Game" type="ppj:gameType"/>
+      <xs:attribute name="Output" type="xs:string"/>
+      <xs:attribute name="Flags" type="xs:string"/>
+      <xs:attribute name="Asm" type="ppj:asmType"/>
+      <xs:attribute name="Optimize" type="ppj:bool" default="false"/>
+      <xs:attribute name="Release" type="ppj:bool" default="false"/>
+      <xs:attribute name="Final" type="ppj:bool" default="false"/>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:complexType name="importList">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="Import" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="folderList">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="Folder" type="ppj:folder"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="scriptList">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="Script" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="variableList">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="Variable" type="ppj:nameValuePair"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="commandList">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="Command" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="folder" mixed="true">
+    <xs:attribute name="NoRecurse" type="ppj:bool" default="false"/>
+  </xs:complexType>
+
+  <xs:complexType name="nameValuePair">
+    <xs:attribute name="Name" type="xs:string" use="required"/>
+    <xs:attribute name="Value" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:simpleType name="gameType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="sse"/>
+      <xs:enumeration value="fo4"/>
+      <xs:enumeration value="tesv"/>
+      <xs:enumeration value="starfield"/>
+      <xs:enumeration value="tes5"/>
+      <xs:enumeration value="sf1"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="asmType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="None"/>
+      <xs:enumeration value="Keep"/>
+      <xs:enumeration value="Only"/>
+      <xs:enumeration value="Discard"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="bool">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="true"/>
+      <xs:enumeration value="false"/>
+      <xs:enumeration value="1"/>
+      <xs:enumeration value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>

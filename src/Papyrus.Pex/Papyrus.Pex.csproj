@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <PackageId>Papyrus.Pex</PackageId>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <Authors>Joel Day</Authors>
+    <Description>Standalone PEX 3.1–3.15 reader, writer, normalizer, and reflector for Bethesda Papyrus bytecode. Unstable 0.x — no compatibility promise.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/joelday/papyrus-lang</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/joelday/papyrus-lang</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>packages.md</PackageReadmeFile>
+    <PackageTags>papyrus;pex;skyrim;fallout4;starfield</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\..\docs\packages.md" Pack="true" PackagePath="packages.md" />
+    <InternalsVisibleTo Include="Papyrus.Pex.Tests" />
+  </ItemGroup>
+</Project>

@@ -1,11 +1,35 @@
 # 📜 Papyrus Language Tools
 
 [![](https://vsmarketplacebadge.apphb.com/version-short/joelday.papyrus-lang-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=joelday.papyrus-lang-vscode)
+[![NuGet](https://img.shields.io/nuget/vpre/Papyrus.Pex.svg?label=Papyrus.Pex)](https://www.nuget.org/packages/Papyrus.Pex)
+[![NuGet](https://img.shields.io/nuget/vpre/Papyrus.CodeAnalysis.svg?label=Papyrus.CodeAnalysis)](https://www.nuget.org/packages/Papyrus.CodeAnalysis)
 [![Discord](https://img.shields.io/discord/558746231665328139.svg?color=%23738ADB)](https://discord.gg/E4dWujQ)
 
 ## Advanced language tools for the Papyrus scripting language.
 
 You can now write mods for Fallout 4 and Skyrim with the aid of modern code editing features such as code completion, jump to definition, hover, symbol search, PPJ-based build tasks, and live updated diagnostics.
+
+## Building
+
+This repo requires .NET SDK 10 / Visual Studio 2026 (`global.json` pins 10.0.201). Build the new compiler with `dotnet build Papyrus.sln`. Build the shipping DarkId tree with `dotnet msbuild DarkId.Papyrus.sln` (SDK-bundled MSBuild 18), not VS 2022 MSBuild.
+
+[`Papyrus.Pex`](https://www.nuget.org/packages/Papyrus.Pex) and [`Papyrus.CodeAnalysis`](https://www.nuget.org/packages/Papyrus.CodeAnalysis) are unstable 0.x NuGet packages (no compatibility promise). See [docs/packages.md](docs/packages.md).
+
+## Compliance
+
+Byte-identical PEX is the gate. Semantic-equivalence exceptions live in [`docs/compliance/allowlist.md`](docs/compliance/allowlist.md) (reviewed like code). Public CI never needs game files:
+
+```
+papyrusc verify --compile --game skyrimse
+```
+
+skips with exit 0 when `./corpus/skyrimse` is absent. With a local corpus (see [docs/corpus.md](docs/corpus.md)):
+
+```
+papyrusc verify --compile --game skyrimse --source ./corpus/skyrimse --baseline docs/compliance/baselines/skyrimse.json
+```
+
+Tier 2 (`--ck-compiler`) is not implemented yet. See [docs/compliance/baselines/README.md](docs/compliance/baselines/README.md).
 
 ## ✒ Visual Studio Code Extension
 

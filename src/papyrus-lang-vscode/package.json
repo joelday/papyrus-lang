@@ -525,7 +525,7 @@
         "rxjs": "^6.6.7",
         "semver": "^7.3.8",
         "vscode-debugprotocol": "^1.37.0",
-        "vscode-languageclient": "^5.2.1",
+        "vscode-languageclient": "^9.0.1",
         "winreg": "^1.2.4",
         "xml-js": "^1.6.11"
     },
@@ -537,14 +537,14 @@
         "@types/mocha": "^10.0.1",
         "@types/node": "^18.11.18",
         "@types/semver": "^7.3.13",
-        "@types/vscode": "^1.74.0",
+        "@types/vscode": "^1.134.0",
         "@types/winreg": "^1.2.31",
         "@typescript-eslint/eslint-plugin": "^6.7.3",
         "@typescript-eslint/parser": "^6.7.3",
         "@vscode/test-electron": "2.2.0",
         "@vscode/vsce": "^2.16.0",
-        "conventional-changelog-conventionalcommits": "^8.0.0",
         "conventional-changelog-cli": "^5.0.0",
+        "conventional-changelog-conventionalcommits": "^8.0.0",
         "cpr": "^3.0.1",
         "eslint": "^8.50.0",
         "eslint-config-prettier": "^9.0.0",
@@ -561,7 +561,7 @@
     },
     "displayName": "Papyrus",
     "engines": {
-        "vscode": "^1.74.0"
+        "vscode": "^1.82.0"
     },
     "homepage": "https://github.com/joelday/papyrus-lang/tree/main/src/papyrus-lang-vscode",
     "icon": "images/icon-small.png",

@@ -15,6 +15,9 @@
 
 # Build results
 [Dd]ebug/
+# VS [Dd]ebug/ also matches docs/debug/; keep the P5.04 spike notes.
+!docs/debug/
+!docs/debug/**
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
@@ -336,3 +339,7 @@ tools
 send.ps1
 
 vcpkg_installed
+
+# Local corpus and build output
+/corpus/
+/artifacts/

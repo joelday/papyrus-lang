@@ -1,4 +1,4 @@
-import { LanguageClient as BaseClient, TextDocumentIdentifier, NotificationType } from 'vscode-languageclient';
+import { LanguageClient as BaseClient, TextDocumentIdentifier, NotificationType } from 'vscode-languageclient/node';
 import { workspace, FileSystemWatcher, OutputChannel } from 'vscode';
 
 import { DocumentScriptInfo, documentScriptInfoRequestType } from './messages/DocumentScriptInfo';
@@ -37,7 +37,7 @@ export interface ILanguageClient {
 }
 
 const projectsUpdatedNotificationType = {
-    type: new NotificationType<void, void>('papyrus/projectsUpdated'),
+    type: new NotificationType<void>('papyrus/projectsUpdated'),
 };
 
 export class LanguageClient implements ILanguageClient {
@@ -80,8 +80,7 @@ export class LanguageClient implements ILanguageClient {
         if (this._client.needsStart()) {
             this._outputChannel.appendLine('Starting language service...');
 
-            this._client.start();
-            await this._client.onReady();
+            await this._client.start();
 
             this._client.onNotification(projectsUpdatedNotificationType.type, () => {
                 this._projectsUpdated.next(undefined);

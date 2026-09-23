@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Parse fixtures stay LF so checkout does not change round-trip source.
+tests/Papyrus.CodeAnalysis.Tests/Fixtures/**/*.psc text eol=lf

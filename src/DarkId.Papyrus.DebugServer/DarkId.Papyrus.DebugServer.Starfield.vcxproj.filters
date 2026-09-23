@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Starfield">
+      <UniqueIdentifier>{D9FD26E2-765E-4479-8148-40EEBDF80656}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Native">
+      <UniqueIdentifier>{049079F7-91F3-492F-AE07-70D6D49D1FBF}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Starfield\main.cpp">
+      <Filter>Starfield</Filter>
+    </ClCompile>
+    <ClCompile Include="Starfield\pdsPCH.cpp">
+      <Filter>Starfield</Filter>
+    </ClCompile>
+    <ClCompile Include="..\native\DebugServer\AddressLibraryIds.cpp">
+      <Filter>Native</Filter>
+    </ClCompile>
+    <ClCompile Include="..\native\DebugServer\StarfieldV1.cpp">
+      <Filter>Native</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Starfield\pdsPCH.h">
+      <Filter>Starfield</Filter>
+    </ClInclude>
+    <ClInclude Include="..\native\DebugServer\AddressLibraryIds.h">
+      <Filter>Native</Filter>
+    </ClInclude>
+    <ClInclude Include="..\native\DebugServer\StarfieldV1.h">
+      <Filter>Native</Filter>
+    </ClInclude>
+    <ClInclude Include="version.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="version.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\native\DebugServer\data\starfield-*.json">
+      <Filter>Native</Filter>
+    </None>
+  </ItemGroup>
+</Project>

@@ -1,4 +1,4 @@
-import { RequestType, TextDocumentIdentifier, TextDocumentRegistrationOptions } from 'vscode-languageclient';
+import { RequestType, TextDocumentIdentifier } from 'vscode-languageclient';
 
 export interface DocumentAssemblyParams {
     textDocument: TextDocumentIdentifier;
@@ -9,7 +9,5 @@ export interface DocumentAssembly {
 }
 
 export const documentAssemblyRequestType = {
-    type: new RequestType<DocumentAssemblyParams, DocumentAssembly | null, void, TextDocumentRegistrationOptions>(
-        'textDocument/assembly'
-    ),
+    type: new RequestType<DocumentAssemblyParams, DocumentAssembly | null, void>('textDocument/assembly'),
 };
