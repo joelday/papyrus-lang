@@ -1,5 +1,5 @@
 <Project>
-  <!-- CPM is enabled only for Papyrus.* (see Directory.Build.props). DarkId projects keep per-reference versions. -->
+  <!-- CPM is enabled for Papyrus.* only (see Directory.Build.props). -->
   <PropertyGroup Condition="$(MSBuildProjectName.StartsWith('Papyrus.'))">
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>

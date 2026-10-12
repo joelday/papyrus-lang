@@ -1,8 +1,6 @@
 # 📜 Papyrus Language Tools
 
 [![](https://vsmarketplacebadge.apphb.com/version-short/joelday.papyrus-lang-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=joelday.papyrus-lang-vscode)
-[![NuGet](https://img.shields.io/nuget/vpre/Papyrus.Pex.svg?label=Papyrus.Pex)](https://www.nuget.org/packages/Papyrus.Pex)
-[![NuGet](https://img.shields.io/nuget/vpre/Papyrus.CodeAnalysis.svg?label=Papyrus.CodeAnalysis)](https://www.nuget.org/packages/Papyrus.CodeAnalysis)
 [![Discord](https://img.shields.io/discord/558746231665328139.svg?color=%23738ADB)](https://discord.gg/E4dWujQ)
 
 ## Advanced language tools for the Papyrus scripting language.
@@ -11,9 +9,15 @@ You can now write mods for Fallout 4 and Skyrim with the aid of modern code edit
 
 ## Building
 
-This repo requires .NET SDK 10 / Visual Studio 2026 (`global.json` pins 10.0.201). Build the new compiler with `dotnet build Papyrus.sln`. Build the shipping DarkId tree with `dotnet msbuild DarkId.Papyrus.sln` (SDK-bundled MSBuild 18), not VS 2022 MSBuild.
+Requires the .NET SDK pinned in `global.json` and Node 22.
 
-[`Papyrus.Pex`](https://www.nuget.org/packages/Papyrus.Pex) and [`Papyrus.CodeAnalysis`](https://www.nuget.org/packages/Papyrus.CodeAnalysis) are unstable 0.x NuGet packages (no compatibility promise). See [docs/packages.md](docs/packages.md).
+```
+dotnet build Papyrus.sln -c Release      # compiler, language server, tests
+dotnet test Papyrus.sln -c Release
+cd src/papyrus-lang-vscode && npm ci && npm run build-server && npm run compile
+```
+
+`npm run build-server` publishes the NativeAOT language server for your machine into `bin/<rid>/`, where the extension looks for it. The native xSE debug plugin (`DarkId.Papyrus.DebugServer.sln`) builds on Windows with VS 2022 and vcpkg; see [its README](src/DarkId.Papyrus.DebugServer/README.md). See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch and release flow.
 
 ## Compliance
 

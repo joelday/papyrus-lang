@@ -1,5 +1,5 @@
 <Project>
-  <!-- Apply only to Papyrus.* so the shipping DarkId tree keeps its own TFM and settings. -->
+  <!-- Managed settings apply to Papyrus.* only; the native DebugServer vcxprojs also import this file and must not inherit them. -->
   <PropertyGroup>
     <PapyrusIsNewTree Condition="$(MSBuildProjectName.StartsWith('Papyrus.'))">true</PapyrusIsNewTree>
   </PropertyGroup>

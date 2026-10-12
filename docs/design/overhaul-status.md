@@ -2,10 +2,9 @@
 
 One-stop tracker for the clean-slate compiler and language-service rewrite specified in [`compiler-and-language-service-overhaul.md`](compiler-and-language-service-overhaul.md).
 
-**Where the work lives:** local branch `rewrite` (not pushed). Topic branches are created from that integration point and merged back manually when a slice is complete. There is intentionally no configured remote. The shipping VS Code extension is still the old OmniSharp / PCompiler host.
+**Where the work lives:** `main`. Topic branches come off `main` and land through PRs; CI (`.github/workflows/ci.yml`) builds every push to `main` as a preview, and releases are cut by hand with `release.yml`. The old OmniSharp / PCompiler tree, the old extension, Cake and the Dropbox / Pyro downloads were deleted at the P4.09 cutover; the new extension in `src/papyrus-lang-vscode` is what ships as 4.0.
 
 ```
-git checkout rewrite
 dotnet build Papyrus.sln -c Release
 ```
 
@@ -13,9 +12,9 @@ dotnet build Papyrus.sln -c Release
 
 **Hard constraints for this run**
 
-- Local commits and local branches only. Do not push remotes, open GitHub PRs, or publish to nuget.org.
 - Do not put vendor names on artifacts.
-- `papyrusc compile` is the first user-facing binary. Nothing ships to Marketplace users until emit meets the compliance bar, then one new-major VSIX cutover (P4.06b).
+- No nuget.org publishing. `Papyrus.Pex` and `Papyrus.CodeAnalysis` are consumed in-repo only.
+- `papyrusc compile` is the first user-facing binary. The 4.0 VSIX is the new-major cutover (P4.06b); the debugger comes back in a later 4.x (P5.03+).
 
 ---
 
@@ -124,13 +123,12 @@ P4.02 and P4.05 are done, so P5.03 is unblocked. It remains intentionally deferr
 | P4.06b | Drop inversify/webpack, launch one LS, new-major VSIX (K29: also drops `generateProject` scaffolding + ambient/no-`.ppj` mode) | P4.06a, P4.03j |
 | P4.07  | Multi-root path hardening (**#193**, **#205**, **#208**)                                                                       | P4.06b, P2.00  |
 | P4.08  | Diagnostic report + redaction test                                                                                             | P4.07          |
-| P4.09  | Delete `DarkId.Papyrus.*` managed tree                                                                                         | P4.06b, P4.08  |
 
 P4.06a part 1 (the `vscode-languageclient` 9 bump on the _old_ `papyrus-lang-vscode` extension) is done: `src/server/LanguageClient.ts` and the four `src/server/messages/*.ts` request/notification definitions were updated for the new generic arity and the `/node` entrypoint move, and `engines.vscode`/`@types/vscode` were bumped to `^1.82.0` to match.
 
-P4.06a part 2 (dropping RxJS) changed direction after review with the project owner: rather than refactor the RxJS/inversify-based `papyrus-lang-vscode` in place, a **new** extension package, `src/papyrus-lang-vscode2/`, was scaffolded from the current official `yo code` TypeScript generator (esbuild bundler, `vscode-languageclient` 9 from the start, 0 npm audit findings vs. the old extension's 60). Logic is being ported into it incrementally, using the old extension only as a reference, because a large fraction of the old complexity (`CreationKitInfoProvider`'s ambient Creation-Kit install/ini detection, per-game `LanguageClientHost`s) no longer applies now that `.ppj` project files are required and the new `Papyrus.LanguageServer` discovers projects itself with zero ambient CLI configuration (see `src/Papyrus.LanguageServer/Program.cs` -- it takes no game/compiler args at all). The new extension also intentionally drops inversify in favor of plain interface-oriented constructor injection (no DI container), and RxJS `Observable`/`BehaviorSubject` in favor of a tiny `AsyncSerialQueue` (serializes start/stop/restart the same way the old `asyncDisposable` RxJS operator did) plus a plain `vscode.EventEmitter`-shaped `ConfigurationWatcher`/`SimpleEmitter`. Everything depends on narrow interfaces so it is unit-testable **offline** (plain `mocha`/`ts-node`, no extension host) -- see `test/unit/*.test.ts` (28 passing) and the `npm run test:unit` script.
+P4.06a part 2 (dropping RxJS) changed direction after review with the project owner: rather than refactor the RxJS/inversify-based `papyrus-lang-vscode` in place, a **new** extension package, `src/papyrus-lang-vscode/`, was scaffolded from the current official `yo code` TypeScript generator (esbuild bundler, `vscode-languageclient` 9 from the start, 0 npm audit findings vs. the old extension's 60). Logic is being ported into it incrementally, using the old extension only as a reference, because a large fraction of the old complexity (`CreationKitInfoProvider`'s ambient Creation-Kit install/ini detection, per-game `LanguageClientHost`s) no longer applies now that `.ppj` project files are required and the new `Papyrus.LanguageServer` discovers projects itself with zero ambient CLI configuration (see `src/Papyrus.LanguageServer/Program.cs` -- it takes no game/compiler args at all). The new extension also intentionally drops inversify in favor of plain interface-oriented constructor injection (no DI container), and RxJS `Observable`/`BehaviorSubject` in favor of a tiny `AsyncSerialQueue` (serializes start/stop/restart the same way the old `asyncDisposable` RxJS operator did) plus a plain `vscode.EventEmitter`-shaped `ConfigurationWatcher`/`SimpleEmitter`. Everything depends on narrow interfaces so it is unit-testable **offline** (plain `mocha`/`ts-node`, no extension host) -- see `test/unit/*.test.ts` (28 passing) and the `npm run test:unit` script.
 
-Done so far in `papyrus-lang-vscode2`: scaffold (esbuild, eslint, `@vscode/test-cli` host-test harness left in place for future host smoke tests), `AsyncSerialQueue`, `ConfigurationWatcher`, `ServerPathResolver` (resolves the bundled per-platform `Papyrus.LanguageServer` AOT binary or a `papyrus.server.path` override; RID mapping mirrors `.github/workflows/managed.yml`'s win-x64/linux-x64/osx-arm64/osx-x64 matrix), `PapyrusLanguageClientManager` (single client for the whole workspace, not per-game), `RealLanguageClient` (thin `vscode-languageclient` adapter), a single status-bar item, and a minimal `extension.ts` composition root. `dotnet build`/tests are unaffected (this is 100% extension-side).
+Done so far in `papyrus-lang-vscode`: scaffold (esbuild, eslint, `@vscode/test-cli` host-test harness left in place for future host smoke tests), `AsyncSerialQueue`, `ConfigurationWatcher`, `ServerPathResolver` (resolves the bundled per-platform `Papyrus.LanguageServer` AOT binary or a `papyrus.server.path` override; RID mapping mirrors `.github/workflows/managed.yml`'s win-x64/linux-x64/osx-arm64/osx-x64 matrix), `PapyrusLanguageClientManager` (single client for the whole workspace, not per-game), `RealLanguageClient` (thin `vscode-languageclient` adapter), a single status-bar item, and a minimal `extension.ts` composition root. `dotnet build`/tests are unaffected (this is 100% extension-side).
 
 Still to port/decide (deferred, no explicit owner direction yet beyond "model modernization on recent C# Dev Kit patterns, e.g. no project-explorer tree panel needed"): debugger integration (`DebugSupportInstallService`, `PapyrusDebugAdapterDescriptorFactory`, attach/launch commands), code lens / hover-adjacent UI polish, the "view assembly" command (the "generate project" command is dropped per K29), welcome/first-run messaging, and packaging the actual per-platform `Papyrus.LanguageServer` AOT binaries into `bin/<rid>/` (needed before `ServerPathResolver.resolve()` can find anything real) -- the last of these is really P4.06b's "new-major VSIX cutover," not P4.06a. The old `papyrus-lang-vscode` extension is untouched and still what ships until the new one is feature-complete; nothing has been deleted yet (that's P4.09, after P4.06b).
 
@@ -173,14 +171,11 @@ src/Papyrus.DebugAdapter            stub (P5.03)
 src/Papyrus.CodeAnalysis.Testing    corpus / allowlist / hash harness
 ```
 
-Old `DarkId.Papyrus.*` managed projects stay until P4.09.
+P4.09 is done: the `DarkId.Papyrus.*` managed projects, the old extension and the Cake pipeline are gone. `src/DarkId.Papyrus.DebugServer` (the C++ xSE plugin) stays, under its original name.
 
 ---
 
 ## How to resume
 
-1. `git checkout rewrite` for the integration point, or create a topic branch from it for the next slice.
-2. Continue the plan from **P4.06a**. P5.03 (NativeAOT debug adapter) is unblocked in the dependency graph but intentionally deferred until the managed debugger API is stable and Windows/MSVC validation is available.
-3. Keep the no-push constraint unless the owner lifts it.
-
-The work is organized as ordinary local topic branches from `rewrite`; there is no agent-orchestration branch naming convention to recover.
+1. Branch from `main` for the next slice and open a PR.
+2. Continue the plan from **P4.07**. P5.03 (NativeAOT debug adapter) is unblocked in the dependency graph but intentionally deferred until the managed debugger API is stable and Windows/MSVC validation is available.
