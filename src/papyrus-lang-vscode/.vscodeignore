@@ -18,3 +18,5 @@ bin/**/*.dSYM/**
 bin/**/*.dbg
 images/demo-*.gif
 .mocharc.json
+images/icon.png
+images/icon-small-trimmed.png
