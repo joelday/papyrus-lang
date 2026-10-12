@@ -8,8 +8,9 @@ name: Release
 #
 # Marketplace rules worth remembering:
 #   - Versions are X.Y.Z only. No -beta suffixes.
-#   - A pre-release and a release must never share a version. Convention: odd minor
-#     versions for pre-releases (4.1.x), even for releases (4.2.x).
+#   - A pre-release and a release must never share a version. Releases are X.Y.Z;
+#     automatic previews from main are date-based (2026.1012.10) and always sort
+#     above them, so the two channels never collide.
 
 on:
   workflow_dispatch:

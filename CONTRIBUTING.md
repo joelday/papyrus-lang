@@ -2,7 +2,7 @@
 
 ## Branches
 
-`main` is the only long-lived branch. Work happens on short topic branches and lands through pull requests. Every push to `main` is a preview: CI builds the VSIXs, the compiler and the language server, and publishes the VSIXs to the Marketplace **pre-release** channel as `<preview prefix>.<run number>` (the prefix is `PREVIEW_VERSION_PREFIX` at the top of `ci.yml`, currently `4.1`). Users on the release channel are never moved to a preview.
+`main` is the only long-lived branch. Work happens on short topic branches and lands through pull requests. Every push to `main` is a preview: CI builds the VSIXs, the compiler and the language server, and publishes the VSIXs to the Marketplace **pre-release** channel as `<year>.<month><day>.<run number>`, for example `2026.1012.10`. Users on the release channel are never moved to a preview.
 
 ## CI
 
@@ -22,7 +22,7 @@ Public CI never has game files or Bethesda binaries. `papyrusc verify --compile`
 
 Releases are cut by hand from the Actions tab: run **Release** on `main` with a version `X.Y.Z`. The workflow builds everything through CI with that version, creates the `vX.Y.Z` tag and a GitHub release holding the VSIXs, the compiler archives and the debug plugin, then publishes the VSIXs to the Marketplace. Nothing in the repo needs editing for a release; `package.json` keeps the next intended version.
 
-Releases use an even minor version (4.0.x, 4.2.x) and previews an odd one (4.1.x, 4.3.x), so the two channels never collide and the newest preview always sorts above the latest release. After cutting a release with a new minor, bump `PREVIEW_VERSION_PREFIX` in `ci.yml` to the next odd minor. Tick **prerelease** on a manual release only if you want a hand-cut pre-release; untick **publish** for a dry run that only creates a draft GitHub release.
+Releases are plain `X.Y.Z` and previews are date-based, so the two channels never collide and every preview sorts above every release. That is deliberate: VS Code moves users to the highest version in their channel, so pre-release users stay on previews until they switch channels, and nothing has to be bumped after a release. Tick **prerelease** on a manual release only if you want a hand-cut pre-release; untick **publish** for a dry run that only creates a draft GitHub release.
 
 ## Release checklist
 
