@@ -4,7 +4,7 @@ Normative language and PEX references extracted from [Appendix A](../design/comp
 
 P1.01 **consumes** the productions below; it does not invent them.
 
-Frozen pin: [Orvid/Caprica](https://github.com/Orvid/Caprica) `@ e4dee08` (`master`, 2024-06-14). Path table: [pins.md](pins.md). Formatter: [formatter.md](formatter.md).
+Frozen pin: [Orvid/Caprica](https://github.com/Orvid/Caprica) `@ e4dee08` (`master`, 2024-06-14). Path table: [pins.md](pins.md). Formatter: [formatter.md](formatter.md). Project files and Pyro: [ppj-pyro-parity.md](ppj-pyro-parity.md).
 
 ## Copy vs. re-derive
 

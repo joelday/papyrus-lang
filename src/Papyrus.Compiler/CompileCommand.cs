@@ -162,6 +162,11 @@ internal static class CompileCommand
             return 1;
         }
 
+        if (!project.Ignored.IsEmpty)
+        {
+            stderr.WriteLine("note: " + IgnoredProjectContent.Describe(projectPath, project.Ignored));
+        }
+
         if (!project.TryExpandEnvironmentVariables(out project, out var missingName))
         {
             stderr.WriteLine($"error: environment variable '{missingName}' is not set");

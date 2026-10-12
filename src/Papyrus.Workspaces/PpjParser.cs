@@ -53,6 +53,7 @@ public static class PpjParser
         var release = false;
         var final = false;
         AsmKind? asm = null;
+        var ignored = ImmutableArray.CreateBuilder<string>();
 
         if (reader.MoveToFirstAttribute())
         {
@@ -85,6 +86,9 @@ public static class PpjParser
                         break;
                     case "Asm":
                         asm = ParseAsm(reader.Value);
+                        break;
+                    default:
+                        ignored.Add("@" + reader.LocalName);
                         break;
                 }
             }
@@ -138,6 +142,7 @@ public static class PpjParser
                         ReadStringItems(reader, "Command", postBuild);
                         break;
                     default:
+                        ignored.Add(reader.LocalName);
                         reader.Skip();
                         break;
                 }
@@ -166,7 +171,8 @@ public static class PpjParser
             final,
             asm,
             preBuild.ToImmutable(),
-            postBuild.ToImmutable());
+            postBuild.ToImmutable(),
+            ignored: ignored.ToImmutable());
     }
 
     private static void ReadStringItems(

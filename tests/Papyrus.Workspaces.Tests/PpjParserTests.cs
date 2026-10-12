@@ -240,6 +240,47 @@ public sealed class PpjParserTests
     }
 
     [Fact]
+    public void Records_ignored_pyro_only_content_in_document_order()
+    {
+        const string xml =
+            """
+            <?xml version="1.0"?>
+            <PapyrusProject xmlns="PapyrusProject.xsd" Game="fo4" Anonymize="true" Package="true" Output="Scripts">
+              <Imports><Import>.\Source</Import></Imports>
+              <Packages Output="Dist"><Package Name="Mod" RootDir="Scripts"><Include>*.pex</Include></Package></Packages>
+              <PreImportEvent><Command>echo hi</Command></PreImportEvent>
+              <PostBuildEvent><Command>echo done</Command></PostBuildEvent>
+            </PapyrusProject>
+            """;
+
+        var project = PpjParser.Parse(xml);
+
+        Assert.Equal(["@Anonymize", "@Package", "Packages", "PreImportEvent"], project.Ignored);
+        Assert.Equal([".\\Source"], project.Imports);
+        Assert.Equal(["echo done"], project.PostBuild);
+        Assert.Contains("<Packages>", IgnoredProjectContent.Describe("x.ppj", project.Ignored), StringComparison.Ordinal);
+        Assert.Contains("Anonymize attribute", IgnoredProjectContent.Describe("x.ppj", project.Ignored), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Projects_using_only_workspace_content_have_nothing_ignored()
+    {
+        var project = PpjParser.Parse(
+            """
+            <PapyrusProject xmlns="PapyrusProject.xsd" Game="sse" Flags="TESV_Papyrus_Flags.flg" Output="Scripts" Optimize="true" Release="false" Final="false" Asm="none">
+              <Variables><Variable Name="A" Value="B"/></Variables>
+              <Imports><Import>.\Source</Import></Imports>
+              <Folders><Folder NoRecurse="true">.\Source\Scripts</Folder></Folders>
+              <Scripts><Script>Foo.psc</Script></Scripts>
+              <PreBuildEvent Description="pre" UseInBuild="true"><Command>echo a</Command></PreBuildEvent>
+              <PostBuildEvent><Command>echo b</Command></PostBuildEvent>
+            </PapyrusProject>
+            """);
+
+        Assert.Empty(project.Ignored);
+    }
+
+    [Fact]
     public void Prohibits_dtd()
     {
         const string xml =

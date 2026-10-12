@@ -24,6 +24,10 @@ Releases are cut by hand from the Actions tab: run **Release** on `main` with a 
 
 Releases use an even minor version (4.0.x, 4.2.x) and previews an odd one (4.1.x, 4.3.x), so the two channels never collide and the newest preview always sorts above the latest release. After cutting a release with a new minor, bump `PREVIEW_VERSION_PREFIX` in `ci.yml` to the next odd minor. Tick **prerelease** on a manual release only if you want a hand-cut pre-release; untick **publish** for a dry run that only creates a draft GitHub release.
 
+## Release checklist
+
+- `docs/spec/ppj-pyro-parity.md` pins the Pyro commit whose `.ppj` schema the workspace was compared against. Before a release, diff `pyro/PapyrusProject.xsd` on Pyro's `master` against that pin and update the tables and the pin if anything changed.
+
 ## Commit messages
 
 Use `<type>: <subject>` with one of feat, fix, docs, style, refactor, perf, test or chore. Release notes are generated from merged PR titles.

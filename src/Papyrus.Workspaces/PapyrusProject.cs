@@ -22,7 +22,8 @@ public sealed class PapyrusProject
         AsmKind? asm = null,
         ImmutableArray<string> preBuild = default,
         ImmutableArray<string> postBuild = default,
-        string? path = null)
+        string? path = null,
+        ImmutableArray<string> ignored = default)
     {
         Game = game;
         Imports = imports.IsDefault ? ImmutableArray<string>.Empty : imports;
@@ -38,6 +39,7 @@ public sealed class PapyrusProject
         PreBuild = preBuild.IsDefault ? ImmutableArray<string>.Empty : preBuild;
         PostBuild = postBuild.IsDefault ? ImmutableArray<string>.Empty : postBuild;
         Path = path;
+        Ignored = ignored.IsDefault ? ImmutableArray<string>.Empty : ignored;
     }
 
     public GameId? Game { get; }
@@ -78,6 +80,14 @@ public sealed class PapyrusProject
 
     public string? Path { get; }
 
+    /// <summary>
+    /// Pyro-only <c>.ppj</c> content that was present but has no meaning to the workspace
+    /// (packaging, zipping, anonymizing, their events), in document order: element names as
+    /// written, attributes prefixed with <c>@</c>. The parser skips it; loaders tell the user
+    /// so nobody expects the editor to act on it. See <c>docs/spec/ppj-pyro-parity.md</c>.
+    /// </summary>
+    public ImmutableArray<string> Ignored { get; }
+
     public ProjectId Id => ProjectId.Create(Path ?? throw new InvalidOperationException("Project has no path."));
 
     public PapyrusProject WithPath(string path)
@@ -104,7 +114,8 @@ public sealed class PapyrusProject
             Asm,
             PreBuild,
             PostBuild,
-            full);
+            full,
+            Ignored);
     }
 
     public bool TryExpandEnvironmentVariables(out PapyrusProject expanded, out string missingName)
@@ -148,7 +159,8 @@ public sealed class PapyrusProject
             Asm,
             preBuild,
             postBuild,
-            Path);
+            Path,
+            Ignored);
         return true;
     }
 

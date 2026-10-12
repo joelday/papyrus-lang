@@ -203,6 +203,17 @@ internal static class ProjectLoading
                 }
             );
         }
+
+        if (!project.Ignored.IsEmpty)
+        {
+            messages.Add(
+                new LogMessageParams
+                {
+                    Type = MessageType.Info,
+                    Message = IgnoredProjectContent.Describe(ppj, project.Ignored),
+                }
+            );
+        }
     }
 
     internal static async Task LogAsync(ILspNotifier? notifier, List<LogMessageParams> messages, CancellationToken ct)
