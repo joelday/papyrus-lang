@@ -73,6 +73,10 @@
       {
         "command": "papyrus.viewAssembly",
         "title": "Papyrus: View Assembly"
+      },
+      {
+        "command": "papyrus.showWelcome",
+        "title": "Papyrus: Show Welcome"
       }
     ],
     "menus": {

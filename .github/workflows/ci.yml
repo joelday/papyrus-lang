@@ -9,9 +9,14 @@ name: CI
 #   native    the C++ xSE debug plugin (Skyrim SE, Fallout 4), only when native
 #             inputs changed or a release asks for it
 #
-# Every push to main is a preview build: its artifacts are what we are at between
-# releases. Releases are cut manually by release.yml, which calls this workflow
-# with a version and then publishes the artifacts it produced.
+# Every push to main is a preview: the VSIXs are published to the Marketplace
+# pre-release channel as <PREVIEW_VERSION_PREFIX>.<run number>. Releases are cut
+# manually by release.yml, which calls this workflow with a version and then
+# publishes the artifacts it produced.
+#
+# Marketplace rule: a pre-release and a release never share a version, and the
+# newest version wins within a channel. Previews use an odd minor, releases an
+# even one. After cutting 4.2.0, bump PREVIEW_VERSION_PREFIX to 4.3.
 
 on:
   pull_request:
@@ -48,17 +53,38 @@ concurrency:
 env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
-  # Artifact version. Preview builds are 0.0.0; releases pass the real one.
-  BUILD_VERSION: ${{ inputs.version || '0.0.0' }}
+  PREVIEW_VERSION_PREFIX: "4.1"
 
 jobs:
-  changes:
-    name: Detect changes
+  setup:
+    name: Setup
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       native: ${{ steps.decide.outputs.native }}
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
+      - id: version
+        # Releases pass a version; pushes to main are previews; everything else is 0.0.0.
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PRERELEASE: ${{ inputs.prerelease }}
+          IS_MAIN_PUSH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: |
+          if [[ -n "$INPUT_VERSION" ]]; then
+            echo "version=$INPUT_VERSION" >> "$GITHUB_OUTPUT"
+            echo "prerelease=$INPUT_PRERELEASE" >> "$GITHUB_OUTPUT"
+          elif [[ "$IS_MAIN_PUSH" == "true" ]]; then
+            echo "version=$PREVIEW_VERSION_PREFIX.$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=0.0.0" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+          cat "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -93,8 +119,11 @@ jobs:
 
   managed:
     name: Managed (${{ matrix.os }})
+    needs: setup
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
+    env:
+      BUILD_VERSION: ${{ needs.setup.outputs.version }}
     strategy:
       fail-fast: false
       matrix:
@@ -145,8 +174,11 @@ jobs:
 
   server:
     name: Server (${{ matrix.rid }})
+    needs: setup
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
+    env:
+      BUILD_VERSION: ${{ needs.setup.outputs.version }}
     strategy:
       fail-fast: false
       matrix:
@@ -234,7 +266,7 @@ jobs:
 
   vsix:
     name: VSIX (${{ matrix.target }})
-    needs: [server, extension]
+    needs: [setup, server, extension]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -278,8 +310,8 @@ jobs:
 
       - name: Package
         env:
-          VERSION_ARGS: ${{ inputs.version && format('{0} --no-git-tag-version --no-update-package-json', inputs.version) || '' }}
-          PRERELEASE_ARG: ${{ inputs.prerelease && '--pre-release' || '' }}
+          VERSION_ARGS: ${{ needs.setup.outputs.version != '0.0.0' && format('{0} --no-git-tag-version --no-update-package-json', needs.setup.outputs.version) || '' }}
+          PRERELEASE_ARG: ${{ needs.setup.outputs.prerelease == 'true' && '--pre-release' || '' }}
         run: >-
           npx vsce package $VERSION_ARGS $PRERELEASE_ARG
           --target ${{ matrix.target }}
@@ -291,15 +323,39 @@ jobs:
           path: src/papyrus-lang-vscode/*.vsix
           if-no-files-found: error
 
+  preview:
+    name: Publish preview
+    # Pushes to main only. PRs and release builds never reach this job.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [setup, vsix]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: vsix-*
+          path: vsix
+          merge-multiple: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Publish ${{ needs.setup.outputs.version }} to the pre-release channel
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
+        run: npx --yes @vscode/vsce@3 publish --pre-release --packagePath vsix/*.vsix
+
   native:
     name: Native debug plugin
-    needs: changes
-    if: needs.changes.outputs.native == 'true'
+    needs: setup
+    if: needs.setup.outputs.native == 'true'
     # The plugins target the v143 toolset; the VS 2026 image on windows-latest
     # no longer builds the CommonLib ports.
     runs-on: windows-2022
     timeout-minutes: 120
     env:
+      BUILD_VERSION: ${{ needs.setup.outputs.version }}
       VCPKG_ROOT: ${{ github.workspace }}/vcpkg
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-binary-cache
       # The vcpkg tool and its helper scripts (msys2 pins and the like). Port

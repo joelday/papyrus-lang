@@ -8,4 +8,5 @@ A ground-up rewrite. The extension now launches one native `Papyrus.LanguageServ
 
 - Linux and macOS are supported.
 - `.ppj` project files are discovered automatically; no Creation Kit paths or compiler settings.
+- A one-time welcome (**Papyrus: Show Welcome**) explains what changed, what is missing and how to go back to 3.x.
 - Live debugging is not yet available in this version. The xSE debug plugin is still built and published with each release and will be wired back into the extension in a later 4.x release.
