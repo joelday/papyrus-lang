@@ -8,12 +8,16 @@
 *.user
 *.userosscache
 *.sln.docstates
+.secrets
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
 # Build results
 [Dd]ebug/
+# VS [Dd]ebug/ also matches docs/debug/; keep the P5.04 spike notes.
+!docs/debug/
+!docs/debug/**
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
@@ -298,10 +302,6 @@ paket-files/
 __pycache__/
 *.pyc
 
-# Cake - Uncomment if you are using it
-# tools/**
-# !tools/packages.config
-
 # Tabs Studio
 *.tss
 
@@ -329,9 +329,8 @@ ASALocalRun/
 # MFractors (Xamarin productivity tool) working folder
 .mfractor/
 
-# Cake
-tools
-
-send.ps1
-
 vcpkg_installed
+
+# Local corpus and build output
+/corpus/
+/artifacts/

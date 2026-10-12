@@ -1,10 +1,7 @@
-debug-bin
-debug-plugin
-pyro
 out
+dist
 node_modules
 .vscode-test/
 *.vsix
-.env
-dist
-LICENSE*
+bin
+LICENSE

@@ -1,0 +1,2 @@
+ScriptName SkyrimStruct
+ObjectReference#Point Value

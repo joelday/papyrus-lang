@@ -2,7 +2,7 @@
 
 #include "GameInterfaces.h"
 
-#include "Protocol/protocol.h"
+#include <dap/protocol.h>
 #include "StateNodeBase.h"
 
 namespace DarkId::Papyrus::DebugServer
@@ -14,7 +14,7 @@ namespace DarkId::Papyrus::DebugServer
 	public:
 		StackStateNode(uint32_t stackId);
 
-		bool SerializeToProtocol(Thread& thread) const;
+		bool SerializeToProtocol(dap::Thread& thread) const;
 
 		bool GetChildNames(std::vector<std::string>& names) override;
 		bool GetChildNode(std::string name, std::shared_ptr<StateNodeBase>& node) override;

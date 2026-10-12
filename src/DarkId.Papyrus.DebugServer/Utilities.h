@@ -4,9 +4,14 @@
 #include <sstream>
 #include <regex>
 #include <boost/algorithm/string/replace.hpp>
+#include <dap/protocol.h>
 
 namespace DarkId::Papyrus::DebugServer
 {
+#define RETURN_DAP_ERROR(message) \
+	logger::error("{}", message); \
+	return dap::Error(message);
+
 	template<typename... Args>
 	std::string StringFormat(const char* fmt, Args... args)
 	{
@@ -112,25 +117,21 @@ namespace DarkId::Papyrus::DebugServer
 		boost::algorithm::replace_all(name, "\\\\", "/");
 		boost::algorithm::replace_all(name, "/", ":");
 		boost::algorithm::replace_all(name, ".psc", "");
-		//std::regex_replace(std::regex_replace(std::regex_replace(name, std::regex("\\\\"), "/"), std::regex("\\.psc"), ""), std::regex("/"), ":")
 		return name;
 	}
+
 	inline std::string ScriptNameToPathPrefix(std::string name) {
-		// TODO: We really need to stop relying on the file name in the compiled script header for the source name. This is just for testing.
-		// Most Fallout4 scripts will not be found.
-		// Get it from pyro?
-		//F:\\Games\\fallout_4_mods_folder\\mods\\Auto Loot\\scripts\\Source\\User\\AutoLoot\\dubhAutoLootQuestScript
-		//name = std::regex_replace(name, std::regex("[fF]:\\\\Games\\\\fallout_4_mods_folder\\\\mods\\\\Auto Loot\\\\Scripts\\\\Source\\\\User\\\\"), "");
-		//name = std::regex_replace(name, std::regex("[Gg]:\\\\_F4(\\\\[\\w\\d_]+)?\\\\Art\\\\Raw\\\\Scripts\\\\"), "");
 		boost::algorithm::replace_all(name, ":", "/");
 		return name;
 	}
+
 	inline std::string ScriptNameToPSCPath(std::string name) {
 		name = ScriptNameToPathPrefix(name);
 		boost::algorithm::replace_all(name, ".psc", "");
 		boost::algorithm::replace_all(name, ".pex", "");
 		return name + ".psc";
 	}
+
 	inline std::string ScriptNameToPEXPath(std::string name) {
 		name = ScriptNameToPathPrefix(name);
 		boost::algorithm::replace_all(name, ".psc", "");
@@ -138,4 +139,42 @@ namespace DarkId::Papyrus::DebugServer
 		return name + ".pex";
 	}
 
+	inline int GetScriptReference(const std::string& scriptName)
+	{
+		constexpr std::hash<std::string> hasher{};
+		std::string name = NormalizeScriptName(scriptName);
+		std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+
+		return std::abs(static_cast<int>(hasher(name))) + 1;
+	}
+
+	inline int GetSourceReference(const dap::Source& src) {
+		// If the source reference <= 0, it's invalid
+		if (src.sourceReference.value(0) > 0) {
+			return static_cast<int>(src.sourceReference.value());
+		}
+		if (!src.name.has_value()) {
+			return -1;
+		}
+		return GetScriptReference(src.name.value());
+	}
+
+	inline std::string GetSourceModfiedTime(const dap::Source & src) {
+		if (!src.checksums.has_value()) {
+			return "";
+		}
+		for (auto & checksum : src.checksums.value()) {
+			if (checksum.algorithm == "timestamp") {
+				return checksum.checksum;
+			}
+		}
+		return "";
+	}
+
+	inline bool CompareSourceModifiedTime(const dap::Source& src1, const dap::Source& src2) {
+		if (GetSourceModfiedTime(src1) != GetSourceModfiedTime(src2)) {
+			return false;
+		}
+		return true;
+	}
 }

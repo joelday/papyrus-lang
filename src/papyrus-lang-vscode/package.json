@@ -1,608 +1,198 @@
 {
-    "activationEvents": [
-        "onLanguage:papyrus",
-        "onLanguage:papyrus-project",
-        "workspaceContains:**/*.psc",
-        "workspaceContains:**/*.ppj",
-        "onDebug",
-        "onDebugInitialConfigurations",
-        "onDebugResolve:papyrus",
-        "onView:papyrus-projects"
+  "name": "papyrus-lang-vscode",
+  "displayName": "Papyrus",
+  "description": "Papyrus language support for Skyrim and Fallout 4 modding.",
+  "version": "4.0.0",
+  "engines": {
+    "vscode": "^1.134.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "activationEvents": [
+    "onLanguage:papyrus",
+    "onLanguage:papyrus-project",
+    "workspaceContains:**/*.ppj"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "aliases": [
+          "Papyrus"
+        ],
+        "configuration": "./syntaxes/papyrus/papyrus-language-configuration.json",
+        "extensions": [
+          ".psc"
+        ],
+        "id": "papyrus"
+      },
+      {
+        "aliases": [
+          "Papyrus Assembly"
+        ],
+        "extensions": [
+          ".disassemble.pas"
+        ],
+        "id": "papyrus-assembly"
+      },
+      {
+        "aliases": [
+          "Papyrus Project"
+        ],
+        "configuration": "./syntaxes/papyrus-project/papyrus-project-language-configuration.json",
+        "extensions": [
+          ".ppj"
+        ],
+        "id": "papyrus-project"
+      }
     ],
-    "author": {
-        "email": "joelday@gmail.com",
-        "name": "Joel Day",
-        "url": "https://github.com/joelday"
-    },
-    "bugs": {
-        "url": "https://github.com/joelday/papyrus-lang/issues"
-    },
-    "categories": [
-        "Programming Languages"
+    "grammars": [
+      {
+        "language": "papyrus",
+        "path": "./syntaxes/papyrus/papyrus.tmLanguage.json",
+        "scopeName": "source.papyrus"
+      },
+      {
+        "language": "papyrus-assembly",
+        "path": "./syntaxes/papyrus-assembly/papyrus-assembly.tmLanguage",
+        "scopeName": "source.papyrus assembly"
+      },
+      {
+        "language": "papyrus-project",
+        "path": "./syntaxes/papyrus-project/papyrus-project.json",
+        "scopeName": "text.xml.papyrus-project"
+      }
     ],
-    "contributes": {
-        "breakpoints": [
-            {
-                "language": "papyrus"
-            }
-        ],
-        "debuggers": [
-            {
-                "type": "papyrus",
-                "label": "Papyrus",
-                "languages": [
-                    "papyrus"
-                ],
-                "configurationAttributes": {
-                    "attach": {
-                        "properties": {
-                            "game": {
-                                "type": "string",
-                                "enum": [
-                                    "fallout4",
-                                    "skyrimSpecialEdition"
-                                ]
-                            },
-                            "projectPath": {
-                                "type": "string"
-                            }
-                        },
-                        "required": [
-                            "game"
-                        ]
-                    },
-                    "launch": {
-                        "properties": {
-                            "game": {
-                                "type": "string",
-                                "enum": [
-                                    "fallout4",
-                                    "skyrimSpecialEdition"
-                                ]
-                            },
-                            "projectPath": {
-                                "type": "string"
-                            }
-                        },
-                        "required": [
-                            "game"
-                        ]
-                    }
-                },
-                "configurationSnippets": [
-                    {
-                        "label": "Papyrus: Fallout 4",
-                        "body": {
-                            "name": "Fallout 4",
-                            "type": "papyrus",
-                            "request": "attach",
-                            "game": "fallout4"
-                        }
-                    },
-                    {
-                        "label": "Papyrus: Fallout 4 (with .ppj)",
-                        "body": {
-                            "name": "Fallout 4 Project",
-                            "type": "papyrus",
-                            "request": "attach",
-                            "game": "fallout4",
-                            "projectPath": "^\"\\${workspaceFolder}/${1:Project.ppj}\""
-                        }
-                    },
-                    {
-                        "label": "Papyrus: Skyrim Special Edition/Anniversary Edition",
-                        "body": {
-                            "name": "Skyrim",
-                            "type": "papyrus",
-                            "request": "attach",
-                            "game": "skyrimSpecialEdition"
-                        }
-                    },
-                    {
-                        "label": "Papyrus: Skyrim Special Edition/Anniversary Edition (with .ppj)",
-                        "body": {
-                            "name": "Skyrim Special Edition/Anniversary Edition Project",
-                            "type": "papyrus",
-                            "request": "attach",
-                            "game": "skyrimSpecialEdition",
-                            "projectPath": "^\"\\${workspaceFolder}/${1:Project.ppj}\""
-                        }
-                    }
-                ]
-            }
-        ],
-        "taskDefinitions": [
-            {
-                "type": "pyro",
-                "required": [
-                    "projectFile"
-                ],
-                "properties": {
-                    "projectFile": {
-                        "type": "string",
-                        "description": "The path to the PPJ file relative to workspace folder (required)."
-                    },
-                    "logPath": {
-                        "type": "string",
-                        "description": "relative or absolute path to build log folder (if relative, must be relative to current working directory)"
-                    },
-                    "anonymize": {
-                        "type": "boolean",
-                        "description": "Allow anonymization of scripts. False here will override but must also be enabled in ppj to run."
-                    },
-                    "archive": {
-                        "type": "boolean",
-                        "description": "Allow ppj to enable archiving. False here will override but must also be enabled in ppj to run."
-                    },
-                    "incremental": {
-                        "type": "boolean",
-                        "description": "Allow incremental builds. False here will override but must also be enabled in ppj to run."
-                    },
-                    "parallelize": {
-                        "type": "boolean",
-                        "description": "Allow parallel compilation tasks. False here will override but must also be enabled in ppj to run."
-                    },
-                    "workerLimit": {
-                        "type": "number",
-                        "description": "Maximum workers for parallel compilation. Default value is number of CPU cores."
-                    },
-                    "compilerPath": {
-                        "type": "string",
-                        "description": "Relative or absolute path to PapyrusCompiler.exe. If relative, must be relative to current working directory."
-                    },
-                    "flagsPath": {
-                        "type": "string",
-                        "description": "Relative or absolute path to Papyrus Flags file. If relative, must be relative to ppj file location."
-                    },
-                    "outputPath": {
-                        "type": "string",
-                        "description": "Relative or absolute path to output folder. If relative, must be relative to ppj file location."
-                    },
-                    "game": {
-                        "type": "string",
-                        "enum": [
-                            "fo4",
-                            "sse",
-                            "tesv"
-                        ],
-                        "description": "Set game type (choices: fo4, tesv, sse). Overrides type in ppj."
-                    },
-                    "gamePath": {
-                        "type": "string",
-                        "description": "Relative or absolute path to game install directory. If relative, must be relative to current working directory. Default is based on registry and value of 'game' option."
-                    },
-                    "registryPath": {
-                        "type": "string",
-                        "description": "Path to Installed Path key in Windows Registry for the game."
-                    },
-                    "bsarchPath": {
-                        "type": "string",
-                        "description": "Relative or absolute path to bsarch.exe. If relative, must be relative to current working directory."
-                    },
-                    "archivePath": {
-                        "type": "string",
-                        "description": "Relative or absolute path to bsa/ba2 output file. If relative, must be relative to ppj file location."
-                    },
-                    "tempPath": {
-                        "type": "string",
-                        "description": "Relative or absolute path to temp folder. If relative, must be relative to current working directory."
-                    }
-                }
-            }
-        ],
-        "problemMatchers": [
-            {
-                "name": "PapyrusCompiler",
-                "owner": "external",
-                "fileLocation": "absolute",
-                "pattern": {
-                    "regexp": "^(.*)\\((\\d+),(\\d+)\\):(.*)",
-                    "file": 1,
-                    "line": 2,
-                    "column": 3,
-                    "message": 4
-                }
-            }
-        ],
-        "configuration": {
-            "properties": {
-                "papyrus.fallout4.enabled": {
-                    "default": true,
-                    "type": "boolean",
-                    "markdownDescription": "Enable suppot for **Fallout 4**. Use the [Generate Project Files](command:papyrus.fallout4.generateProject) command to set up builds and the language server."
-                },
-                "papyrus.fallout4.creationKitIniFiles": {
-                    "default": [
-                        "CreationKit.ini",
-                        "CreationKitCustom.ini"
-                    ],
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "INI Files for Fallout 4 version of the Creation Kit."
-                },
-                "papyrus.fallout4.installPath": {
-                    "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Fallout 4\\",
-                    "type": "string",
-                    "description": "Pathname of the directory where Fallout 4 is installed."
-                },
-                "papyrus.fallout4.ignoreDebuggerVersion": {
-                    "default": false,
-                    "type": "boolean",
-                    "description": "Allow using old version of the debugger script extender plugin with Fallout 4."
-                },
-                "papyrus.fallout4.modDirectoryPath": {
-                    "default": "",
-                    "type": "string",
-                    "description": "If you want to use a mod manager to manage the debugger plugin as a mod, set this to the path of the directory where installed mods for Fallout 4 are kept. Otherwise it will be installed in the game directory."
-                },
-                "papyrus.skyrim.enabled": {
-                    "default": true,
-                    "type": "boolean",
-                    "description": "Enable support for Skyrim LE (\"Oldrim\"). This is not for Skyrim Special Edition/Anniversary Edition!"
-                },
-                "papyrus.skyrim.creationKitIniFiles": {
-                    "default": [
-                        "SkyrimEditor.ini"
-                    ],
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "INI Files for the Oldrim version of the Creation Kit."
-                },
-                "papyrus.skyrim.installPath": {
-                    "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim\\",
-                    "type": "string",
-                    "description": "Pathname of the directory where Oldrim Skyrim is installed."
-                },
-                "papyrus.skyrimSpecialEdition.enabled": {
-                    "default": true,
-                    "type": "boolean",
-                    "markdownDescription": "Enable support for **Skyrim Special Edition/Anniversary Edition**. Use the [Generate Project Files](command:papyrus.skyrimSpecialEdition.generateProject) command to set up the language server and builds."
-                },
-                "papyrus.skyrimSpecialEdition.creationKitIniFiles": {
-                    "default": [
-                        "CreationKit.ini",
-                        "CreationKitCustom.ini"
-                    ],
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "INI Files for the Skyrim Special Edition/Anniversary Edition version of the Creation Kit."
-                },
-                "papyrus.skyrimSpecialEdition.installPath": {
-                    "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition\\",
-                    "type": "string",
-                    "description": "Pathname of the directory where Skyrim Special Edition/Anniversary Edition is installed."
-                },
-                "papyrus.skyrimSpecialEdition.ignoreDebuggerVersion": {
-                    "default": false,
-                    "type": "boolean",
-                    "description": "Allow using old version of the debugger script extender plugin with Skyrim Special Edition/Anniversary Edition."
-                },
-                "papyrus.skyrimSpecialEdition.modDirectoryPath": {
-                    "default": "",
-                    "type": "string",
-                    "description": "If you want to use a mod manager to manage the debugger plugin as a mod, set this to the path of the directory where installed mods for Skyrim SE/AE are kept. Otherwise it will be installed in the game directory."
-                }
-            },
-            "title": "Papyrus",
-            "type": "object"
-        },
-        "grammars": [
-            {
-                "language": "papyrus",
-                "path": "./syntaxes/papyrus/papyrus.tmLanguage",
-                "scopeName": "source.papyrus"
-            },
-            {
-                "language": "papyrus-assembly",
-                "path": "./syntaxes/papyrus-assembly/papyrus-assembly.tmLanguage",
-                "scopeName": "source.papyrus assembly"
-            },
-            {
-                "language": "papyrus-project",
-                "path": "./syntaxes/papyrus-project/papyrus-project.json",
-                "scopeName": "text.xml.papyrus-project"
-            }
-        ],
-        "snippets": [
-            {
-                "language": "papyrus",
-                "path": "./snippets/papyrus/papyrus.json"
-            },
-            {
-                "language": "papyrus",
-                "path": "./snippets/papyrus/papyrus-fallout4.json"
-            }
-        ],
-        "languages": [
-            {
-                "aliases": [
-                    "Papyrus"
-                ],
-                "configuration": "./syntaxes/papyrus/papyrus-language-configuration.json",
-                "extensions": [
-                    ".psc"
-                ],
-                "id": "papyrus"
-            },
-            {
-                "aliases": [
-                    "Papyrus Assembly"
-                ],
-                "extensions": [
-                    ".disassemble.pas"
-                ],
-                "id": "papyrus-assembly"
-            },
-            {
-                "aliases": [
-                    "Papyrus Project"
-                ],
-                "configuration": "./syntaxes/papyrus-project/papyrus-project-language-configuration.json",
-                "extensions": [
-                    ".ppj"
-                ],
-                "id": "papyrus-project"
-            }
-        ],
-        "commands": [
-            {
-                "category": "Papyrus",
-                "command": "papyrus.searchCreationKitWiki",
-                "title": "Search Creation Kit Wiki"
-            },
-            {
-                "category": "Papyrus",
-                "command": "papyrus.fallout4.installDebuggerSupport",
-                "title": "Install Papyrus debugging support for Fallout 4"
-            },
-            {
-                "category": "Debug",
-                "command": "papyrus.fallout4.attachDebugger",
-                "title": "Attach to Fallout 4"
-            },
-            {
-                "category": "Papyrus",
-                "command": "papyrus.skyrimSpecialEdition.installDebuggerSupport",
-                "title": "Install Papyrus debugging support for Skyrim Special Edition/Anniversary Edition"
-            },
-            {
-                "category": "Debug",
-                "command": "papyrus.skyrimSpecialEdition.attachDebugger",
-                "title": "Attach to Skyrim Special Edition/Anniversary Edition"
-            },
-            {
-                "category": "Papyrus",
-                "command": "papyrus.viewAssembly",
-                "title": "View Papyrus Assembly"
-            },
-            {
-                "category": "Papyrus",
-                "command": "papyrus.skyrimSpecialEdition.generateProject",
-                "title": "Generate Skyrim Special Edition/Anniversary Edition Project Files"
-            },
-            {
-                "category": "Papyrus",
-                "command": "papyrus.skyrim.generateProject",
-                "title": "Generate Skyrim LE Project Files"
-            },
-            {
-                "category": "Papyrus",
-                "command": "papyrus.fallout4.generateProject",
-                "title": "Generate Fallout 4 Project Files"
-            },
-            {
-                "category": "Papyrus",
-                "command": "papyrus.showWelcome",
-                "title": "Show Getting Started Help"
-            }
-        ],
-        "menus": {
-            "commandPalette": [
-                {
-                    "command": "papyrus.viewAssembly",
-                    "when": "false"
-                },
-                {
-                    "command": "papyrus.searchCreationKitWiki",
-                    "when": "false"
-                }
-            ],
-            "editor/context": [
-                {
-                    "command": "papyrus.searchCreationKitWiki",
-                    "group": "a_papyrus",
-                    "when": "editorLangId == papyrus"
-                },
-                {
-                    "command": "papyrus.viewAssembly",
-                    "group": "a_papyrus",
-                    "when": "editorLangId == papyrus"
-                }
-            ],
-            "explorer/context": [
-                {
-                    "command": "papyrus.viewAssembly",
-                    "group": "a_papyrus",
-                    "when": "resourceLangId == papyrus"
-                },
-                {
-                    "command": "papyrus.skyrimSpecialEdition.generateProject",
-                    "group": "a_papyrus",
-                    "when": "config.papyrus.skyrimSpecialEdition.enabled && explorerResourceIsFolder"
-                },
-                {
-                    "command": "papyrus.skyrim.generateProject",
-                    "group": "a_papyrus",
-                    "when": "config.papyrus.skyrim.enabled && explorerResourceIsFolder"
-                },
-                {
-                    "command": "papyrus.fallout4.generateProject",
-                    "group": "a_papyrus",
-                    "when": "config.papyrus.fallout4.enabled && explorerResourceIsFolder"
-                }
-            ],
-            "view/title": [
-                {
-                    "command": "papyrus.fallout4.generateProject",
-                    "when": "view == papyrus-projects && config.papyrus.fallout4.enabled"
-                },
-                {
-                    "command": "papyrus.skyrimSpecialEdition.generateProject",
-                    "when": "view == papyrus-projects && config.papyrus.skyrimSpecialEdition.enabled"
-                },
-                {
-                    "command": "papyrus.skyrim.generateProject",
-                    "when": "view == papyrus-projects && config.papyrus.skyrim.enabled"
-                },
-                {
-                    "command": "papyrus.showWelcome",
-                    "when": "view == papyrus-projects"
-                }
-            ]
-        },
-        "viewsContainers": {
-            "activitybar": [
-                {
-                    "id": "papyrus-views",
-                    "title": "Papyrus",
-                    "icon": "resources/activitybar-scroll.svg"
-                }
-            ]
-        },
-        "views": {
-            "papyrus-views": [
-                {
-                    "id": "papyrus-projects",
-                    "name": "Project Explorer"
-                }
-            ]
+    "commands": [
+      {
+        "command": "papyrus.showOutputChannel",
+        "title": "Papyrus: Show Output Channel"
+      },
+      {
+        "command": "papyrus.viewAssembly",
+        "title": "Papyrus: View Assembly"
+      },
+      {
+        "command": "papyrus.showWelcome",
+        "title": "Papyrus: Show Welcome"
+      },
+      {
+        "command": "papyrus.locatePyro",
+        "title": "Papyrus: Locate Pyro"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "papyrus.viewAssembly",
+          "when": "editorLangId == papyrus"
         }
-    },
-    "contributors": [
+      ],
+      "editor/context": [
         {
-            "email": "joelday@gmail.com",
-            "name": "Joel Day",
-            "url": "https://github.com/joelday"
-        },
-        {
-            "email": "ScrivenerMods@gmail.com",
-            "name": "Scrivener07",
-            "url": "https://github.com/Scrivener07"
-        },
-        {
-            "name": "shad0wshayd3",
-            "url": "https://github.com/shad0wshayd3"
-        },
-        {
-            "name": "rjstone",
-            "url": "https://github.com/rjstone"
-        },
-        {
-            "name": "fireundubh",
-            "url": "https://github.com/fireundubh"
-        },
-        {
-            "name": "nikitalita",
-            "url": "https://github.com/nikitalita"
+          "command": "papyrus.viewAssembly",
+          "group": "a_papyrus",
+          "when": "editorLangId == papyrus"
         }
-    ],
-    "dependencies": {
-        "@semantic-release/exec": "^6.0.3",
-        "@types/semantic-release": "^17.2.4",
-        "deepmerge": "^4.2.2",
-        "fast-deep-equal": "^3.1.3",
-        "ini": "^3.0.1",
-        "inversify": "^6.0.1",
-        "md5-file": "^5.0.0",
-        "ps-list": "^6.3.0",
-        "reflect-metadata": "^0.1.13",
-        "rxjs": "^6.6.7",
-        "semver": "^7.3.8",
-        "vscode-debugprotocol": "^1.37.0",
-        "vscode-languageclient": "^5.2.1",
-        "winreg": "^1.2.4",
-        "xml-js": "^1.6.11"
-    },
-    "description": "Advanced language support for Bethesda Game Studio's Papyrus scripting language.",
-    "devDependencies": {
-        "@semantic-release/changelog": "^6.0.2",
-        "@semantic-release/git": "^10.0.1",
-        "@types/ini": "^1.3.31",
-        "@types/mocha": "^10.0.1",
-        "@types/node": "^18.11.18",
-        "@types/semver": "^7.3.13",
-        "@types/vscode": "^1.74.0",
-        "@types/winreg": "^1.2.31",
-        "@vscode/test-electron": "2.2.0",
-        "@vscode/vsce": "^2.16.0",
-        "cpr": "^3.0.1",
-        "fork-ts-checker-webpack-plugin": "^7.2.14",
-        "prettier": "^2.8.1",
-        "rimraf": "^3.0.2",
-        "semantic-release": "^19.0.5",
-        "ts-loader": "^9.4.2",
-        "ts-node": "^10.9.1",
-        "typescript": "^4.9.4",
-        "webpack": "^5.75.0",
-        "webpack-cli": "^5.0.1"
-    },
-    "displayName": "Papyrus",
-    "engines": {
-        "vscode": "^1.74.0"
-    },
-    "homepage": "https://github.com/joelday/papyrus-lang/tree/main/src/papyrus-lang-vscode",
-    "icon": "images/icon-small.png",
-    "keywords": [
-        "Papyrus",
-        "Fallout 4",
-        "Skyrim",
-        "Scripting",
-        "Modding",
-        "Creation Kit"
-    ],
-    "main": "./dist/PapyrusExtension",
-    "maintainers": [
+      ],
+      "explorer/context": [
         {
-            "email": "joelday@gmail.com",
-            "name": "Joel Day",
-            "url": "https://github.com/joelday"
+          "command": "papyrus.viewAssembly",
+          "group": "a_papyrus",
+          "when": "resourceLangId == papyrus"
         }
-    ],
-    "name": "papyrus-lang-vscode",
-    "preview": false,
-    "private": true,
-    "publisher": "joelday",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/joelday/papyrus-lang"
+      ]
     },
-    "sponsor": {
-        "url": "https://github.com/sponsors/joelday"
+    "configuration": {
+      "title": "Papyrus",
+      "properties": {
+        "papyrus.server.path": {
+          "type": "string",
+          "default": "",
+          "description": "Overrides the path to the Papyrus.LanguageServer executable. Leave empty to use the version bundled with this extension."
+        },
+        "papyrus.pyro.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Pyro executable, for projects that rely on Pyro. Pyro is not bundled with the extension; use \"Papyrus: Locate Pyro\" to set this."
+        }
+      }
     },
-    "scripts": {
-        "copy-bin": "rimraf ./bin && cpr ../DarkId.Papyrus.Host/bin/ ./bin/ -o",
-        "copy-debug-bin": "rimraf ./debug-bin && cpr ../DarkId.Papyrus.DebugAdapterProxy/bin/ ./debug-bin/ -o",
-        "copy-license": "cpr ../../LICENSE ./LICENSE -o",
-        "clean": "rimraf dist",
-        "compile": "webpack --mode development",
-        "compile:release": "webpack --mode production",
-        "test": "npm run compile && node ./node_modules/vscode/bin/test",
-        "generate-version-number": "ts-node ./scripts/generate-version-number.ts",
-        "semantic-release": "npm run copy-license && semantic-release"
+    "configurationDefaults": {
+      "[papyrus]": {
+        "editor.semanticHighlighting.enabled": true,
+        "editor.formatOnType": true
+      }
     },
-    "version": "3.0.0",
-    "prettier": {
-        "tabWidth": 4,
-        "singleQuote": true,
-        "trailingComma": "es5",
-        "bracketSpacing": true,
-        "arrowParens": "always",
-        "printWidth": 120
-    }
+    "snippets": [
+      {
+        "language": "papyrus",
+        "path": "./snippets/papyrus/papyrus.json"
+      },
+      {
+        "language": "papyrus",
+        "path": "./snippets/papyrus/papyrus-fallout4.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "build-server": "node scripts/build-server.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test",
+    "test:unit": "cross-env TS_NODE_PROJECT=tsconfig.unit-tests.json mocha",
+    "package:vsix": "vsce package"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "24.x",
+    "@types/vscode": "^1.134.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.0.0",
+    "cross-env": "^10.1.0",
+    "esbuild": "^0.28.1",
+    "eslint": "^10.5.0",
+    "mocha": "^11.8.0",
+    "npm-run-all": "^4.1.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.61.1",
+    "@vscode/vsce": "^3.6.0"
+  },
+  "overrides": {
+    "diff": "^8.0.4",
+    "serialize-javascript": "^7.0.6"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "publisher": "joelday",
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joelday/papyrus-lang"
+  },
+  "bugs": {
+    "url": "https://github.com/joelday/papyrus-lang/issues"
+  },
+  "homepage": "https://github.com/joelday/papyrus-lang",
+  "keywords": [
+    "papyrus",
+    "skyrim",
+    "fallout 4",
+    "starfield",
+    "creation kit"
+  ]
 }

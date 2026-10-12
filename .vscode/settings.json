@@ -1,5 +1,6 @@
 {
   "omnisharp.disableMSBuildDiagnosticWarning": true,
   "editor.formatOnSave": true,
-  "papyrus.fallout4.ignoreDebuggerVersion": true
+  "papyrus.fallout4.ignoreDebuggerVersion": true,
+  "C_Cpp.default.cppStandard": "c++23"
 }

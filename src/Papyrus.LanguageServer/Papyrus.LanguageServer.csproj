@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- RID is passed at publish (CI smokes win-x64, linux-x64, osx-arm64). Do not bake RuntimeIdentifier. -->
+    <PublishAot>true</PublishAot>
+    <IsAotCompatible>true</IsAotCompatible>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="StreamJsonRpc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Papyrus.Workspaces\Papyrus.Workspaces.csproj" />
+    <ProjectReference Include="..\Papyrus.CodeAnalysis\Papyrus.CodeAnalysis.csproj" />
+    <InternalsVisibleTo Include="Papyrus.LanguageServer.Tests" />
+  </ItemGroup>
+</Project>

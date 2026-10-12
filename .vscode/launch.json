@@ -5,47 +5,17 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch (Full build)",
+      // Builds the extension (esbuild) and the language server, then opens
+      // an Extension Development Host.
+      "name": "Launch papyrus-lang-vscode",
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
-      "preLaunchTask": "build",
+      "preLaunchTask": "buildAll",
       "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
+        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode",
       ],
-      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
-    },
-    {
-      "name": "Launch (Build and copy binaries only)",
-      "type": "extensionHost",
-      "request": "launch",
-      "runtimeExecutable": "${execPath}",
-      "preLaunchTask": "updateBin",
-      "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
-      ],
-      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
-    },
-    {
-      "name": "Launch (Build extension only)",
-      "type": "extensionHost",
-      "request": "launch",
-      "runtimeExecutable": "${execPath}",
-      "preLaunchTask": "buildExtension",
-      "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
-      ],
-      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
-    },
-    {
-      "name": "Launch (No build)",
-      "type": "extensionHost",
-      "request": "launch",
-      "runtimeExecutable": "${execPath}",
-      "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/src/papyrus-lang-vscode"
-      ],
-      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/out/**/*.js"]
+      "outFiles": ["${workspaceFolder}/src/papyrus-lang-vscode/dist/**/*.js"]
     }
   ]
 }

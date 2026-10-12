@@ -2,7 +2,7 @@
 #if FALLOUT
 #include "GameInterfaces.h"
 
-#include "Protocol/protocol.h"
+#include <dap/protocol.h>
 #include "StateNodeBase.h"
 
 namespace DarkId::Papyrus::DebugServer
@@ -16,7 +16,7 @@ namespace DarkId::Papyrus::DebugServer
 	public:
 		StructStateNode(std::string name, RE::BSScript::Struct* value, RE::BSScript::StructTypeInfo* knownType);
 
-		bool SerializeToProtocol(Variable& variable) override;
+		bool SerializeToProtocol(dap::Variable& variable) override;
 
 		bool GetChildNames(std::vector<std::string>& names) override;
 		bool GetChildNode(std::string name, std::shared_ptr<StateNodeBase>& node) override;

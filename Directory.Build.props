@@ -1,0 +1,17 @@
+<Project>
+  <!-- Managed settings apply to Papyrus.* only; the native DebugServer vcxprojs also import this file and must not inherit them. -->
+  <PropertyGroup>
+    <PapyrusIsNewTree Condition="$(MSBuildProjectName.StartsWith('Papyrus.'))">true</PapyrusIsNewTree>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(PapyrusIsNewTree)' == 'true'">
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <IsPackable>false</IsPackable>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

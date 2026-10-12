@@ -4,44 +4,36 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build",
+      // Builds the extension via its own npm scripts (tsc + eslint + esbuild). Used as the
+      // preLaunchTask for "Launch papyrus-lang-vscode" in launch.json.
+      "label": "buildExtension",
+      "type": "npm",
+      "script": "compile",
+      "path": "src/papyrus-lang-vscode",
       "group": {
         "kind": "build",
         "isDefault": true
       },
-      "windows": {
-        "command": "dotnet",
-        "args": [
-          "cake"
-        ]
-      },
-      "problemMatcher": ["$tsc", "$msCompile"]
+      "problemMatcher": ["$tsc"]
     },
     {
-      "label": "updateBin",
-      "windows": {
-        "command": "dotnet",
-        "args": [
-          "cake",
-          "--target=\"update-bin\""
-        ]
-      },
-      "command": "./build.sh",
-      "args": ["--target=\"update-bin\""],
-      "problemMatcher": ["$tsc", "$msCompile"]
+      // Publishes the NativeAOT Papyrus.LanguageServer into
+      // src/papyrus-lang-vscode/bin/<rid>/, where the extension looks for
+      // it. ~20s when nothing changed (the AOT link always reruns).
+      "label": "buildServer",
+      "type": "npm",
+      "script": "build-server",
+      "path": "src/papyrus-lang-vscode",
+      "problemMatcher": ["$msCompile"]
     },
     {
-      "label": "buildExtension",
-      "windows": {
-        "command": "dotnet",
-        "args": [
-          "cake",
-          "--target=\"build-extension\""
-        ]
-      },
-      "command": "./build.sh",
-      "args": ["--target=\"build-extension\""],
-      "problemMatcher": ["$tsc", "$msCompile"]
+      // Everything the dev host runs: the extension bundle and the bundled
+      // language server. Every papyrus-lang-vscode launch runs this, so the
+      // dev host never picks up a stale build of either.
+      "label": "buildAll",
+      "dependsOn": ["buildExtension", "buildServer"],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
     }
   ]
 }

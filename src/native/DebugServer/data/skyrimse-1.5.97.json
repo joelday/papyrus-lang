@@ -1,0 +1,14 @@
+{
+  "pPapyrusEnableLogging": { "se": 510627, "ae": 383715 },
+  "pPapyrusEnableTrace": { "se": 510667, "ae": 383766 },
+  "pPapyrusLoadDebugInformation": { "se": 510650, "ae": 383743 },
+  "pControlsBackgroundMouse": { "se": 511920, "ae": 388493 },
+  "pControlsBackgroundMouseDynamicInitializer": { "se": 9099, "ae": 9144 },
+  "InitWindows": { "se": 75591, "ae": 77226 },
+  "bsrendererBegin": { "se": 75460, "ae": 77245 },
+  "GetInstructionNumberForOffset": { "se": 97807, "ae": 104551 },
+  "VM_ctor": { "se": 53108, "ae": 53919 },
+  "CodeTaskletProcess": { "se": 98520, "ae": 105176 },
+  "CreateStack": { "se": 98146, "ae": 104870 },
+  "CleanupStack": { "se": 98149, "ae": 104873 }
+}

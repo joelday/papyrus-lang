@@ -1,0 +1,122 @@
+name: Release
+
+# Cut a release by hand from the Actions tab. Nothing is released automatically.
+#
+#   1. Builds everything through ci.yml with the given version (native plugin included).
+#   2. Creates the git tag and a GitHub release holding every artifact.
+#   3. Publishes the platform VSIXs to the Marketplace.
+#
+# Marketplace rules worth remembering:
+#   - Versions are X.Y.Z only. No -beta suffixes.
+#   - A pre-release and a release must never share a version. Convention: odd minor
+#     versions for pre-releases (4.1.x), even for releases (4.2.x).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release (X.Y.Z)
+        required: true
+        type: string
+      prerelease:
+        description: Publish as a Marketplace pre-release
+        type: boolean
+        default: false
+      publish:
+        description: Publish to the Marketplace (untick to only create a draft GitHub release)
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check inputs
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "::error::Releases are cut from main only (got $GITHUB_REF)."
+            exit 1
+          fi
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must be X.Y.Z (got '$VERSION')."
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null; then
+            echo "::error::Tag v$VERSION already exists."
+            exit 1
+          fi
+
+  build:
+    name: Build
+    needs: validate
+    uses: ./.github/workflows/ci.yml
+    with:
+      version: ${{ inputs.version }}
+      prerelease: ${{ inputs.prerelease }}
+      build_native: true
+
+  publish:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Assemble release assets
+        run: |
+          mkdir -p release
+          cp artifacts/vsix-*/*.vsix release/
+          (cd artifacts/debug-plugin && zip -r "../../release/papyrus-debug-plugin-$VERSION.zip" .)
+          for dir in artifacts/papyrusc-*; do
+            rid="${dir#artifacts/papyrusc-}"
+            if [[ "$rid" == win-* ]]; then
+              (cd "$dir" && zip -r "../../release/papyrusc-$VERSION-$rid.zip" .)
+            else
+              tar -C "$dir" -czf "release/papyrusc-$VERSION-$rid.tar.gz" .
+            fi
+          done
+          ls -la release
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRERELEASE_FLAG: ${{ inputs.prerelease && '--prerelease' || '' }}
+          DRAFT_FLAG: ${{ !inputs.publish && '--draft' || '' }}
+        run: >-
+          gh release create "v$VERSION" release/*
+          --target "$GITHUB_SHA"
+          --title "v$VERSION"
+          --generate-notes
+          $PRERELEASE_FLAG $DRAFT_FLAG
+
+      - uses: actions/setup-node@v4
+        if: inputs.publish
+        with:
+          node-version: 22
+
+      - name: Publish to the Marketplace
+        if: inputs.publish
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
+          PRERELEASE_FLAG: ${{ inputs.prerelease && '--pre-release' || '' }}
+        run: npx --yes @vscode/vsce@3 publish $PRERELEASE_FLAG --packagePath release/*.vsix

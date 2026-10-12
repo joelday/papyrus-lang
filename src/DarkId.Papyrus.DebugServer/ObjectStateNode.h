@@ -1,7 +1,7 @@
 #pragma once
 
 #include "GameInterfaces.h"
-#include "Protocol/protocol.h"
+#include <dap/protocol.h>
 
 #include "StateNodeBase.h"
 #include <map>
@@ -18,7 +18,7 @@ namespace DarkId::Papyrus::DebugServer
 	public:
 		ObjectStateNode(std::string name, RE::BSScript::Object* value, RE::BSScript::ObjectTypeInfo* asClass, bool subView = false);
 
-		bool SerializeToProtocol(Variable& variable) override;
+		bool SerializeToProtocol(dap::Variable& variable) override;
 
 		bool GetChildNames(std::vector<std::string>& names) override;
 		bool GetChildNode(std::string name, std::shared_ptr<StateNodeBase>& node) override;

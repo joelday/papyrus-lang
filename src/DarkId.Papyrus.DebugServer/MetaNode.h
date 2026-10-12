@@ -27,7 +27,7 @@ namespace DarkId::Papyrus::DebugServer
 		{
 		}
 
-		bool SerializeToProtocol(Variable& variable) override
+		bool SerializeToProtocol(dap::Variable& variable) override
 		{
 			variable.name = m_name;
 			variable.type = std::string(typeid(T).name());
@@ -54,7 +54,7 @@ namespace DarkId::Papyrus::DebugServer
 		{
 		}
 
-		bool SerializeToProtocol(Variable& variable) override
+		bool SerializeToProtocol(dap::Variable& variable) override
 		{
 			variable.name = m_name;
 			variable.type = std::string(typeid(T).name());
@@ -113,7 +113,7 @@ namespace DarkId::Papyrus::DebugServer
 		{
 		}
 
-		bool SerializeToProtocol(Variable& variable) override
+		bool SerializeToProtocol(dap::Variable& variable) override
 		{
 			variable.variablesReference = GetId();
 			variable.namedVariables = meta::getMemberCount<NonPtrClass>();

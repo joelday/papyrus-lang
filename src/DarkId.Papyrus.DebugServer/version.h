@@ -8,6 +8,8 @@
 #define DIDPDS_DLL_NAME "DarkId.Papyrus.DebugServer.Skyrim.dll"
 #elif FALLOUT
 #define DIDPDS_DLL_NAME "DarkId.Papyrus.DebugServer.Fallout4.dll"
+#elif STARFIELD
+#define DIDPDS_DLL_NAME "DarkId.Papyrus.DebugServer.Starfield.dll"
 #endif
 
 #ifndef DIDPDS_VERSION_MAJOR

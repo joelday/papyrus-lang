@@ -1,0 +1,430 @@
+name: CI
+
+# One workflow for everything that is built from this repo:
+#
+#   managed   build + tests for Papyrus.sln (Linux and Windows)
+#   server    NativeAOT publish of papyrusc and Papyrus.LanguageServer per RID
+#   extension lint, type-check and unit tests for the VS Code extension
+#   vsix      one platform-specific VSIX per target, bundling that platform's server
+#   native    the C++ xSE debug plugin (Skyrim SE, Fallout 4), only when native
+#             inputs changed or a release asks for it
+#
+# Every push to main is a preview: the VSIXs are published to the Marketplace
+# pre-release channel as <PREVIEW_VERSION_PREFIX>.<run number>. Releases are cut
+# manually by release.yml, which calls this workflow with a version and then
+# publishes the artifacts it produced.
+#
+# Marketplace rule: a pre-release and a release never share a version, and the
+# newest version wins within a channel. Previews use an odd minor, releases an
+# even one. After cutting 4.2.0, bump PREVIEW_VERSION_PREFIX to 4.3.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      build_native:
+        description: Build the native debug plugin even if nothing native changed
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      version:
+        description: Version to stamp on every artifact (X.Y.Z)
+        type: string
+        required: true
+      prerelease:
+        description: Package the VSIX as a Marketplace pre-release
+        type: boolean
+        default: false
+      build_native:
+        description: Always build the native debug plugin
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  PREVIEW_VERSION_PREFIX: "4.1"
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      native: ${{ steps.decide.outputs.native }}
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - id: version
+        # Releases pass a version; pushes to main are previews; everything else is 0.0.0.
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PRERELEASE: ${{ inputs.prerelease }}
+          IS_MAIN_PUSH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: |
+          if [[ -n "$INPUT_VERSION" ]]; then
+            echo "version=$INPUT_VERSION" >> "$GITHUB_OUTPUT"
+            echo "prerelease=$INPUT_PRERELEASE" >> "$GITHUB_OUTPUT"
+          elif [[ "$IS_MAIN_PUSH" == "true" ]]; then
+            echo "version=$PREVIEW_VERSION_PREFIX.$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=0.0.0" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+          cat "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: filter
+        # Skipped when the build is forced, so a manual or release run never
+        # depends on a diff against the default branch.
+        if: inputs.build_native != true
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            native:
+              - 'src/DarkId.Papyrus.DebugServer/**'
+              - 'src/native/**'
+              - 'dependencies/**'
+              - 'vcpkg.json'
+              - 'vcpkg-configuration.json'
+              - 'DarkId.Papyrus.DebugServer.sln'
+              - '.github/workflows/ci.yml'
+
+      - id: decide
+        shell: bash
+        env:
+          FORCED: ${{ inputs.build_native }}
+          CHANGED: ${{ steps.filter.outputs.native }}
+        run: |
+          if [[ "$FORCED" == "true" || "$CHANGED" == "true" ]]; then
+            echo "native=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "native=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  managed:
+    name: Managed (${{ matrix.os }})
+    needs: setup
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      BUILD_VERSION: ${{ needs.setup.outputs.version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Packages.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Check for Bethesda binaries
+        shell: bash
+        run: bash scripts/check-no-bethesda-binaries.sh
+
+      - name: Restore
+        run: dotnet restore Papyrus.sln
+
+      - name: Build
+        run: dotnet build Papyrus.sln --no-restore --configuration Release -p:Version=${{ env.BUILD_VERSION }}
+
+      - name: Test
+        run: >-
+          dotnet test Papyrus.sln --no-build --configuration Release
+          --logger "trx" --results-directory artifacts/test-results
+
+      - name: Differential compliance
+        # Skips with exit 0 when ./corpus is absent; public CI never has game files.
+        run: >-
+          dotnet run --no-build --no-restore --configuration Release
+          --project src/Papyrus.Compiler/Papyrus.Compiler.csproj
+          -- verify --compile --game skyrimse
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: artifacts/test-results
+          if-no-files-found: ignore
+
+  server:
+    name: Server (${{ matrix.rid }})
+    needs: setup
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      BUILD_VERSION: ${{ needs.setup.outputs.version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            exe: .exe
+          - os: ubuntu-latest
+            rid: linux-x64
+            exe: ""
+          - os: macos-latest
+            rid: osx-arm64
+            exe: ""
+          - os: macos-latest
+            rid: osx-x64
+            exe: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Packages.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Publish papyrusc
+        run: >-
+          dotnet publish src/Papyrus.Compiler -c Release -r ${{ matrix.rid }}
+          -p:Version=${{ env.BUILD_VERSION }} -o artifacts/papyrusc-${{ matrix.rid }}
+
+      - name: Publish language server
+        run: >-
+          dotnet publish src/Papyrus.LanguageServer -c Release -r ${{ matrix.rid }}
+          -p:Version=${{ env.BUILD_VERSION }} -o artifacts/server-${{ matrix.rid }}
+
+      - name: Smoke
+        # osx-x64 is cross-compiled on the arm64 runner and runs under Rosetta there.
+        shell: bash
+        run: |
+          artifacts/papyrusc-${{ matrix.rid }}/papyrusc${{ matrix.exe }} --version
+          artifacts/server-${{ matrix.rid }}/Papyrus.LanguageServer${{ matrix.exe }} --version
+
+      - name: Upload papyrusc
+        uses: actions/upload-artifact@v4
+        with:
+          name: papyrusc-${{ matrix.rid }}
+          path: artifacts/papyrusc-${{ matrix.rid }}
+          if-no-files-found: error
+
+      - name: Upload language server
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-${{ matrix.rid }}
+          path: artifacts/server-${{ matrix.rid }}
+          if-no-files-found: error
+
+  extension:
+    name: Extension
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: src/papyrus-lang-vscode
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/papyrus-lang-vscode/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run check-types
+
+      - run: npm run lint
+
+      - run: npm run test:unit
+
+  vsix:
+    name: VSIX (${{ matrix.target }})
+    needs: [setup, server, extension]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: win32-x64
+            rid: win-x64
+          - target: linux-x64
+            rid: linux-x64
+          - target: darwin-x64
+            rid: osx-x64
+          - target: darwin-arm64
+            rid: osx-arm64
+    defaults:
+      run:
+        working-directory: src/papyrus-lang-vscode
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/papyrus-lang-vscode/package-lock.json
+
+      - run: npm ci
+
+      - name: Bundle language server
+        uses: actions/download-artifact@v4
+        with:
+          name: server-${{ matrix.rid }}
+          path: src/papyrus-lang-vscode/bin/${{ matrix.rid }}
+
+      - name: Restore executable bit
+        if: matrix.rid != 'win-x64'
+        run: chmod +x bin/${{ matrix.rid }}/Papyrus.LanguageServer
+
+      - name: Copy license
+        run: cp ../../LICENSE LICENSE
+
+      - name: Package
+        env:
+          VERSION_ARGS: ${{ needs.setup.outputs.version != '0.0.0' && format('{0} --no-git-tag-version --no-update-package-json', needs.setup.outputs.version) || '' }}
+          PRERELEASE_ARG: ${{ needs.setup.outputs.prerelease == 'true' && '--pre-release' || '' }}
+        run: >-
+          npx vsce package $VERSION_ARGS $PRERELEASE_ARG
+          --target ${{ matrix.target }}
+          --out papyrus-lang-vscode-${{ matrix.target }}.vsix
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vsix-${{ matrix.target }}
+          path: src/papyrus-lang-vscode/*.vsix
+          if-no-files-found: error
+
+  preview:
+    name: Publish preview
+    # Pushes to main only. PRs and release builds never reach this job.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [setup, vsix]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: vsix-*
+          path: vsix
+          merge-multiple: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Publish ${{ needs.setup.outputs.version }} to the pre-release channel
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
+        run: npx --yes @vscode/vsce@3 publish --pre-release --packagePath vsix/*.vsix
+
+  native:
+    name: Native debug plugin
+    needs: setup
+    if: needs.setup.outputs.native == 'true'
+    # The plugins target the v143 toolset; the VS 2026 image on windows-latest
+    # no longer builds the CommonLib ports.
+    runs-on: windows-2022
+    timeout-minutes: 120
+    env:
+      BUILD_VERSION: ${{ needs.setup.outputs.version }}
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-binary-cache
+      # The vcpkg tool and its helper scripts (msys2 pins and the like). Port
+      # versions come from the baseline in vcpkg-configuration.json, not from this.
+      VCPKG_TAG: "2026.07.29"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore previously built plugin
+        # Keyed on every native input, so an unchanged plugin is never rebuilt.
+        id: plugin-cache
+        uses: actions/cache@v4
+        with:
+          path: artifacts/debug-plugin
+          key: debug-plugin-${{ env.BUILD_VERSION }}-${{ hashFiles('src/DarkId.Papyrus.DebugServer/**', 'src/native/**', 'dependencies/**', 'vcpkg.json', 'vcpkg-configuration.json', 'DarkId.Papyrus.DebugServer.sln') }}
+
+      - name: Cache vcpkg packages
+        if: steps.plugin-cache.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            vcpkg_installed
+            vcpkg-binary-cache
+          key: vcpkg-${{ env.VCPKG_TAG }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'dependencies/ports/**') }}
+          restore-keys: vcpkg-${{ env.VCPKG_TAG }}-
+
+      - name: Set up vcpkg
+        if: steps.plugin-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          git clone --quiet --depth 1 --branch $env:VCPKG_TAG https://github.com/microsoft/vcpkg.git $env:VCPKG_ROOT
+          New-Item -ItemType Directory -Force $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
+          & "$env:VCPKG_ROOT/bootstrap-vcpkg.bat" -disableMetrics
+          & "$env:VCPKG_ROOT/vcpkg.exe" integrate install
+
+      - name: Install vcpkg packages
+        if: steps.plugin-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          & "$env:VCPKG_ROOT/vcpkg.exe" install --triplet x64-windows-static --x-install-root=vcpkg_installed/skyrim --x-feature=skyrim
+          & "$env:VCPKG_ROOT/vcpkg.exe" install --triplet x64-windows-static --x-install-root=vcpkg_installed/fallout4 --x-feature=fallout4
+
+      - uses: microsoft/setup-msbuild@v2
+        if: steps.plugin-cache.outputs.cache-hit != 'true'
+
+      - name: Build
+        if: steps.plugin-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $parts = $env:BUILD_VERSION.Split('.')
+          $props = "/p:Configuration=Release", "/p:Platform=x64", "/p:VersionMajor=$($parts[0])", "/p:VersionMinor=$($parts[1])", "/p:VersionPatch=$($parts[2])", "/p:VersionBuild=0", "/m:1", "/v:minimal", "/nologo"
+          # One project at a time: the two projects use separate vcpkg install roots.
+          msbuild src/DarkId.Papyrus.DebugServer/DarkId.Papyrus.DebugServer.Skyrim.vcxproj @props
+          msbuild src/DarkId.Papyrus.DebugServer/DarkId.Papyrus.DebugServer.Fallout4.vcxproj @props
+
+      - name: Collect
+        if: steps.plugin-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $out = "artifacts/debug-plugin"
+          New-Item -ItemType Directory -Force "$out/data" | Out-Null
+          $bin = "src/DarkId.Papyrus.DebugServer/bin"
+          Copy-Item "$bin/DarkId.Papyrus.DebugServer.Skyrim/x64/Release/DarkId.Papyrus.DebugServer.Skyrim.dll" $out
+          Copy-Item "$bin/DarkId.Papyrus.DebugServer.Fallout4/x64/Release/DarkId.Papyrus.DebugServer.Fallout4.dll" $out
+          Copy-Item "src/native/DebugServer/data/*.json" "$out/data"
+          Get-ChildItem -Recurse $out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: debug-plugin
+          path: artifacts/debug-plugin
+          if-no-files-found: error

@@ -1,0 +1,1 @@
+ScriptName A:B:SkyrimNamespace

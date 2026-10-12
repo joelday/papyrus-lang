@@ -2,7 +2,7 @@
 
 #include "GameInterfaces.h"
 
-#include "Protocol/protocol.h"
+#include <dap/protocol.h>
 #include "PexCache.h"
 #include "StateNodeBase.h"
 
@@ -15,7 +15,7 @@ namespace DarkId::Papyrus::DebugServer
 	public:
 		explicit StackFrameStateNode(RE::BSScript::StackFrame* stackFrame);
 
-		bool SerializeToProtocol(StackFrame& stackFrame, PexCache* pexCache) const;
+		bool SerializeToProtocol(dap::StackFrame& stackFrame, PexCache* pexCache) const;
 
 		bool GetChildNames(std::vector<std::string>& names) override;
 		bool GetChildNode(std::string name, std::shared_ptr<StateNodeBase>& node) override;

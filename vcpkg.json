@@ -12,7 +12,8 @@
     "champollion",
     "eventpp",
     "websocketpp",
-    "xbyak"
+    "xbyak",
+    "cppdap"
   ],
   "features": {
     "skyrim": {
@@ -26,12 +27,21 @@
       "dependencies": [
         "commonlibf4"
       ]
+    },
+    "starfield": {
+      "description": "Add deps for Starfield",
+      "dependencies": [
+        {
+          "name": "commonlibsf",
+          "features": ["xbyak"]
+        }
+      ]
     }
   },
   "overrides": [
     {
       "name": "nlohmann-json",
-      "version": "3.7.0"
+      "version": "3.11.2"
     },
     {
       "name": "eventpp",
@@ -42,17 +52,12 @@
       "version": "0.8.2"
     },
     {
-      "name": "commonlibsse-ng",
-      "version": "3.6.0"
-    },
-    {
       "name": "commonlibf4",
-      "version-string": "2022-12-24"
+      "version": "2024.7.2"
     },
     {
-      "name": "f4se",
-      "version": "0.6.23"
+      "name": "fmt",
+      "version": "10.2.1#2"
     }
-  ],
-  "builtin-baseline": "4cb4a5c5ddcb9de0c83c85837ee6974c8333f032"
+  ]
 }

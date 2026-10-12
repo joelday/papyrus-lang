@@ -2,11 +2,16 @@
     "configurations": [
         {
             "name": "Skyrim",
+            "compilerArgs": [
+                "/utf-8"
+            ],
             "includePath": [
                 "${workspaceFolder}/dependencies/MetaStuff/include",
                 "${workspaceFolder}/dependencies",
                 "${workspaceFolder}/src/DarkId.Papyrus.DebugServer",
-                "${workspaceFolder}/vcpkg_installed/skyrim/x64-windows-static/include"
+                "${workspaceFolder}/src/DarkId.Papyrus.DebugServer/Protocol",
+                "${workspaceFolder}/vcpkg_installed/skyrim/x64-windows-static/include",
+                "${workspaceFolder}/vcpkg_installed/skyrim/x64-windows-static/include/Champollion"
             ],
             "defines": [
                 "WIN32",
@@ -17,7 +22,9 @@
                 "DARKID_PAPYRUS_DEBUGSERVER_EXPORTS",
                 "SKSE_SUPPORT_XBYAK"
             ],
-            "forcedInclude": ["pdsPCH.h"],
+            "forcedInclude": [
+                "pdsPCH.h"
+            ],
             "windowsSdkVersion": "10.0.18362.0",
             "compilerPath": "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.34.31933/bin/Hostx64/x64/cl.exe",
             "cStandard": "c11",
@@ -30,7 +37,9 @@
                 "${workspaceFolder}/dependencies/MetaStuff/include",
                 "${workspaceFolder}/dependencies",
                 "${workspaceFolder}/src/DarkId.Papyrus.DebugServer",
-                "${workspaceFolder}/vcpkg_installed/fallout4/x64-windows-static/include"
+                "${workspaceFolder}/src/DarkId.Papyrus.DebugServer/Protocol",
+                "${workspaceFolder}/vcpkg_installed/fallout4/x64-windows-static/include",
+                "${workspaceFolder}/vcpkg_installed/skyrim/x64-windows-static/include/Champollion"
             ],
             "defines": [
                 "WIN32",
@@ -47,7 +56,7 @@
             "windowsSdkVersion": "10.0.18362.0",
             "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.22.27905/bin/Hostx64/x64/cl.exe",
             "cStandard": "c11",
-            "cppStandard": "c++20",
+            "cppStandard": "c++23",
             "intelliSenseMode": "windows-msvc-x64"
         }
     ],

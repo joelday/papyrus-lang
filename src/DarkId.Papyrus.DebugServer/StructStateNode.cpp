@@ -10,14 +10,14 @@ namespace DarkId::Papyrus::DebugServer
 		m_type = RE::BSTSmartPointer<RE::BSScript::StructTypeInfo>(value ? value->type.get() : knownType);
 	}
 
-	bool StructStateNode::SerializeToProtocol(Variable& variable)
+	bool StructStateNode::SerializeToProtocol(dap::Variable& variable)
 	{
 		variable.variablesReference = m_value ? GetId() : 0;
 		variable.namedVariables = m_value ? m_type->variables.size() : 0;
 		
 		variable.name = m_name;
 		variable.type = m_type->GetName();
-		variable.value = m_value ? variable.type : "None";
+		variable.value = m_value ? m_type->GetName() : "NONE";
 		
 		return true;
 	}

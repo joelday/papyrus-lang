@@ -18,21 +18,31 @@ namespace XSE = F4SE;
 #include "version.h"  // VERSION_VERSTRING, VERSION_MAJOR
 
 #include "DebugServer.h"
+#include "ConfigHooks.h"
 #include "RuntimeEvents.h"
+#include "AddressLibraryIds.h"
+
+#include <Windows.h>
+#include <filesystem>
+#include <vector>
+
 using namespace DarkId::Papyrus::DebugServer;
 
 DebugServer* g_debugServer;
 using namespace std::literals;
 
+#ifdef SKYRIM
+    constexpr auto gameLoaded = SKSE::MessagingInterface::kDataLoaded;
+#else
+    constexpr auto gameLoaded = F4SE::MessagingInterface::kGameLoaded;
+#endif
+
+
 void MessageHandler(XSE::MessagingInterface::Message* msg)
 {
 	switch (msg->type)
 	{
-#if SKYRIM
-	case SKSE::MessagingInterface::kDataLoaded :
-#elif FALLOUT
-	case F4SE::MessagingInterface::kGameLoaded :
-#endif
+		case gameLoaded:
 		{
 			RuntimeEvents::Internal::CommitHooks();
 
@@ -59,7 +69,11 @@ bool InitializeLog()
 
 	auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
 	log->set_level(spdlog::level::debug);
+#if _DEBUG
 	log->flush_on(spdlog::level::debug);
+#else
+	log->flush_on(spdlog::level::err);
+#endif
 	spdlog::set_default_logger(std::move(log));
 	spdlog::set_pattern("%H:%M:%S,%e %l %@: %v"s);
 	logger::info("Papyrus Debug Server v{}"sv, DIDPDS_VERSION_SEMVER);
@@ -79,6 +93,7 @@ extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
 	return v;
 }();
 #endif
+//#define _PAUSE_ON_START 1
 
 extern "C"
 {
@@ -102,35 +117,95 @@ extern "C"
 			logger::critical("Loaded in editor, marking as incompatible!\n");
 			return false;
 		}
-#if SKYRIM
-		auto result = a_xse->RuntimeVersion().compare(SKSE::RUNTIME_SSE_LATEST);
-		if (result == std::strong_ordering::greater){
-			logger::critical("Unsupported runtime version {}!\n"sv, a_xse->RuntimeVersion().string());
-			return false;
-		}
-#endif
-#if FALLOUT
-		auto result = a_xse->RuntimeVersion().compare(F4SE::RUNTIME_1_10_163);
-		if (result == std::strong_ordering::greater){
-			logger::critical("Unsupported runtime version {}!\n"sv, a_xse->RuntimeVersion().string());
-			return false;
-		}
-#endif
+		// Runtime compatibility is the versioned Address Library JSON loaded in Plugin_Load.
 		return true;
 	}
+}
 
+static std::filesystem::path PluginDirectory()
+{
+	HMODULE module = nullptr;
+	GetModuleHandleExW(
+		GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+		reinterpret_cast<LPCWSTR>(&PluginDirectory),
+		&module);
+	wchar_t path[MAX_PATH]{};
+	GetModuleFileNameW(module, path, MAX_PATH);
+	return std::filesystem::path(path).parent_path();
+}
+
+static bool LoadAddressLibraryOrFail(const XSE::LoadInterface* a_xse)
+{
+#ifdef SKYRIM
+	const char* game = REL::Module::IsVR() ? "skyrimvr" : "skyrimse";
+	const char* flavor = REL::Module::IsAE() ? "ae" : (REL::Module::IsVR() ? "vr" : "se");
+	const std::vector<std::string_view> required = {
+		"pPapyrusEnableLogging",
+		"pPapyrusEnableTrace",
+		"pPapyrusLoadDebugInformation",
+		"pControlsBackgroundMouse",
+		"pControlsBackgroundMouseDynamicInitializer",
+		"InitWindows",
+		"bsrendererBegin",
+		"GetInstructionNumberForOffset",
+		"VM_ctor",
+		"CodeTaskletProcess",
+		"CreateStack",
+		"CleanupStack",
+	};
+#else
+	const char* game = "fallout4";
+	const char* flavor = "f4";
+	const std::vector<std::string_view> required = {
+		"pPapyrusEnableLogging",
+		"pPapyrusEnableTrace",
+		"pControlsBackgroundMouse",
+		"pControlsBackgroundMouseDynamicInitializer",
+		"GetInstructionNumberForOffset",
+		"VM_ctor",
+		"CodeTaskletProcess",
+		"CreateStack",
+		"CleanupStack",
+		"pCurrentRenderWindow",
+	};
+#endif
+	const auto version = a_xse->RuntimeVersion().string();
+	const auto pluginDir = PluginDirectory();
+	const std::vector<std::filesystem::path> search = {
+		pluginDir / "data",
+		pluginDir,
+	};
+
+	AddressLibraryIds::LoadError error;
+	if (!AddressLibraryIds::Load(game, version, flavor, search, required, error))
+	{
+		logger::critical("{}", error.message);
+		XSE::stl::report_and_fail(error.message);
+	}
+
+	logger::info(
+		"Loaded Address Library IDs for {} {} ({}) from {}"sv,
+		AddressLibraryIds::LoadedGame(),
+		AddressLibraryIds::LoadedVersion(),
+		AddressLibraryIds::LoadedFlavor(),
+		AddressLibraryIds::LoadedPath().string());
+	return true;
+}
+
+extern "C"
+{
 #if SKYRIM
 	DLLEXPORT bool SKSEPlugin_Load(const XSE::LoadInterface* a_xse)
 #elif FALLOUT
 	DLLEXPORT bool F4SEPlugin_Load(const XSE::LoadInterface* a_xse)
 #endif
-		
+
+//#define _PAUSE_ON_START 1
 	{
 		if (!log_initialized) {
 			InitializeLog();
 		}
 		logger::info("Papyrus Debug Server loaded");
-
  #if _DEBUG && _PAUSE_ON_START
  		logger::info("Waiting for debugger to attach...");
 
@@ -147,6 +222,13 @@ extern "C"
 		logger::info("Initializing plugin...");
 		Init(a_xse);
 		logger::info("Plugin Initialized!");
+
+		LoadAddressLibraryOrFail(a_xse);
+
+		// We install this hook before any scripts are loaded to ensure that any script loads are done with LoadDebugInformation enabled.
+		logger::info("Installing EnableLoadDebugInformation hook...");
+		EnableLoadDebugInformation::Install();
+		logger::info("Installing EnableLoadDebugInformation hook installed!");
 #if SKYRIM
 		logger::info("Registering Listener...");
 		if (XSE::GetMessagingInterface()->RegisterListener("SKSE", MessageHandler)){

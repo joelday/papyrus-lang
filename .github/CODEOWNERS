@@ -1,0 +1,3 @@
+# Compliance artifacts are reviewed like code. Baseline hashes without an
+# attestation note (see docs/compliance/baselines/README.md) are rejected.
+docs/compliance/ @joelday

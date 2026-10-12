@@ -8,8 +8,6 @@ File any issues here: https://github.com/joelday/papyrus-lang/issues
 
 ### Building from Source
 
-NOTE: Fallout 4 doesn't build on this branch currently, only attempt building Skyrim for right now.
-
 Build Requirements:
 
 - [Visual Studio 2022](https://visualstudio.microsoft.com/vs/community/)
@@ -19,6 +17,9 @@ Run Requirements:
 
 - [Fallout 4 address library mod](https://www.nexusmods.com/fallout4/mods/47327)
 - [Skyrim address library mod (this is split into two mods for AE and SE)](https://www.nexusmods.com/skyrimspecialedition/mods/32444)
+- [Address Library for SFSE Plugins](https://www.nexusmods.com/starfield/mods/3256) (Starfield)
+
+Starfield (`DarkId.Papyrus.DebugServer.Starfield`) is an SFSE v1 skeleton: attach via SFSE, published locals IDs, versioned JSON. Instruction/stack trampolines are blocked on unpublished Address Library IDs. See [docs/debug/sfse-plugin-v1.md](../../docs/debug/sfse-plugin-v1.md).
 
 Make sure you've initialized the submodules in this project, i.e. `git clone --recurse-submodules` when cloning.
 
