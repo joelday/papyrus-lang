@@ -13,6 +13,8 @@ class FakeClient implements IManagedLanguageClient {
 
     constructor(public readonly serverPath: string) {}
 
+    onNotification(): void {}
+
     async start(): Promise<void> {
         this.startCount++;
         if (this.startShouldThrow) {

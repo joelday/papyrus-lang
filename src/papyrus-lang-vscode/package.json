@@ -77,6 +77,10 @@
       {
         "command": "papyrus.showWelcome",
         "title": "Papyrus: Show Welcome"
+      },
+      {
+        "command": "papyrus.locatePyro",
+        "title": "Papyrus: Locate Pyro"
       }
     ],
     "menus": {
@@ -108,6 +112,11 @@
           "type": "string",
           "default": "",
           "description": "Overrides the path to the Papyrus.LanguageServer executable. Leave empty to use the version bundled with this extension."
+        },
+        "papyrus.pyro.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Pyro executable, for projects that rely on Pyro. Pyro is not bundled with the extension; use \"Papyrus: Locate Pyro\" to set this."
         }
       }
     },

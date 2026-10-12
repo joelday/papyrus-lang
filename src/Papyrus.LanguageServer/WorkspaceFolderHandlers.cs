@@ -105,6 +105,7 @@ internal sealed class WorkspaceFoldersHandler : ILspHandler<WorkspaceFolderChang
     {
         ArgumentNullException.ThrowIfNull(p);
         var messages = new List<LogMessageParams>();
+        var pyroNotices = new List<ProjectNeedsPyroParams>();
 
         if (!p.Removed.IsDefaultOrEmpty)
         {
@@ -118,14 +119,14 @@ internal sealed class WorkspaceFoldersHandler : ILspHandler<WorkspaceFolderChang
                 ct.ThrowIfCancellationRequested();
                 foreach (var ppj in ProjectDiscovery.FindProjectFiles(root))
                 {
-                    ProjectLoading.Load(_workspace, ppj, messages);
+                    ProjectLoading.Load(_workspace, ppj, messages, pyroNotices);
                 }
             }
 
             _buffers.AdoptInto(_workspace);
         }
 
-        await ProjectLoading.LogAsync(_getNotifier(), messages, ct).ConfigureAwait(false);
+        await ProjectLoading.LogAsync(_getNotifier(), messages, pyroNotices, ct).ConfigureAwait(false);
         return LspVoid.Instance;
     }
 
@@ -156,7 +157,13 @@ internal sealed class WorkspaceFoldersHandler : ILspHandler<WorkspaceFolderChang
 /// <summary>Loads a <c>.ppj</c>, collecting what the client's log should say about it.</summary>
 internal static class ProjectLoading
 {
-    internal static void Load(PapyrusWorkspace workspace, string ppj, List<LogMessageParams> messages)
+    internal const string ProjectNeedsPyroMethod = "papyrus/projectNeedsPyro";
+
+    internal static void Load(
+        PapyrusWorkspace workspace,
+        string ppj,
+        List<LogMessageParams> messages,
+        List<ProjectNeedsPyroParams>? pyroNotices = null)
     {
         PapyrusProject project;
         try
@@ -214,9 +221,26 @@ internal static class ProjectLoading
                 }
             );
         }
+
+        var reasons = PyroRequirements.Analyze(project);
+        if (!reasons.IsEmpty)
+        {
+            messages.Add(
+                new LogMessageParams
+                {
+                    Type = MessageType.Info,
+                    Message = $"Papyrus project '{ppj}' relies on Pyro: {string.Join("; ", reasons)}.",
+                }
+            );
+            pyroNotices?.Add(new ProjectNeedsPyroParams { ProjectPath = ppj, Reasons = [.. reasons] });
+        }
     }
 
-    internal static async Task LogAsync(ILspNotifier? notifier, List<LogMessageParams> messages, CancellationToken ct)
+    internal static async Task LogAsync(
+        ILspNotifier? notifier,
+        List<LogMessageParams> messages,
+        List<ProjectNeedsPyroParams>? pyroNotices,
+        CancellationToken ct)
     {
         if (notifier is null)
         {
@@ -227,7 +251,15 @@ internal static class ProjectLoading
         {
             await notifier.NotifyAsync("window/logMessage", message, ct).ConfigureAwait(false);
         }
+
+        foreach (var notice in pyroNotices ?? [])
+        {
+            await notifier.NotifyAsync(ProjectNeedsPyroMethod, notice, ct).ConfigureAwait(false);
+        }
     }
+
+    internal static Task LogAsync(ILspNotifier? notifier, List<LogMessageParams> messages, CancellationToken ct)
+        => LogAsync(notifier, messages, null, ct);
 }
 
 /// <summary>
@@ -309,6 +341,7 @@ internal sealed class WatchedFilesHandler : ILspHandler<DidChangeWatchedFilesPar
     public async Task<LspVoid> HandleAsync(DidChangeWatchedFilesParams? p, LspSnapshot snapshot, CancellationToken ct)
     {
         var messages = new List<LogMessageParams>();
+        var pyroNotices = new List<ProjectNeedsPyroParams>();
         var loaded = false;
         foreach (var change in p?.Changes ?? [])
         {
@@ -334,7 +367,7 @@ internal sealed class WatchedFilesHandler : ILspHandler<DidChangeWatchedFilesPar
             }
             else if (File.Exists(path))
             {
-                ProjectLoading.Load(_workspace, path, messages);
+                ProjectLoading.Load(_workspace, path, messages, pyroNotices);
                 loaded = true;
             }
         }
@@ -344,7 +377,7 @@ internal sealed class WatchedFilesHandler : ILspHandler<DidChangeWatchedFilesPar
             _buffers.AdoptInto(_workspace);
         }
 
-        await ProjectLoading.LogAsync(_getNotifier(), messages, ct).ConfigureAwait(false);
+        await ProjectLoading.LogAsync(_getNotifier(), messages, pyroNotices, ct).ConfigureAwait(false);
         return LspVoid.Instance;
     }
 }

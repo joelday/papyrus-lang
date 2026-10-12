@@ -6,6 +6,15 @@ import { AssemblyView } from './features/AssemblyView';
 import { LanguageClientStatusBarItem, showOutputChannelCommandId } from './features/LanguageClientStatusBarItem';
 import { registerShowReferencesCommand } from './features/ShowReferencesCommand';
 import { discordUrl, IWelcomeUi, showWelcomeCommandId, showWelcomeIfNew } from './features/Welcome';
+import {
+    findPyroOnPath,
+    IPyroUi,
+    locatePyroCommandId,
+    ProjectNeedsPyroParams,
+    projectNeedsPyroMethod,
+    PyroPrompter,
+    pyroReleasesUrl,
+} from './features/PyroSupport';
 import { PapyrusLanguageClientManager } from './server/PapyrusLanguageClientManager';
 import { RealLanguageClient } from './server/RealLanguageClient';
 import { ServerPathResolver } from './server/ServerPathResolver';
@@ -14,6 +23,11 @@ const CONFIGURATION_SECTION = 'papyrus';
 
 function getServerPathOverride(): string | undefined {
     return workspace.getConfiguration(CONFIGURATION_SECTION).get<string>('server.path') || undefined;
+}
+
+function getPyroPath(): string | undefined {
+    const configured = workspace.getConfiguration(CONFIGURATION_SECTION).get<string>('pyro.path') || undefined;
+    return configured && fs.existsSync(configured) ? configured : undefined;
 }
 
 /**
@@ -34,6 +48,7 @@ class PapyrusExtension implements Disposable {
     private readonly _assemblyView: AssemblyView;
     private readonly _showReferencesCommand: Disposable;
     private readonly _showWelcomeCommand: Disposable;
+    private readonly _locatePyroCommand: Disposable;
 
     constructor(context: ExtensionContext) {
         this._outputChannel = window.createOutputChannel('Papyrus');
@@ -46,13 +61,38 @@ class PapyrusExtension implements Disposable {
 
         const startQueue = new AsyncSerialQueue();
 
+        const pyroUi: IPyroUi = {
+            showMessage: (message, ...items) => window.showInformationMessage(message, ...items),
+            openReleases: () => env.openExternal(Uri.parse(pyroReleasesUrl)),
+            pickExecutable: async () => {
+                const picked = await window.showOpenDialog({
+                    canSelectMany: false,
+                    openLabel: 'Use this Pyro',
+                    title: 'Locate the Pyro executable',
+                });
+                return picked?.[0]?.fsPath;
+            },
+            savePath: (pyroPath) =>
+                workspace.getConfiguration(CONFIGURATION_SECTION).update('pyro.path', pyroPath, true),
+        };
+        const pyroPrompter = new PyroPrompter(
+            { configuredPath: getPyroPath, findOnPath: () => findPyroOnPath() },
+            context.globalState,
+            pyroUi
+        );
+        this._locatePyroCommand = commands.registerCommand(locatePyroCommandId, () => pyroPrompter.locate());
+
         this._clientManager = new PapyrusLanguageClientManager(
             () => serverPathResolver.resolve(),
             (serverPath) => {
                 // Makes it obvious which build a dev host is running.
                 const built = fs.statSync(serverPath).mtime.toLocaleString();
                 this._outputChannel.appendLine(`Starting ${serverPath} (built ${built})`);
-                return new RealLanguageClient(serverPath, this._outputChannel);
+                const client = new RealLanguageClient(serverPath, this._outputChannel);
+                client.onNotification(projectNeedsPyroMethod, (params) =>
+                    void pyroPrompter.handleProjectNeedsPyro(params as ProjectNeedsPyroParams)
+                );
+                return client;
             },
             (work) => startQueue.enqueue(work)
         );
@@ -88,6 +128,7 @@ class PapyrusExtension implements Disposable {
     }
 
     dispose() {
+        this._locatePyroCommand.dispose();
         this._showWelcomeCommand.dispose();
         this._assemblyView.dispose();
         this._showReferencesCommand.dispose();

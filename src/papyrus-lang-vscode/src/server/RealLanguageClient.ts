@@ -40,6 +40,10 @@ export class RealLanguageClient implements IManagedLanguageClient {
         return this._client.sendRequest<R>(method, params);
     }
 
+    onNotification(method: string, handler: (params: unknown) => void): void {
+        this._client.onNotification(method, handler);
+    }
+
     async stop(): Promise<void> {
         if (this._client.needsStop()) {
             await this._client.stop();

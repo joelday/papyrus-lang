@@ -69,6 +69,14 @@ internal sealed class WorkspaceFoldersChangeEvent
     public WorkspaceFolder[]? Removed { get; set; }
 }
 
+/// <summary>Server to client: a loaded project relies on Pyro (<c>papyrus/projectNeedsPyro</c>).</summary>
+internal sealed class ProjectNeedsPyroParams
+{
+    public string ProjectPath { get; set; } = "";
+
+    public string[] Reasons { get; set; } = [];
+}
+
 internal sealed class LogMessageParams
 {
     public MessageType Type { get; set; }

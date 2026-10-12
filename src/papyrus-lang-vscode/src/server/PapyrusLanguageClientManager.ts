@@ -43,6 +43,7 @@ export interface IManagedLanguageClient extends Disposable {
     start(): Promise<void>;
     stop(): Promise<void>;
     sendRequest<R>(method: string, params: unknown): Promise<R>;
+    onNotification(method: string, handler: (params: unknown) => void): void;
 }
 
 export interface ILanguageClientFactory {

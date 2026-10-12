@@ -6,6 +6,7 @@ namespace Papyrus.LanguageServer;
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
 )]
+[JsonSerializable(typeof(ProjectNeedsPyroParams))]
 [JsonSerializable(typeof(InitializeParams))]
 [JsonSerializable(typeof(InitializeResult))]
 [JsonSerializable(typeof(InitializedParams))]
