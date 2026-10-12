@@ -302,6 +302,9 @@ jobs:
     env:
       VCPKG_ROOT: ${{ github.workspace }}/vcpkg
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-binary-cache
+      # The vcpkg tool and its helper scripts (msys2 pins and the like). Port
+      # versions come from the baseline in vcpkg-configuration.json, not from this.
+      VCPKG_TAG: "2026.07.29"
     steps:
       - uses: actions/checkout@v4
 
@@ -320,16 +323,14 @@ jobs:
           path: |
             vcpkg_installed
             vcpkg-binary-cache
-          key: vcpkg-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'dependencies/ports/**') }}
-          restore-keys: vcpkg-
+          key: vcpkg-${{ env.VCPKG_TAG }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'dependencies/ports/**') }}
+          restore-keys: vcpkg-${{ env.VCPKG_TAG }}-
 
       - name: Set up vcpkg
         if: steps.plugin-cache.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
-          $baseline = (Get-Content vcpkg-configuration.json | ConvertFrom-Json).'default-registry'.baseline
-          git clone --quiet https://github.com/microsoft/vcpkg.git $env:VCPKG_ROOT
-          git -C $env:VCPKG_ROOT checkout --quiet $baseline
+          git clone --quiet --depth 1 --branch $env:VCPKG_TAG https://github.com/microsoft/vcpkg.git $env:VCPKG_ROOT
           New-Item -ItemType Directory -Force $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
           & "$env:VCPKG_ROOT/bootstrap-vcpkg.bat" -disableMetrics
           & "$env:VCPKG_ROOT/vcpkg.exe" integrate install

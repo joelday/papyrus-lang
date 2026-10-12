@@ -133,7 +133,8 @@ public static class AllowlistFile
             scripts.Clear();
         }
 
-        foreach (string raw in text.Split(['\r', '\n']))
+        // CRLF must not yield an empty line between \r and \n: an empty line ends an entry.
+        foreach (string raw in text.Split(["\r\n", "\n", "\r"], StringSplitOptions.None))
         {
             var match = s_item.Match(raw);
             if (match.Success)

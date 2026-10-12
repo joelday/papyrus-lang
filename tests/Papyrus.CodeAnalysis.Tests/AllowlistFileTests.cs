@@ -85,6 +85,18 @@ public sealed class AllowlistFileTests
     }
 
     [Fact]
+    public void Allowlist_parse_crlf_keeps_scripts_line_with_its_entry()
+    {
+        var document = AllowlistFile.Parse(
+            "1. `parent-scope-params` — Prose.\r\n   - scripts: RobotSelfDestructScript, Other.psc\r\n2. Second.\r\n");
+
+        Assert.Equal(2, document.Size);
+        Assert.Equal(2, document.Entries[0].Scripts.Length);
+        Assert.True(document.ContainsScript("RobotSelfDestructScript"));
+        Assert.Equal("Second.", document.Entries[1].Justification);
+    }
+
+    [Fact]
     public void Allowlist_find_default_path_from_output()
     {
         var path = AllowlistFile.FindDefaultPath(AppContext.BaseDirectory);
