@@ -11,6 +11,6 @@ Phase 1 ships **indent-only** formatting so `format(format(x)) == x` is true and
 | What is **not** changed | Keyword casing, operator spacing, blank-line runs, comment text, doc comments, line-continuation placement, string literals, the presence/absence of `\` . |
 | Newline after `\` | Left alone. |
 | Missing tokens | Not inserted by the formatter (that is a code fix, phase 6). |
-| Idempotence | `format(format(x)) == format(x)` is a CI property on the corpus and the fuzzer. |
+| Idempotence | `format(format(x)) == format(x)` is a CI property on the game scripts and the fuzzer. |
 
 Range / on-type format use the same rules on the smallest enclosing statement or declaration. Broader pretty-printing is phase 6.

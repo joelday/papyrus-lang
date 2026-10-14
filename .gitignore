@@ -331,6 +331,6 @@ ASALocalRun/
 
 vcpkg_installed
 
-# Local corpus and build output
-/corpus/
+# Local game scripts and build output
+/game-scripts/
 /artifacts/

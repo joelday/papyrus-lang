@@ -15,12 +15,12 @@ Starting set (published CK differences):
 
 ## Running
 
-Tier 1 (compile vs committed hashes; skips when the local corpus is absent):
+Tier 1 (compile vs committed hashes; skips when the local game scripts are absent):
 
 ```
-papyrusc verify --compile --game skyrimse|fallout4|starfield --source ./corpus/<game> --baseline docs/compliance/baselines/<game>.json
+papyrusc verify --compile --game skyrimse|fallout4|starfield --source ./game-scripts/<game> --baseline docs/compliance/baselines/<game>.json
 ```
 
-`--source` defaults to `./corpus/<game>`. Public CI must not require game files.
+`--source` defaults to `./game-scripts/<game>`. Public CI must not require game files.
 
 Tier 2 (`--ck-compiler`, compile with both papyrusc and a local CK binary) is not implemented yet. See `docs/compliance/baselines/README.md`.

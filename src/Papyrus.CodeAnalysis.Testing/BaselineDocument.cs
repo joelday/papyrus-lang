@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 namespace Papyrus.CodeAnalysis.Testing;
 
 /// <summary>
-/// Committed tier-1 baseline. Hashes only — no corpus source, no Bethesda output.
+/// Committed tier-1 baseline. Hashes only — no game script source, no Bethesda output.
 /// </summary>
 public sealed class BaselineDocument
 {

@@ -19,15 +19,15 @@ public sealed class VerifyCompileTests
         Assert.Contains("--allowlist", stdout, StringComparison.Ordinal);
         Assert.Contains("--flags", stdout, StringComparison.Ordinal);
         Assert.Contains("--ck-compiler", stdout, StringComparison.Ordinal);
-        Assert.Contains("Skips (exit 0) when the local corpus is absent", stdout, StringComparison.Ordinal);
+        Assert.Contains("Skips (exit 0) when the local game scripts are absent", stdout, StringComparison.Ordinal);
         Assert.Empty(stderr);
     }
 
     [Fact]
-    public void Verify_Compile_MissingCorpus_SkipsZero()
+    public void Verify_Compile_MissingGameScripts_SkipsZero()
     {
         using var root = new TempDir();
-        var missing = Path.Combine(root.Path, "corpus", "skyrimse");
+        var missing = Path.Combine(root.Path, "game-scripts", "skyrimse");
 
         var code = Run(
             out var stdout,
@@ -299,7 +299,7 @@ public sealed class VerifyCompileTests
     }
 
     [Fact]
-    public void Verify_Compile_FlagsInCorpus_ChangeNormalizedHash()
+    public void Verify_Compile_FlagsInGameScripts_ChangeNormalizedHash()
     {
         using var root = new TempDir();
         File.WriteAllText(Path.Combine(root.Path, "Foo.psc"), TinyScript);

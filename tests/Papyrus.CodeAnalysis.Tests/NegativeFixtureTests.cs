@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Papyrus.CodeAnalysis.Tests;
 
-public sealed class NegativeCorpusTests
+public sealed class NegativeFixtureTests
 {
     [Fact]
     public void Each_negative_fixture_binds_and_produces_a_diagnostic()

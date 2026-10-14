@@ -18,7 +18,7 @@ This document specifies a clean-slate Papyrus compiler and a **big-bang product 
 
 papyrus-lang today has no Papyrus parser. The language service loads Bethesda's closed-source `PCompiler.dll`, rewrites its IL at runtime with Harmony 1.2, reaches into private fields with ReflectionMagic, and re-wraps the resulting ANTLR3 `CommonTree` into a second tree. Every long-standing tracker issue — 32-bit OOM, Windows-only, no Starfield, discarded syntax errors, hash-code-only identity, rename that cannot see comments, crashes under circular references — is a downstream consequence of that single architectural fact.
 
-The proposed fix is to write the compiler. A new `Papyrus.CodeAnalysis` stack (red/green syntax, lazy symbols, lowering, deterministic PEX emit) is built in a new solution against a corpus harness with **zero LSP obligations** until phase 3 exit. Official syntax only ships first; Caprica-style language extensions are designed for, behind a distinct `LanguageVersion`, and remain a post-compliance decision (P6.05). The existing OmniSharp / PCompiler extension stays the shipping product, untouched, until `papyrusc` produces compliant PEX. Then one cutover: a new-major VSIX launches one `Papyrus.LanguageServer` (every dialect in one process) and the old Host is gone. Rollback is “install the previous Marketplace VSIX,” not a mixed-engine setting. PCompiler is deleted from the tree when that new VSIX is the default release.
+The proposed fix is to write the compiler. A new `Papyrus.CodeAnalysis` stack (red/green syntax, lazy symbols, lowering, deterministic PEX emit) is built in a new solution against a game scripts harness with **zero LSP obligations** until phase 3 exit. Official syntax only ships first; Caprica-style language extensions are designed for, behind a distinct `LanguageVersion`, and remain a post-compliance decision (P6.05). The existing OmniSharp / PCompiler extension stays the shipping product, untouched, until `papyrusc` produces compliant PEX. Then one cutover: a new-major VSIX launches one `Papyrus.LanguageServer` (every dialect in one process) and the old Host is gone. Rollback is “install the previous Marketplace VSIX,” not a mixed-engine setting. PCompiler is deleted from the tree when that new VSIX is the default release.
 
 ---
 
@@ -110,12 +110,12 @@ A version-bump of OmniSharp, a net8 retarget, or a 64-bit host cannot happen whi
 ### Goals
 
 1. A Papyrus compiler that is the language service's only front end, owned in-tree, with no Bethesda binary at runtime.
-2. Official-syntax compliance that is a number, not an opinion: byte-identical PEX as the gate, semantic equivalence as the documented floor, against the vanilla corpora of Skyrim SE, Fallout 4, and Starfield.
+2. Official-syntax compliance that is a number, not an opinion: byte-identical PEX as the gate, semantic equivalence as the documented floor, against the vanilla scripts of Skyrim SE, Fallout 4, and Starfield.
 3. Incremental *compiler* PRs (phases 0–3) with independently useful libraries and `papyrusc`. **No editor feature ships** until phase 3 exit (compliant emit). Then one LS + extension cutover (phase 4). PCompiler leaves the tree when the new-major VSIX is the default release.
 4. Cross-platform NativeAOT binaries for `win-x64`, `linux-x64`, `osx-arm64` (language server, compiler CLI, debug adapter).
 5. A standalone `Papyrus.Pex` library that can read PEX 3.1–3.15 (including FO76), write the versions we emit, assemble/disassemble PAS, and reflect symbols from source-less `.pex` dependencies.
 6. Design-for, not ship, Caprica's language extensions (`For`, `ForEach`, `Switch`, `Do`/`LoopWhile`, `Break`/`Continue`, `Auto` locals) as a distinct `LanguageVersion`.
-7. Reliability invariants with enforcement: total functions, cancellation everywhere, no shared mutable state, confluent parallelism only, bounded memory, corpus-plus-fuzzing, performance gates, structured observability.
+7. Reliability invariants with enforcement: total functions, cancellation everywhere, no shared mutable state, confluent parallelism only, bounded memory, game-scripts-plus-fuzzing, performance gates, structured observability.
 
 ### Non-goals
 
@@ -126,7 +126,7 @@ A version-bump of OmniSharp, a net8 retarget, or a 64-bit host cannot happen whi
 - Incremental reparse (`Blender`) in phase 1. Designed for; built only if the phase-1 benchmark gate says it is needed.
 - Replacing the in-process C++ xSE plugin. It has to stay in-process; we modernize around it.
 - Shipping Caprica extensions before compliance is proven.
-- Redistributing Bethesda compiler binaries, vanilla `.psc` / `.pex` corpora, or any Creation Kit payload.
+- Redistributing Bethesda compiler binaries, vanilla `.psc` / `.pex` scripts, or any Creation Kit payload.
 
 ---
 
@@ -144,9 +144,9 @@ A version-bump of OmniSharp, a net8 retarget, or a 64-bit host cannot happen whi
 | K8 | **No semantic information in the parser.** `A.B.C` is a qualified name; the binder decides namespace vs. script vs. variable. | Confirmed (architecture) | Today's `DisambiguateType` reflection under a lock is both a hot-path tax and incorrect in FO4/Starfield where namespaces and locals collide. |
 | K9 | **Symbols are separate from syntax.** Intrinsics are synthesized, not fake source. Binding is lazy with an explicit completion-state machine. | Confirmed (architecture) | Directly eliminates the `Length_` hack, the lock-order inversion, and the re-entrant `InvalidOperationException`. |
 | K10 | **`Papyrus.CodeAnalysis` has no I/O and no `System.Reflection`.** Enforced by architecture test. NativeAOT for every shipped binary. | Confirmed (architecture) | Makes the compiler testable, in-process-hostable, and AOT-clean. No-reflection is a phase-0 discipline, not a publish-time surprise. |
-| K11 | **`Papyrus.Pex` is standalone.** Milestone-one test is read/write byte-identical over the vanilla PEX corpora, before any parser exists. | Confirmed (architecture) | Independently valuable; establishes the oracle everything downstream is measured against. |
+| K11 | **`Papyrus.Pex` is standalone.** Milestone-one test is read/write byte-identical over the vanilla PEX scripts, before any parser exists. | Confirmed (architecture) | Independently valuable; establishes the oracle everything downstream is measured against. |
 | K12 | **Drop OmniSharp 0.10.0.** Default replacement: `StreamJsonRpc` + `System.IO.Pipelines` + source-generated STJ, thin typed LSP layer. Reversible because handlers sit behind our interfaces. | Confirmed lean (alternative noted) | OmniSharp 0.10.0 handler contracts already changed upstream; a version bump is a rewrite. Its MediatR dispatch fights NativeAOT. |
-| K13 | **Incrementality investment goes into the symbol layer, not the parser.** Green trees make a `Blender` possible later. | Confirmed (architecture) | Committed-fixture parse is well under 1 ms; `Blender` is **OUT** ([blender-decision.md](blender-decision.md)). Maintainer corpus not yet measured. Re-binding the dependency graph is expected to be the expensive part. |
+| K13 | **Incrementality investment goes into the symbol layer, not the parser.** Green trees make a `Blender` possible later. | Confirmed (architecture) | Committed-fixture parse is well under 1 ms; `Blender` is **OUT** ([blender-decision.md](blender-decision.md)). Maintainer game scripts not yet measured. Re-binding the dependency graph is expected to be the expensive part. |
 | K14 | **`PapyrusName` compares strings.** Replaces `ObjectIdentifier`'s hash-code-only equality. | Confirmed (architecture) | Hash-code equality silently aliases scripts. Deterministic and project-breaking. |
 | K15 | **Deterministic emit.** No timestamps in output, stable ordering, no parallelism that affects bytes. Temps pooled per type, matching CK reuse order. | Confirmed (architecture) | Required for byte-identical baselines. Temp reuse order is the schedule-risk center; the differential harness exists for it. |
 | K16 | **Keep the C++ xSE plugin.** Replace `DebugAdapterProxy`. Add SFSE. Move Address Library IDs to versioned data. | Confirmed (architecture) | The plugin must be in-process. The proxy's hand-rolled DAP framing is independently replaceable. |
@@ -157,9 +157,9 @@ A version-bump of OmniSharp, a net8 retarget, or a 64-bit host cannot happen whi
 | K21 | **Import resolution is first-match on the ordered include list, then remotes, then PEX-only fallback.** Dirty LSP buffers shadow the same path. `Namespace:Script` maps to `Namespace/Script.psc` (FO4+/Starfield). Last-match is a bug. | Confirmed (architecture) | Matches Pyro / CK include order. Remotes stay Pyro-compatible HTTPS import *paths*, not a schema element named `remotes`. |
 | K22 | **`papyrusc` is the supported build tool.** Pyro is not downloaded or bundled after P3.06. `.ppj` `${ENV}` expansion and pre/post build events (**#145**, **#148**) are implemented in `papyrusc` so deleting the Pyro *requirement* does not regress those projects. A user-supplied `pyro.exe` remains an optional task shim, not a supported backend we test. **Build events default off in the language server** (`papyrus.ppj.allowBuildEvents`, default `false`); they run for explicit `papyrusc compile project.ppj` (CLI default `true`). cwd = the `.ppj` directory; no env beyond the process environment already used for `${ENV}`. | Confirmed (architecture) | Preserves existing project semantics without an unpinned third-party download, without giving the LS unsandboxed spawn by default. |
 | K23 | **Binder concurrency: `ForceComplete` is re-entrant and parallel-safe.** Related scripts may complete concurrently. Each completion part is a single-assignment slot (`Interlocked` CAS). A waiter that finds `InProgress` awaits that part's `Task`; it never takes a compile-wide lock. Cycle detection uses a per-compilation "completing" set keyed by `(symbol, part)`. | Confirmed (architecture) | Replaces `CachedValue` lock-across-compile without serializing the DAG. |
-| K24 | **Semantic equivalence (allowlisted constructs only)** means: identical Champollion-normalized decompile after renaming `::tempN` and ignoring instruction-local register assignment, **plus** identical accept/reject (and positions) on the negative corpus. Same opcode stream after temp rename is a stricter optional report, not the floor. | **Confirmed** (operational definition) | Applies only to constructs on the reviewed allowlist. Everything else must be byte-identical (K3). |
+| K24 | **Semantic equivalence (allowlisted constructs only)** means: identical Champollion-normalized decompile after renaming `::tempN` and ignoring instruction-local register assignment, **plus** identical accept/reject (and positions) on the negative fixtures. Same opcode stream after temp rename is a stricter optional report, not the floor. | **Confirmed** (operational definition) | Applies only to constructs on the reviewed allowlist. Everything else must be byte-identical (K3). |
 | K25 | **Publish `Papyrus.Pex` and `Papyrus.CodeAnalysis` as public 0.x packages on nuget.org.** No stability promise. 0.x may break. API discipline is required (nullable, no accidental public surface); no compatibility obligation. | **Confirmed** | Lets other tools build on the libraries instead of shelling out to a compiler. Pack+publish: Pex in phase 0, CodeAnalysis in phase 3. |
-| K26 | **Skyrim LE is carried, with no corpus gate and no LE compliance number.** Keep `GameId.Skyrim`, `SkyrimLe` dialect, `papyrusc --game skyrimle`, and the existing extension toggle / generate-project. | **Confirmed** | Same language and opcode set as SSE; PEX 3.1 / 3.2 mapping only. |
+| K26 | **Skyrim LE is carried, with no game scripts gate and no LE compliance number.** Keep `GameId.Skyrim`, `SkyrimLe` dialect, `papyrusc --game skyrimle`, and the existing extension toggle / generate-project. | **Confirmed** | Same language and opcode set as SSE; PEX 3.1 / 3.2 mapping only. |
 | K27 | **Oblivion / Oblivion Remastered (#207) is out of scope.** Not a compile target. Not on the roadmap. Dialects-as-data does not schedule it. | **Confirmed** | Owner decision. Do not implement or evaluate it in this overhaul. |
 | K28 | **Repo strategy: new top-level tree inside `papyrus-lang`.** `Papyrus.sln` + `src/Papyrus.*` sit next to `DarkId.Papyrus.sln`. This design file lives at `docs/design/compiler-and-language-service-overhaul.md`. Issue tracker and VSIX history stay here. | **Confirmed** | One tracker, one Marketplace extension id. |
 | K29 | **Drop two extension affordances at cutover (P4.06b), amending K26: (1) `papyrus.*.generateProject` commands + bundled `launch.json`/`tasks.json`/`.code-workspace`/`.ppj` templates under `resources/{fo4,sse,tesv}` (opinionated workspace scaffolding), and (2) the ambient/no-`.ppj` project mode (`ambientProjectName: 'Creation Kit'` in `LanguageClientHost`, loose-script editing driven by CK ini settings). K26's "existing extension toggle / generate-project" phrase is superseded for the generate-project half only; the Skyrim LE game toggle itself (`GameId.Skyrim`, `SkyrimLe` dialect, `papyrusc --game skyrimle`) is unaffected and still carried.** `Papyrus.LanguageServer` has no ambient-project concept and is not gaining one; every workspace it serves has a `.ppj`. | **Confirmed** | Believed unused / low-value: nobody has reported relying on either. Avoids building new-server affordances (e.g. re-deriving an ambient/no-ppj mode, or template regeneration) for features being removed anyway. Owner call; revisit only if usage evidence surfaces before P4.06b lands. |
@@ -182,7 +182,7 @@ src/
   Papyrus.LanguageServer/               net10.0   LSP, NativeAOT-published
   Papyrus.Compiler/                     net10.0   papyrusc CLI, NativeAOT-published
   Papyrus.DebugAdapter/                 net10.0   DAP bridge, NativeAOT-published
-  Papyrus.CodeAnalysis.Testing/         net10.0   corpus harness, differential runner, fuzzers
+  Papyrus.CodeAnalysis.Testing/         net10.0   game scripts harness, differential runner, fuzzers
   native/DebugServer/                   C++20 xSE plugin (retained, modernized)
   papyrus-lang-vscode/                  extension (modernized in place)
 tests/
@@ -220,7 +220,7 @@ Today, game divergence is 84 preprocessor directives and two builds. In the new 
 // Papyrus.Pex
 public enum GameId
 {
-    Skyrim,             // LE: carried, not corpus-tested
+    Skyrim,             // LE: carried, not tested against game scripts
     SkyrimSpecialEdition,
     Fallout4,
     Fallout76,          // read-only
@@ -282,7 +282,7 @@ public sealed record PapyrusDialect
     public static PapyrusDialect Fallout4 { get; }
     public static PapyrusDialect Starfield { get; }
 
-    // Compile-capable, no corpus gate, no LE compliance number (K26):
+    // Compile-capable, no game scripts gate, no LE compliance number (K26):
     public static PapyrusDialect SkyrimLe { get; }
 
     // Read-only. PexReader identifies the file; papyrusc will not compile for it.
@@ -314,7 +314,7 @@ Static-instance values (engine limits are the CK hard caps the current tool does
 | `Limits.MaxUserFlags` | 31 | 31 | 31 | 31 | 31 |
 | `Limits.MaxGuards` | 0 | 0 | 0 | 511 | 0 |
 
-`papyrusc compile --game` accepts `skyrimse|fallout4|starfield|skyrimle`. `skyrimle` compiles with `SkyrimLe` (same official syntax as SSE, PEX 3.1/3.2) and has **no** corpus gate and **no** LE compliance number (K26). The existing extension toggle `papyrus.skyrim.enabled` and generate-project for LE keep working. FO76 is not a `--game` value.
+`papyrusc compile --game` accepts `skyrimse|fallout4|starfield|skyrimle`. `skyrimle` compiles with `SkyrimLe` (same official syntax as SSE, PEX 3.1/3.2) and has **no** game scripts gate and **no** LE compliance number (K26). The existing extension toggle `papyrus.skyrim.enabled` and generate-project for LE keep working. FO76 is not a `--game` value.
 
 **`SupportsIsOperator` is unsettled on purpose.** Caprica's lexer places `kIs` below `SKYRIM_MAX_KEYWORD` (implying `Is` is a Skyrim keyword) while its PEX opcode table puts `Is` above `SkyrimOpcodeMax` (implying the Skyrim VM cannot execute it). Both cannot be true. The dialect flag is set by asking the CK compiler via the tier-2 harness, not by reading either codebase.
 
@@ -407,7 +407,7 @@ Position-to-node lookup is a binary search over a child list whose spans are str
 
 #### Full fidelity
 
-Every character of the source file is in the tree. Whitespace, line comments (`;`), block comments (`;/ /;`), line continuations (`\` + newline), and skipped tokens are leading/trailing trivia on tokens. The test is one line and it runs against the entire vanilla corpus plus every fuzzer output:
+Every character of the source file is in the tree. Whitespace, line comments (`;`), block comments (`;/ /;`), line continuations (`\` + newline), and skipped tokens are leading/trailing trivia on tokens. The test is one line and it runs against the entire vanilla game scripts plus every fuzzer output:
 
 ```csharp
 Assert.Equal(sourceText, SyntaxTree.Parse(sourceText, dialect).GetRoot().ToFullString());
@@ -440,7 +440,7 @@ Span-based, allocation-free on the hot path:
 - `ReadOnlySpan<char>` scanning
 - `SearchValues<char>` for character classes (whitespace, identifier continue, hex digits)
 - `FrozenDictionary<string, SyntaxKind>` with `OrdinalIgnoreCase` for the dialect keyword table
-- A token-and-trivia cache keyed on `(text, kind)` so the millions of `\n`, `    `, and `Function` tokens across a corpus are a handful of shared green nodes (Roslyn's `SyntaxNodeCache` / `LexerCache`)
+- A token-and-trivia cache keyed on `(text, kind)` so the millions of `\n`, `    `, and `Function` tokens across the game scripts are a handful of shared green nodes (Roslyn's `SyntaxNodeCache` / `LexerCache`)
 
 ```csharp
 internal sealed class Lexer
@@ -514,7 +514,7 @@ No semantic information reaches the parser. `A.B.C` parses as a qualified name /
 
 #### Incremental reparse
 
-The green tree makes Roslyn's `Blender` possible, and we build the tree so it stays possible. Committed-fixture parse is well under 1 ms ([blender-decision.md](blender-decision.md)); `Blender` is not built. A maintainer corpus has not been measured; revisit only if that run shows parse as the keystroke bottleneck. The expensive part of a Papyrus keystroke is expected to be re-binding the dependency graph, not parse.
+The green tree makes Roslyn's `Blender` possible, and we build the tree so it stays possible. Committed-fixture parse is well under 1 ms ([blender-decision.md](blender-decision.md)); `Blender` is not built. Maintainer game scripts have not been measured; revisit only if that run shows parse as the keystroke bottleneck. The expensive part of a Papyrus keystroke is expected to be re-binding the dependency graph, not parse.
 
 #### Names
 
@@ -857,7 +857,7 @@ Capabilities:
 - **PAS assembler and disassembler.** The extension already has an assembly viewer driven by a custom `textDocument/assembly` LSP request; today that is produced by reaching into `PCompiler.dll` for the embedded StringTemplate group `"PCompiler.PapyrusAssembly.stg"` and driving `PapyrusGen` (`ScriptFile.GetScriptAssembly`, `ScriptFile.cs:295-320`). A real assembler means the `.pas` view round-trips.
 - **`PexReflector`**: returns `PexScriptMetadata`. A real capability gain, not just parity. Caprica has this (`Caprica/pex/PexReflector.h`); papyrus-lang does not.
 
-**Milestone-one test, before any parser exists:** read every `.pex` in the vanilla corpus for SSE, FO4, and Starfield, write it back out, assert byte-identical. That single test validates the format model end to end and establishes the oracle. Synthetic fixtures with oversized tables assert the caps.
+**Milestone-one test, before any parser exists:** read every `.pex` in the vanilla game scripts for SSE, FO4, and Starfield, write it back out, assert byte-identical. That single test validates the format model end to end and establishes the oracle. Synthetic fixtures with oversized tables assert the caps.
 
 ### Workspaces and the project system
 
@@ -1060,14 +1060,14 @@ These are design invariants, each with an enforcement mechanism.
 - Source text: segmented representation for large files.
 - Nothing retains a token stream after parsing.
 
-Committed-fixture parse RSS is process-wide and well under a gigabyte; see [blender-decision.md](blender-decision.md). Script count and RSS on a full maintainer corpus are still unmeasured. The full Skyrim SE vanilla source tree is on the order of a few thousand scripts.
+Committed-fixture parse RSS is process-wide and well under a gigabyte; see [blender-decision.md](blender-decision.md). Script count and RSS on the full maintainer game scripts are still unmeasured. The full Skyrim SE vanilla source tree is on the order of a few thousand scripts.
 
-**6. Corpus-plus-fuzzing.**
+**6. Game scripts plus fuzzing.**
 
 | Property | Assertion |
 |---|---|
-| Round-trip | `Parse(t).ToFullString() == t` for every corpus file and every fuzzer mutation |
-| Prefix (phase 1) | For every corpus file, **parse** every prefix, character by character. No throw, no hang, no unbounded memory, round-trip of the recovered tree. Binding is not required. |
+| Round-trip | `Parse(t).ToFullString() == t` for every game script and every fuzzer mutation |
+| Prefix (phase 1) | For every game script, **parse** every prefix, character by character. No throw, no hang, no unbounded memory, round-trip of the recovered tree. Binding is not required. |
 | Prefix (phase 2) | Same prefixes, **bind** as well. No throw, no hang. Directly targets the failure class `ScriptFunctionTypeCtorPatch` exists to paper over |
 | Mutation fuzzing | Random deletions, insertions, duplications, truncations. Same no-throw assertion. Failing seeds are committed as regression tests |
 | Incremental equivalence | If/when the `Blender` ships: random edit sequences, incremental reparse ≡ full reparse structurally |
@@ -1077,10 +1077,10 @@ Committed-fixture parse RSS is process-wide and well under a gigabyte; see [blen
 
 **7. Performance as a correctness property.** BenchmarkDotNet suites with regression thresholds, run in CI:
 
-- Cold parse throughput over the corpus
+- Cold parse throughput over the game scripts
 - Keystroke-to-diagnostics p50 / p99
 - Completion p99
-- Memory high-water on the full corpus
+- Memory high-water on the full game scripts
 
 A language service that is slow is a language service that is wrong. These numbers belong in the README.
 
@@ -1123,7 +1123,7 @@ papyrusc compile <file.psc|project.ppj>
     --champollion-compat
 
 papyrusc verify --game <g> --ck-compiler <path> --source <dir> [--allowlist <file>]
-papyrusc corpus acquire --game <g> --install <path> --out <dir>
+papyrusc scripts acquire --game <g> --install <path> --out <dir>
 papyrusc pex read|write|normalize|hash <file.pex>
 papyrusc pas assemble|disassemble <file>
 papyrusc report             (workspace / path / version dump; also used by the extension)
@@ -1199,7 +1199,7 @@ docs/compliance/baselines/skyrimse.json
 }
 ```
 
-A few hundred KB of hashes. No corpus source, no Bethesda output, no Bethesda code.
+A few hundred KB of hashes. No game script source, no Bethesda output, no Bethesda code.
 
 ### Address Library data (debugger)
 
@@ -1247,7 +1247,7 @@ flowchart TB
     end
 ```
 
-**Tier 1, public CI, no Bethesda binaries.** Committed baselines: for each corpus script, the normalized hash of the expected PEX output, generated once on a machine that has a legitimate CK install. CI recompiles with `papyrusc` and compares hashes. No Bethesda code, no Bethesda output, no corpus source in the repo. The baseline file is a few hundred KB of hashes.
+**Tier 1, public CI, no Bethesda binaries.** Committed baselines: for each game script, the normalized hash of the expected PEX output, generated once on a machine that has a legitimate CK install. CI recompiles with `papyrusc` and compares hashes. No Bethesda code, no Bethesda output, no game script source in the repo. The baseline file is a few hundred KB of hashes.
 
 **Tier 2, opt-in local or self-hosted, requires the user's own game install.**
 
@@ -1268,7 +1268,7 @@ Compile every script with both compilers, normalize, diff, produce a compliance 
 
 Anything not on the list is a bug. CI reports allowlist size as a metric that is expected to shrink.
 
-**The compliance number is published.** Per game: percentage of the corpus that is byte-identical, percentage that is semantically equivalent under the allowlist, and the allowlist contents. It goes in the README and CI reports the delta on every PR.
+**The compliance number is published.** Per game: percentage of the game scripts that is byte-identical, percentage that is semantically equivalent under the allowlist, and the allowlist contents. It goes in the README and CI reports the delta on every PR.
 
 This bar is **confirmed** (K3). Semantic equivalence (K24) applies only to allowlisted constructs. Everything else is byte-identical, because temp-pooling bugs otherwise hide forever.
 
@@ -1304,7 +1304,7 @@ Keep `PapyrusProgram` / `ScriptFile` / `SyntaxNode` and replace their guts.
 |---|---|
 | **Pros** | Continuous integration with the existing LSP. No dual-tree period. |
 | **Cons** | The old types *are* the problem: mutable trees, `ObjectIdentifier` keys, `CachedValue` locks, `#if FALLOUT4`. Every PR would also have to keep PCompiler working. |
-| **Rejected because** | The compiler must be designed against the corpus harness, not against OmniSharp 0.10.0 handlers. |
+| **Rejected because** | The compiler must be designed against the game scripts harness, not against OmniSharp 0.10.0 handlers. |
 
 ### A3. Big-bang product cutover — **chosen (K4)**
 
@@ -1381,7 +1381,7 @@ Roslyn is a 2010–2014 design carrying a decade of compatibility obligation. Th
 | Malicious `.pex` / `.psc` / `.ppj` as input | Medium | `PexReader` is defensive: the numeric caps in Papyrus.Pex (1,048,576 string-table entries, 4,096 objects, 8,192 functions/object, 1,048,576 instructions/function) are hard errors. Parser is total: no throw, no unbounded recursion without a depth guard. `.ppj` XML is parsed with a DTD-disabled, resolver-disabled reader (no XXE). |
 | Malicious `.ppj` remote clone | Medium | Default host allowlist: `github.com`, `api.github.com`, `bitbucket.org`, `api.bitbucket.org`, plus user-configured Gitea hosts. First clone of a given remote origin requires confirmation (CLI prompt / LS `window/showMessageRequest`). No credentials are shipped; `git` uses the user's config. |
 | Secrets in CI | High if present | Public CI has no game install, no CK path, no Dropbox token. Existing `VSCE_TOKEN` / `GITHUB_TOKEN` stay in GitHub secrets and are not needed for the compiler's own tests. Diagnostic reports must redact user home paths and `creationKitInstallPath` by default, with an explicit opt-in to include them. |
-| Corpus is copyrighted game source | Legal | Corpus is user-owned, local, gitignored. Acquisition is a documented command that reads the user's own install. Nothing from `Data/Scripts` is committed. |
+| Game scripts are copyrighted game source | Legal | Game scripts are user-owned, local, gitignored. Acquisition is a documented command that reads the user's own install. Nothing from `Data/Scripts` is committed. |
 | Harmony IL rewrite of a closed-source assembly | Integrity / crash | The **shipping** Host still Harmony-patches PCompiler until cutover. New `managed.yml` never loads it. Deleted from the tree at **P4.09** (when the new VSIX is the default release). After that: no runtime code patching of any kind. |
 | NativeAOT + in-process xSE plugin | Existing native risk | Unchanged in kind. Address Library data files plus a version check replace silent hook-at-wrong-address crashes. The plugin still runs in the game process; that is inherent. |
 | Diagnostic report exfiltrating workspace contents | Privacy | Report contains versions, settings (redacted paths), last N log lines, workspace *shape* (project count, dialect, script counts), not source text, unless the user ticks "include source excerpts". |
@@ -1467,9 +1467,9 @@ Each phase has an exit criterion that is a test, not a judgment. Phases 0–3 pr
 
 ### Phase 0 — Foundations and the PEX oracle
 
-Repo layout, `Directory.Build.props`, CPM, cross-platform CI (Linux for managed, Windows for native), `Papyrus.Pex` complete (reader, writer, normalizer, PAS assembler and disassembler, `PexReflector`), corpus acquisition, **nuget.org 0.x publish of `Papyrus.Pex`**.
+Repo layout, `Directory.Build.props`, CPM, cross-platform CI (Linux for managed, Windows for native), `Papyrus.Pex` complete (reader, writer, normalizer, PAS assembler and disassembler, `PexReflector`), game scripts acquisition, **nuget.org 0.x publish of `Papyrus.Pex`**.
 
-**Exit:** every `.pex` in the SSE, FO4, and Starfield vanilla corpora reads and re-writes byte-identical. PAS round-trips. Tier-1 baseline generation works. `Papyrus.Pex` 0.x is on nuget.org.
+**Exit:** every `.pex` in the SSE, FO4, and Starfield vanilla scripts reads and re-writes byte-identical. PAS round-trips. Tier-1 baseline generation works. `Papyrus.Pex` 0.x is on nuget.org.
 
 Independently valuable even if everything after it stalled.
 
@@ -1477,7 +1477,7 @@ Independently valuable even if everything after it stalled.
 
 Source generators, green/red trees, dialect-parameterized lexer, error-tolerant recursive-descent parser, trivia model including doc comments and line continuations, `.flg` and `.ppj` parsers. Formatter exists as a **library API** (Appendix B); it is not an editor command yet.
 
-**Exit:** 100% round-trip fidelity over the corpus. **Parse-only** prefix property green. Mutation fuzzer clean for 24 hours (nightly; PR gate is "no known seed fails"). Parse throughput and memory within **measured** benchmark gates from P1.10. Decide `Blender` in or out.
+**Exit:** 100% round-trip fidelity over the game scripts. **Parse-only** prefix property green. Mutation fuzzer clean for 24 hours (nightly; PR gate is "no known seed fails"). Parse throughput and memory within **measured** benchmark gates from P1.10. Decide `Blender` in or out.
 
 **User-visible:** nothing in the editor. Developers can use the parser via tests and (after phase 3) via NuGet.
 
@@ -1485,7 +1485,7 @@ Source generators, green/red trees, dialect-parameterized lexer, error-tolerant 
 
 Symbol model, lazy completion-state binding with cycle handling, dependency-tracked invalidation, type checking and conversions, full diagnostic catalog, `SemanticModel` with speculative binding, dialect-specific binding behaviors, `PapyrusWorkspace`.
 
-**Exit:** every vanilla script in all three corpora binds with zero diagnostics. **Bind-every-prefix** green. Negative corpus matches CK accept/reject and positions. Concurrency stress suite clean.
+**Exit:** every vanilla script in all three games' scripts binds with zero diagnostics. **Bind-every-prefix** green. Negative fixtures match CK accept/reject and positions. Concurrency stress suite clean.
 
 **User-visible:** nothing in the editor.
 
@@ -1493,7 +1493,7 @@ Symbol model, lazy completion-state binding with cycle handling, dependency-trac
 
 Bound tree, lowering, CFG, `PexFunctionBuilder`, CK-compatible optimizations, engine limits, deterministic output, `papyrusc` CLI with native `.ppj` builds, **nuget.org 0.x publish of `Papyrus.CodeAnalysis`**.
 
-**Exit:** byte-identical PEX for the target percentage of each corpus, reviewed allowlist for the remainder, Champollion round-trip green, `papyrusc` builds `.ppj`, win-x64 AOT smoke of `papyrusc` green. **This is the first user-visible product:** a compiler CLI. The editor is still OmniSharp / PCompiler.
+**Exit:** byte-identical PEX for the target percentage of each game's scripts, reviewed allowlist for the remainder, Champollion round-trip green, `papyrusc` builds `.ppj`, win-x64 AOT smoke of `papyrusc` green. **This is the first user-visible product:** a compiler CLI. The editor is still OmniSharp / PCompiler.
 
 ### Phase 4 — Language server, new-major VSIX, delete old tree
 
@@ -1580,9 +1580,9 @@ Related closed context worth not regressing: **#195** (Git URL imports from `.pp
 | Risk | Severity | Mitigation |
 |---|---|---|
 | Byte-identical emit proves harder than expected (pooled temp reuse order, undocumented CK optimizations) | High | The allowlist mechanism means partial compliance still ships. Tier-2 differential reports pinpoint divergence per construct. Caprica has already solved much of this and is MIT. |
-| Corpus acquisition is per-user and cannot be committed | Medium | Tier-1 hash baselines make public CI work without the corpus. Corpus tooling is a first-class command with clear docs. |
+| Game scripts acquisition is per-user and cannot be committed | Medium | Tier-1 hash baselines make public CI work without the game scripts. Game scripts tooling is a first-class command with clear docs. |
 | Scope is large enough to stall | High | Phase 0 ships `Papyrus.Pex` on nuget.org. Phase 3 ships `papyrusc` and `Papyrus.CodeAnalysis` 0.x. The editor stays on the old VSIX until emit is proven — stalling does not ship a half-migrated LS. |
-| Starfield's language surface is under-documented | Medium | Caprica already implements guards and Starfield opcodes; the shipped corpus is the specification; the differential harness is the arbiter. |
+| Starfield's language surface is under-documented | Medium | Caprica already implements guards and Starfield opcodes; the shipped game scripts are the specification; the differential harness is the arbiter. |
 | Regression against the current tool at cutover | Medium | Old VSIX remains the stable Marketplace channel until the new compiler's compliance number is published and phase 4 exit is green. No mixed-engine process. Rollback = install the previous VSIX. |
 | Long dark stretch (no editor value until emit) | High (accepted) | Phases 0–3 still ship `papyrusc` and nuget.org 0.x packages. Phase boundaries remain so a stall leaves a CLI. |
 | NativeAOT constraints surprise us late | Low | The no-reflection discipline is enforced from phase 0 by an architecture test, not discovered at publish time. |
@@ -1602,7 +1602,7 @@ Owner answers, 2026-08-16. No product questions remain open.
 
 3. **Language extensions (K5) — confirmed.** Official CK syntax only. Caprica extensions designed for as `LanguageVersion.Extended`. Shipping them is post-compliance (P6.05).
 
-4. **Skyrim LE (K26) — carry, no corpus.** `GameId.Skyrim`, `SkyrimLe`, `papyrusc --game skyrimle`, existing extension toggle. No LE corpus gate. No LE compliance number.
+4. **Skyrim LE (K26) — carry, no game scripts.** `GameId.Skyrim`, `SkyrimLe`, `papyrusc --game skyrimle`, existing extension toggle. No LE game scripts gate. No LE compliance number.
 
 5. **Oblivion (#207) (K27) — out of scope.** Not a compile target. Not on this roadmap. Dialects-as-data does not schedule it. The GitHub issue is left untouched.
 
@@ -1681,7 +1681,7 @@ This appendix is the implementation spec P1.01 / P2.05 / P3.03 were missing. **C
 |---|---|---|---|
 | Official productions, precedence, newline / `\` | Caprica `Caprica/papyrus/parser/` at `e4dee08`; CK is the oracle when they disagree | Statement / expression shape, keyword sets per game | `SupportsIsOperator`; any production Caprica added only for extensions |
 | Starfield `Guard` / `Lock` | Caprica `Caprica/papyrus/PapyrusGuard.h`, `PapyrusLockParameter.h`; `Caprica/pex/PexGuard.h` | Syntax and PEX records | Exact CK diagnostics |
-| FO4 namespaces / structs / groups / custom events | Caprica `PapyrusStruct.h`, `PapyrusPropertyGroup.h`, `PapyrusCustomEvent.h`; current `NodeKind` / `Nodes.cs` | Productions | CK accept/reject on the negative corpus |
+| FO4 namespaces / structs / groups / custom events | Caprica `PapyrusStruct.h`, `PapyrusPropertyGroup.h`, `PapyrusCustomEvent.h`; current `NodeKind` / `Nodes.cs` | Productions | CK accept/reject on the negative fixtures |
 | `.flg` | Caprica `Caprica/papyrus/PapyrusUserFlags.h`; current `FlagsFile.cs` (PCompiler `FlagsLexer`/`FlagsParser`) | Flag name = bit in declaration order; 31 user bits | Unknown-flag diagnostics |
 | Type assignability, `as` / `is`, `Var`, arrays | Caprica `Caprica/papyrus/PapyrusType.cpp` | Starting conversion matrix (below) | CK implicit coercions not in Caprica's four published differences |
 | Import order / namespaced paths | This document K21; current `ProgramOptions.SourceInclude` | First-match; `A:B:Script` → `A/B/Script.psc` | — |
@@ -1840,7 +1840,7 @@ Phase 1 ships **indent-only** formatting so `format(format(x)) == x` is true and
 | What is **not** changed | Keyword casing, operator spacing, blank-line runs, comment text, doc comments, line-continuation placement, string literals, the presence/absence of `\` . |
 | Newline after `\` | Left alone. |
 | Missing tokens | Not inserted by the formatter (that is a code fix, phase 6). |
-| Idempotence | `format(format(x)) == format(x)` is a CI property on the corpus and the fuzzer. |
+| Idempotence | `format(format(x)) == format(x)` is a CI property on the game scripts and the fuzzer. |
 
 Range / on-type format use the same rules on the smallest enclosing statement or declaration. Broader pretty-printing is phase 6.
 
@@ -1891,7 +1891,7 @@ flowchart TB
         P006[P0.06 PAS disasm]
         P007[P0.07 PAS asm]
         P008[P0.08 PexReflector DTO]
-        P009[P0.09 corpus acquire]
+        P009[P0.09 scripts acquire]
         P010[P0.10 tier-1 hashes]
         P011[P0.11 spec stubs]
         P012[P0.12 NuGet Pex 0.x]
@@ -2105,8 +2105,8 @@ flowchart TB
 - **Depends on:** P0.04
 - **Description:** Pex-owned strings only.
 
-#### P0.09 — Corpus acquisition
-- **Files:** `papyrusc corpus acquire` (CLI skeleton)
+#### P0.09 — Game scripts acquisition
+- **Files:** `papyrusc scripts acquire` (CLI skeleton)
 - **Depends on:** P0.00
 
 #### P0.10 — Tier-1 hash harness
@@ -2214,7 +2214,7 @@ No phase-1 LSP, helper, or extension PRs.
 #### P2.08 — Dependency-tracked invalidation
 - **Depends on:** P2.07, P2.00
 
-#### P2.09 — Dialect binding + negative corpus + bind-prefix
+#### P2.09 — Dialect binding + negative fixtures + bind-prefix
 - **Depends on:** P2.08
 
 #### P2.11 — Observability

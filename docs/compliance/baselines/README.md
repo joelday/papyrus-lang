@@ -1,11 +1,11 @@
 # Compliance baselines
 
-Tier-1 public CI compares **normalized SHA-256 hashes** of PEX. The repo never contains vanilla `.pex`, compiler binaries from the games, or corpus source.
+Tier-1 public CI compares **normalized SHA-256 hashes** of PEX. The repo never contains vanilla `.pex`, compiler binaries from the games, or game script source.
 
 Two hash paths:
 
 1. **Existing `.pex`.** `papyrusc hash` / `papyrusc verify --source <pex-dir> --baseline <file>` via `PexReader` + `PexNormalizer.Hash`. Does not compile.
-2. **Compile vs baseline.** `papyrusc verify --compile` compiles each `.psc` with `PexEmitter` and compares the normalized hash to the committed baseline. **Skips (exit 0)** when the local corpus is absent — public CI must not require game files.
+2. **Compile vs baseline.** `papyrusc verify --compile` compiles each `.psc` with `PexEmitter` and compares the normalized hash to the committed baseline. **Skips (exit 0)** when the local game scripts are absent — public CI must not require game files.
 
 Committed game baselines will live here later:
 
@@ -21,14 +21,14 @@ Public CI does **not** read those files. It hashes synthetic fixtures only and c
 
 ```
 papyrusc verify --compile --game skyrimse|fallout4|starfield \
-  [--source ./corpus/<game>] \
+  [--source ./game-scripts/<game>] \
   [--baseline docs/compliance/baselines/<game>.json] \
   [--allowlist docs/compliance/allowlist.md]
 ```
 
-`--source` defaults to `./corpus/<game>`. If that tree has no `.psc` files, the command prints `allowlist size` and a skip message and exits 0.
+`--source` defaults to `./game-scripts/<game>`. If that tree has no `.psc` files, the command prints `allowlist size` and a skip message and exits 0.
 
-`--flags` points at a `.flg`. If omitted, the harness uses `TESV_Papyrus_Flags.flg` / `Institute_Papyrus_Flags.flg` / `Starfield_Papyrus_Flags.flg` in the corpus root when present (or the sole `.flg` there).
+`--flags` points at a `.flg`. If omitted, the harness uses `TESV_Papyrus_Flags.flg` / `Institute_Papyrus_Flags.flg` / `Starfield_Papyrus_Flags.flg` in the game scripts root when present (or the sole `.flg` there).
 
 A baseline row is waived only when `allowlistId` names a construct in `docs/compliance/allowlist.md`, or the script is on that construct's explicit `scripts:` list. `status: allowlisted` is metadata and is not a waiver by itself.
 
@@ -40,14 +40,14 @@ Everything not on `docs/compliance/allowlist.md` must be byte-identical. Allowli
 papyrusc verify --game <g> --ck-compiler <path> --source <dir>
 ```
 
-Not implemented. That path would compile with both `papyrusc` and a **local** CK / PapyrusCompiler binary the user already has, then normalize and diff. Do not commit that binary. Until it ships, generate hashes from existing `.pex` (below) or from `--compile` against a corpus you acquired yourself.
+Not implemented. That path would compile with both `papyrusc` and a **local** CK / PapyrusCompiler binary the user already has, then normalize and diff. Do not commit that binary. Until it ships, generate hashes from existing `.pex` (below) or from `--compile` against game scripts you acquired yourself.
 
 ## Generate hashes (maintainer, legitimate install)
 
 1. Copy scripts from a game install you have a license to use:
 
    ```
-   papyrusc corpus acquire --game skyrimse|fallout4|starfield --source <game-or-scripts-path>
+   papyrusc scripts acquire --game skyrimse|fallout4|starfield --source <game-or-scripts-path>
    ```
 
 2. Fill in the attestation template below. Hash the **CK compiler binary** (not its path). Never commit the binary.
@@ -63,7 +63,7 @@ Not implemented. That path would compile with both `papyrusc` and a **local** CK
    ```
    papyrusc verify --write-baselines \
      --game skyrimse \
-     --source ./corpus/skyrimse \
+     --source ./game-scripts/skyrimse \
      --out docs/compliance/baselines/skyrimse.json \
      --attestation /path/to/attestation.txt
    ```

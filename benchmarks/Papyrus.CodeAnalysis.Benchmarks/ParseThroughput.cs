@@ -17,11 +17,11 @@ internal static class ParseThroughput
 
     internal const string HelpText =
         """
-        Usage: Papyrus.CodeAnalysis.Benchmarks [--corpus <path>]
+        Usage: Papyrus.CodeAnalysis.Benchmarks [--game-scripts <path>]
 
           Measures SyntaxTree.Parse over committed Fixtures/Parse.
-          Optional extra suite: --corpus, PAPYRUS_CORPUS, ./corpus, or the
-          repo corpus/ directory when that path contains .psc files.
+          Optional extra suite: --game-scripts, PAPYRUS_GAME_SCRIPTS, ./game-scripts, or the
+          repo game-scripts/ directory when that path contains .psc files.
 
           Reports median/mean parse time, line counts, and process-wide RSS
           (WorkingSet64 of the whole process).
@@ -29,13 +29,13 @@ internal static class ParseThroughput
 
     internal static int Run(string[] args, TextWriter stdout, TextWriter stderr)
     {
-        if (!TryParseArgs(args, out var corpusOverride, out var error))
+        if (!TryParseArgs(args, out var gameScriptsOverride, out var error))
         {
             stderr.WriteLine(error);
             return 1;
         }
 
-        if (corpusOverride == HelpSentinel)
+        if (gameScriptsOverride == HelpSentinel)
         {
             stdout.WriteLine(HelpText);
             return 0;
@@ -55,24 +55,24 @@ internal static class ParseThroughput
         WriteHeader(stdout);
         MeasureSuite(stdout, "committed Fixtures/Parse", fixtures);
 
-        if (!TryResolveCorpus(corpusOverride, stderr, out var corpus, out var corpusError))
+        if (!TryResolveGameScripts(gameScriptsOverride, stderr, out var gameScripts, out var gameScriptsError))
         {
-            stderr.WriteLine(corpusError);
+            stderr.WriteLine(gameScriptsError);
             return 1;
         }
 
-        if (corpus is null)
+        if (gameScripts is null)
         {
             stdout.WriteLine();
-            stdout.WriteLine("Maintainer corpus: not present.");
-            stdout.WriteLine("Set --corpus, PAPYRUS_CORPUS, or place .psc files under ./corpus to measure it.");
+            stdout.WriteLine("Maintainer game scripts: not present.");
+            stdout.WriteLine("Set --game-scripts, PAPYRUS_GAME_SCRIPTS, or place .psc files under ./game-scripts to measure it.");
             return 0;
         }
 
-        IReadOnlyList<ParseFixture> corpusFixtures;
+        IReadOnlyList<ParseFixture> gameScriptFixtures;
         try
         {
-            corpusFixtures = ParseFixtureCatalog.Load(corpus);
+            gameScriptFixtures = ParseFixtureCatalog.Load(gameScripts);
         }
         catch (Exception ex) when (ex is DirectoryNotFoundException or InvalidOperationException or IOException)
         {
@@ -81,15 +81,15 @@ internal static class ParseThroughput
         }
 
         stdout.WriteLine();
-        MeasureSuite(stdout, "maintainer corpus (" + corpus + ")", corpusFixtures);
+        MeasureSuite(stdout, "maintainer game scripts (" + gameScripts + ")", gameScriptFixtures);
         return 0;
     }
 
     private const string HelpSentinel = "\0help";
 
-    private static bool TryParseArgs(string[] args, out string? corpusOverride, out string error)
+    private static bool TryParseArgs(string[] args, out string? gameScriptsOverride, out string error)
     {
-        corpusOverride = null;
+        gameScriptsOverride = null;
         error = null!;
 
         for (var i = 0; i < args.Length; i++)
@@ -97,25 +97,25 @@ internal static class ParseThroughput
             var arg = args[i];
             if (arg is "-h" or "--help")
             {
-                corpusOverride = HelpSentinel;
+                gameScriptsOverride = HelpSentinel;
                 return true;
             }
 
-            if (arg == "--corpus")
+            if (arg == "--game-scripts")
             {
                 if (i + 1 >= args.Length)
                 {
-                    error = "error: --corpus requires a path";
+                    error = "error: --game-scripts requires a path";
                     return false;
                 }
 
-                corpusOverride = args[++i];
+                gameScriptsOverride = args[++i];
                 continue;
             }
 
-            if (arg.StartsWith("--corpus=", StringComparison.Ordinal))
+            if (arg.StartsWith("--game-scripts=", StringComparison.Ordinal))
             {
-                corpusOverride = arg["--corpus=".Length..];
+                gameScriptsOverride = arg["--game-scripts=".Length..];
                 continue;
             }
 
@@ -277,53 +277,53 @@ internal static class ParseThroughput
         GC.Collect();
     }
 
-    private static bool TryResolveCorpus(
-        string? corpusOverride,
+    private static bool TryResolveGameScripts(
+        string? gameScriptsOverride,
         TextWriter stderr,
-        out string? corpus,
+        out string? gameScripts,
         out string error)
     {
-        corpus = null;
+        gameScripts = null;
         error = null!;
 
-        if (!string.IsNullOrWhiteSpace(corpusOverride))
+        if (!string.IsNullOrWhiteSpace(gameScriptsOverride))
         {
-            if (!HasPsc(corpusOverride))
+            if (!HasPsc(gameScriptsOverride))
             {
-                error = "error: --corpus is not a directory of .psc files: " + corpusOverride;
+                error = "error: --game-scripts is not a directory of .psc files: " + gameScriptsOverride;
                 return false;
             }
 
-            corpus = Path.GetFullPath(corpusOverride);
+            gameScripts = Path.GetFullPath(gameScriptsOverride);
             return true;
         }
 
-        var env = Environment.GetEnvironmentVariable("PAPYRUS_CORPUS");
+        var env = Environment.GetEnvironmentVariable("PAPYRUS_GAME_SCRIPTS");
         if (!string.IsNullOrWhiteSpace(env))
         {
             if (HasPsc(env))
             {
-                corpus = Path.GetFullPath(env);
+                gameScripts = Path.GetFullPath(env);
                 return true;
             }
 
-            stderr.WriteLine("warning: PAPYRUS_CORPUS is set but is not a directory of .psc files: " + env);
+            stderr.WriteLine("warning: PAPYRUS_GAME_SCRIPTS is set but is not a directory of .psc files: " + env);
         }
 
-        var cwdCorpus = Path.Combine(Directory.GetCurrentDirectory(), "corpus");
-        if (HasPsc(cwdCorpus))
+        var cwdGameScripts = Path.Combine(Directory.GetCurrentDirectory(), "game-scripts");
+        if (HasPsc(cwdGameScripts))
         {
-            corpus = cwdCorpus;
+            gameScripts = cwdGameScripts;
             return true;
         }
 
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null)
         {
-            var candidate = Path.Combine(dir.FullName, "corpus");
+            var candidate = Path.Combine(dir.FullName, "game-scripts");
             if (HasPsc(candidate))
             {
-                corpus = candidate;
+                gameScripts = candidate;
                 return true;
             }
 

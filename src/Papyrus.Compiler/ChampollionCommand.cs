@@ -179,9 +179,9 @@ internal static class ChampollionCommand
             return Path.GetFullPath(options.Source);
 
         if (options.Game is not null && GameNames.TryParse(options.Game, out var game, out _))
-            return Path.GetFullPath(Path.Combine("corpus", game));
+            return Path.GetFullPath(Path.Combine("game-scripts", game));
 
-        return Path.GetFullPath("corpus");
+        return Path.GetFullPath("game-scripts");
     }
 
     private static int Decompile(string binary, string source, string pscDir, TextWriter stderr)

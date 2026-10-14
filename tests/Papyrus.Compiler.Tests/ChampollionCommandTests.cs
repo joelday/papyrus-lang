@@ -39,7 +39,7 @@ public sealed class ChampollionCommandTests
     public void Verify_Champollion_MissingSource_SkipsZero()
     {
         using var root = new TempDir();
-        var missing = Path.Combine(root.Path, "no-corpus");
+        var missing = Path.Combine(root.Path, "no-game-scripts");
 
         var code = Run(out var stdout, out var stderr, "verify", "--champollion", "--source", missing);
 

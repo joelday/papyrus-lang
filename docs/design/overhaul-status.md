@@ -24,14 +24,14 @@ dotnet build Papyrus.sln -c Release
 
 ```
 papyrusc compile <script.psc|project.ppj> [--game skyrimse|skyrimle|fallout4|starfield]
-papyrusc corpus acquire --game <game> --source <path>
+papyrusc scripts acquire --game <game> --source <path>
 papyrusc hash <path>
 papyrusc verify --compile --game skyrimse
 papyrusc verify --champollion
 papyrusc --version
 ```
 
-`--game skyrimle` is supported. `.ppj` builds expand `${ENV}` and run pre/post steps. `--ignore-engine-limits` downgrades `PAP20xx` to warnings. Public CI never needs game files: `verify --compile` skips with exit 0 when `./corpus/<game>` is absent.
+`--game skyrimle` is supported. `.ppj` builds expand `${ENV}` and run pre/post steps. `--ignore-engine-limits` downgrades `PAP20xx` to warnings. Public CI never needs game files: `verify --compile` skips with exit 0 when `./game-scripts/<game>` is absent.
 
 The new `Papyrus.LanguageServer` process speaks StreamJsonRpc with a mutating/non-mutating request scheduler and text-document sync. Semantic tokens, folding, selection ranges, document symbols, `textDocument/syntaxTree`, and indent-only formatting are wired. The shipping extension does **not** launch this process.
 
@@ -41,7 +41,7 @@ The new `Papyrus.LanguageServer` process speaks StreamJsonRpc with a mutating/no
 
 ### Phase 0 — Foundations and PEX oracle (P0.00–P0.12)
 
-Solution layout, CPM, architecture/AOT bans, `Papyrus.Pex` reader/writer/normalizer/PAS/PexReflector, corpus acquire, tier-1 hash harness, spec stubs. `Papyrus.Pex` 0.x pack metadata exists; nuget.org push is disabled.
+Solution layout, CPM, architecture/AOT bans, `Papyrus.Pex` reader/writer/normalizer/PAS/PexReflector, scripts acquire, tier-1 hash harness, spec stubs. `Papyrus.Pex` 0.x pack metadata exists; nuget.org push is disabled.
 
 ### Phase 1 — Parser (P1.01–P1.10)
 
@@ -49,7 +49,7 @@ Syntax generator, green/red trees, lexer, script/decls/FO4+/Starfield/statements
 
 ### Phase 2 — Binder (P2.00–P2.11)
 
-`PapyrusWorkspace`, `PapyrusName`, symbol API + PexReflector adapter, `PapyrusCompilation`, binder (members, signatures, K23), assignability, `as`/`is`/`Var`/arrays, diagnostic catalog, `SemanticModel`, dependency-tracked invalidation, dialect binding + negative corpus, observability. No LSP handlers in this phase.
+`PapyrusWorkspace`, `PapyrusName`, symbol API + PexReflector adapter, `PapyrusCompilation`, binder (members, signatures, K23), assignability, `as`/`is`/`Var`/arrays, diagnostic catalog, `SemanticModel`, dependency-tracked invalidation, dialect binding + negative fixtures, observability. No LSP handlers in this phase.
 
 ### Phase 3 — Emit + CLI (all except P3.12)
 
@@ -67,10 +67,10 @@ Syntax generator, green/red trees, lexer, script/decls/FO4+/Starfield/statements
 | P3.06b | `${ENV}` + pre/post build (CLI default on)                           |
 | P3.07  | Differential compliance + allowlist (`docs/compliance/allowlist.md`) |
 | P3.09  | Debug-info emit                                                      |
-| P3.10  | Champollion tier-3 (optional; skips if binary/corpus missing)        |
+| P3.10  | Champollion tier-3 (optional; skips if binary or game scripts missing)        |
 | P3.11  | Encoding contract tests (Windows-1252 string tables)                 |
 
-**Phase 3 complete,** including P3.12 pack metadata for `Papyrus.CodeAnalysis` 0.x (nuget.org push still disabled). Cutover still waits on a real corpus compliance number (K3), not just the harness.
+**Phase 3 complete,** including P3.12 pack metadata for `Papyrus.CodeAnalysis` 0.x (nuget.org push still disabled). Cutover still waits on a real game scripts compliance number (K3), not just the harness.
 
 ### Phase 4 — started
 
@@ -134,7 +134,7 @@ Still to port/decide (deferred, no explicit owner direction yet beyond "model mo
 
 Project discovery (landed ahead of P4.06b because the language server loaded no projects at all): on `initialized`, `Papyrus.LanguageServer` scans the `initialize` workspace folders (falling back to `rootUri`/`rootPath`) for `*.ppj` via `ProjectDiscovery.FindProjectFiles` (skips hidden directories, `bin`, `obj`, `node_modules`, and symlinked directories) and loads each one; it advertises `workspaceFolders.changeNotifications` and loads/unloads projects on `workspace/didChangeWorkspaceFolders`. Load failures and projects whose game cannot be determined are reported via `window/logMessage`. The `.ppj` alone decides the dialect: when `Game` is absent, `PpjParser` infers it from the `Flags` file name as Pyro does (`TESV_Papyrus_Flags.flg` → Skyrim SE, `Institute_Papyrus_Flags.flg` → Fallout 4); otherwise the server still falls back to Skyrim SE, now with a logged warning. No install directory is consulted; vanilla sources come in only through explicit `<Imports>`. The same change registered the P4.03c–h request/response types in `LspJsonContext` (their absence made every hover/outline/completion request drop the connection in a real client) and added `LspJsonContextTests`, which fails if any `[JsonRpcMethod]` payload type is unregistered. Follow-ups: a `.ppj`-level `PAP8xxx` diagnostic instead of the log warning, and loading `.ppj` files created after startup (the client can forward `**/*.ppj` via `workspace/didChangeWatchedFiles`).
 
-Vanilla Fallout 4 corpus (the `FO4Scripts` Base sources plus `Institute_Papyrus_Flags.flg`, compiled as one `.ppj` with `papyrusc`): 7,813 of 7,819 scripts compile; the remaining six are `gamejam` dialogue fragments whose `gamejam:GJDialogueScript` is absent from the corpus. Getting there fixed: the `.flg` parser (it implemented an invented `Name {index}` syntax; it now follows the CK grammar with location lists and composite flags, applies masks only on allowed locations, and treats `Mandatory` as the user flag it is); script symbols replaced via `WithScriptText` binding against the pre-override compilation (every `papyrusc` input and every open editor buffer); `CustomEventName`/`ScriptEventName` parameter types and custom-event argument qualification; structs from parent scripts and `Script:Struct`; namespace-relative type lookup; `import` anywhere at script level (structs and global calls); remote event handlers (`Event Script.Event(...)` → `::remote_Script_Event`); calls resolving to a same-named state/local instead of the function; block-scoped locals (`::mangled_<name>_<n>`); and `__state` in `GetState`/`GotoState`. A call that still cannot be resolved is now `PAP1012` instead of a silently emitted empty `CallMethod` (143 such calls in the corpus before these fixes). Not yet compared against CK-compiled PEX for this corpus.
+Vanilla Fallout 4 game scripts (the `FO4Scripts` Base sources plus `Institute_Papyrus_Flags.flg`, compiled as one `.ppj` with `papyrusc`): 7,813 of 7,819 scripts compile; the remaining six are `gamejam` dialogue fragments whose `gamejam:GJDialogueScript` is absent from the game scripts. Getting there fixed: the `.flg` parser (it implemented an invented `Name {index}` syntax; it now follows the CK grammar with location lists and composite flags, applies masks only on allowed locations, and treats `Mandatory` as the user flag it is); script symbols replaced via `WithScriptText` binding against the pre-override compilation (every `papyrusc` input and every open editor buffer); `CustomEventName`/`ScriptEventName` parameter types and custom-event argument qualification; structs from parent scripts and `Script:Struct`; namespace-relative type lookup; `import` anywhere at script level (structs and global calls); remote event handlers (`Event Script.Event(...)` → `::remote_Script_Event`); calls resolving to a same-named state/local instead of the function; block-scoped locals (`::mangled_<name>_<n>`); and `__state` in `GetState`/`GotoState`. A call that still cannot be resolved is now `PAP1012` instead of a silently emitted empty `CallMethod` (143 such calls in the game scripts before these fixes). Not yet compared against CK-compiled PEX for these game scripts.
 
 ### Phase 5 — remaining
 
@@ -168,7 +168,7 @@ src/Papyrus.Workspaces              .ppj / workspace
 src/Papyrus.Compiler                papyrusc
 src/Papyrus.LanguageServer          StreamJsonRpc host + request scheduler + LSP handlers
 src/Papyrus.DebugAdapter            stub (P5.03)
-src/Papyrus.CodeAnalysis.Testing    corpus / allowlist / hash harness
+src/Papyrus.CodeAnalysis.Testing    game scripts / allowlist / hash harness
 ```
 
 P4.09 is done: the `DarkId.Papyrus.*` managed projects, the old extension and the Cake pipeline are gone. `src/DarkId.Papyrus.DebugServer` (the C++ xSE plugin) stays, under its original name.

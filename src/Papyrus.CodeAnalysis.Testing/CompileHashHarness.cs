@@ -97,13 +97,13 @@ public sealed class CompileVerifyResult
 
 /// <summary>
 /// Compiles <c>.psc</c> with <see cref="PexEmitter"/> and hashes normalized PEX.
-/// Public CI skips when the local corpus is absent.
+/// Public CI skips when the local game scripts are absent.
 /// </summary>
 public static class CompileHashHarness
 {
     public const string SkipSuffix = " (public CI does not require game files)";
 
-    public static bool IsCorpusPresent(string? path)
+    public static bool HasGameScripts(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))
             return false;
@@ -136,21 +136,21 @@ public static class CompileHashHarness
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {
-            return "skip: corpus not found" + SkipSuffix;
+            return "skip: game scripts not found" + SkipSuffix;
         }
 
         if (Directory.Exists(full))
             return "skip: no .psc files in " + full + SkipSuffix;
 
-        return "skip: corpus not found at " + full + SkipSuffix;
+        return "skip: game scripts not found at " + full + SkipSuffix;
     }
 
-    public static string DefaultCorpusPath(string? game, string? startDirectory = null)
+    public static string DefaultGameScriptsPath(string? game, string? startDirectory = null)
     {
         string root = FindRepoRoot(startDirectory) ?? startDirectory ?? Directory.GetCurrentDirectory();
         return string.IsNullOrWhiteSpace(game)
-            ? Path.Combine(root, "corpus")
-            : Path.Combine(root, "corpus", game);
+            ? Path.Combine(root, "game-scripts")
+            : Path.Combine(root, "game-scripts", game);
     }
 
     public static string HashScript(
@@ -203,7 +203,7 @@ public static class CompileHashHarness
     }
 
     /// <summary>
-    /// <c>TESV_Papyrus_Flags.flg</c> / game equivalent in the corpus root, or the
+    /// <c>TESV_Papyrus_Flags.flg</c> / game equivalent in the game scripts root, or the
     /// sole <c>.flg</c> there. Null when none is present.
     /// </summary>
     public static string? FindFlagsPath(string source, PapyrusDialect? dialect = null)

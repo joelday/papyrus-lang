@@ -126,10 +126,10 @@ internal static class VerifyCommand
 
         string source = options.Source;
         if (string.IsNullOrWhiteSpace(source))
-            source = CompileHashHarness.DefaultCorpusPath(
+            source = CompileHashHarness.DefaultGameScriptsPath(
                 string.Equals(gameName, "unknown", StringComparison.OrdinalIgnoreCase) ? null : gameName);
 
-        if (!CompileHashHarness.IsCorpusPresent(source))
+        if (!CompileHashHarness.HasGameScripts(source))
         {
             stdout.WriteLine("allowlist size: " + allowlist.Size);
             stdout.WriteLine(CompileHashHarness.SkipReason(source));
@@ -144,7 +144,7 @@ internal static class VerifyCommand
 
         if (string.IsNullOrWhiteSpace(options.Baseline))
         {
-            stderr.WriteLine("error: --baseline is required with --compile when a corpus is present");
+            stderr.WriteLine("error: --baseline is required with --compile when game scripts are present");
             return 1;
         }
 

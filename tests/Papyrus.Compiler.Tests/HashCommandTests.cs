@@ -14,7 +14,7 @@ public sealed class HashCommandTests
         var code = Run(out var stdout, out var stderr, "--help");
 
         Assert.Equal(0, code);
-        Assert.Contains("corpus acquire", stdout, StringComparison.Ordinal);
+        Assert.Contains("scripts acquire", stdout, StringComparison.Ordinal);
         Assert.Contains("hash", stdout, StringComparison.Ordinal);
         Assert.Contains("--write-baselines", stdout, StringComparison.Ordinal);
         Assert.Contains("attestation", stdout, StringComparison.Ordinal);

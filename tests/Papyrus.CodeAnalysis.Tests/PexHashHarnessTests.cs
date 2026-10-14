@@ -23,11 +23,11 @@ public sealed class PexHashHarnessTests
     }
 
     [Fact]
-    public void IsCorpusPresent_MissingPath_IsFalse()
+    public void HasGameScripts_MissingPath_IsFalse()
     {
-        Assert.False(CompileHashHarness.IsCorpusPresent(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))));
-        Assert.False(CompileHashHarness.IsCorpusPresent(null));
-        Assert.Contains("public CI does not require game files", CompileHashHarness.SkipReason("missing-corpus"), StringComparison.Ordinal);
+        Assert.False(CompileHashHarness.HasGameScripts(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))));
+        Assert.False(CompileHashHarness.HasGameScripts(null));
+        Assert.Contains("public CI does not require game files", CompileHashHarness.SkipReason("missing-game-scripts"), StringComparison.Ordinal);
     }
 
     [Fact]

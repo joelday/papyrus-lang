@@ -15,11 +15,11 @@ dotnet run --project benchmarks/Papyrus.CodeAnalysis.Benchmarks --configuration 
 - Timing: 5 warmup + 21 timed iterations per script; `Stopwatch.GetTimestamp`.
 - Lines: newline-separated rows, including a last row without a trailing newline.
 - RSS: `Process.WorkingSet64` after one retained parse of the suite. Process-wide (runtime, JIT, fixtures, trees). Also report `GC.GetTotalMemory` and the WorkingSet delta after retaining trees.
-- Optional maintainer corpus: `--corpus`, `PAPYRUS_CORPUS`, `./corpus`, or the repo `corpus/` directory when that path contains `.psc` files. Default `dotnet run` uses committed fixtures only.
+- Optional maintainer game scripts: `--game-scripts`, `PAPYRUS_GAME_SCRIPTS`, `./game-scripts`, or the repo `game-scripts/` directory when that path contains `.psc` files. Default `dotnet run` uses committed fixtures only.
 
 ## Numbers
 
-Recorded 2026-08-17, Release, .NET 10.0.5, Unix 26.5.2. Maintainer corpus not present.
+Recorded 2026-08-17, Release, .NET 10.0.5, Unix 26.5.2. Maintainer game scripts not present.
 
 | | |
 |---|---|
@@ -36,7 +36,7 @@ Recorded 2026-08-17, Release, .NET 10.0.5, Unix 26.5.2. Maintainer corpus not pr
 
 Every committed fixture parsed well under 1 ms.
 
-Committed fixtures are smaller than the hypothesized vanilla median (low hundreds of lines). A linear scale of the 19-line max (~0.030 ms) to a few hundred lines still lands under 1 ms. Re-run with a maintainer corpus when one is available; revisit only if that measurement shows parse as the keystroke bottleneck.
+Committed fixtures are smaller than the hypothesized vanilla median (low hundreds of lines). A linear scale of the 19-line max (~0.030 ms) to a few hundred lines still lands under 1 ms. Re-run with maintainer game scripts when they are available; revisit only if that measurement shows parse as the keystroke bottleneck.
 
 ## Rationale
 

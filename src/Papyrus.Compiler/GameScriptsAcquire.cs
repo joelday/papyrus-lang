@@ -4,16 +4,16 @@ using System.IO;
 
 namespace Papyrus.Compiler;
 
-internal static class CorpusAcquire
+internal static class GameScriptsAcquire
 {
-    internal static int Execute(CorpusAcquireOptions options, TextWriter stdout, TextWriter stderr)
+    internal static int Execute(GameScriptsAcquireOptions options, TextWriter stdout, TextWriter stderr)
     {
         string source;
         string dest;
         try
         {
             source = Path.GetFullPath(options.Source);
-            dest = Path.GetFullPath(options.Dest ?? Path.Combine("corpus", options.Game));
+            dest = Path.GetFullPath(options.Dest ?? Path.Combine("game-scripts", options.Game));
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {

@@ -27,10 +27,10 @@ Byte-identical PEX is the gate. Semantic-equivalence exceptions live in [`docs/c
 papyrusc verify --compile --game skyrimse
 ```
 
-skips with exit 0 when `./corpus/skyrimse` is absent. With a local corpus (see [docs/corpus.md](docs/corpus.md)):
+skips with exit 0 when `./game-scripts/skyrimse` is absent. With local game scripts (see [docs/game-scripts.md](docs/game-scripts.md)):
 
 ```
-papyrusc verify --compile --game skyrimse --source ./corpus/skyrimse --baseline docs/compliance/baselines/skyrimse.json
+papyrusc verify --compile --game skyrimse --source ./game-scripts/skyrimse --baseline docs/compliance/baselines/skyrimse.json
 ```
 
 Tier 2 (`--ck-compiler`) is not implemented yet. See [docs/compliance/baselines/README.md](docs/compliance/baselines/README.md).

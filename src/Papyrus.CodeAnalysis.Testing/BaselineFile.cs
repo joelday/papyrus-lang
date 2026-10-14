@@ -186,7 +186,7 @@ public static class BaselineFile
     }
 
     /// <summary>
-    /// Line-oriented fixture format used by public CI (not vanilla corpus):
+    /// Line-oriented fixture format used by public CI (not the vanilla game scripts):
     /// <c>script-name  sha256</c>. Lines starting with <c>#</c> are ignored.
     /// </summary>
     public static Dictionary<string, string> ParseHashList(string text)

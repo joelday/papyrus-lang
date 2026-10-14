@@ -36,7 +36,7 @@ public sealed record PapyrusDialect
     public static PapyrusDialect Fallout4 { get; }
     public static PapyrusDialect Starfield { get; }
 
-    // Compile-capable, no corpus gate, no LE compliance number (K26).
+    // Compile-capable, no game scripts gate, no LE compliance number (K26).
     public static PapyrusDialect SkyrimLe { get; }
 
     // Read-only. PexReader identifies the file; papyrusc will not compile for it.

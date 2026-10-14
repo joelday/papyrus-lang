@@ -25,7 +25,7 @@ public sealed class PexHashEntry
 
 /// <summary>
 /// Hashes existing PEX via <see cref="PexReader"/> + <see cref="PexNormalizer.Hash"/>.
-/// Public CI uses synthetic fixtures only; vanilla corpus is never committed.
+/// Public CI uses synthetic fixtures only; the vanilla game scripts are never committed.
 /// </summary>
 public static class PexHashHarness
 {

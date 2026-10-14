@@ -16,7 +16,7 @@
 | VSIX | One platform-specific VSIX per target, each bundling that platform's language server. |
 | Native debug plugin | The C++ xSE plugin for Skyrim SE and Fallout 4. Runs only when native inputs changed (`src/DarkId.Papyrus.DebugServer`, `src/native`, `dependencies`, `vcpkg*.json`), when a release asks for it, or when triggered by hand with the `build_native` input. Built output is cached by input hash, so an unchanged plugin is never rebuilt. |
 
-Public CI never has game files or Bethesda binaries. `papyrusc verify --compile` skips when `./corpus` is absent, and the binary check fails the build if a `.pex`, `PCompiler.dll` or `Antlr3*.dll` is ever committed.
+Public CI never has game files or Bethesda binaries. `papyrusc verify --compile` skips when `./game-scripts` is absent, and the binary check fails the build if a `.pex`, `PCompiler.dll` or `Antlr3*.dll` is ever committed.
 
 ## Releases
 

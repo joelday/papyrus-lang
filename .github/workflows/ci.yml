@@ -162,7 +162,7 @@ jobs:
           --logger "trx" --results-directory artifacts/test-results
 
       - name: Differential compliance
-        # Skips with exit 0 when ./corpus is absent; public CI never has game files.
+        # Skips with exit 0 when ./game-scripts is absent; public CI never has game files.
         run: >-
           dotnet run --no-build --no-restore --configuration Release
           --project src/Papyrus.Compiler/Papyrus.Compiler.csproj

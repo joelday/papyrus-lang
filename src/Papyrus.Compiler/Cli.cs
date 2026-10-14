@@ -13,7 +13,7 @@ internal static class Cli
         Usage: papyrusc <command>
 
           papyrusc compile <script.psc|project.ppj> [--game <skyrimse|skyrimle|fallout4|starfield>] [--output <file.pex>] [--flags <file.flg>] [--import <dir>]... [--time <unix>] [--ignore-engine-limits] [--champollion-compat]
-          papyrusc corpus acquire --game <game> --source <path> [--dest <path>] [--force]
+          papyrusc scripts acquire --game <game> --source <path> [--dest <path>] [--force]
           papyrusc hash <path> [--game <game>]
           papyrusc verify --source <path> --baseline <file> [--game <game>]
           papyrusc verify --compile [--game <game>] [--source <path>] [--baseline <file>] [--allowlist <file>] [--flags <file.flg>]
@@ -32,13 +32,13 @@ internal static class Cli
           --ignore-engine-limits  Downgrade engine-limit diagnostics to warnings
           --champollion-compat    Accept ::-prefixed identifiers and Script#Struct types
 
-        corpus acquire
+        scripts acquire
           --game     skyrimse | fallout4 | starfield
           --source   Local game install or scripts directory (never downloaded)
-          --dest     Destination directory (default: ./corpus/<game>)
+          --dest     Destination directory (default: ./game-scripts/<game>)
           --force    Allow destination inside a git worktree
           Copies .psc and .pex files only. Does not contact the network.
-          The corpus is user-owned and gitignored. See docs/corpus.md.
+          The game scripts are user-owned and gitignored. See docs/game-scripts.md.
 
         hash
           Normalized SHA-256 of existing .pex via PexReader + PexNormalizer.
@@ -47,14 +47,14 @@ internal static class Cli
         verify
           Compare hashes of existing .pex to a committed baseline. Does not compile
           unless --compile is set.
-          --baseline is required unless --write-baselines, --champollion, or --compile with no corpus.
+          --baseline is required unless --write-baselines, --champollion, or --compile with no game scripts.
           --compile   Compile each .psc with PexEmitter and compare normalized hashes
-                      to the baseline. Skips (exit 0) when the local corpus is absent.
-                      --source defaults to ./corpus/<game>. Public CI must not require
+                      to the baseline. Skips (exit 0) when the local game scripts are absent.
+                      --source defaults to ./game-scripts/<game>. Public CI must not require
                       game files.
           --allowlist Reviewed semantic-equivalence list (default docs/compliance/allowlist.md).
           --flags     User flags file (.flg). Defaults to TESV_Papyrus_Flags.flg /
-                      Institute_Papyrus_Flags.flg in the corpus if present.
+                      Institute_Papyrus_Flags.flg in the game scripts if present.
           --ck-compiler <path>  Tier-2 CK differential; not implemented yet.
           --write-baselines is maintainer-only and requires --attestation and --game.
           See docs/compliance/baselines/README.md.
@@ -62,8 +62,8 @@ internal static class Cli
         verify --champollion
           Decompile vanilla .pex with Champollion, recompile with --champollion-compat,
           and compare normalized hashes. Does not need the CK compiler.
-          Skips (exit 0) when the Champollion binary or corpus is missing (public CI).
-          --source             Directory of .pex (default: ./corpus/<game> or ./corpus)
+          Skips (exit 0) when the Champollion binary or game scripts are missing (public CI).
+          --source             Directory of .pex (default: ./game-scripts/<game> or ./game-scripts)
           --champollion-path   Champollion executable (else PAPYRUSC_CHAMPOLLION, PATH, tools/Champollion)
         """;
 
@@ -85,13 +85,13 @@ internal static class Cli
             return 0;
         }
 
-        if (args[0] == "corpus" && args.Length == 1)
+        if (args[0] == "scripts" && args.Length == 1)
         {
             stdout.WriteLine(HelpText);
             return 0;
         }
 
-        if (args.Length >= 2 && args[0] == "corpus" && args[1] == "acquire")
+        if (args.Length >= 2 && args[0] == "scripts" && args[1] == "acquire")
         {
             if (!TryParseAcquire(args.AsSpan(2), out var options, out var error))
             {
@@ -99,7 +99,7 @@ internal static class Cli
                 return 1;
             }
 
-            return CorpusAcquire.Execute(options, stdout, stderr);
+            return GameScriptsAcquire.Execute(options, stdout, stderr);
         }
 
         if (args[0] == "hash")
@@ -174,7 +174,7 @@ internal static class Cli
 
     internal static bool TryParseAcquire(
         ReadOnlySpan<string> args,
-        out CorpusAcquireOptions options,
+        out GameScriptsAcquireOptions options,
         out string error)
     {
         options = null!;
@@ -241,7 +241,7 @@ internal static class Cli
             }
         }
 
-        if (game is null || !CorpusAcquireOptions.TryCanonicalGame(game, out var canonical))
+        if (game is null || !GameScriptsAcquireOptions.TryCanonicalGame(game, out var canonical))
         {
             error = "error: --game must be one of: skyrimse, fallout4, starfield";
             return false;
@@ -253,7 +253,7 @@ internal static class Cli
             return false;
         }
 
-        options = new CorpusAcquireOptions(canonical, source, dest, force);
+        options = new GameScriptsAcquireOptions(canonical, source, dest, force);
         return true;
     }
 
@@ -673,9 +673,9 @@ internal static class Cli
     }
 }
 
-internal sealed class CorpusAcquireOptions
+internal sealed class GameScriptsAcquireOptions
 {
-    internal CorpusAcquireOptions(string game, string source, string? dest, bool force)
+    internal GameScriptsAcquireOptions(string game, string source, string? dest, bool force)
     {
         Game = game;
         Source = source;

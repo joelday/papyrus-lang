@@ -12,7 +12,7 @@ Frozen pin: [Orvid/Caprica](https://github.com/Orvid/Caprica) `@ e4dee08` (`mast
 |---|---|---|---|
 | Official productions, precedence, newline / `\` | Caprica `Caprica/papyrus/parser/` at `e4dee08`; CK is the oracle when they disagree | Statement / expression shape, keyword sets per game | `SupportsIsOperator`; any production Caprica added only for extensions |
 | Starfield `Guard` / `Lock` | Caprica `Caprica/papyrus/PapyrusGuard.h`, `PapyrusLockParameter.h`; `Caprica/pex/PexGuard.h` | Syntax and PEX records | Exact CK diagnostics |
-| FO4 namespaces / structs / groups / custom events | Caprica `PapyrusStruct.h`, `PapyrusPropertyGroup.h`, `PapyrusCustomEvent.h`; current `NodeKind` / `Nodes.cs` | Productions | CK accept/reject on the negative corpus |
+| FO4 namespaces / structs / groups / custom events | Caprica `PapyrusStruct.h`, `PapyrusPropertyGroup.h`, `PapyrusCustomEvent.h`; current `NodeKind` / `Nodes.cs` | Productions | CK accept/reject on the negative fixtures |
 | `.flg` | Caprica `Caprica/papyrus/PapyrusUserFlags.h`; current `FlagsFile.cs` (PCompiler `FlagsLexer`/`FlagsParser`) | Flag name = bit in declaration order; 31 user bits | Unknown-flag diagnostics |
 | Type assignability, `as` / `is`, `Var`, arrays | Caprica `Caprica/papyrus/PapyrusType.cpp` | Starting conversion matrix (below) | CK implicit coercions not in Caprica's four published differences |
 | Import order / namespaced paths | Design document K21; current `ProgramOptions.SourceInclude` | First-match; `A:B:Script` → `A/B/Script.psc` | — |
@@ -165,4 +165,4 @@ The Champollion sources stay in the vcpkg overlay (`dependencies/ports/Champolli
 - `PATH` (`champollion` / `Champollion` / `Champollion.exe`)
 - `tools/Champollion` (cwd or next to `papyrusc`)
 
-Public CI skips (exit 0) when the binary or corpus is missing.
+Public CI skips (exit 0) when the binary or game scripts are missing.
