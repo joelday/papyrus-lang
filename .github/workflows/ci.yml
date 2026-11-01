@@ -97,7 +97,7 @@ jobs:
         # Skipped when the build is forced, so a manual or release run never
         # depends on a diff against the default branch.
         if: inputs.build_native != true
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           filters: |
             native:
