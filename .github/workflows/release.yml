@@ -110,7 +110,7 @@ jobs:
           --generate-notes
           $PRERELEASE_FLAG $DRAFT_FLAG
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: inputs.publish
         with:
           node-version: 22
