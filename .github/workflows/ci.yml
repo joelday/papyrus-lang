@@ -170,7 +170,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ matrix.os }}
           path: artifacts/test-results
@@ -231,14 +231,14 @@ jobs:
           artifacts/server-${{ matrix.rid }}/Papyrus.LanguageServer${{ matrix.exe }} --version
 
       - name: Upload papyrusc
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: papyrusc-${{ matrix.rid }}
           path: artifacts/papyrusc-${{ matrix.rid }}
           if-no-files-found: error
 
       - name: Upload language server
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: server-${{ matrix.rid }}
           path: artifacts/server-${{ matrix.rid }}
@@ -321,7 +321,7 @@ jobs:
           --target ${{ matrix.target }}
           --out papyrus-lang-vscode-${{ matrix.target }}.vsix
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: vsix-${{ matrix.target }}
           path: src/papyrus-lang-vscode/*.vsix
@@ -427,7 +427,7 @@ jobs:
           Copy-Item "src/native/DebugServer/data/*.json" "$out/data"
           Get-ChildItem -Recurse $out
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: debug-plugin
           path: artifacts/debug-plugin
