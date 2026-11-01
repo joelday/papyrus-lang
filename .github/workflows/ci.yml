@@ -89,7 +89,7 @@ jobs:
           fi
           cat "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -133,7 +133,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -200,7 +200,7 @@ jobs:
             rid: osx-x64
             exe: ""
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -252,7 +252,7 @@ jobs:
       run:
         working-directory: src/papyrus-lang-vscode
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -289,7 +289,7 @@ jobs:
       run:
         working-directory: src/papyrus-lang-vscode
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -366,7 +366,7 @@ jobs:
       # versions come from the baseline in vcpkg-configuration.json, not from this.
       VCPKG_TAG: "2026.07.29"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Restore previously built plugin
         # Keyed on every native input, so an unchanged plugin is never rebuilt.
