@@ -334,3 +334,6 @@ vcpkg_installed
 # Local game scripts and build output
 /game-scripts/
 /artifacts/
+
+# macOS
+.DS_Store
