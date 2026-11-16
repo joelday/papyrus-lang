@@ -5,7 +5,7 @@ using Papyrus.CodeAnalysis;
 using Papyrus.CodeAnalysis.Testing;
 using Papyrus.Pex;
 
-namespace Papyrus.Compiler;
+namespace Papyrus.Compliance;
 
 internal sealed class VerifyCommandOptions
 {
@@ -63,7 +63,7 @@ internal static class VerifyCommand
         if (!string.IsNullOrWhiteSpace(options.CkCompiler))
         {
             stderr.WriteLine(
-                "error: --ck-compiler (tier-2) is not implemented; use --compile for compile-vs-baseline. See docs/compliance/baselines/README.md");
+                "error: --ck-compiler (tier-2) is not implemented; use --compile for compile-vs-baseline");
             return 1;
         }
 
@@ -259,7 +259,10 @@ internal static class VerifyCommand
     {
         string? resolved = path;
         if (string.IsNullOrWhiteSpace(resolved))
-            resolved = AllowlistFile.FindDefaultPath();
+        {
+            var bundled = Path.Combine(AppContext.BaseDirectory, "allowlist.md");
+            resolved = File.Exists(bundled) ? bundled : AllowlistFile.FindDefaultPath();
+        }
 
         if (string.IsNullOrWhiteSpace(resolved))
             return new AllowlistDocument([]);

@@ -3,7 +3,7 @@ using System.IO;
 using Papyrus.CodeAnalysis.Testing;
 using Xunit;
 
-namespace Papyrus.Compiler.Tests;
+namespace Papyrus.Compliance.Tests;
 
 public sealed class VerifyCompileTests
 {

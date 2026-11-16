@@ -39,10 +39,10 @@ public sealed class FileSystemScriptResolver : ScriptResolver
         Game = game;
     }
 
-    public FileSystemScriptResolver(PapyrusProject project, string projectDirectory)
+    public FileSystemScriptResolver(PapyrusProject project)
         : this(
-            IncludePathsFromProject(project, projectDirectory),
-            OutputPathFromProject(project, projectDirectory),
+            System.Linq.Enumerable.Select(project.Includes, include => include.Directory),
+            project.Output,
             project.Game)
     {
     }
@@ -384,38 +384,5 @@ public sealed class FileSystemScriptResolver : ScriptResolver
         {
             return false;
         }
-    }
-
-    private static IEnumerable<string> IncludePathsFromProject(PapyrusProject project, string projectDirectory)
-    {
-        ArgumentNullException.ThrowIfNull(project);
-        ArgumentNullException.ThrowIfNull(projectDirectory);
-
-        foreach (var import in project.Imports)
-        {
-            yield return ResolveProjectPath(projectDirectory, import);
-        }
-
-        foreach (var folder in project.Folders)
-        {
-            yield return ResolveProjectPath(projectDirectory, folder.Path);
-        }
-    }
-
-    private static string? OutputPathFromProject(PapyrusProject project, string projectDirectory)
-    {
-        ArgumentNullException.ThrowIfNull(project);
-        ArgumentNullException.ThrowIfNull(projectDirectory);
-        return project.Output is null ? null : ResolveProjectPath(projectDirectory, project.Output);
-    }
-
-    private static string ResolveProjectPath(string projectDirectory, string path)
-    {
-        if (Path.IsPathRooted(path))
-        {
-            return path;
-        }
-
-        return Path.GetFullPath(Path.Combine(projectDirectory, path));
     }
 }

@@ -10,8 +10,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Papyrus.Workspaces\Papyrus.Workspaces.csproj" />
     <ProjectReference Include="..\Papyrus.CodeAnalysis\Papyrus.CodeAnalysis.csproj" />
-    <ProjectReference Include="..\Papyrus.CodeAnalysis.Testing\Papyrus.CodeAnalysis.Testing.csproj" />
     <ProjectReference Include="..\Papyrus.Pex\Papyrus.Pex.csproj" />
     <InternalsVisibleTo Include="Papyrus.Compiler.Tests" />
+    <InternalsVisibleTo Include="papyrus-compliance" />
+    <InternalsVisibleTo Include="Papyrus.Compliance.Tests" />
   </ItemGroup>
 </Project>

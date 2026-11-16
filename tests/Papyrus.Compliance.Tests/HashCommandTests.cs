@@ -4,7 +4,7 @@ using Papyrus.CodeAnalysis.Testing;
 using Papyrus.Pex;
 using Xunit;
 
-namespace Papyrus.Compiler.Tests;
+namespace Papyrus.Compliance.Tests;
 
 public sealed class HashCommandTests
 {
@@ -19,7 +19,7 @@ public sealed class HashCommandTests
         Assert.Contains("--write-baselines", stdout, StringComparison.Ordinal);
         Assert.Contains("attestation", stdout, StringComparison.Ordinal);
         Assert.Contains(
-            "papyrusc verify --write-baselines --source <path> --out <file> --attestation <file> --game <game>",
+            "papyrus-compliance verify --write-baselines --source <path> --out <file> --attestation <file> --game <game>",
             stdout,
             StringComparison.Ordinal);
         Assert.DoesNotContain(

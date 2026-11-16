@@ -134,6 +134,9 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
+        with:
+          # external/pyro-dotnet resolves .ppj files.
+          submodules: true
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -165,7 +168,7 @@ jobs:
         # Skips with exit 0 when ./game-scripts is absent; public CI never has game files.
         run: >-
           dotnet run --no-build --no-restore --configuration Release
-          --project src/Papyrus.Compiler/Papyrus.Compiler.csproj
+          --project tools/Papyrus.Compliance/Papyrus.Compliance.csproj
           -- verify --compile --game skyrimse
 
       - name: Upload test results
@@ -201,6 +204,9 @@ jobs:
             exe: ""
     steps:
       - uses: actions/checkout@v4
+        with:
+          # external/pyro-dotnet resolves .ppj files.
+          submodules: true
 
       - uses: actions/setup-dotnet@v4
         with:

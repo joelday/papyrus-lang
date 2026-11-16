@@ -115,6 +115,9 @@ public sealed class ObservabilityTests : IDisposable
               <Imports>
                 <Import>{import}</Import>
               </Imports>
+              <Folders>
+                <Folder>{import}</Folder>
+              </Folders>
             </PapyrusProject>
             """);
         return path;

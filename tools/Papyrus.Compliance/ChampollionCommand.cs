@@ -7,10 +7,11 @@ using Papyrus.CodeAnalysis;
 using Papyrus.CodeAnalysis.Emit;
 using Papyrus.CodeAnalysis.Testing;
 using Papyrus.CodeAnalysis.Text;
+using Papyrus.Compiler;
 using Papyrus.Pex;
 using Papyrus.Workspaces;
 
-namespace Papyrus.Compiler;
+namespace Papyrus.Compliance;
 
 /// <summary>
 /// Tier-3 round-trip: decompile vanilla .pex, recompile with ChampollionCompat, compare hashes.

@@ -3,7 +3,7 @@ using System.IO;
 using Papyrus.CodeAnalysis.Testing;
 using Papyrus.Pex;
 
-namespace Papyrus.Compiler;
+namespace Papyrus.Compliance;
 
 internal sealed class HashCommandOptions
 {

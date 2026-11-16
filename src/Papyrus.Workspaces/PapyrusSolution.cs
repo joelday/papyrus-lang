@@ -77,27 +77,16 @@ public sealed class PapyrusSolution
     {
         var project = state.Project;
         var resolver = state.DiskResolver;
-        var name = project.Path is null
-            ? project.Game?.ToString() ?? "Unknown"
-            : Path.GetFileNameWithoutExtension(project.Path);
-
-        // IncludeDirectories is built import-then-folder (see
-        // FileSystemScriptResolver(PapyrusProject, string)), so the same index maps
-        // each resolved directory back to the import/folder entry that produced it.
-        var includes = ImmutableArray.CreateBuilder<ProjectInfoSourceInclude>(
-            resolver.IncludeDirectories.Length);
-        for (var i = 0; i < resolver.IncludeDirectories.Length; i++)
+        var name = Path.GetFileNameWithoutExtension(project.Path);
+        var includes = ImmutableArray.CreateBuilder<ProjectInfoSourceInclude>(project.Includes.Length);
+        foreach (var include in project.Includes)
         {
-            var isImport = i < project.Imports.Length;
-            var declared = isImport
-                ? project.Imports[i]
-                : project.Folders[i - project.Imports.Length].Path;
             includes.Add(
                 new ProjectInfoSourceInclude(
-                    declared,
-                    resolver.IncludeDirectories[i],
-                    isImport,
-                    ScriptsUnder(resolver.IncludeDirectories[i], resolver)));
+                    include.Declared,
+                    include.Directory,
+                    include.IsImport,
+                    ScriptsUnder(include.Directory, resolver)));
         }
 
         return new ProjectInfo(name, includes.MoveToImmutable());
@@ -344,23 +333,16 @@ public sealed class PapyrusSolution
     {
         var state = GetState(projectId);
         var project = state.Project;
-        var directory = System.IO.Path.GetDirectoryName(project.Path) ?? "";
         var folders = new List<(string Path, bool NoRecurse)>();
         foreach (var folder in project.Folders)
         {
-            if (!string.IsNullOrWhiteSpace(folder.Path))
-            {
-                folders.Add((WorkspacePaths.NormalizeFull(System.IO.Path.Combine(directory, folder.Path)).TrimEnd('/'), folder.NoRecurse));
-            }
+            folders.Add((WorkspacePaths.NormalizeFull(folder.Path).TrimEnd('/'), folder.NoRecurse));
         }
 
-        var scripts = new List<string>();
+        var scripts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var script in project.Scripts)
         {
-            if (!string.IsNullOrWhiteSpace(script))
-            {
-                scripts.Add(script.Replace('\\', '/').TrimStart('/'));
-            }
+            scripts.Add(WorkspacePaths.NormalizeFull(script));
         }
 
         var builder = ImmutableArray.CreateBuilder<DocumentId>();
@@ -375,7 +357,7 @@ public sealed class PapyrusSolution
         return builder.ToImmutable();
     }
 
-    private static bool IsProjectSource(string path, List<(string Path, bool NoRecurse)> folders, List<string> scripts)
+    private static bool IsProjectSource(string path, List<(string Path, bool NoRecurse)> folders, HashSet<string> scripts)
     {
         // Normalized paths use '/' on every platform.
         var full = WorkspacePaths.NormalizeFull(path);
@@ -390,15 +372,7 @@ public sealed class PapyrusSolution
             }
         }
 
-        foreach (var script in scripts)
-        {
-            if (full.EndsWith("/" + script, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return scripts.Contains(full);
     }
 
     /// <summary>The name of every script in a project's search paths.</summary>
@@ -714,10 +688,7 @@ public sealed class PapyrusSolution
         {
             var dialect = pair.Value.Project.Dialect;
             dialects.Add(dialect is null ? "Unknown" : dialect.Game.ToString());
-            if (pair.Value.Project.Path is { } path)
-            {
-                projectPaths.Add(path);
-            }
+            projectPaths.Add(pair.Value.Project.Path);
         }
 
         var documentPaths = ImmutableArray.CreateBuilder<string>(_openDocuments.Count);
@@ -834,53 +805,27 @@ internal sealed class ProjectState
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(diskResolver);
         ArgumentNullException.ThrowIfNull(compilation);
-        if (project.Path is null)
-        {
-            throw new ArgumentException("Project has no path.", nameof(project));
-        }
 
-        Id = ProjectId.Create(project.Path);
+        Id = project.Id;
         Project = project;
         DiskResolver = diskResolver;
         Compilation = compilation;
-        _flags = new Lazy<CodeAnalysis.FlagsFile?>(() => LoadFlags(project, diskResolver));
+        _flags = new Lazy<CodeAnalysis.FlagsFile?>(() => LoadFlags(project));
     }
 
     private readonly Lazy<CodeAnalysis.FlagsFile?> _flags;
 
     /// <summary>
     /// The project's flags file, which gives user flags (Hidden, Conditional, ...) their
-    /// bits when emitting. Found like the compiler finds it: relative to the project, else
-    /// by file name in the import directories. Null when unset or unreadable.
+    /// bits when emitting, as Pyro found it. Null when unset or unreadable.
     /// </summary>
     public CodeAnalysis.FlagsFile? Flags => _flags.Value;
 
-    private static CodeAnalysis.FlagsFile? LoadFlags(PapyrusProject project, FileSystemScriptResolver diskResolver)
+    private static CodeAnalysis.FlagsFile? LoadFlags(PapyrusProject project)
     {
-        if (string.IsNullOrWhiteSpace(project.Flags) || Path.GetDirectoryName(project.Path) is not { } directory)
-        {
-            return null;
-        }
-
         try
         {
-            var path = Path.GetFullPath(Path.Combine(directory, project.Flags));
-            if (!File.Exists(path))
-            {
-                var fileName = Path.GetFileName(project.Flags);
-                path = "";
-                foreach (var include in diskResolver.IncludeDirectories)
-                {
-                    var candidate = Path.Combine(include, fileName);
-                    if (File.Exists(candidate))
-                    {
-                        path = candidate;
-                        break;
-                    }
-                }
-            }
-
-            return path.Length == 0 ? null : CodeAnalysis.FlagsFile.Parse(File.ReadAllText(path));
+            return project.Flags is { } path && File.Exists(path) ? CodeAnalysis.FlagsFile.Parse(File.ReadAllText(path)) : null;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {

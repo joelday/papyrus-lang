@@ -174,6 +174,9 @@ public sealed class CompileCommandTests
             project,
             """
             <PapyrusProject Game="fo4" Output="out">
+              <Imports>
+                <Import>.</Import>
+              </Imports>
               <Scripts>
                 <Script>Foo.psc</Script>
               </Scripts>
@@ -206,6 +209,9 @@ public sealed class CompileCommandTests
             project,
             """
             <PapyrusProject Game="sse" Output="out">
+              <Imports>
+                <Import>.</Import>
+              </Imports>
               <Folders>
                 <Folder NoRecurse="true">scripts</Folder>
               </Folders>
@@ -236,6 +242,9 @@ public sealed class CompileCommandTests
             project,
             """
             <PapyrusProject Game="sse" Output="out">
+              <Imports>
+                <Import>.</Import>
+              </Imports>
               <Scripts>
                 <Script>Foo.psc</Script>
                 <Script>Bar.psc</Script>
@@ -266,6 +275,9 @@ public sealed class CompileCommandTests
             project,
             """
             <PapyrusProject Game="sse" Output="out">
+              <Imports>
+                <Import>.</Import>
+              </Imports>
               <Scripts>
                 <Script>Foo.psc</Script>
               </Scripts>
@@ -321,13 +333,13 @@ public sealed class CompileCommandTests
     {
         using var root = new TempDir();
         var project = Path.Combine(root.Path, "Mod.ppj");
-        File.WriteAllText(project, "<NotAProject />");
+        File.WriteAllText(project, "<PapyrusProject Game=\"sse\"><Scripts>");
         var pexPath = Path.Combine(root.Path, "Mod.pex");
 
         var code = Run(out _, out var stderr, "compile", project, "--game", "skyrimse");
 
         Assert.Equal(1, code);
-        Assert.Contains("error:", stderr, StringComparison.Ordinal);
+        Assert.Contains("error xml-invalid", stderr, StringComparison.Ordinal);
         Assert.False(File.Exists(pexPath));
     }
 
@@ -375,31 +387,6 @@ public sealed class CompileCommandTests
     }
 
     [Fact]
-    public void Compile_Ppj_MissingEnvVar_ExitsNonZero()
-    {
-        using var root = new TempDir();
-        File.WriteAllText(Path.Combine(root.Path, "Foo.psc"), TinyScript());
-        var missing = "PAPYRUS_TEST_MISSING_" + Guid.NewGuid().ToString("N");
-        var project = Path.Combine(root.Path, "Mod.ppj");
-        File.WriteAllText(
-            project,
-            $$"""
-            <PapyrusProject Game="sse" Output="${{{missing}}}">
-              <Scripts>
-                <Script>Foo.psc</Script>
-              </Scripts>
-            </PapyrusProject>
-            """);
-
-        var code = Run(out _, out var stderr, "compile", project);
-
-        Assert.Equal(1, code);
-        Assert.Contains(missing, stderr, StringComparison.Ordinal);
-        Assert.Contains("not set", stderr, StringComparison.Ordinal);
-        Assert.False(File.Exists(Path.Combine(root.Path, "Foo.pex")));
-    }
-
-    [Fact]
     public void Compile_Ppj_PreAndPostBuild_WriteMarkers()
     {
         using var root = new TempDir();
@@ -410,8 +397,8 @@ public sealed class CompileCommandTests
         {
             File.WriteAllText(Path.Combine(root.Path, "pre.cmd"), "echo. > pre.marker\r\n");
             File.WriteAllText(Path.Combine(root.Path, "post.cmd"), "echo. > post.marker\r\n");
-            preCommand = "pre.cmd";
-            postCommand = "post.cmd";
+            preCommand = @".\pre.cmd";
+            postCommand = @".\post.cmd";
         }
         else
         {
@@ -426,15 +413,18 @@ public sealed class CompileCommandTests
             project,
             $"""
             <PapyrusProject Game="sse" Output="out">
+              <Imports>
+                <Import>.</Import>
+              </Imports>
               <Scripts>
                 <Script>Foo.psc</Script>
               </Scripts>
-              <PreBuild>
+              <PreBuildEvent UseInBuild="true">
                 <Command>{preCommand}</Command>
-              </PreBuild>
-              <PostBuild>
+              </PreBuildEvent>
+              <PostBuildEvent UseInBuild="true">
                 <Command>{postCommand}</Command>
-              </PostBuild>
+              </PostBuildEvent>
             </PapyrusProject>
             """);
 
@@ -459,8 +449,11 @@ public sealed class CompileCommandTests
             project,
             $$"""
             <PapyrusProject Game="sse" Output="out">
+              <Imports>
+                <Import>.</Import>
+              </Imports>
               <Variables>
-                <Variable Name="ScriptsDir" Value="${{{unused}}}\@ModName"/>
+                <Variable Name="ScriptsDir" Value="${{{unused}}}\Scripts"/>
               </Variables>
               <Scripts>
                 <Script>Foo.psc</Script>
@@ -487,7 +480,7 @@ public sealed class CompileCommandTests
         if (OperatingSystem.IsWindows())
         {
             File.WriteAllText(Path.Combine(root.Path, "post.cmd"), "echo. > post.marker\r\n");
-            postCommand = "post.cmd";
+            postCommand = @".\post.cmd";
         }
         else
         {
@@ -500,22 +493,25 @@ public sealed class CompileCommandTests
             project,
             $"""
             <PapyrusProject Game="sse" Output="out">
+              <Imports>
+                <Import>.</Import>
+              </Imports>
               <Scripts>
                 <Script>Foo.psc</Script>
               </Scripts>
-              <PreBuild>
+              <PreBuildEvent UseInBuild="true">
                 <Command>{preCommand}</Command>
-              </PreBuild>
-              <PostBuild>
+              </PreBuildEvent>
+              <PostBuildEvent UseInBuild="true">
                 <Command>{postCommand}</Command>
-              </PostBuild>
+              </PostBuildEvent>
             </PapyrusProject>
             """);
 
         var code = Run(out var stdout, out var stderr, "compile", project);
 
         Assert.Equal(1, code);
-        Assert.Contains("pre-build", stderr, StringComparison.Ordinal);
+        Assert.Contains("PreBuildEvent", stderr, StringComparison.Ordinal);
         Assert.Contains("exit code", stderr, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(root.Path, "out", "Foo.pex")));
         Assert.False(File.Exists(Path.Combine(root.Path, "post.marker")));
@@ -610,6 +606,55 @@ public sealed class CompileCommandTests
     private static string TinyScript()
     {
         return "ScriptName Foo\nFunction Bar()\nEndFunction\n";
+    }
+
+    [Fact]
+    public void Compile_ChampollionCompat_AcceptsTempIdentifier()
+    {
+        using var root = new TempDir();
+        var script = Path.Combine(root.Path, "Foo.psc");
+        File.WriteAllText(
+            script,
+            "ScriptName Foo\nFunction Bar()\n  Int ::temp0 = 1\n  Return ::temp0\nEndFunction\n");
+
+        var without = Run(out _, out var withoutErr, "compile", script, "--game", "skyrimse");
+        Assert.Equal(1, without);
+        Assert.False(string.IsNullOrWhiteSpace(withoutErr));
+
+        var with = Run(
+            out var stdout,
+            out var stderr,
+            "compile",
+            script,
+            "--game", "skyrimse",
+            "--champollion-compat");
+
+        Assert.Equal(0, with);
+        Assert.Empty(stderr);
+        Assert.True(File.Exists(Path.Combine(root.Path, "Foo.pex")));
+        Assert.Contains("Foo.pex", stdout, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Compile_ChampollionCompat_AcceptsScriptStructType()
+    {
+        using var root = new TempDir();
+        var script = Path.Combine(root.Path, "Foo.psc");
+        File.WriteAllText(
+            script,
+            "ScriptName Foo\nStruct Point\nFloat X\nEndStruct\nFunction Bar(Foo#Point origin)\nEndFunction\n");
+
+        var code = Run(
+            out _,
+            out var stderr,
+            "compile",
+            script,
+            "--game", "fallout4",
+            "--champollion-compat");
+
+        Assert.Equal(0, code);
+        Assert.Empty(stderr);
+        Assert.True(File.Exists(Path.Combine(root.Path, "Foo.pex")));
     }
 
     private static int Run(out string stdout, out string stderr, params string[] args)

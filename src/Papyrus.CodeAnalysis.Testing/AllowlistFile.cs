@@ -187,7 +187,7 @@ public static class AllowlistFile
 
     /// <summary>
     /// Walks from <paramref name="startDirectory"/> (or the current directory)
-    /// looking for <c>docs/compliance/allowlist.md</c> at the repo root.
+    /// looking for <c>tools/Papyrus.Compliance/allowlist.md</c> at the repo root.
     /// </summary>
     public static string? FindDefaultPath(string? startDirectory = null)
     {
@@ -203,7 +203,7 @@ public static class AllowlistFile
 
         while (dir is not null)
         {
-            string candidate = Path.Combine(dir.FullName, "docs", "compliance", "allowlist.md");
+            string candidate = Path.Combine(dir.FullName, "tools", "Papyrus.Compliance", "allowlist.md");
             if (File.Exists(candidate))
                 return candidate;
 

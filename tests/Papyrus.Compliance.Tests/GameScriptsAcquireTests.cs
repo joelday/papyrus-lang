@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using Xunit;
 
-namespace Papyrus.Compiler.Tests;
+namespace Papyrus.Compliance.Tests;
 
 public sealed class GameScriptsAcquireTests
 {

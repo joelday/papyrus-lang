@@ -120,7 +120,7 @@ public sealed class PapyrusWorkspaceTests : IDisposable
         Assert.False(reloaded.Resolver.TryResolve(QualifiedName.Parse("Old"), out _, out _));
         Assert.True(reloaded.Resolver.TryResolve(QualifiedName.Parse("New"), out var text, out _));
         Assert.Equal("ScriptName New\n", text.ToString());
-        Assert.Equal(["second"], workspace.CurrentSolution.GetProject(project.Id).Imports);
+        Assert.Equal([".", "second"], workspace.CurrentSolution.GetProject(project.Id).Includes.Select(include => include.Declared));
     }
 
     [Fact]
@@ -428,7 +428,9 @@ public sealed class PapyrusWorkspaceTests : IDisposable
 
         var info = Assert.Single(infos);
         Assert.Equal("game", info.Name);
-        var include = Assert.Single(info.SourceIncludes);
+        // Pyro puts the project folder first.
+        Assert.Equal([".", "scripts"], info.SourceIncludes.Select(i => i.Name));
+        var include = info.SourceIncludes[1];
         Assert.Equal("scripts", include.Name);
         Assert.True(include.IsImport);
         Assert.Equal(Path.GetFullPath(scripts), include.FullPath);
@@ -473,6 +475,9 @@ public sealed class PapyrusWorkspaceTests : IDisposable
                 <Import>first</Import>
                 <Import>second</Import>
               </Imports>
+              <Folders>
+                <Folder>first</Folder>
+              </Folders>
             </PapyrusProject>
             """);
 
@@ -510,15 +515,18 @@ public sealed class PapyrusWorkspaceTests : IDisposable
         var scripts = CreateScriptsDirectory("scripts");
         var fooPath = Path.Combine(scripts, "Foo.psc");
         File.WriteAllText(fooPath, "ScriptName Foo Hidden\n");
-        File.WriteAllText(Path.Combine(scripts, "Game_Flags.flg"), "Flag Hidden 0\nFlag Conditional 1\n");
+        File.WriteAllText(Path.Combine(scripts, "TESV_Papyrus_Flags.flg"), "Flag Hidden 0\nFlag Conditional 1\n");
         var ppj = Path.Combine(_root, "game.ppj");
         File.WriteAllText(
             ppj,
             """
-            <PapyrusProject Game="sse" Flags="Game_Flags.flg">
+            <PapyrusProject Game="sse" Flags="TESV_Papyrus_Flags.flg">
               <Imports>
                 <Import>scripts</Import>
               </Imports>
+              <Folders>
+                <Folder>scripts</Folder>
+              </Folders>
             </PapyrusProject>
             """);
 
@@ -593,6 +601,9 @@ public sealed class PapyrusWorkspaceTests : IDisposable
               <Imports>
                 <Import>{import}</Import>
               </Imports>
+              <Folders>
+                <Folder>{import}</Folder>
+              </Folders>
             </PapyrusProject>
             """);
         return path;

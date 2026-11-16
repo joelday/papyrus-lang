@@ -1,9 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\Papyrus.CodeAnalysis\Papyrus.CodeAnalysis.csproj" />
+    <!-- Pyro resolves .ppj files. Built from the submodule until it publishes a package. -->
+    <ProjectReference Include="..\..\external\pyro-dotnet\src\Pyro\Pyro.csproj" />
     <InternalsVisibleTo Include="Papyrus.Workspaces.Tests" />
   </ItemGroup>
 </Project>

@@ -6,7 +6,7 @@
 #   - libxse dropped CMake for xmake + the libxse/commonlib-shared submodule. This overlay
 #     vendors the submodule at the gitlink recorded on that commit and injects a CMake
 #     wrapper so the existing vcpkg/MSBuild DebugServer can consume the package.
-# Do not invent Address Library IDs in this port; see docs/debug/sfse-spike.md.
+# Do not invent Address Library IDs in this port.
 
 vcpkg_from_github(
         OUT_SOURCE_PATH SOURCE_PATH

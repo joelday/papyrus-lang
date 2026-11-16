@@ -877,7 +877,9 @@ public sealed class StructureHandlerTests
         );
 
         var project = Assert.Single(result.Projects);
-        var include = Assert.Single(project.SourceIncludes);
+        // Pyro searches the project folder first, then the declared import.
+        Assert.Equal([".", "scripts"], project.SourceIncludes.Select(i => i.Name));
+        var include = project.SourceIncludes[1];
         Assert.True(include.IsImport);
         Assert.Contains(include.Scripts, s => s.Identifier == "Foo");
     }

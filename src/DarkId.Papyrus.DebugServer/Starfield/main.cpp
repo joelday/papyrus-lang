@@ -94,8 +94,7 @@ static void LogV1Status()
 	if (!status.instructionTrampolineAvailable || !status.createStackAvailable || !status.cleanupStackAvailable)
 	{
 		logger::error(
-			"SFSE v1 breakpoint/stack hooks are blocked on unpublished Address Library IDs. "
-			"See docs/debug/sfse-plugin-v1.md");
+			"SFSE v1 breakpoint/stack hooks are blocked on unpublished Address Library IDs.");
 	}
 }
 

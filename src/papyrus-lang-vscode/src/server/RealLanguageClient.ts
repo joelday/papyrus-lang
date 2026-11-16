@@ -12,11 +12,16 @@ export class RealLanguageClient implements IManagedLanguageClient {
     private readonly _client: LanguageClient;
     private readonly _projectWatcher: FileSystemWatcher;
 
-    constructor(serverPath: string, outputChannel: OutputChannel) {
+    /**
+     * @param pyroPath The user's Pyro, whose download cache and token serve remote `.ppj` imports. The server
+     * also looks on the PATH when this is unset.
+     */
+    constructor(serverPath: string, outputChannel: OutputChannel, pyroPath?: string) {
         this._projectWatcher = workspace.createFileSystemWatcher('**/*.ppj');
         const serverOptions: ServerOptions = {
             command: serverPath,
             transport: TransportKind.stdio,
+            options: pyroPath ? { env: { ...process.env, PAPYRUS_PYRO: pyroPath } } : undefined,
         };
 
         const clientOptions: LanguageClientOptions = {

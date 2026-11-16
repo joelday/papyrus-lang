@@ -116,7 +116,7 @@
         "papyrus.pyro.path": {
           "type": "string",
           "default": "",
-          "description": "Path to the Pyro executable, for projects that rely on Pyro. Pyro is not bundled with the extension; use \"Papyrus: Locate Pyro\" to set this."
+          "description": "Path to the Pyro executable. Remote imports in .ppj files use this Pyro's download cache and access token; when empty, Pyro is looked for on the PATH. Use \"Papyrus: Locate Pyro\" to set this."
         }
       }
     },

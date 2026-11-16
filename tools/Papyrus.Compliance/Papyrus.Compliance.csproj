@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>papyrus-compliance</AssemblyName>
+    <RootNamespace>Papyrus.Compliance</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Papyrus.Compiler\Papyrus.Compiler.csproj" />
+    <ProjectReference Include="..\..\src\Papyrus.Workspaces\Papyrus.Workspaces.csproj" />
+    <ProjectReference Include="..\..\src\Papyrus.CodeAnalysis\Papyrus.CodeAnalysis.csproj" />
+    <ProjectReference Include="..\..\src\Papyrus.CodeAnalysis.Testing\Papyrus.CodeAnalysis.Testing.csproj" />
+    <ProjectReference Include="..\..\src\Papyrus.Pex\Papyrus.Pex.csproj" />
+    <InternalsVisibleTo Include="Papyrus.Compliance.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="allowlist.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

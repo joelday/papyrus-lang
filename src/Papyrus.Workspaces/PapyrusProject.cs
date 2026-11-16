@@ -1,46 +1,104 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Text;
+using System.Linq;
+using Microsoft.Extensions.Logging;
 using Papyrus.CodeAnalysis;
 using Papyrus.Pex;
+using Pyro = LetsPlayWithFire.Pyro;
 
 namespace Papyrus.Workspaces;
 
+/// <summary>
+/// A <c>.ppj</c> as Pyro resolves it: variables substituted, remote imports mapped to Pyro's
+/// download cache, and scripts and the flags file found the way Pyro finds them.
+/// </summary>
 public sealed class PapyrusProject
 {
-    public PapyrusProject(
-        GameId? game,
-        ImmutableArray<string> imports,
-        ImmutableArray<ProjectFolder> folders,
-        ImmutableArray<string> scripts,
-        ImmutableDictionary<string, string> variables,
-        string? output,
-        string? flags,
-        bool optimize,
-        bool release,
-        bool final,
-        AsmKind? asm = null,
-        ImmutableArray<string> preBuild = default,
-        ImmutableArray<string> postBuild = default,
-        string? path = null,
-        ImmutableArray<string> ignored = default)
+    private PapyrusProject(Pyro.PapyrusProject resolved, ImmutableArray<Pyro.ProjectDiagnostic> diagnostics)
     {
-        Game = game;
-        Imports = imports.IsDefault ? ImmutableArray<string>.Empty : imports;
-        Folders = folders.IsDefault ? ImmutableArray<ProjectFolder>.Empty : folders;
-        Scripts = scripts.IsDefault ? ImmutableArray<string>.Empty : scripts;
-        Variables = variables;
-        Output = output;
-        Flags = flags;
-        Optimize = optimize;
-        Release = release;
-        Final = final;
-        Asm = asm;
-        PreBuild = preBuild.IsDefault ? ImmutableArray<string>.Empty : preBuild;
-        PostBuild = postBuild.IsDefault ? ImmutableArray<string>.Empty : postBuild;
-        Path = path;
-        Ignored = ignored.IsDefault ? ImmutableArray<string>.Empty : ignored;
+        Resolved = resolved;
+        Diagnostics = diagnostics;
+        Path = System.IO.Path.GetFullPath(resolved.ProjectFile);
+        Game = resolved.GameType switch
+        {
+            "tes5" => GameId.Skyrim,
+            "sse" => GameId.SkyrimSpecialEdition,
+            "fo4" => GameId.Fallout4,
+            "sf1" => GameId.Starfield,
+            _ => null,
+        };
+
+        var includes = ImmutableArray.CreateBuilder<SourceInclude>();
+        var missing = ImmutableArray.CreateBuilder<string>();
+        foreach (var import in resolved.Imports)
+        {
+            if (import.ResolvedPath.Length > 0)
+            {
+                includes.Add(new SourceInclude(import.Text.Length == 0 ? "." : import.Text, Full(import.ResolvedPath), IsImport: true));
+            }
+            else if (import.IsRemote)
+            {
+                missing.Add(import.Text);
+            }
+        }
+
+        var folders = ImmutableArray.CreateBuilder<ProjectFolder>();
+        foreach (var folder in resolved.Folders)
+        {
+            if (folder.ResolvedPath.Length > 0)
+            {
+                var directory = Full(folder.ResolvedPath);
+                folders.Add(new ProjectFolder(directory, folder.NoRecurse));
+
+                // A folder is usually also an import; search it once.
+                if (!includes.Any(include => string.Equals(include.Directory, directory, StringComparison.OrdinalIgnoreCase)))
+                {
+                    includes.Add(new SourceInclude(folder.Text, directory, IsImport: false));
+                }
+            }
+            else if (IsRemote(folder.Text))
+            {
+                missing.Add(folder.Text);
+            }
+        }
+
+        Includes = includes.ToImmutable();
+        Folders = folders.ToImmutable();
+        MissingRemotes = missing.ToImmutable();
+        Scripts = [.. resolved.Scripts.Values.Select(Full)];
+        Output = resolved.Options.OutputPath.Length == 0 ? null : Full(resolved.Options.OutputPath);
+        Flags = resolved.ResolvedFlagsPath.Length > 0 && System.IO.File.Exists(resolved.ResolvedFlagsPath) ? resolved.ResolvedFlagsPath : null;
     }
+
+    /// <summary>
+    /// Loads <paramref name="ppjPath"/> with Pyro. Problems in the file are reported in
+    /// <see cref="Diagnostics"/> rather than thrown.
+    /// </summary>
+    /// <param name="pyro">
+    /// The user's Pyro. Its download cache and access token serve remote imports. Without one,
+    /// remote imports are left out and listed in <see cref="MissingRemotes"/>.
+    /// </param>
+    public static PapyrusProject Load(string ppjPath, PyroInstall? pyro = null, ILogger? logger = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(ppjPath);
+
+        var result = Pyro.Projects.TryLoad(
+            System.IO.Path.GetFullPath(ppjPath),
+            new Pyro.BuildOptions { DryRun = pyro is null },
+            logger is null ? null : new PyroLog(logger),
+            new Pyro.ProjectHost { ProgramPath = pyro?.Directory ?? "", SkipInstalledGameLookup = true });
+        return new PapyrusProject(result.Project, [.. result.Diagnostics]);
+    }
+
+    /// <summary>Pyro's view of the project, for what this type does not surface.</summary>
+    public Pyro.PapyrusProject Resolved { get; }
+
+    public string Path { get; }
+
+    public ProjectId Id => ProjectId.Create(Path);
+
+    public string Directory => System.IO.Path.GetDirectoryName(Path)!;
 
     public GameId? Game { get; }
 
@@ -49,278 +107,60 @@ public sealed class PapyrusProject
         GameId.Skyrim => PapyrusDialect.SkyrimLe,
         GameId.SkyrimSpecialEdition => PapyrusDialect.SkyrimSe,
         GameId.Fallout4 => PapyrusDialect.Fallout4,
-        GameId.Fallout76 => PapyrusDialect.Fallout76,
         GameId.Starfield => PapyrusDialect.Starfield,
         _ => null,
     };
 
-    public ImmutableArray<string> Imports { get; }
+    /// <summary>
+    /// Where scripts are looked up, in order: Pyro's import paths (the project folder first),
+    /// then the project's folders.
+    /// </summary>
+    public ImmutableArray<SourceInclude> Includes { get; }
 
+    /// <summary>The project's own script folders, resolved.</summary>
     public ImmutableArray<ProjectFolder> Folders { get; }
 
+    /// <summary>Full paths of the scripts Pyro would compile.</summary>
     public ImmutableArray<string> Scripts { get; }
 
-    public ImmutableDictionary<string, string> Variables { get; }
+    /// <summary>Remote imports and folders that are not in Pyro's cache, as written.</summary>
+    public ImmutableArray<string> MissingRemotes { get; }
 
     public string? Output { get; }
 
+    /// <summary>
+    /// The flags file Pyro found, or null when there is none. Pyro names a default flags file when
+    /// the project names none, so a missing file is not an error here.
+    /// </summary>
     public string? Flags { get; }
 
-    public bool Optimize { get; }
+    public ImmutableArray<Pyro.ProjectDiagnostic> Diagnostics { get; }
 
-    public bool Release { get; }
+    /// <summary>The events Pyro runs during a build, in the order it runs them.</summary>
+    public IEnumerable<Pyro.ProjectEvent> BuildEvents(params string[] names)
+        => names.SelectMany(name => Resolved.Events.Where(e => e.UseInBuild && e.Name == name));
 
-    public bool Final { get; }
+    private string Full(string path) => System.IO.Path.GetFullPath(System.IO.Path.Combine(Directory, path));
 
-    public AsmKind? Asm { get; }
+    private static bool IsRemote(string text)
+        => text.StartsWith("https:", StringComparison.OrdinalIgnoreCase) || text.StartsWith("http:", StringComparison.OrdinalIgnoreCase);
 
-    public ImmutableArray<string> PreBuild { get; }
-
-    public ImmutableArray<string> PostBuild { get; }
-
-    public string? Path { get; }
-
-    /// <summary>
-    /// Pyro-only <c>.ppj</c> content that was present but has no meaning to the workspace
-    /// (packaging, zipping, anonymizing, their events), in document order: element names as
-    /// written, attributes prefixed with <c>@</c>. The parser skips it; loaders tell the user
-    /// so nobody expects the editor to act on it. See <c>docs/spec/ppj-pyro-parity.md</c>.
-    /// </summary>
-    public ImmutableArray<string> Ignored { get; }
-
-    public ProjectId Id => ProjectId.Create(Path ?? throw new InvalidOperationException("Project has no path."));
-
-    public PapyrusProject WithPath(string path)
+    private sealed class PyroLog(ILogger logger) : Pyro.IPyroLog
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-
-        var full = System.IO.Path.GetFullPath(path);
-        if (Path is not null && string.Equals(Path, full, StringComparison.OrdinalIgnoreCase))
-        {
-            return this;
-        }
-
-        return new PapyrusProject(
-            Game,
-            Imports,
-            Folders,
-            Scripts,
-            Variables,
-            Output,
-            Flags,
-            Optimize,
-            Release,
-            Final,
-            Asm,
-            PreBuild,
-            PostBuild,
-            full,
-            Ignored);
-    }
-
-    public bool TryExpandEnvironmentVariables(out PapyrusProject expanded, out string missingName)
-    {
-        // Variable values stay unexpanded until @Name substitution; unused ${ENV} there must not fail the compile.
-        if (!TryExpandValue(Output, out var output, out missingName)
-            || !TryExpandValue(Flags, out var flags, out missingName)
-            || !TryExpandStrings(Imports, out var imports, out missingName)
-            || !TryExpandFolders(Folders, out var folders, out missingName)
-            || !TryExpandStrings(Scripts, out var scripts, out missingName)
-            || !TryExpandStrings(PreBuild, out var preBuild, out missingName)
-            || !TryExpandStrings(PostBuild, out var postBuild, out missingName))
-        {
-            expanded = this;
-            return false;
-        }
-
-        if (ReferenceEquals(output, Output)
-            && ReferenceEquals(flags, Flags)
-            && imports.Equals(Imports)
-            && folders.Equals(Folders)
-            && scripts.Equals(Scripts)
-            && preBuild.Equals(PreBuild)
-            && postBuild.Equals(PostBuild))
-        {
-            expanded = this;
-            return true;
-        }
-
-        expanded = new PapyrusProject(
-            Game,
-            imports,
-            folders,
-            scripts,
-            Variables,
-            output,
-            flags,
-            Optimize,
-            Release,
-            Final,
-            Asm,
-            preBuild,
-            postBuild,
-            Path,
-            Ignored);
-        return true;
-    }
-
-    private static bool TryExpandValue(string? value, out string? expanded, out string missingName)
-    {
-        missingName = "";
-        if (value is null)
-        {
-            expanded = null;
-            return true;
-        }
-
-        if (!TryReplaceEnvTokens(value, out expanded, out missingName))
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    private static bool TryExpandStrings(
-        ImmutableArray<string> values,
-        out ImmutableArray<string> expanded,
-        out string missingName)
-    {
-        missingName = "";
-        if (values.IsDefaultOrEmpty)
-        {
-            expanded = values.IsDefault ? ImmutableArray<string>.Empty : values;
-            return true;
-        }
-
-        var builder = ImmutableArray.CreateBuilder<string>(values.Length);
-        var changed = false;
-        for (var i = 0; i < values.Length; i++)
-        {
-            if (!TryReplaceEnvTokens(values[i], out var next, out missingName))
-            {
-                expanded = values;
-                return false;
-            }
-
-            changed |= !ReferenceEquals(next, values[i]);
-            builder.Add(next);
-        }
-
-        expanded = changed ? builder.MoveToImmutable() : values;
-        return true;
-    }
-
-    private static bool TryExpandFolders(
-        ImmutableArray<ProjectFolder> folders,
-        out ImmutableArray<ProjectFolder> expanded,
-        out string missingName)
-    {
-        missingName = "";
-        if (folders.IsDefaultOrEmpty)
-        {
-            expanded = folders.IsDefault ? ImmutableArray<ProjectFolder>.Empty : folders;
-            return true;
-        }
-
-        var builder = ImmutableArray.CreateBuilder<ProjectFolder>(folders.Length);
-        var changed = false;
-        for (var i = 0; i < folders.Length; i++)
-        {
-            var folder = folders[i];
-            if (!TryReplaceEnvTokens(folder.Path, out var path, out missingName))
-            {
-                expanded = folders;
-                return false;
-            }
-
-            if (ReferenceEquals(path, folder.Path))
-            {
-                builder.Add(folder);
-                continue;
-            }
-
-            changed = true;
-            builder.Add(new ProjectFolder(path, folder.NoRecurse));
-        }
-
-        expanded = changed ? builder.MoveToImmutable() : folders;
-        return true;
-    }
-
-    // Unset variables are errors. Empty-but-set values expand to empty, matching process environment.
-    // Any non-empty ${...} is an env token (including Windows names like ProgramFiles(x86)).
-    private static bool TryReplaceEnvTokens(string value, out string expanded, out string missingName)
-    {
-        missingName = "";
-        var start = value.IndexOf("${", StringComparison.Ordinal);
-        if (start < 0)
-        {
-            expanded = value;
-            return true;
-        }
-
-        var builder = new StringBuilder(value.Length);
-        var i = 0;
-        while (i < value.Length)
-        {
-            if (i + 1 < value.Length && value[i] == '$' && value[i + 1] == '{')
-            {
-                var close = value.IndexOf('}', i + 2);
-                if (close < 0)
+        public void Write(Pyro.PyroLogLevel level, string message)
+            => logger.Log(
+                level switch
                 {
-                    builder.Append(value, i, value.Length - i);
-                    break;
-                }
-
-                var nameLength = close - (i + 2);
-                if (nameLength > 0)
-                {
-                    var name = value.Substring(i + 2, nameLength);
-                    var env = Environment.GetEnvironmentVariable(name);
-                    if (env is null)
-                    {
-                        expanded = value;
-                        missingName = name;
-                        return false;
-                    }
-
-                    builder.Append(env);
-                    i = close + 1;
-                    continue;
-                }
-
-                builder.Append(value, i, close - i + 1);
-                i = close + 1;
-                continue;
-            }
-
-            builder.Append(value[i]);
-            i++;
-        }
-
-        expanded = builder.ToString();
-        return true;
+                    Pyro.PyroLogLevel.Warning => LogLevel.Warning,
+                    Pyro.PyroLogLevel.Error or Pyro.PyroLogLevel.Critical => LogLevel.Error,
+                    _ => LogLevel.Debug,
+                },
+                "Pyro: {Message}",
+                message);
     }
 }
 
-public sealed class ProjectFolder
-{
-    public ProjectFolder(string path, bool noRecurse = false)
-    {
-        Path = path;
-        NoRecurse = noRecurse;
-    }
+/// <summary>A directory scripts are looked up in, and the project text that named it.</summary>
+public sealed record SourceInclude(string Declared, string Directory, bool IsImport);
 
-    public string Path { get; }
-
-    public bool NoRecurse { get; }
-}
-
-public enum AsmKind
-{
-    None,
-    Keep,
-    Only,
-    Discard,
-}
+public sealed record ProjectFolder(string Path, bool NoRecurse);

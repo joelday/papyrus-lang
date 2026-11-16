@@ -15,6 +15,9 @@ public sealed class WatchedProjectFileTests : IDisposable
           <Imports>
             <Import>scripts</Import>
           </Imports>
+          <Folders>
+            <Folder>scripts</Folder>
+          </Folders>
         </PapyrusProject>
         """;
 

@@ -1,0 +1,4 @@
+[submodule "external/pyro-dotnet"]
+	path = external/pyro-dotnet
+	url = https://github.com/fireundubh/pyro-dotnet.git
+	branch = papyrus-lang

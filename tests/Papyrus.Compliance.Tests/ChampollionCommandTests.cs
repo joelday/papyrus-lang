@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Papyrus.CodeAnalysis;
+using Papyrus.Compiler;
 using Papyrus.Pex;
 using Xunit;
 
-namespace Papyrus.Compiler.Tests;
+namespace Papyrus.Compliance.Tests;
 
 public sealed class ChampollionCommandTests
 {
@@ -99,33 +100,6 @@ public sealed class ChampollionCommandTests
 
         Assert.Equal(1, code);
         Assert.Contains("--champollion cannot be used with --write-baselines", stderr, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Compile_ChampollionCompat_AcceptsTempIdentifier()
-    {
-        using var root = new TempDir();
-        var script = Path.Combine(root.Path, "Foo.psc");
-        File.WriteAllText(
-            script,
-            "ScriptName Foo\nFunction Bar()\n  Int ::temp0 = 1\n  Return ::temp0\nEndFunction\n");
-
-        var without = Run(out _, out var withoutErr, "compile", script, "--game", "skyrimse");
-        Assert.Equal(1, without);
-        Assert.False(string.IsNullOrWhiteSpace(withoutErr));
-
-        var with = Run(
-            out var stdout,
-            out var stderr,
-            "compile",
-            script,
-            "--game", "skyrimse",
-            "--champollion-compat");
-
-        Assert.Equal(0, with);
-        Assert.Empty(stderr);
-        Assert.True(File.Exists(Path.Combine(root.Path, "Foo.pex")));
-        Assert.Contains("Foo.pex", stdout, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -256,28 +230,6 @@ public sealed class ChampollionCommandTests
         var file = PexReader.Read(bytes);
         Assert.Equal("Vendor:Foo", Assert.Single(file.Objects).Name);
         Assert.Equal("Vendor:Bar", file.Objects[0].ParentClassName);
-    }
-
-    [Fact]
-    public void Compile_ChampollionCompat_AcceptsScriptStructType()
-    {
-        using var root = new TempDir();
-        var script = Path.Combine(root.Path, "Foo.psc");
-        File.WriteAllText(
-            script,
-            "ScriptName Foo\nStruct Point\nFloat X\nEndStruct\nFunction Bar(Foo#Point origin)\nEndFunction\n");
-
-        var code = Run(
-            out _,
-            out var stderr,
-            "compile",
-            script,
-            "--game", "fallout4",
-            "--champollion-compat");
-
-        Assert.Equal(0, code);
-        Assert.Empty(stderr);
-        Assert.True(File.Exists(Path.Combine(root.Path, "Foo.pex")));
     }
 
     private static byte[] EmptySkyrimPex()

@@ -47,6 +47,9 @@ public sealed class TextDocumentSyncHandlerTests : IDisposable
               <Imports>
                 <Import>scripts</Import>
               </Imports>
+              <Folders>
+                <Folder>scripts</Folder>
+              </Folders>
             </PapyrusProject>
             """);
 
@@ -132,6 +135,9 @@ public sealed class TextDocumentSyncHandlerTests : IDisposable
               <Imports>
                 <Import>scripts</Import>
               </Imports>
+              <Folders>
+                <Folder>scripts</Folder>
+              </Folders>
             </PapyrusProject>
             """);
 
@@ -148,7 +154,8 @@ public sealed class TextDocumentSyncHandlerTests : IDisposable
             {
                 TextDocument = new TextDocumentItem
                 {
-                    Uri = LspTestWorkspace.ToFileUri(Path.Combine(_root, "Other.psc")),
+                    // Outside the project folder, which Pyro also searches.
+                    Uri = LspTestWorkspace.ToFileUri(Path.Combine(_root + "-elsewhere", "Other.psc")),
                     LanguageId = "papyrus",
                     Version = 1,
                     Text = "ScriptName Other\n",

@@ -25,7 +25,8 @@ internal sealed class CompileCommandOptions
         string[] imports,
         long time,
         bool ignoreEngineLimits,
-        bool champollionCompat = false)
+        bool champollionCompat = false,
+        string? pyro = null)
     {
         Path = path;
         Game = game;
@@ -35,6 +36,7 @@ internal sealed class CompileCommandOptions
         Time = time;
         IgnoreEngineLimits = ignoreEngineLimits;
         ChampollionCompat = champollionCompat;
+        Pyro = pyro;
     }
 
     internal string Path { get; }
@@ -45,6 +47,7 @@ internal sealed class CompileCommandOptions
     internal long Time { get; }
     internal bool IgnoreEngineLimits { get; }
     internal bool ChampollionCompat { get; }
+    internal string? Pyro { get; }
 }
 
 internal static class CompileCommand
@@ -108,7 +111,7 @@ internal static class CompileCommand
             return 1;
         }
 
-        if (!TryLoadFlags(options.Flags, projectDirectory: null, includeDirectories: null, stderr, out var flagsFile, out var flagsPath))
+        if (!TryLoadFlags(options.Flags, stderr, out var flagsFile, out var flagsPath))
         {
             return 1;
         }
@@ -149,27 +152,38 @@ internal static class CompileCommand
         TextWriter stdout,
         TextWriter stderr)
     {
+        var pyro = PyroInstall.Locate(options.Pyro);
         PapyrusProject project;
         try
         {
-            using var stream = File.OpenRead(projectPath);
-            project = PpjParser.Parse(stream).WithPath(projectPath);
+            project = PapyrusProject.Load(projectPath, pyro);
         }
-        catch (Exception ex) when (ex is XmlException or InvalidDataException or IOException
-            or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or LetsPlayWithFire.Pyro.ProjectException)
         {
             stderr.WriteLine($"error: {ex.Message}");
             return 1;
         }
 
-        if (!project.Ignored.IsEmpty)
+        var failed = false;
+        foreach (var diagnostic in project.Diagnostics)
         {
-            stderr.WriteLine("note: " + IgnoredProjectContent.Describe(projectPath, project.Ignored));
+            var error = diagnostic.Severity == LetsPlayWithFire.Pyro.ProjectDiagnosticSeverity.Error
+                && !(diagnostic.Code == "game-type-unknown" && options.Game is not null);
+            stderr.WriteLine($"{diagnostic.File}({diagnostic.Line},{diagnostic.Column}): {(error ? "error" : "warning")} {diagnostic.Code}: {diagnostic.Message}");
+            failed |= error;
         }
 
-        if (!project.TryExpandEnvironmentVariables(out project, out var missingName))
+        if (pyro is null)
         {
-            stderr.WriteLine($"error: environment variable '{missingName}' is not set");
+            foreach (var remote in project.MissingRemotes)
+            {
+                stderr.WriteLine($"error: remote import '{remote}' needs Pyro, which was not found; pass --pyro <path> or put it on the PATH");
+                failed = true;
+            }
+        }
+
+        if (failed)
+        {
             return 1;
         }
 
@@ -192,69 +206,26 @@ internal static class CompileCommand
             dialect = project.Dialect;
         }
 
-        var projectDirectory = Path.GetDirectoryName(projectPath);
-        if (string.IsNullOrEmpty(projectDirectory))
-        {
-            stderr.WriteLine("error: project path has no directory");
-            return 1;
-        }
-
         if (!TryResolveCliImports(options.Imports, stderr, out var cliImports))
         {
             return 1;
         }
 
         var includeDirectories = new List<string>();
-        foreach (var import in project.Imports)
+        foreach (var include in project.Includes)
         {
-            if (string.IsNullOrWhiteSpace(import))
-            {
-                continue;
-            }
-
-            if (!TryResolveProjectPath(projectDirectory, import, stderr, out var importPath))
-            {
-                return 1;
-            }
-
-            includeDirectories.Add(importPath);
+            includeDirectories.Add(include.Directory);
         }
 
-        foreach (var folder in project.Folders)
-        {
-            if (string.IsNullOrWhiteSpace(folder.Path))
-            {
-                continue;
-            }
-
-            if (!TryResolveProjectPath(projectDirectory, folder.Path, stderr, out var folderPath))
-            {
-                return 1;
-            }
-
-            includeDirectories.Add(folderPath);
-        }
-
-        includeDirectories.Add(projectDirectory);
         includeDirectories.AddRange(cliImports);
 
-        string? outputDirectory = null;
-        var outputSpec = options.Output ?? project.Output;
-        if (outputSpec is not null)
+        var outputDirectory = project.Output;
+        if (options.Output is not null && !TryGetFullPath(Path.Combine(project.Directory, options.Output), stderr, out outputDirectory))
         {
-            if (!TryResolveProjectPath(projectDirectory, outputSpec, stderr, out outputDirectory))
-            {
-                return 1;
-            }
+            return 1;
         }
 
-        if (!TryLoadFlags(
-                options.Flags ?? project.Flags,
-                options.Flags is null ? projectDirectory : null,
-                options.Flags is null ? includeDirectories : null,
-                stderr,
-                out var flagsFile,
-                out var flagsPath))
+        if (!TryLoadFlags(options.Flags ?? project.Flags, stderr, out var flagsFile, out var flagsPath))
         {
             return 1;
         }
@@ -264,24 +235,18 @@ internal static class CompileCommand
             return 1;
         }
 
-        if (!TryCollectProjectScripts(project, projectDirectory, includeDirectories, stderr, out var scripts))
-        {
-            return 1;
-        }
-
         if (!TryCreateResolver(includeDirectories, outputDirectory, dialect.Game, stderr, out var resolver))
         {
             return 1;
         }
 
-        // CLI default on. cwd is the .ppj directory; process environment is already used for ${ENV}.
-        if (!TryRunBuildCommands(project.PreBuild, projectDirectory, "pre-build", stderr))
+        // Pyro's build order, for the events with UseInBuild on. cwd is the .ppj directory.
+        if (!TryRunBuildEvents(project, stderr, "PreImportEvent", "PostImportEvent", "PreBuildEvent", "PreCompileEvent"))
         {
             return 1;
         }
 
-        var failed = false;
-        foreach (var scriptPath in scripts)
+        foreach (var scriptPath in project.Scripts)
         {
             if (!TryGetScriptOutputPath(scriptPath, outputDirectory, includeDirectories, dialect.Game, stderr, out var outputPath))
             {
@@ -314,7 +279,7 @@ internal static class CompileCommand
             return 1;
         }
 
-        return TryRunBuildCommands(project.PostBuild, projectDirectory, "post-build", stderr) ? 0 : 1;
+        return TryRunBuildEvents(project, stderr, "PostCompileEvent", "PostBuildEvent") ? 0 : 1;
     }
 
     private static int EmitScript(
@@ -385,28 +350,16 @@ internal static class CompileCommand
         }
     }
 
-    private static bool TryRunBuildCommands(
-        ImmutableArray<string> commands,
-        string projectDirectory,
-        string stage,
-        TextWriter stderr)
+    private static bool TryRunBuildEvents(PapyrusProject project, TextWriter stderr, params string[] names)
     {
-        if (commands.IsDefaultOrEmpty)
+        foreach (var buildEvent in project.BuildEvents(names))
         {
-            return true;
-        }
-
-        for (var i = 0; i < commands.Length; i++)
-        {
-            var command = commands[i];
-            if (string.IsNullOrWhiteSpace(command))
+            foreach (var command in buildEvent.Commands)
             {
-                continue;
-            }
-
-            if (!TryRunBuildCommand(command.Trim(), projectDirectory, stage, stderr))
-            {
-                return false;
+                if (!string.IsNullOrWhiteSpace(command) && !TryRunBuildCommand(command.Trim(), project.Directory, buildEvent.Name, stderr))
+                {
+                    return false;
+                }
             }
         }
 
@@ -529,8 +482,6 @@ internal static class CompileCommand
 
     private static bool TryLoadFlags(
         string? flags,
-        string? projectDirectory,
-        List<string>? includeDirectories,
         TextWriter stderr,
         out FlagsFile? flagsFile,
         out string? flagsPath)
@@ -542,45 +493,12 @@ internal static class CompileCommand
             return true;
         }
 
-        if (projectDirectory is not null)
-        {
-            if (!TryResolveProjectPath(projectDirectory, flags, stderr, out var candidate))
-            {
-                return false;
-            }
-
-            if (File.Exists(candidate))
-            {
-                flagsPath = candidate;
-            }
-            else if (includeDirectories is not null)
-            {
-                var fileName = Path.GetFileName(flags);
-                if (!string.IsNullOrEmpty(fileName))
-                {
-                    for (var i = 0; i < includeDirectories.Count; i++)
-                    {
-                        var search = Path.Combine(includeDirectories[i], fileName);
-                        if (File.Exists(search))
-                        {
-                            flagsPath = search;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (flagsPath is null)
-            {
-                stderr.WriteLine($"error: flags file not found: {candidate}");
-                return false;
-            }
-        }
-        else if (!TryGetFullPath(flags, stderr, out flagsPath))
+        if (!TryGetFullPath(flags, stderr, out flagsPath))
         {
             return false;
         }
-        else if (!File.Exists(flagsPath))
+
+        if (!File.Exists(flagsPath))
         {
             stderr.WriteLine($"error: flags file not found: {flagsPath}");
             return false;
@@ -599,140 +517,6 @@ internal static class CompileCommand
             flagsPath = null;
             return false;
         }
-    }
-
-    private static bool TryCollectProjectScripts(
-        PapyrusProject project,
-        string projectDirectory,
-        List<string> includeDirectories,
-        TextWriter stderr,
-        out List<string> scripts)
-    {
-        scripts = new List<string>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var script in project.Scripts)
-        {
-            if (string.IsNullOrWhiteSpace(script))
-            {
-                continue;
-            }
-
-            if (!TryFindProjectScript(projectDirectory, includeDirectories, script, stderr, out var scriptPath))
-            {
-                return false;
-            }
-
-            if (seen.Add(scriptPath))
-            {
-                scripts.Add(scriptPath);
-            }
-        }
-
-        foreach (var folder in project.Folders)
-        {
-            if (string.IsNullOrWhiteSpace(folder.Path))
-            {
-                continue;
-            }
-
-            if (!TryResolveProjectPath(projectDirectory, folder.Path, stderr, out var folderPath))
-            {
-                return false;
-            }
-
-            if (!Directory.Exists(folderPath))
-            {
-                stderr.WriteLine($"error: path not found: {folderPath}");
-                return false;
-            }
-
-            List<string> found;
-            try
-            {
-                found = new List<string>(Directory.EnumerateFiles(
-                    folderPath,
-                    "*.psc",
-                    folder.NoRecurse ? SearchOption.TopDirectoryOnly : SearchOption.AllDirectories));
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException
-                or NotSupportedException)
-            {
-                stderr.WriteLine($"error: {ex.Message}");
-                return false;
-            }
-
-            found.Sort(StringComparer.OrdinalIgnoreCase);
-            foreach (var scriptPath in found)
-            {
-                if (seen.Add(scriptPath))
-                {
-                    scripts.Add(scriptPath);
-                }
-            }
-        }
-
-        return true;
-    }
-
-    private static bool TryFindProjectScript(
-        string projectDirectory,
-        List<string> includeDirectories,
-        string script,
-        TextWriter stderr,
-        out string scriptPath)
-    {
-        scriptPath = null!;
-        var relative = script.Replace(':', Path.DirectorySeparatorChar);
-        if (!Path.GetExtension(relative).Equals(".psc", StringComparison.OrdinalIgnoreCase))
-        {
-            relative += ".psc";
-        }
-
-        if (Path.IsPathRooted(relative))
-        {
-            if (!TryGetFullPath(relative, stderr, out scriptPath))
-            {
-                return false;
-            }
-
-            if (File.Exists(scriptPath))
-            {
-                return true;
-            }
-
-            stderr.WriteLine($"error: path not found: {scriptPath}");
-            return false;
-        }
-
-        if (!TryResolveProjectPath(projectDirectory, relative, stderr, out var candidate))
-        {
-            return false;
-        }
-
-        if (File.Exists(candidate))
-        {
-            scriptPath = candidate;
-            return true;
-        }
-
-        var missingPath = candidate;
-        for (var i = 0; i < includeDirectories.Count; i++)
-        {
-            if (!TryGetFullPath(Path.Combine(includeDirectories[i], relative), stderr, out candidate))
-            {
-                return false;
-            }
-
-            if (File.Exists(candidate))
-            {
-                scriptPath = candidate;
-                return true;
-            }
-        }
-
-        stderr.WriteLine($"error: path not found: {missingPath}");
-        return false;
     }
 
     private static bool TryGetScriptOutputPath(
@@ -759,20 +543,6 @@ internal static class CompileCommand
         var relative = Path.ChangeExtension(name.ToRelativePath(), ".pex")
             .Replace('/', Path.DirectorySeparatorChar);
         return TryGetFullPath(Path.Combine(outputDirectory, relative), stderr, out outputPath);
-    }
-
-    private static bool TryResolveProjectPath(
-        string projectDirectory,
-        string path,
-        TextWriter stderr,
-        out string fullPath)
-    {
-        if (Path.IsPathRooted(path))
-        {
-            return TryGetFullPath(path, stderr, out fullPath);
-        }
-
-        return TryGetFullPath(Path.Combine(projectDirectory, path), stderr, out fullPath);
     }
 
     private static bool TryGetFullPath(string path, TextWriter stderr, out string fullPath)

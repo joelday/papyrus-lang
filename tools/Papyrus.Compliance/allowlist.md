@@ -1,8 +1,6 @@
 # Compliance allowlist
 
-Reviewed like code. Anything not on this list must be byte-identical PEX. Semantic equivalence applies only to these constructs. CI reports allowlist size as a metric that is expected to shrink.
-
-Starting set (published CK differences):
+Places where `papyrusc` deliberately differs from the Creation Kit compiler. `papyrus-compliance verify --compile` expects byte-identical PEX for everything else.
 
 1. `none-to-bool-string` — The CK allows implicit coercion from `None` to `Bool` and `String` as long as it is not a literal `None`. We do not allow implicit coercion from `None` to `Bool` or `String` at all.
 
@@ -12,15 +10,3 @@ Starting set (published CK differences):
 
 4. `parent-scope-params` — The FO4 CK appears not to check whether parameter names conflict with names in a parent scope. Previous CK versions did; `RobotSelfDestructScript.frenzyFX` is a victim. We check, and this script is allowlisted.
    - scripts: RobotSelfDestructScript
-
-## Running
-
-Tier 1 (compile vs committed hashes; skips when the local game scripts are absent):
-
-```
-papyrusc verify --compile --game skyrimse|fallout4|starfield --source ./game-scripts/<game> --baseline docs/compliance/baselines/<game>.json
-```
-
-`--source` defaults to `./game-scripts/<game>`. Public CI must not require game files.
-
-Tier 2 (`--ck-compiler`, compile with both papyrusc and a local CK binary) is not implemented yet. See `docs/compliance/baselines/README.md`.

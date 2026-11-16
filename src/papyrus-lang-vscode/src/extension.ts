@@ -43,6 +43,7 @@ class PapyrusExtension implements Disposable {
     private readonly _outputChannel: OutputChannel;
     private readonly _clientManager: PapyrusLanguageClientManager;
     private readonly _configWatcher: ConfigurationWatcher<string | undefined, ConfigurationChangeEvent>;
+    private readonly _pyroPathWatcher: ConfigurationWatcher<string | undefined, ConfigurationChangeEvent>;
     private readonly _statusBarItem: LanguageClientStatusBarItem;
     private readonly _showOutputChannelCommand: Disposable;
     private readonly _assemblyView: AssemblyView;
@@ -88,7 +89,7 @@ class PapyrusExtension implements Disposable {
                 // Makes it obvious which build a dev host is running.
                 const built = fs.statSync(serverPath).mtime.toLocaleString();
                 this._outputChannel.appendLine(`Starting ${serverPath} (built ${built})`);
-                const client = new RealLanguageClient(serverPath, this._outputChannel);
+                const client = new RealLanguageClient(serverPath, this._outputChannel, getPyroPath());
                 client.onNotification(projectNeedsPyroMethod, (params) =>
                     void pyroPrompter.handleProjectNeedsPyro(params as ProjectNeedsPyroParams)
                 );
@@ -104,6 +105,14 @@ class PapyrusExtension implements Disposable {
             getServerPathOverride,
             (changeEvent) => changeEvent.affectsConfiguration(`${CONFIGURATION_SECTION}.server.path`),
             () => void this._clientManager.ensureStarted()
+        );
+
+        // The server reads Pyro's downloads at startup, so a different Pyro needs a fresh server.
+        this._pyroPathWatcher = new ConfigurationWatcher(
+            { onDidChange: workspace.onDidChangeConfiguration },
+            getPyroPath,
+            (changeEvent) => changeEvent.affectsConfiguration(`${CONFIGURATION_SECTION}.pyro.path`),
+            () => void this._clientManager.stop().then(() => this._clientManager.ensureStarted())
         );
 
         this._statusBarItem = new LanguageClientStatusBarItem(this._clientManager);
@@ -135,6 +144,7 @@ class PapyrusExtension implements Disposable {
         this._showOutputChannelCommand.dispose();
         this._statusBarItem.dispose();
         this._configWatcher.dispose();
+        this._pyroPathWatcher.dispose();
         this._clientManager.dispose();
         this._outputChannel.dispose();
     }

@@ -10,7 +10,7 @@ Papyrus 4 is a new extension from the ground up, built on a new Papyrus compiler
 - **More editor features.** Semantic highlighting, workspace symbols, call and type hierarchy, inlay hints, code lens, on-type formatting, and **Papyrus: View Assembly** to see the PEX your script compiles to.
 - **Fast.** Native code, no runtime to spin up, and a server that stays responsive on large projects.
 
-Projects are `.ppj` files, and your project's `<Imports>` tell the server where the base game's scripts are, so keep the Creation Kit installed.
+Projects are `.ppj` files, and your project's `<Imports>` tell the server where the base game's scripts are: the Creation Kit's sources, or remote imports from your Pyro's download cache.
 
 ## Not here yet
 

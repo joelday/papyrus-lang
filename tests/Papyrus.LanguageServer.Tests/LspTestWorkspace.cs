@@ -65,6 +65,9 @@ internal sealed class LspTestWorkspace : IDisposable
               <Imports>
                 <Import>scripts</Import>
               </Imports>
+              <Folders>
+                <Folder>scripts</Folder>
+              </Folders>
             </PapyrusProject>
             """);
 

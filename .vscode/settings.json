@@ -2,5 +2,6 @@
   "omnisharp.disableMSBuildDiagnosticWarning": true,
   "editor.formatOnSave": true,
   "papyrus.fallout4.ignoreDebuggerVersion": true,
-  "C_Cpp.default.cppStandard": "c++23"
+  "C_Cpp.default.cppStandard": "c++23",
+  "cmake.sourceDirectory": "C:/Users/joeld/repos/papyrus-lang/dependencies/ports/commonlibsf"
 }

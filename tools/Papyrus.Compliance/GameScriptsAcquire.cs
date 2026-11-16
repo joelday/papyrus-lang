@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace Papyrus.Compiler;
+namespace Papyrus.Compliance;
 
 internal static class GameScriptsAcquire
 {

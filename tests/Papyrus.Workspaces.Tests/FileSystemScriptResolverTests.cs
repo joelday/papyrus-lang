@@ -142,7 +142,7 @@ public sealed class FileSystemScriptResolverTests : IDisposable
     }
 
     [Fact]
-    public void FromProject_uses_import_then_folder_order()
+    public void FromProject_uses_pyro_import_order_then_folders()
     {
         var import = Path.Combine(_root, "import");
         var folder = Path.Combine(_root, "folder");
@@ -150,9 +150,10 @@ public sealed class FileSystemScriptResolverTests : IDisposable
         Directory.CreateDirectory(folder);
         File.WriteAllText(Path.Combine(import, "Foo.psc"), "ScriptName Import\n");
         File.WriteAllText(Path.Combine(folder, "Foo.psc"), "ScriptName Folder\n");
-
-        var project = PpjParser.Parse(
-            $"""
+        var ppj = Path.Combine(_root, "game.ppj");
+        File.WriteAllText(
+            ppj,
+            """
             <PapyrusProject Game="sse" Output="out">
               <Imports>
                 <Import>import</Import>
@@ -163,11 +164,11 @@ public sealed class FileSystemScriptResolverTests : IDisposable
             </PapyrusProject>
             """);
 
-        var resolver = new FileSystemScriptResolver(project, _root);
+        var resolver = new FileSystemScriptResolver(PapyrusProject.Load(ppj));
 
-        Assert.Equal(2, resolver.IncludeDirectories.Length);
-        Assert.Equal(Path.GetFullPath(import), resolver.IncludeDirectories[0]);
-        Assert.Equal(Path.GetFullPath(folder), resolver.IncludeDirectories[1]);
+        // Pyro puts the project folder first.
+        Assert.Equal([Path.GetFullPath(_root), Path.GetFullPath(import), Path.GetFullPath(folder)], resolver.IncludeDirectories);
+        Assert.Equal(Path.Combine(Path.GetFullPath(_root), "out"), resolver.OutputDirectory);
         Assert.True(resolver.TryResolve(QualifiedName.Parse("Foo"), out var text, out _));
         Assert.Equal("ScriptName Import\n", text.ToString());
     }

@@ -24,7 +24,7 @@ internal sealed class LspRequestScheduler : IDisposable
     internal LspRequestScheduler()
         // enableFileWatching stays on so external edits (git checkout, other tools) are
         // picked up in the real server; only tests construct a workspace directly to opt out.
-        : this(new PapyrusWorkspace(TimeProvider.System)) { }
+        : this(new PapyrusWorkspace(TimeProvider.System, pyro: PyroInstall.Locate())) { }
 
     internal LspRequestScheduler(PapyrusWorkspace workspace)
     {

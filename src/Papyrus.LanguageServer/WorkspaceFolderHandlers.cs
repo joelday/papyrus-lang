@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
@@ -119,7 +120,7 @@ internal sealed class WorkspaceFoldersHandler : ILspHandler<WorkspaceFolderChang
                 ct.ThrowIfCancellationRequested();
                 foreach (var ppj in ProjectDiscovery.FindProjectFiles(root))
                 {
-                    ProjectLoading.Load(_workspace, ppj, messages, pyroNotices);
+                    ProjectLoading.Load(_workspace, ppj, messages, pyroNotices, _getNotifier);
                 }
             }
 
@@ -163,20 +164,15 @@ internal static class ProjectLoading
         PapyrusWorkspace workspace,
         string ppj,
         List<LogMessageParams> messages,
-        List<ProjectNeedsPyroParams>? pyroNotices = null)
+        List<ProjectNeedsPyroParams>? pyroNotices = null,
+        Func<ILspNotifier?>? getNotifier = null)
     {
         PapyrusProject project;
         try
         {
             project = workspace.LoadProject(ppj);
         }
-        catch (Exception ex)
-            when (ex
-                    is IOException
-                        or UnauthorizedAccessException
-                        or XmlException
-                        or InvalidDataException
-            )
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or LetsPlayWithFire.Pyro.ProjectException)
         {
             messages.Add(
                 new LogMessageParams
@@ -188,52 +184,65 @@ internal static class ProjectLoading
             return;
         }
 
-        if (project.Dialect is null)
+        messages.Add(
+            project.Dialect is null
+                ? new LogMessageParams
+                {
+                    Type = MessageType.Warning,
+                    Message =
+                        $"Pyro cannot tell which game Papyrus project '{ppj}' is for; assuming Skyrim Special Edition. "
+                        + "Add Game=\"sse\", \"tes5\", \"fo4\", or \"sf1\" to the project.",
+                }
+                : new LogMessageParams
+                {
+                    Type = MessageType.Log,
+                    Message = $"Loaded Papyrus project '{ppj}' ({project.Game}).",
+                });
+
+        foreach (var diagnostic in project.Diagnostics)
+        {
+            if (diagnostic.Code == "game-type-unknown")
+            {
+                continue;
+            }
+
+            messages.Add(
+                new LogMessageParams
+                {
+                    Type = diagnostic.Severity == LetsPlayWithFire.Pyro.ProjectDiagnosticSeverity.Error ? MessageType.Error : MessageType.Warning,
+                    Message = $"{diagnostic.File}({diagnostic.Line},{diagnostic.Column}): {diagnostic.Message}",
+                }
+            );
+        }
+
+        if (project.MissingRemotes.IsEmpty)
+        {
+            return;
+        }
+
+        var remotes = string.Join(", ", project.MissingRemotes);
+        if (workspace.Pyro is not { } pyro)
         {
             messages.Add(
                 new LogMessageParams
                 {
                     Type = MessageType.Warning,
-                    Message =
-                        $"Papyrus project '{ppj}' has no Game attribute and its Flags file does not identify a game; "
-                        + "assuming Skyrim Special Edition. Add Game=\"sse\", \"tesv\", \"fo4\", or \"starfield\" to the project.",
+                    Message = $"Papyrus project '{ppj}' imports from remotes that Pyro downloads, and no Pyro was found: {remotes}.",
                 }
             );
-        }
-        else
-        {
-            messages.Add(
-                new LogMessageParams
-                {
-                    Type = MessageType.Log,
-                    Message = $"Loaded Papyrus project '{ppj}' ({project.Game}).",
-                }
-            );
+            pyroNotices?.Add(new ProjectNeedsPyroParams { ProjectPath = ppj, Reasons = [$"imports from remotes that Pyro downloads: {remotes}"] });
+            return;
         }
 
-        if (!project.Ignored.IsEmpty)
-        {
-            messages.Add(
-                new LogMessageParams
-                {
-                    Type = MessageType.Info,
-                    Message = IgnoredProjectContent.Describe(ppj, project.Ignored),
-                }
-            );
-        }
-
-        var reasons = PyroRequirements.Analyze(project);
-        if (!reasons.IsEmpty)
-        {
-            messages.Add(
-                new LogMessageParams
-                {
-                    Type = MessageType.Info,
-                    Message = $"Papyrus project '{ppj}' relies on Pyro: {string.Join("; ", reasons)}.",
-                }
-            );
-            pyroNotices?.Add(new ProjectNeedsPyroParams { ProjectPath = ppj, Reasons = [.. reasons] });
-        }
+        messages.Add(
+            new LogMessageParams
+            {
+                Type = MessageType.Warning,
+                Message = $"Pyro ({pyro.ExecutablePath}) has not downloaded these remote imports of '{ppj}': {remotes}. "
+                    + "Build the project with Pyro once, or give Pyro an access token; it reloads here when the downloads appear.",
+            }
+        );
+        PyroDownloadWatch.Watch(workspace, pyro, project.Id, ppj, getNotifier);
     }
 
     internal static async Task LogAsync(
@@ -260,6 +269,109 @@ internal static class ProjectLoading
 
     internal static Task LogAsync(ILspNotifier? notifier, List<LogMessageParams> messages, CancellationToken ct)
         => LogAsync(notifier, messages, null, ct);
+}
+
+/// <summary>
+/// Reloads projects whose remote imports Pyro had not downloaded when they loaded, once
+/// scripts appear under the Pyro install (that is, after the user builds with Pyro).
+/// </summary>
+internal sealed class PyroDownloadWatch : IDisposable
+{
+    private static readonly ConditionalWeakTable<PapyrusWorkspace, PyroDownloadWatch> Watches = new();
+
+    private readonly PapyrusWorkspace _workspace;
+    private readonly FileSystemWatcher _watcher;
+    private readonly Timer _debounce;
+    private readonly Dictionary<ProjectId, (string Ppj, Func<ILspNotifier?>? GetNotifier)> _waiting = new();
+
+    private PyroDownloadWatch(PapyrusWorkspace workspace, PyroInstall pyro)
+    {
+        _workspace = workspace;
+        _debounce = new Timer(_ => ReloadDownloaded(), null, Timeout.Infinite, Timeout.Infinite);
+
+        // Watch Pyro's own folder: its "remote" folder may not exist until the first download.
+        _watcher = new FileSystemWatcher(pyro.Directory, "*.psc")
+        {
+            IncludeSubdirectories = true,
+            NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite,
+        };
+        _watcher.Created += OnChanged;
+        _watcher.Changed += OnChanged;
+        _watcher.Renamed += OnChanged;
+        _watcher.EnableRaisingEvents = true;
+    }
+
+    internal static void Watch(
+        PapyrusWorkspace workspace,
+        PyroInstall pyro,
+        ProjectId projectId,
+        string ppj,
+        Func<ILspNotifier?>? getNotifier)
+    {
+        PyroDownloadWatch watch;
+        try
+        {
+            watch = Watches.GetValue(workspace, w => new PyroDownloadWatch(w, pyro));
+        }
+        catch (Exception ex) when (ex is IOException or ArgumentException or UnauthorizedAccessException)
+        {
+            return;
+        }
+
+        lock (watch._waiting)
+        {
+            watch._waiting[projectId] = (ppj, getNotifier);
+        }
+    }
+
+    private void OnChanged(object sender, FileSystemEventArgs e)
+        => _debounce.Change(TimeSpan.FromSeconds(2), Timeout.InfiniteTimeSpan);
+
+    private void ReloadDownloaded()
+    {
+        KeyValuePair<ProjectId, (string Ppj, Func<ILspNotifier?>? GetNotifier)>[] waiting;
+        lock (_waiting)
+        {
+            waiting = [.. _waiting];
+        }
+
+        foreach (var (projectId, (ppj, getNotifier)) in waiting)
+        {
+            var messages = new List<LogMessageParams>();
+            try
+            {
+                if (_workspace.CurrentSolution.ContainsProject(projectId))
+                {
+                    _workspace.ApplyChange(new WorkspaceChange.ReloadProject(projectId));
+                }
+
+                if (!_workspace.CurrentSolution.TryGetProject(projectId, out var project) || project.MissingRemotes.IsEmpty)
+                {
+                    lock (_waiting)
+                    {
+                        _waiting.Remove(projectId);
+                    }
+
+                    if (project is not null)
+                    {
+                        messages.Add(new LogMessageParams { Type = MessageType.Log, Message = $"Pyro downloaded remote imports; reloaded Papyrus project '{ppj}'." });
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or LetsPlayWithFire.Pyro.ProjectException or ArgumentException or ObjectDisposedException)
+            {
+                messages.Add(new LogMessageParams { Type = MessageType.Error, Message = $"Could not reload Papyrus project '{ppj}': {ex.Message}" });
+            }
+
+            _ = ProjectLoading.LogAsync(getNotifier?.Invoke(), messages, CancellationToken.None);
+        }
+    }
+
+    public void Dispose()
+    {
+        _watcher.Dispose();
+        _debounce.Dispose();
+    }
 }
 
 /// <summary>
@@ -367,7 +479,7 @@ internal sealed class WatchedFilesHandler : ILspHandler<DidChangeWatchedFilesPar
             }
             else if (File.Exists(path))
             {
-                ProjectLoading.Load(_workspace, path, messages, pyroNotices);
+                ProjectLoading.Load(_workspace, path, messages, pyroNotices, _getNotifier);
                 loaded = true;
             }
         }

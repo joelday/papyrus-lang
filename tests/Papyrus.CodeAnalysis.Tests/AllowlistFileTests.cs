@@ -115,6 +115,6 @@ public sealed class AllowlistFileTests
         if (found is not null)
             return found;
 
-        throw new InvalidOperationException("docs/compliance/allowlist.md was not found.");
+        throw new InvalidOperationException("tools/Papyrus.Compliance/allowlist.md was not found.");
     }
 }

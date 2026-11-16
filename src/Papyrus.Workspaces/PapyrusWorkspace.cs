@@ -19,6 +19,7 @@ public sealed class PapyrusWorkspace : IDisposable
     private readonly TimeSpan _watchDebounce;
     private readonly bool _enableFileWatching;
     private readonly ILogger? _logger;
+    private readonly PyroInstall? _pyro;
     private readonly List<WorkspaceChange> _pendingWatch = new();
     private readonly List<FileSystemWatcher> _watchers = new();
 
@@ -37,7 +38,8 @@ public sealed class PapyrusWorkspace : IDisposable
         TimeProvider timeProvider,
         TimeSpan? watchDebounce = null,
         bool enableFileWatching = true,
-        ILogger? logger = null)
+        ILogger? logger = null,
+        PyroInstall? pyro = null)
     {
         ArgumentNullException.ThrowIfNull(timeProvider);
 
@@ -51,8 +53,12 @@ public sealed class PapyrusWorkspace : IDisposable
         _watchDebounce = debounce;
         _enableFileWatching = enableFileWatching;
         _logger = logger;
+        _pyro = pyro;
         _solution = PapyrusSolution.Empty;
     }
+
+    /// <summary>The Pyro whose download cache and token serve the remote imports of loaded projects, if any.</summary>
+    public PyroInstall? Pyro => _pyro;
 
     public PapyrusSolution CurrentSolution
     {
@@ -79,7 +85,7 @@ public sealed class PapyrusWorkspace : IDisposable
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(ppjPath);
 
-        var project = ReadProject(ppjPath);
+        var project = PapyrusProject.Load(ppjPath, _pyro, _logger);
         var id = project.Id;
         ApplyLoadedProject(project);
         return CurrentSolution.GetProject(id);
@@ -272,8 +278,8 @@ public sealed class PapyrusWorkspace : IDisposable
             WorkspaceChange.OpenDocument open => OpenOrChangeDocument(solution, open.Id, open.Text, _logger),
             WorkspaceChange.ChangeDocument edit => OpenOrChangeDocument(solution, edit.Id, edit.Text, _logger),
             WorkspaceChange.CloseDocument close => CloseDocument(solution, close.Id, _logger),
-            WorkspaceChange.ReloadProject reload => ReloadProject(solution, reload.Id, _logger),
-            WorkspaceChange.FileCreated created => ApplyFileCreated(solution, created.Path, _logger),
+            WorkspaceChange.ReloadProject reload => ReloadProject(solution, reload.Id, _pyro, _logger),
+            WorkspaceChange.FileCreated created => ApplyFileCreated(solution, created.Path, _pyro, _logger),
             WorkspaceChange.FileDeleted deleted => ApplyFileDeleted(solution, deleted.Path, _logger),
             _ => throw new ArgumentOutOfRangeException(nameof(change)),
         };
@@ -318,7 +324,7 @@ public sealed class PapyrusWorkspace : IDisposable
         return InvalidateScriptPath(next, id.ProjectId, id.Path, logger);
     }
 
-    private static PapyrusSolution ReloadProject(PapyrusSolution solution, ProjectId id, ILogger? logger)
+    private static PapyrusSolution ReloadProject(PapyrusSolution solution, ProjectId id, PyroInstall? pyro, ILogger? logger)
     {
         ArgumentNullException.ThrowIfNull(id);
         if (!solution.TryGetProject(id, out var existing))
@@ -326,16 +332,15 @@ public sealed class PapyrusWorkspace : IDisposable
             throw new ArgumentException("Project is not loaded.", nameof(id));
         }
 
-        var path = existing.Path ?? id.Path;
-        return solution.WithProject(CreateProjectState(ReadProject(path), solution.OpenDocuments, logger));
+        return solution.WithProject(CreateProjectState(PapyrusProject.Load(existing.Path, pyro, logger), solution.OpenDocuments, logger));
     }
 
-    private static PapyrusSolution ApplyFileCreated(PapyrusSolution solution, string path, ILogger? logger)
+    private static PapyrusSolution ApplyFileCreated(PapyrusSolution solution, string path, PyroInstall? pyro, ILogger? logger)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         if (TryGetLoadedProjectId(solution, path, out var projectId))
         {
-            return ReloadProject(solution, projectId, logger);
+            return ReloadProject(solution, projectId, pyro, logger);
         }
 
         if (WorkspacePaths.HasExtension(path, ".psc"))
@@ -473,18 +478,7 @@ public sealed class PapyrusWorkspace : IDisposable
         ImmutableDictionary<DocumentId, SourceText> openDocuments,
         ILogger? logger = null)
     {
-        if (project.Path is null)
-        {
-            throw new ArgumentException("Project has no path.", nameof(project));
-        }
-
-        var projectDirectory = Path.GetDirectoryName(project.Path);
-        if (string.IsNullOrEmpty(projectDirectory))
-        {
-            throw new ArgumentException("Project path has no directory.", nameof(project));
-        }
-
-        var disk = new FileSystemScriptResolver(project, projectDirectory);
+        var disk = new FileSystemScriptResolver(project);
         var resolver = OverlayOpenDocuments(disk, project.Id, openDocuments);
         var dialect = project.Dialect ?? PapyrusDialect.SkyrimSe;
         var compilation = PapyrusCompilation.Create(dialect, resolver, logger: logger);
@@ -514,13 +508,6 @@ public sealed class PapyrusWorkspace : IDisposable
         }
 
         return new BufferScriptResolver(disk, pathBuffers);
-    }
-
-    private static PapyrusProject ReadProject(string ppjPath)
-    {
-        var full = Path.GetFullPath(ppjPath);
-        using var stream = File.OpenRead(full);
-        return PpjParser.Parse(stream).WithPath(full);
     }
 
     private static bool TryGetLoadedProjectId(PapyrusSolution solution, string path, out ProjectId projectId)
@@ -707,15 +694,7 @@ public sealed class PapyrusWorkspace : IDisposable
         foreach (var projectId in solution.ProjectIds)
         {
             var state = solution.GetState(projectId);
-            if (state.Project.Path is not null)
-            {
-                var projectDirectory = Path.GetDirectoryName(state.Project.Path);
-                if (!string.IsNullOrEmpty(projectDirectory))
-                {
-                    directories.Add(Path.GetFullPath(projectDirectory));
-                }
-            }
-
+            directories.Add(state.Project.Directory);
             var includes = state.DiskResolver.IncludeDirectories;
             for (var i = 0; i < includes.Length; i++)
             {

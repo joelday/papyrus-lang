@@ -19,7 +19,7 @@ Run Requirements:
 - [Skyrim address library mod (this is split into two mods for AE and SE)](https://www.nexusmods.com/skyrimspecialedition/mods/32444)
 - [Address Library for SFSE Plugins](https://www.nexusmods.com/starfield/mods/3256) (Starfield)
 
-Starfield (`DarkId.Papyrus.DebugServer.Starfield`) is an SFSE v1 skeleton: attach via SFSE, published locals IDs, versioned JSON. Instruction/stack trampolines are blocked on unpublished Address Library IDs. See [docs/debug/sfse-plugin-v1.md](../../docs/debug/sfse-plugin-v1.md).
+Starfield (`DarkId.Papyrus.DebugServer.Starfield`) is a skeleton: it loads through SFSE and resolves its Address Library IDs from `src/native/DebugServer/data/starfield-<version>.json`, but breakpoints and stepping wait on Address Library IDs that have not been published yet. It is not part of the default solution build; build that project on its own.
 
 Make sure you've initialized the submodules in this project, i.e. `git clone --recurse-submodules` when cloning.
 
